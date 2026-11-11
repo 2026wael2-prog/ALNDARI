@@ -383,8 +383,21 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
                       <span className="text-[10px] font-bold uppercase">المبلغ الإجمالي</span>
                     </div>
                     <p className="font-mono text-sm font-black text-blue-700 dark:text-blue-300">
-                      {formatCurrency(invoice.total_amount, invoice.currency_code || 'SAR')}
+                      {formatCurrency(
+                        (invoice.currency_code || 'SAR') !== 'SAR' &&
+                          Number((invoice as Record<string, unknown>).total_document_amount) > 0
+                          ? ((invoice as Record<string, unknown>).total_document_amount as number)
+                          : invoice.total_amount,
+                        invoice.currency_code || 'SAR'
+                      )}
                     </p>
+                    {(invoice.currency_code || 'SAR') !== 'SAR' &&
+                      Number((invoice as Record<string, unknown>).total_document_amount) > 0 && (
+                        <p className="mt-0.5 font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          المعادل:{' '}
+                          {formatCurrency(invoice.total_amount, 'SAR')}
+                        </p>
+                      )}
                     {paymentInfo && paymentInfo.remaining > 0 && (
                       <p className="mt-0.5 font-mono text-[10px] font-bold text-rose-600">
                         متبقي:{' '}

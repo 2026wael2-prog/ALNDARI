@@ -143,13 +143,27 @@ export const buildInvoiceDisplayItems = (
  * الإجمالي — بلا `Math.abs` وبلا قلب إشارة الخصم.
  */
 export const computeInvoiceTotals = (source: PrintableInvoiceSource): InvoicePrintTotals => {
-  const total = asNumber(source.total_amount);
+  // [CURRENCY] للفواتير بعملة غير الريال: تُطبع الإجماليات بعملة الفاتورة
+  // (المبالغ الأصلية) لا بالعملة الأساسية، وإلا ظهر 350 ر.ي بدل 143,500 ر.ي.
+  const currency = String((source as { currency_code?: string | null }).currency_code ?? 'SAR');
+  const isForeign = currency !== 'SAR';
+  const docTotal = asNumber((source as { total_document_amount?: number | string | null }).total_document_amount);
+  const docSubtotal = asNumber(
+    (source as { subtotal_document_amount?: number | string | null }).subtotal_document_amount
+  );
+
+  const total = isForeign && docTotal > 0 ? docTotal : asNumber(source.total_amount);
   // مطابق للسلوك السابق: `undefined` فقط يعني «اشتق»، أما `null` فيعني صفراً صريحاً.
   const tax =
     source.tax_amount !== undefined
       ? asNumber(source.tax_amount)
       : roundTwo((total * VAT_RATE) / VAT_DENOMINATOR);
-  const subtotal = source.subtotal !== undefined ? asNumber(source.subtotal) : total - tax;
+  const subtotal =
+    isForeign && docSubtotal > 0
+      ? docSubtotal
+      : source.subtotal !== undefined
+        ? asNumber(source.subtotal)
+        : total - tax;
   const discount = asNumber(source.discount_amount);
   const paid = asNumber(source.paid_amount);
   return { subtotal, discount, tax, total, paid, remaining: Math.max(0, total - paid) };

@@ -37,7 +37,18 @@ const InvoiceItemsTable: React.FC<Props> = ({ invoice }) => {
   const displaySubtotal =
     itemsSubtotal > 0
       ? itemsSubtotal
-      : Number(invoice.subtotal) || Number(invoice.total_amount) || 0;
+      : Number(invoice.subtotal_document_amount) ||
+        Number(invoice.subtotal) ||
+        Number(invoice.total_amount) ||
+        0;
+
+  // [CURRENCY] للفواتير بعملة أجنبية: نعرض الإجمالي بعملة الفاتورة (المبلغ الأصلي)
+  // لا بالعملة الأساسية، مع إظهار المعادل بالريال السعودي كسطر ثانوي.
+  const invoiceCurrency = invoice.currency_code || 'SAR';
+  const isForeign = invoiceCurrency !== 'SAR';
+  const baseTotal = Number(invoice.total_amount) || 0;
+  const docTotal =
+    Number(invoice.total_document_amount) > 0 ? Number(invoice.total_document_amount) : baseTotal;
 
   return (
     <div className="mt-3 space-y-2">
@@ -154,9 +165,17 @@ const InvoiceItemsTable: React.FC<Props> = ({ invoice }) => {
           <div className="flex justify-between border-t border-slate-200 pt-1.5 text-sm font-black text-slate-900 dark:border-slate-700 dark:text-slate-100">
             <span>الصافي النهائي:</span>
             <span dir="ltr" className="font-mono text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(invoice.total_amount, invoice.currency_code || 'SAR')}
+              {formatCurrency(isForeign ? docTotal : baseTotal, invoiceCurrency)}
             </span>
           </div>
+          {isForeign && Math.abs(baseTotal - docTotal) > 0.01 && (
+            <div className="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400">
+              <span>المعادل بالريال السعودي:</span>
+              <span dir="ltr" className="font-mono">
+                {formatCurrency(baseTotal, 'SAR')}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

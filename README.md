@@ -1,30 +1,256 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# النظاري لقطع غيار السيارات — ALNDARI ERP
 
-# Run and deploy your AI Studio app
+نظام محاسبي متكامل لإدارة محلات قطع غيار السيارات، متعدد الفروع، يعمل على الويب بواجهة عربية كاملة (RTL).
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/drive/18OnkClsDNV-i6feIFmkwL8BBGkuVSMOv
-
-## System Architecture
-
-The Al-Zahra Smart ERP is a multi-layered web application built for stability and scalability:
-
-- **Frontend**: React 19 + TypeScript + Vite.
-- **Styling**: Tailwind CSS with a custom design system and desktop-first optimizations.
-- **State Management**: Zustand for global state, React Query (TanStack) for server state with IndexedDB persistence.
-- **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions).
-- **Security**: Granular Row Level Security (RLS) on all tables, encrypted auth sessions.
-- **Performance**: Advanced code splitting, lazy loading, and custom fetch retry logic.
-
-## Deployment
-
-The app is configured for dual deployment on **Vercel** and **Netlify** with proper SPA routing rules.
+> **المستودع:** https://github.com/2026wael2-prog/ALNDARI
 
 ---
 
-## Run Locally
+## نظرة عامة
 
-...
+| البند | الوصف |
+|---|---|
+| **النوع** | نظام ERP محاسبي + مخزون + مبيعات |
+| **الفروع** | غمدان · وائل النظاري · محمد النظاري |
+| **الواجهة** | عربية RTL — تصميم عالي الكثافة |
+| **قاعدة البيانات** | PostgreSQL (Supabase) |
+| **الاستضافة** | Vercel / Netlify (SPA) |
+
+---
+
+## المزايا الرئيسية
+
+### المحاسبة
+- دليل حسابات هرمي (6 مستويات) مع ترقيم قياسي
+- قيود يومية متوازنة تلقائيًا (يُمنع ترحيل قيد غير متوازن)
+- ميزان مراجعة · قائمة دخل · ميزانية عمومية
+- تقارير تفصيلية لكل حساب ولكل طرف
+- أرصدة افتتاحية وإقفال سنوي
+
+### المبيعات والمشتريات
+- فواتير بيع وشراء · مرتجعات · عروض أسعار
+- دعم متعدد العملات (SAR · YER · OMR) بأسعار صرف تاريخية
+- دفع نقدي / آجل / بنكي
+- **لا ضريبة قيمة مضافة** — النظام مضبوط على `is_tax_enabled = false`، ولا تُحسب ضريبة تلقائية على البنود
+
+### المخزون
+- مستودعات متعددة لكل فرع
+- تحويلات مخزنية · جرد · تسويات
+- تتبع الكميات والتكلفة المرجحة
+
+### العملاء والموردون والديون
+- ملفات أطراف مع أرصدة لحظية
+- **متابعة تحصيل الديون** بأولويات ودرجات متأخرة
+- سندات قبض وصرف
+- **حسابات غير قابلة للتحصيل مستثناة** تلقائيًا (الصناديق · المالك · الحسابات الوسيطة)
+
+### الإدارة
+- صلاحيات دقيقة (owner / admin / manager / accountant / sales / viewer)
+- **Filter الفرع:** كل مستخدم يرى بيانات فرعه فقط افتراضيًا
+- سجل تدقيق لكل عملية
+- رسائل ونشاط لحظي (Realtime)
+
+---
+
+## التقنيات
+
+| الطبقة | التقنية |
+|---|---|
+| الواجهة | React 19 + TypeScript + Vite |
+| التنسيق | Tailwind CSS + نظام تصميم مخصص |
+| الحالة | Zustand (عام) · TanStack Query (بيانات الخادم) |
+| الخلفية | Supabase — PostgreSQL · Auth · RLS · Realtime |
+| الاختبار | Vitest · Playwright |
+| الجودة | ESLint · TypeScript strict · سكربتات فحص مخصصة |
+
+---
+
+## المتطلبات
+
+- **Node.js** 20 أو أحدث
+- **npm** 10 أو أحدث
+- حساب **Supabase** (أو قاعدة PostgreSQL 15+)
+- **Git**
+
+---
+
+## الإعداد
+
+### 1) استنساخ المشروع
+
+```bash
+git clone https://github.com/2026wael2-prog/ALNDARI.git
+cd ALNDARI
+```
+
+### 2) تثبيت الحزم
+
+```bash
+npm install
+```
+
+### 3) متغيّرات البيئة
+
+انسخ `.env.example` إلى `.env.local` واملأ القيم:
+
+```env
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon-key>
+```
+
+> ⚠️ **ممنوع** وضع مفتاح `service_role` في ملفات الواجهة — يُستخدم في السكربتات الإدارية فقط.
+
+### 4) قاعدة البيانات
+
+طبّق الهجرات بالترتيب من مجلد `supabase/migrations/`:
+
+```bash
+# عبر Supabase CLI
+supabase db push
+
+# أو يدويًا
+psql "$DATABASE_URL" -f supabase/migrations/<file>.sql
+```
+
+---
+
+## التشغيل
+
+```bash
+# بيئة التطوير
+npm run dev
+
+# فحص الأنواع
+npm run type-check
+
+# البناء للإنتاج
+npm run build
+
+# معاينة نسخة الإنتاج
+npm run preview
+```
+
+يفتح التطبيق على `http://localhost:5173` في وضع التطوير، و`http://localhost:4173` في المعاينة.
+
+---
+
+## الفروع والمستخدمون
+
+| الفرع | المستخدم | الدور |
+|---|---|---|
+| **غمدان** | `2027.gamdan@gmail.com` | مدير فرع |
+| **وائل النظاري** | `2026.wael2@gmail.com` | مالك |
+| **محمد النظاري** | `m713896067@gmail.com` | مدير فرع |
+
+### سلوك الفرع (مهم)
+
+```
+مدير الفرع  →  يرى فرعه فقط دائمًا (مقيّد من الخادم)
+المالك      →  يرى فرعه افتراضيًا، ويمكنه اختيار فرع آخر أو «جميع الفروع»
+```
+
+لا تظهر بيانات فرع لموظف فرع آخر — الفلترة مطبقة في الواجهة **وفي دوال قاعدة البيانات**.
+
+---
+
+## القواعد المحاسبية المعتمدة
+
+| # | القاعدة | التطبيق |
+|---|---|---|
+| 1 | لا ضريبة قيمة مضافة | `companies.is_tax_enabled = false` · لا تُحسب ضريبة على البنود |
+| 2 | لا بيع آجل للزبون العام | مانع على مستوى قاعدة البيانات (`trg_block_general_customer_credit`) |
+| 3 | الصناديق والمالك ليسوا عملاء | عمود `parties.is_collectible` يستثنيهم من قوائم الديون |
+| 4 | القيد يجب أن يتوازن | قيود غير متوازنة = 0 (فحص السكربت `check:db:health`) |
+| 5 | العملات تُحوّل بسعر تاريخ الفاتورة | `exchange_rates` + دالة `fn_to_base_amount` |
+| 6 | التاريخ محلي لا UTC | استخدام `formatLocalDate()` دائمًا |
+
+---
+
+## السكربتات المتاحة
+
+```bash
+npm run dev            # تشغيل التطوير
+npm run build          # بناء الإنتاج
+npm run preview        # معاينة الإنتاج
+npm run type-check     # فحص TypeScript
+npm run lint           # ESLint
+npm run test           # اختبارات Vitest
+npm run test:e2e       # اختبارات Playwright
+npm run check:encoding # سلامة الترميز العربي
+npm run check:layers   # حدود الطبقات المعمارية
+npm run check:fonts    # منع الخطوط الأصغر من 10px
+npm run check:db:health# صحة القيود والأرصدة
+```
+
+---
+
+## النشر
+
+### Vercel
+
+```bash
+npm i -g vercel
+vercel --prod
+```
+
+أضف متغيّرات البيئة في لوحة Vercel:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+> ملف `vercel.json` يضبط إعادة التوجيه لـ SPA (كل المسارات → `index.html`).
+
+### Netlify
+
+ملف `netlify.toml` جاهز — اربط المستودع وانشر.
+
+---
+
+## هيكل المشروع
+
+```
+src/
+├── core/          # البنية الأساسية (Supabase client · أدوات · أنواع)
+├── ui/            # مكوّنات التصميم الأساسية
+├── features/      # وحدات العمل
+│   ├── auth/          # المصادقة والصلاحيات
+│   ├── branches/      # الفروع وفلتر الفرع
+│   ├── sales/         # المبيعات
+│   ├── purchases/     # المشتريات
+│   ├── inventory/     # المخزون
+│   ├── parties/       # العملاء والموردون
+│   ├── debts/         # متابعة الديون
+│   ├── accounting/    # المحاسبة والتقارير
+│   └── dashboard/     # لوحة المعلومات
+supabase/
+├── migrations/    # هجرات قاعدة البيانات
+└── functions/     # Edge Functions
+scripts/           # سكربتات الجودة والصيانة
+```
+
+---
+
+## الأمان
+
+- **RLS مفعّل** على جميع الجداول الحساسة
+- **مفاتيح الخدمة** لا تُرفع للمستودع (`.env*` مستثنى)
+- **كلمات المرور** لا تُخزَّن في الكود إطلاقًا
+- راجع `SUPABASE_RULES.md` لسياسات الوصول
+
+---
+
+## المساهمة
+
+1. أنشئ فرعًا: `git checkout -b feature/اسم-الميزة`
+2. التزم بالمعايير: `npm run type-check && npm run lint`
+3. ارفع: `git push origin feature/اسم-الميزة`
+4. افتح Pull Request
+
+---
+
+## الترخيص
+
+ملكية خاصة — النظاري لقطع غيار السيارات. جميع الحقوق محفوظة.
+
+---
+
+**آخر تحديث:** 2026-11-11

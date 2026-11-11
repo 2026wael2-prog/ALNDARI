@@ -20,27 +20,6 @@ const CASH_CUSTOMER_LABEL = 'عميل نقدي';
  * the sales log stays usable instead of crashing — while the underlying
  * `toBaseCurrency` utility still fails loudly for callers that need correctness.
  */
-const safeBaseTotal = (
-  amount: number | null | undefined,
-  currency: string | null | undefined,
-  rate: number | null | undefined
-): number => {
-  try {
-    return toBaseCurrency({
-      amount: Number(amount) || 0,
-      currency_code: currency || 'SAR',
-      exchange_rate: Number(rate) || 1,
-    });
-  } catch (err) {
-    logger.warn('SalesService', 'Invalid exchange rate — baseTotal set to 0', {
-      currency,
-      rate,
-      error: err,
-    });
-    return 0;
-  }
-};
-
 // Type for raw invoice data from Supabase
 interface RawInvoice {
   id: string;
@@ -49,6 +28,7 @@ interface RawInvoice {
   issue_date: string;
   created_at?: string;
   total_amount: number | null;
+  total_document_amount?: number | null;
   status: string;
   type: string;
   payment_method: string | null;
@@ -76,6 +56,7 @@ interface RawInvoice {
 /** Row shape returned by getStats() window queries (invoices). */
 interface SalesStatsRow {
   total_amount: number | null;
+  total_document_amount?: number | null;
   currency_code: string | null;
   exchange_rate: number | null;
 }
@@ -93,8 +74,14 @@ export const salesService = {
           partyPhone: _inv.party?.phone || null,
           date: formatLocalDate(_inv.issue_date),
           createdAt: _inv.created_at,
-          total: Number(_inv.total_amount) || 0,
-          baseTotal: safeBaseTotal(_inv.total_amount, _inv.currency_code, _inv.exchange_rate),
+          // [CURRENCY] سجل المبيعات: نعرض المبلغ بعملة الفاتورة، والمعادل بالريال من الحقل الأساسي.
+          total: (() => {
+            const base = Number(_inv.total_amount) || 0;
+            const doc = Number(_inv.total_document_amount) || 0;
+            const foreign = (_inv.currency_code || 'SAR') !== 'SAR';
+            return foreign && doc > 0 ? doc : base;
+          })(),
+          baseTotal: Number(_inv.total_amount) || 0,
           status: _inv.status,
           type: _inv.type,
           paymentMethod: _inv.payment_method,
@@ -162,8 +149,14 @@ export const salesService = {
         partyPhone: r.party_phone,
         date: formatLocalDate(r.issue_date),
         createdAt: (r as any).created_at || r.issue_date,
-        total: Number(r.total_amount) || 0,
-        baseTotal: safeBaseTotal(r.total_amount, r.currency_code, r.exchange_rate),
+        // [CURRENCY] نفس القاعدة: المبلغ بعملة الفاتورة + المعادل بالريال.
+        total: (() => {
+          const base = Number(r.total_amount) || 0;
+          const doc = Number((r as { total_document_amount?: number | null }).total_document_amount) || 0;
+          const foreign = (r.currency_code || 'SAR') !== 'SAR';
+          return foreign && doc > 0 ? doc : base;
+        })(),
+        baseTotal: Number(r.total_amount) || 0,
         status: r.status as any,
         type: r.type as any,
         paymentMethod: r.payment_method,

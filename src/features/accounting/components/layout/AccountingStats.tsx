@@ -1,0 +1,108 @@
+import React from 'react';
+import { TrendingDown, TrendingUp, Scale, Wallet, DollarSign, Package } from 'lucide-react';
+// Fix: Corrected import path to point to the barrel file.
+import { useFinancials } from '../../hooks/index';
+import { formatCurrency } from '../../../../core/utils';
+import StatCard from '../../../../ui/common/StatCard';
+
+const AccountingStats: React.FC = () => {
+  const { data: financials, isLoading } = useFinancials();
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div
+            key={i}
+            className="h-28 animate-pulse border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  const incomeStmt = financials?.incomeStatement as
+    | {
+        netIncome?: number;
+        totalRevenue?: number;
+        totalExpense?: number;
+        totalCogs?: number;
+        grossProfit?: number;
+        operatingExpenses?: number;
+      }
+    | undefined;
+
+  const netIncome = incomeStmt?.netIncome || 0;
+  const totalRevenue = incomeStmt?.totalRevenue || 0;
+  const totalCogs = incomeStmt?.totalCogs || 0;
+  const operatingExpenses =
+    incomeStmt?.operatingExpenses ?? (incomeStmt?.totalExpense || 0) - totalCogs;
+  const grossProfit = incomeStmt?.grossProfit ?? totalRevenue - totalCogs;
+  const totalAssets = financials?.balanceSheet?.totals?.assets || 0;
+  const totalLiabilities = financials?.balanceSheet?.totals?.liabilities || 0;
+
+  return (
+    <div className="grid grid-cols-2 gap-2 transition-colors duration-300 md:grid-cols-3 lg:grid-cols-6">
+      <StatCard
+        title="صافي الربح"
+        value={formatCurrency(netIncome)}
+        subtext={`مجمل: ${formatCurrency(grossProfit)}`}
+        icon={DollarSign}
+        colorClass={netIncome >= 0 ? 'text-emerald-500' : 'text-red-500'}
+        iconBgClass={netIncome >= 0 ? 'bg-emerald-500' : 'bg-red-500'}
+        trend={
+          totalRevenue > 0
+            ? { value: (netIncome / totalRevenue) * 100, isPositive: netIncome >= 0 }
+            : undefined
+        }
+      />
+
+      <StatCard
+        title="الإيرادات"
+        value={formatCurrency(totalRevenue)}
+        subtext="المبيعات والنشاط"
+        icon={TrendingUp}
+        colorClass="text-blue-500"
+        iconBgClass="bg-blue-500"
+      />
+
+      <StatCard
+        title="تكلفة المبيعات"
+        value={formatCurrency(totalCogs)}
+        subtext="تكلفة القطع المباعة (COGS)"
+        icon={Package}
+        colorClass="text-amber-500"
+        iconBgClass="bg-amber-500"
+      />
+
+      <StatCard
+        title="المصاريف التشغيلية"
+        value={formatCurrency(operatingExpenses)}
+        subtext="نثريات، إيجار، رواتب"
+        icon={TrendingDown}
+        colorClass="text-orange-500"
+        iconBgClass="bg-orange-500"
+      />
+
+      <StatCard
+        title="الأصول"
+        value={formatCurrency(totalAssets)}
+        subtext="المخزون والأرصدة النقدية"
+        icon={Wallet}
+        colorClass="text-indigo-500"
+        iconBgClass="bg-indigo-500"
+      />
+
+      <StatCard
+        title="الخصوم"
+        value={formatCurrency(totalLiabilities)}
+        subtext="الالتزامات والذمم"
+        icon={Scale}
+        colorClass="text-rose-500"
+        iconBgClass="bg-rose-500"
+      />
+    </div>
+  );
+};
+
+export default AccountingStats;

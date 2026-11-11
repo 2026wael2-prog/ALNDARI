@@ -1,0 +1,103 @@
+import React from 'react';
+import { Warehouse, Eye, Edit, Trash2 } from 'lucide-react';
+import ExcelTable from '../../../../ui/common/ExcelTable';
+import Button from '../../../../ui/base/Button';
+import { formatCurrency, formatNumberDisplay } from '../../../../core/utils';
+
+interface Props {
+    warehouses: WarehouseRow[];
+    onViewDetails: (id: string) => void;
+    onEdit: (warehouse: WarehouseRow) => void;
+    onDelete: (id: string) => void;
+}
+
+/** صف مستودع معروض في الجدول — يجمع الحقول الأصلية وحقول التجميع المحسوبة. */
+interface WarehouseRow {
+    id: string;
+    name_ar?: string;
+    location?: string | null;
+    branch_id?: string | null;
+    branch_name?: string | null;
+    is_primary?: boolean;
+    code?: string | null;
+    stockValue?: number;
+    itemCount?: number;
+    totalStock?: number;
+}
+
+const WarehouseTable: React.FC<Props> = ({ warehouses, onViewDetails, onEdit, onDelete }) => {
+    const columns = [
+        {
+            header: 'اسم المستودع',
+            accessor: (row: WarehouseRow) => (
+                <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-lg">
+                        <Warehouse size={16} />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-gray-800 dark:text-slate-100 text-sm">{row.name_ar}</span>
+                        {row.is_primary === true && (
+                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                رئيسي
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )
+        },
+        {
+            header: 'الفرع',
+            accessor: (row: WarehouseRow) => (
+                <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                    {row.branch_name !== null && row.branch_name !== undefined && row.branch_name !== '' ? row.branch_name : 'عام للشركة'}
+                </span>
+            )
+        },
+        { header: 'الموقع', accessor: (row: WarehouseRow) => <span className="font-bold text-gray-500">{row.location !== null && row.location !== undefined && row.location !== '' ? row.location : '---'}</span> },
+        {
+            header: 'قيمة المخزون',
+            accessor: (row: WarehouseRow) => <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(row.stockValue ?? 0)}</span>,
+            className: 'text-left'
+        },
+        {
+            header: 'الأصناف',
+            accessor: (row: WarehouseRow) => <span className="font-mono font-bold text-gray-700 dark:text-slate-300">{formatNumberDisplay(row.itemCount ?? 0)}</span>,
+            className: 'text-center'
+        },
+        {
+            header: 'إجمالي القطع',
+            accessor: (row: WarehouseRow) => <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatNumberDisplay(row.totalStock ?? 0)}</span>,
+            className: 'text-center'
+        },
+        {
+            header: 'إجراءات',
+            accessor: (row: WarehouseRow) => (
+                <div className="flex items-center justify-center gap-2">
+                    <Button onClick={() => { onViewDetails(row.id); }} variant="primary" size="sm" className="h-8 px-3" leftIcon={<Eye size={14} />}>
+                        عرض المخزون
+                    </Button>
+                    <Button onClick={() => { onEdit(row); }} variant="outline" size="sm" className="h-8 px-3 text-blue-600 hover:bg-blue-50" leftIcon={<Edit size={14} />}>
+                        تعديل
+                    </Button>
+                    <Button onClick={() => { onDelete(row.id); }} variant="danger" size="sm" className="h-8 px-3" leftIcon={<Trash2 size={14} />}>
+                        حذف
+                    </Button>
+                </div>
+            ),
+            className: 'text-center w-64'
+        }
+    ];
+
+    return (
+        <div className="bg-[var(--app-surface)] rounded-none border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex-1 min-h-[480px] flex flex-col">
+            <ExcelTable
+                columns={columns}
+                data={warehouses}
+                title="قائمة المستودعات"
+                colorTheme="blue"
+            />
+        </div>
+    );
+};
+
+export default WarehouseTable;

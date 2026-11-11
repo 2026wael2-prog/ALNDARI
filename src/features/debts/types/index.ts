@@ -1,0 +1,223 @@
+/**
+ * Debt & Collection module — feature types.
+ * Single source of truth: generated types in core/database.types.ts.
+ */
+import type { Database } from '../../../core/database.types';
+
+// ── Table row types ───────────────────────────────────────────
+export type DebtFollowupConfig = Database['public']['Tables']['debt_followup_config']['Row'];
+export type DebtFollowupConfigUpdate =
+  Database['public']['Tables']['debt_followup_config']['Update'];
+
+export type PaymentPromise = Database['public']['Tables']['debt_payment_promises']['Row'];
+export type PaymentPromiseInsert = Database['public']['Tables']['debt_payment_promises']['Insert'];
+export type PaymentPromiseUpdate = Database['public']['Tables']['debt_payment_promises']['Update'];
+
+export type DebtMessageTemplate = Database['public']['Tables']['debt_message_templates']['Row'];
+export type DebtMessageTemplateInsert =
+  Database['public']['Tables']['debt_message_templates']['Insert'];
+export type DebtMessageTemplateUpdate =
+  Database['public']['Tables']['debt_message_templates']['Update'];
+
+export type DebtMessageLog = Database['public']['Tables']['debt_message_log']['Row'];
+
+export type PartyOpeningBalance = Database['public']['Tables']['party_opening_balances']['Row'];
+export type PartyOpeningBalanceInsert =
+  Database['public']['Tables']['party_opening_balances']['Insert'];
+
+// ── RPC return shapes ─────────────────────────────────────────
+type DashboardGenerated =
+  Database['public']['Functions']['get_debt_followup_dashboard']['Returns'][number];
+
+/**
+ * Follow-up dashboard row with HONEST nullability.
+ * The generated types mark columns like party_phone / oldest_due_date as
+ * non-null, but the RPC intentionally returns NULL when no due date exists.
+ */
+export type FollowUpDashboardRow = Omit<
+  DashboardGenerated,
+  | 'oldest_due_date'
+  | 'next_due_date'
+  | 'party_phone'
+  | 'credit_limit'
+  | 'pending_promise_date'
+  | 'last_reminded_at'
+  | 'last_contact_date'
+> & {
+  oldest_due_date: string | null;
+  next_due_date: string | null;
+  party_phone: string | null;
+  credit_limit: number | null;
+  pending_promise_date: string | null;
+  last_reminded_at: string | null;
+  last_contact_date: string | null;
+};
+
+export type TodayTask = Database['public']['Functions']['get_debt_today_tasks']['Returns'][number];
+export type PartyDebtOverview =
+  Database['public']['Functions']['get_debt_party_overview']['Returns'][number];
+export type PartyBalanceByCurrency =
+  Database['public']['Functions']['get_party_all_balances']['Returns'][number];
+export type ReminderRecord =
+  Database['public']['Functions']['record_debt_reminder']['Returns'][number];
+
+/** get_debt_analytics_summary returns Json — typed here for display. */
+export interface DebtAnalytics {
+  total_receivables: number;
+  overdue_receivables: number;
+  due_today: number;
+  opening_balances_total: number;
+  pending_promises: number;
+  pending_promises_amount: number;
+  broken_promises: number;
+  broken_promises_amount: number;
+  sent_messages: number;
+  failed_messages: number;
+  failed_messages_24h: number;
+  total_debtors: number;
+  needs_reminder: number;
+  by_currency: Array<{ currency: string; balance: number; count: number }> | null;
+  /** شرائح أعمار الديون (مبالغ محوَّلة للعملة الأساس + عدد العملاء). */
+  aging: Array<{ key: string; value: number | null; count: number | null }> | null;
+}
+
+/** Payment promise joined with the party display name. */
+export interface PaymentPromiseWithParty extends PaymentPromise {
+  parties?: { name: string; phone: string | null } | null;
+}
+
+/** Message log row joined with the party display name. */
+export interface DebtMessageLogWithParty extends DebtMessageLog {
+  parties?: { name: string; phone: string | null } | null;
+}
+
+// ── Feature enums ─────────────────────────────────────────────
+export type FollowUpClassification = 'current' | 'due_soon' | 'due_today' | 'overdue' | 'critical';
+export type ReminderStatus = 'needs_reminder' | 'reminded';
+export type PromiseStatus = 'pending' | 'completed' | 'broken' | 'cancelled';
+
+/** Follow-up tab identifiers (mirror of the SQL classification + message state). */
+export type FollowUpTab = 'all' | 'needs_reminder' | 'reminded' | 'overdue' | 'today';
+
+/** خط تصعيد التحصيل (يُحسب في SQL حسب أيام التأخير وعتبات الشركة). */
+export type EscalationStage = 'monitor' | 'reminder' | 'call' | 'visit' | 'legal';
+
+/** Timeline entry returned by get_party_collection_timeline. */
+export interface PartyTimelineEntry {
+  id: string;
+  activity_type: string;
+  subject: string | null;
+  description: string | null;
+  outcome: string | null;
+  status: string;
+  priority: string;
+  scheduled_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  creator_name: string | null;
+}
+
+/** Result of log_collection_activity (completed action + optional next action). */
+export type CollectionActivityRecord =
+  Database['public']['Functions']['log_collection_activity']['Returns'][number];
+
+/**
+ * إجراء متابعة مجدول معلّق — يتحلل من get_debt_followup_actions.
+ * (S1: يُغلق فجوة «الكتابة بلا قارئ» في log_collection_activity.)
+ */
+export type DebtFollowupAction =
+  Database['public']['Functions']['get_debt_followup_actions']['Returns'][number];
+
+/**
+ * صف واحد من طابور مهام التحصيل الموحّد (S2: get_debt_task_queue).
+ * nullability صادقة: المبالغ والعملات والمسؤول قد تكون NULL حسب نوع المهمة.
+ */
+export type DebtTaskQueueRow =
+  Database['public']['Functions']['get_debt_task_queue']['Returns'][number];
+
+/**
+ * بِكِت تصفية طابور الأولوية — مطابق لوسيط `p_bucket` في
+ * `get_debt_priority_queue`. القيم الأخرى يرفضها الخادم بـ 22023.
+ */
+export type DebtQueueBucket =
+  | 'all'
+  | 'overdue'
+  | 'today'
+  | 'week'
+  | 'promises'
+  | 'critical'
+  | 'nocontact';
+
+/**
+ * صف طابور الأولوية (`get_debt_priority_queue`).
+ * مكتوب يدوياً لأن الأنواع المولَّدة تُحدَّث من قاعدة البيانات الحيّة بعد تطبيق
+ * الهجرة 20261103000004 — نطابق ترتيب أعمدة RETURNS TABLE حرفياً.
+ */
+export interface DebtPriorityQueueRow {
+  task_id: string;
+  task_type: string;
+  party_id: string;
+  party_name: string;
+  party_phone: string | null;
+  currency_code: string | null;
+  amount: number | null;
+  reference_info: string | null;
+  urgency: string;
+  priority: string;
+  due_at: string | null;
+  is_overdue: boolean | null;
+  assigned_to: string | null;
+  assigned_name: string | null;
+  escalation_stage: string | null;
+  /** المبلغ محوَّلاً للعملة الأساسية (أساس مقارنة عادلة بين العملات). */
+  amount_base: number;
+  days_late: number;
+  /** أيام منذ آخر تواصل فعلي (رسالة ناجحة أو متابعة منجزة) — null = لا سجل. */
+  days_since_contact: number | null;
+  /** درجة الأهمية 0..100 المحسوبة على الخادم. */
+  priority_score: number;
+  /** الأمر التنفيذي المقترح بالعربية. */
+  next_action: string;
+  /** أسباب الدرجة (متأخر 40 يوماً، وعد مكسور، …) — شفافية الترتيب. */
+  score_drivers: string[] | null;
+}
+
+/** قنوات الإرسال المدعومة في التحصيل. */
+export type DebtChannel = 'whatsapp' | 'sms';
+
+/**
+ * إعدادات قنوات الإرسال (messaging_config) بصيغة مسطّحة للواجهة.
+ * المفاتيح **لا تُقرأ أبداً** من قاعدة البيانات؛ يُرجع الخادم علم «مضبوط» فقط
+ * (`has_*_key`) لمنع تسريب المفاتيح إلى الـ DOM أو حالة الواجهة.
+ */
+export interface DebtChannelConfig {
+  whatsapp_enabled: boolean;
+  whatsapp_api_url: string;
+  whatsapp_phone: string;
+  has_whatsapp_key: boolean;
+  sms_enabled: boolean;
+  sms_api_url: string;
+  sms_sender_id: string;
+  has_sms_key: boolean;
+}
+
+/**
+ * حمولة تحديث القنوات: المفاتيح write-only اختيارية، وحقل مفتاح فارغ أو غائب
+ * يعني «أبقِ المفتاح المحفوظ كما هو» ولا يمسحه.
+ */
+export type DebtChannelConfigPatch = Omit<DebtChannelConfig, 'has_whatsapp_key' | 'has_sms_key'> & {
+  whatsapp_api_key?: string;
+  sms_api_key?: string;
+};
+
+/** صف من طابور الإرسال (S3: get_debt_reminder_queue). */
+export type DebtReminderQueueRow =
+  Database['public']['Functions']['get_debt_reminder_queue']['Returns'][number];
+
+/** عضو منشأة يمكن إسناد محفظة تحصيل له. */
+export type DebtCollector =
+  Database['public']['Functions']['get_debt_collectors']['Returns'][number];
+
+/** نتيجة إتمام مهمة (مع الإجراء التالي المجدول اختيارياً). */
+export type CompleteDebtTaskResult =
+  Database['public']['Functions']['complete_debt_task']['Returns'][number];

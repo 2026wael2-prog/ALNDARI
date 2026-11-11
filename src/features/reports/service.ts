@@ -1,0 +1,567 @@
+import { logger } from '../../core/utils/logger';
+import { formatLocalDate, getLocalYearStart } from '../../core/utils/dateUtils';
+import { toBaseCurrency } from '../../core/utils/currencyUtils';
+
+import { reportsApi } from './api';
+import type { PartyDebt, ReportsStats } from './types';
+import { supabase } from '../../lib/supabaseClient';
+import { reportService as accountingReportService } from '../accounting/services/reportService';
+
+// Type definitions for report data
+
+interface TrialBalanceItem {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  totalDebit: number;
+  totalCredit: number;
+  netBalance: number;
+}
+
+interface CurrencyAccount {
+  id: string;
+  name: string;
+  currency_code: string;
+  balance: number;
+  unrealizedGain: number;
+}
+
+interface MonthlyCashFlow {
+  month: string;
+  in: number;
+  out: number;
+  net: number;
+}
+
+// Helper to get current year date range
+const getYearDateRange = () => {
+  return {
+    from: getLocalYearStart(),
+    to: formatLocalDate(),
+  };
+};
+
+export const reportsService = {
+  getTrialBalance: async (
+    companyId: string,
+    fromDate?: string,
+    toDate?: string,
+    branchId?: string | null
+  ): Promise<TrialBalanceItem[]> => {
+    const { from, to } = fromDate && toDate ? { from: fromDate, to: toDate } : getYearDateRange();
+    const { data, error } = await reportsApi.getTrialBalanceRPC(companyId, from, to, branchId);
+    if (error) throw error;
+
+    return (data || []).map(
+      (acc: {
+        account_id: string;
+        account_code: string;
+        account_name: string;
+        account_type: string;
+        total_debit: number;
+        total_credit: number;
+        balance: number;
+      }) => ({
+        id: acc.account_id,
+        code: acc.account_code,
+        name: acc.account_name,
+        type: acc.account_type,
+        totalDebit: Number(acc.total_debit) || 0,
+        totalCredit: Number(acc.total_credit) || 0,
+        netBalance: Number(acc.balance) || 0,
+      })
+    );
+  },
+
+  /**
+   * ⚡ Server-side P&L — مصدر حقيقة وحيد.
+   *
+   * [FIX] كان هنا استدعاء RPC مكرر بمنطق منفصل (`report_profit_loss`)
+   * انحرف زمنياً عن نظيره في خدمة المحاسبة. الآن يُفوَّض إلى
+   * accountingReportService.getFinancials الذي يستخدم التفصيل لكل حساب
+   * (migration 20260826000012) مع رجوع آمن للتجميعي، ويُترجم الناتج إلى
+   * نفس عقد الإخراج السابق حتى لا تتأثر مكونات الواجهة.
+   */
+  getProfitAndLoss: async (
+    companyId: string,
+    fromDate?: string,
+    toDate?: string,
+    branchId?: string | null
+  ): Promise<{
+    revenues: TrialBalanceItem[];
+    expenses: TrialBalanceItem[];
+    totalRevenues: number;
+    totalExpenses: number;
+    totalCogs?: number;
+    grossProfit?: number;
+    operatingExpenses?: number;
+    netProfit: number;
+  }> => {
+    const financials = await accountingReportService.getFinancials(
+      companyId,
+      branchId,
+      fromDate,
+      toDate
+    );
+    const incomeStatement = financials.incomeStatement;
+
+    const mapRow = (row: {
+      account_id: string;
+      code: string;
+      name: string;
+      type: string;
+      total_debit: number;
+      total_credit: number;
+      net_balance: number;
+    }): TrialBalanceItem => ({
+      id: row.account_id,
+      code: row.code,
+      name: row.name,
+      type: row.type,
+      totalDebit: Number(row.total_debit) || 0,
+      totalCredit: Number(row.total_credit) || 0,
+      netBalance: Number(row.net_balance) || 0,
+    });
+
+    return {
+      revenues: incomeStatement.revenues.map(mapRow),
+      expenses: incomeStatement.expenses.map(mapRow),
+      totalRevenues: incomeStatement.totalRevenue,
+      totalExpenses: incomeStatement.totalExpense,
+      totalCogs: incomeStatement.totalCogs,
+      grossProfit: incomeStatement.grossProfit,
+      operatingExpenses: incomeStatement.operatingExpenses,
+      netProfit: incomeStatement.netIncome,
+    };
+  },
+
+  /**
+   * ⚡ Server-side Balance Sheet via RPC
+   * RPC returns TABLE rows: {category, amount, type}
+   */
+  getBalanceSheet: async (
+    companyId: string,
+    branchId?: string | null
+  ): Promise<{
+    assets: TrialBalanceItem[];
+    liabilities: TrialBalanceItem[];
+    equity: TrialBalanceItem[];
+    totalAssets: number;
+    totalLiabEquity: number;
+  }> => {
+    const today = formatLocalDate();
+
+    const [
+      { data: summaryData, error: summaryError },
+      { data: detailedData, error: detailedError },
+    ] = await Promise.all([
+      supabase.rpc('report_balance_sheet', {
+        p_company_id: companyId,
+        p_as_of_date: today,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      }),
+      supabase.rpc('report_balance_sheet_detailed', {
+        p_company_id: companyId,
+        p_as_of_date: today,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      }),
+    ]);
+
+    if (summaryError) throw summaryError;
+
+    // RPC returns rows: [{category, amount, type}]
+    const rows = (summaryData || []) as Array<{ category: string; amount: number; type: string }>;
+    const assetRow = rows.find(r => r.type === 'asset');
+    const liabilityRow = rows.find(r => r.type === 'liability');
+    const equityRow = rows.find(r => r.type === 'equity');
+    const retainedRow = rows.find(r => r.type === 'retained_earnings');
+
+    const totalAssets = Number(assetRow?.amount) || 0;
+    const totalLiabilities = Number(liabilityRow?.amount) || 0;
+    // 'equity' من الخادم تشمل صافي ربح الفترة غير المُقفلة (انظر migration
+    // 20261105000001) — بدونها لا تتزن المعادلة المحاسبية.
+    const totalEquity = Number(equityRow?.amount) || 0;
+    const netProfitToDate = Number(retainedRow?.amount) || 0;
+
+    let assets: TrialBalanceItem[] = [];
+    let liabilities: TrialBalanceItem[] = [];
+    let equity: TrialBalanceItem[] = [];
+
+    if (!detailedError && Array.isArray(detailedData)) {
+      const detailedRows = detailedData as unknown as Array<{
+        account_id: string | null;
+        account_code: string;
+        account_name: string;
+        account_type: string;
+        total_debit: number | string;
+        total_credit: number | string;
+        balance: number | string;
+      }>;
+
+      // سطر صافي ربح الفترة (3999) حساب وهمي بلا معرّف — نبني له مفتاحاً ثابتاً.
+      const mapAccount = (r: (typeof detailedRows)[number]): TrialBalanceItem => ({
+        id: r.account_id ?? `synthetic-${r.account_code}`,
+        code: r.account_code,
+        name: r.account_name,
+        type: r.account_type,
+        totalDebit: Number(r.total_debit) || 0,
+        totalCredit: Number(r.total_credit) || 0,
+        netBalance: Number(r.balance) || 0,
+      });
+
+      const byType = (accountType: string) =>
+        detailedRows.filter(r => r.account_type === accountType).map(mapAccount);
+
+      assets = byType('asset');
+      liabilities = byType('liability');
+      equity = byType('equity');
+
+      // سطر صافي ربح الفترة (3999) يأتي من RPC التفصيلي مباشرةً.
+      // ⚠️ لا نطرح رصيد 3200 ولا نُلغيه: الأرباح المبقاة المُرحّلة تبقى كما هي،
+      // وصافي ربح الفترة يُضاف كبند مستقل داخل حقوق الملكية.
+      // احتياط: إن لم يُرجع الخادم سطر 3999 رغم وجود صافي ربح، نضيفه هنا حتى
+      // لا تظهر الميزانية غير متزنة على قاعدة بيانات لم تُرحّل الإصلاح بعد.
+      const hasNetProfitRow = equity.some(e => e.code === '3999');
+      if (!hasNetProfitRow && Math.abs(netProfitToDate) > 0.001) {
+        equity.push({
+          id: 'unclosed-net-profit',
+          code: '3999',
+          name: 'صافي ربح/خسارة الفترة غير المُقفلة',
+          type: 'equity',
+          totalDebit: netProfitToDate < 0 ? -netProfitToDate : 0,
+          totalCredit: netProfitToDate > 0 ? netProfitToDate : 0,
+          netBalance: netProfitToDate,
+        });
+      }
+    } else {
+      assets = assetRow
+        ? [
+          {
+            id: 'asset',
+            code: '1',
+            name: assetRow.category,
+            type: 'asset',
+            totalDebit: 0,
+            totalCredit: 0,
+            netBalance: totalAssets,
+          },
+        ]
+        : [];
+      liabilities = liabilityRow
+        ? [
+          {
+            id: 'liability',
+            code: '2',
+            name: liabilityRow.category,
+            type: 'liability',
+            totalDebit: 0,
+            totalCredit: 0,
+            netBalance: totalLiabilities,
+          },
+        ]
+        : [];
+      equity = equityRow
+        ? [
+          {
+            id: 'equity',
+            code: '3',
+            name: equityRow.category,
+            type: 'equity',
+            totalDebit: 0,
+            totalCredit: 0,
+            netBalance: totalEquity,
+          },
+        ]
+        : [];
+    }
+
+    const sumNet = (items: TrialBalanceItem[]) =>
+      items.reduce((sum, item) => sum + (item.netBalance || 0), 0);
+
+    // عند توفر التفصيل نعتمد مجموع البنود المعروضة (يشمل سطر 3999 لصافي ربح
+    // الفترة) حتى يتطابق "إجمالي القسم" مع المجاميع العليا، وإلا نعتمد مجاميع
+    // الملخص من الخادم.
+    const hasSections = assets.length + liabilities.length + equity.length > 0;
+
+    return {
+      assets,
+      liabilities,
+      equity,
+      totalAssets: hasSections ? sumNet(assets) : totalAssets,
+      totalLiabEquity: hasSections
+        ? sumNet(liabilities) + sumNet(equity)
+        : totalLiabilities + totalEquity,
+    };
+  },
+
+  /**
+   * ⚡ Server-side Debt Report via RPC
+   * `report_debts` returns:
+   *   { summary: { receivables, payables }, debts: [{id,name,type,remaining_amount}] }
+   * type='both' rows are split by sign → customer (receivable) / supplier (payable).
+   */
+  getDebtReport: async (companyId: string, branchId?: string | null): Promise<ReportsStats> => {
+    const [{ data: company }, { data, error }] = await Promise.all([
+      supabase.from('companies').select('base_currency').eq('id', companyId).maybeSingle(),
+      supabase.rpc('report_debts', {
+        p_company_id: companyId,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      }),
+    ]);
+    if (error) throw error;
+    const baseCurrency = company?.base_currency || 'SAR';
+
+    const raw = (data ?? {}) as {
+      summary?: { receivables?: number; payables?: number };
+      debts?: Array<{ id: string; name: string; type: string; remaining_amount: number }>;
+    };
+
+    const debts: PartyDebt[] = (raw.debts ?? []).map(r => {
+      const remaining = Number(r.remaining_amount) || 0;
+      // 'both' parties (customer + supplier) are split by the sign of the balance.
+      const type: PartyDebt['type'] =
+        r.type === 'supplier'
+          ? 'supplier'
+          : r.type === 'both'
+            ? remaining >= 0
+              ? 'customer'
+              : 'supplier'
+            : 'customer';
+      return {
+        id: r.id,
+        name: r.name,
+        type,
+        currency: baseCurrency,
+        total_sales: 0,
+        paid_amount: 0,
+        remaining_amount: remaining,
+      };
+    });
+
+    return {
+      summary: {
+        receivables: Number(raw.summary?.receivables) || 0,
+        payables: Number(raw.summary?.payables) || 0,
+        currency: baseCurrency,
+      },
+      debts,
+    };
+  },
+
+  // ⚡ Actual currency gain/loss using exchange_rates table
+  getCurrencyDiffs: async (
+    companyId: string,
+    branchId?: string | null
+  ): Promise<CurrencyAccount[]> => {
+    const { data: company } = await supabase
+      .from('companies')
+      .select('base_currency')
+      .eq('id', companyId)
+      .single();
+    const baseCurrency = company?.base_currency || 'SAR';
+
+    const [{ data: accounts }, { data: rates }] = await Promise.all([
+      supabase
+        .from('accounts')
+        .select('id, name_ar, currency_code')
+        .eq('company_id', companyId)
+        .is('deleted_at', null)
+        .not('currency_code', 'is', null)
+        .neq('currency_code', baseCurrency),
+      supabase
+        .from('exchange_rates')
+        .select('currency_code, rate_to_base')
+        .eq('company_id', companyId)
+        .order('effective_date', { ascending: false }),
+    ]);
+
+    if (!accounts || accounts.length === 0) return [];
+
+    // Fetch journal entry lines for these foreign currency accounts to calculate both:
+    // 1) Foreign currency balance: SUM(foreign_amount)
+    // 2) Book value in base currency: SUM(debit_amount - credit_amount)
+    const { data: lines } = await supabase
+      .from('journal_entry_lines')
+      .select(
+        'account_id, branch_id, debit_amount, credit_amount, foreign_amount, exchange_rate, journal_entries!inner(status, deleted_at, branch_id)'
+      )
+      .eq('company_id', companyId)
+      .eq('journal_entries.status', 'posted')
+      .is('journal_entries.deleted_at', null)
+      .is('deleted_at', null)
+      .in(
+        'account_id',
+        accounts.map(a => a.id)
+      );
+
+    const accountDataMap = new Map<string, { foreignBalance: number; bookValueBase: number }>();
+
+    for (const l of (lines || []) as Array<{
+      account_id: string;
+      branch_id?: string | null;
+      debit_amount: number | null;
+      credit_amount: number | null;
+      foreign_amount: number | null;
+      exchange_rate: number | null;
+      journal_entries?: { branch_id?: string | null } | Array<{ branch_id?: string | null }> | null;
+    }>) {
+      if (branchId) {
+        const je = Array.isArray(l.journal_entries) ? l.journal_entries[0] : l.journal_entries;
+        const effectiveLineBranch = l.branch_id ?? je?.branch_id ?? null;
+        if (effectiveLineBranch !== branchId) continue;
+      }
+      const current = accountDataMap.get(l.account_id) || { foreignBalance: 0, bookValueBase: 0 };
+      const debit = Number(l.debit_amount) || 0;
+      const credit = Number(l.credit_amount) || 0;
+      const fAmount = Number(l.foreign_amount) || 0;
+      const exRate = Number(l.exchange_rate) || 1;
+
+      // Calculate foreign movement
+      const fMovement =
+        fAmount > 0
+          ? fAmount
+          : exRate > 1
+            ? (debit - credit >= 0 ? debit - credit : credit - debit) * exRate
+            : debit - credit >= 0
+              ? debit - credit
+              : credit - debit;
+      const sign = debit >= credit ? 1 : -1;
+
+      current.foreignBalance += sign * fMovement;
+      current.bookValueBase += debit - credit;
+      accountDataMap.set(l.account_id, current);
+    }
+
+    const rateMap = new Map(
+      (rates || []).map((r: any) => [r.currency_code, Number(r.rate_to_base)])
+    );
+
+    return accounts.map((a: any): CurrencyAccount => {
+      const accData = accountDataMap.get(a.id) || { foreignBalance: 0, bookValueBase: 0 };
+      const foreignBalance = accData.foreignBalance;
+      const rate = rateMap.get(a.currency_code);
+
+      // Current market value in base currency using toBaseCurrency (handles divide vs multiply)
+      let currentMarketValue = accData.bookValueBase;
+      if (rate && rate > 0) {
+        try {
+          currentMarketValue = toBaseCurrency({
+            amount: foreignBalance,
+            currency_code: a.currency_code,
+            exchange_rate: rate,
+          });
+        } catch {
+          currentMarketValue = accData.bookValueBase;
+        }
+      }
+      const unrealizedGain = rate ? currentMarketValue - accData.bookValueBase : 0;
+
+      return {
+        id: a.id,
+        name: a.name_ar,
+        currency_code: a.currency_code,
+        balance: foreignBalance,
+        unrealizedGain: Math.round(unrealizedGain * 100) / 100,
+      };
+    });
+  },
+
+  /**
+   * ⚡ Cash Flow via RPC
+   * RPC returns TABLE rows: {category, inflow, outflow}
+   */
+  getCashFlow: async (
+    companyId: string,
+    branchId?: string | null
+  ): Promise<{
+    currentLiquidity: number;
+    monthlyTrend: MonthlyCashFlow[];
+  }> => {
+    const { from, to } = getYearDateRange();
+
+    const [{ data: cashFlowData, error }, { data: liquidity, error: liqError }] = await Promise.all(
+      [
+        supabase.rpc('report_cash_flow', {
+          p_company_id: companyId,
+          p_from: from,
+          p_to: to,
+          ...(branchId ? { p_branch_id: branchId } : {}),
+        }),
+        supabase.rpc('get_cash_liquidity', { p_company_id: companyId }),
+      ]
+    );
+
+    if (error) logger.warn('service', '[reports] report_cash_flow error:', error?.message);
+    if (liqError) logger.warn('service', '[reports] get_cash_liquidity error:', liqError?.message);
+
+    // RPC returns rows: [{category, inflow, outflow}]
+    const rows = (cashFlowData || []) as Array<{
+      category: string;
+      inflow: number;
+      outflow: number;
+    }>;
+    const monthlyTrend: MonthlyCashFlow[] = rows.map(r => ({
+      month: r.category,
+      in: Math.max(0, Number(r.inflow) || 0),
+      out: Math.max(0, Number(r.outflow) || 0),
+      net: (Number(r.inflow) || 0) - (Number(r.outflow) || 0),
+    }));
+
+    return {
+      currentLiquidity: Number(liquidity) || 0,
+      monthlyTrend,
+    };
+  },
+
+  /**
+   * ⚡ Fetch detailed transactions for a specific account (Drill-down)
+   */
+  getAccountTransactions: async (
+    companyId: string,
+    accountId: string,
+    fromDate?: string,
+    toDate?: string
+  ) => {
+    let query = supabase
+      .from('journal_entry_lines')
+      .select(
+        `
+        id,
+        debit_amount,
+        credit_amount,
+        journal_entries!inner(
+          id,
+          entry_date,
+          description,
+          reference_type,
+          reference_id
+        )
+      `
+      )
+      .eq('account_id', accountId)
+      .eq('journal_entries.company_id', companyId)
+      .order('journal_entries(entry_date)', { ascending: false });
+
+    if (fromDate) {
+      query = query.gte('journal_entries.entry_date', fromDate);
+    }
+    if (toDate) {
+      query = query.lte('journal_entries.entry_date', toDate);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data || []).map((line: any) => ({
+      id: line.id,
+      date: line.journal_entries?.entry_date,
+      description: line.journal_entries?.description,
+      referenceType: line.journal_entries?.reference_type,
+      referenceId: line.journal_entries?.reference_id,
+      debit: Number(line.debit_amount) || 0,
+      credit: Number(line.credit_amount) || 0,
+      journalId: line.journal_entries?.id,
+    }));
+  },
+};

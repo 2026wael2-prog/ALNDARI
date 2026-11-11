@@ -1,0 +1,781 @@
+// ============================================
+// Statement Excel Exporter - Professional Modern Multi-Currency Edition
+// Clean corporate design, styled cells, Arabic typography & English numerals
+// Distinctive sheets & tables for Saudi Riyal (SAR) and Yemeni Riyal (YER)
+// Crisp visible gridlines between all columns & cells
+// — Uses the shared excelExporterBase lazy-loader + file-name sanitizer.
+// ============================================
+
+import {
+  enableWorkbookRtl,
+  loadXLSX,
+  sanitizeFileName,
+} from '../../../core/utils/excelExporterBase';
+import type { XlsxCell, XlsxSheet } from '../../../core/utils/excelExporterBase';
+import { formatLocalDate } from '../../../core/utils/dateUtils';
+
+const getCell = (sheet: XlsxSheet, ref: string): XlsxCell | undefined => {
+  // eslint-disable-next-line security/detect-object-injection
+  return sheet[ref] as XlsxCell | undefined;
+};
+
+export interface CompanyInfo {
+  name_ar: string;
+  address?: string;
+  phone?: string;
+  tax_number?: string;
+  commercial_reg?: string;
+  logo_url?: string;
+  bank_name?: string;
+  bank_account_iban?: string;
+}
+
+export interface StatementEntry {
+  date: string;
+  operation_type?: string | undefined;
+  reference_no?: string | undefined;
+  desc: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  payment_status?: string | undefined;
+  currency?: string | undefined;
+}
+
+export interface StatementExportOptions {
+  currencyCode?: string | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+  partyPhone?: string | undefined;
+  partyCategory?: string | undefined;
+  partyType?: 'customer' | 'supplier' | undefined;
+}
+
+// ── Theme definitions for currencies ─────────────────────────────────────
+interface CurrencyTheme {
+  primaryBg: string; // Header main color
+  subtitleBg: string; // Subtitle bar color
+  balanceBg: string; // Running balance cell fill
+  balanceText: string; // Running balance text color
+  labelAr: string; // Arabic currency label
+}
+
+const getCurrencyTheme = (currency: string): CurrencyTheme => {
+  const norm = currency.trim().toUpperCase();
+  if (norm === 'SAR') {
+    return {
+      primaryBg: '1E3A8A', // Deep Royal Navy
+      subtitleBg: '2563EB', // Royal Blue
+      balanceBg: 'EFF6FF', // Light Blue
+      balanceText: '1E3A8A',
+      labelAr: 'الريال السعودي (SAR)',
+    };
+  }
+  if (norm === 'YER') {
+    return {
+      primaryBg: '065F46', // Deep Forest Teal
+      subtitleBg: '059669', // Emerald Green
+      balanceBg: 'ECFDF5', // Light Emerald
+      balanceText: '065F46',
+      labelAr: 'الريال اليمني (YER)',
+    };
+  }
+  return {
+    primaryBg: '334155', // Slate 700
+    subtitleBg: '475569', // Slate 600
+    balanceBg: 'F8FAFC', // Slate 50
+    balanceText: '0F172A',
+    labelAr: `${currency}`,
+  };
+};
+
+/**
+ * Standard crisp grid border for all cells (94A3B8 / Slate 400).
+ * Highly visible in Excel, mobile spreadsheet viewers, and prints.
+ */
+const crispCellBorder = {
+  top: { style: 'thin', color: { rgb: '94A3B8' } },
+  bottom: { style: 'thin', color: { rgb: '94A3B8' } },
+  left: { style: 'thin', color: { rgb: '94A3B8' } },
+  right: { style: 'thin', color: { rgb: '94A3B8' } },
+};
+
+const headerBorder = {
+  top: { style: 'medium', color: { rgb: '0F172A' } },
+  bottom: { style: 'medium', color: { rgb: '0F172A' } },
+  left: { style: 'thin', color: { rgb: '94A3B8' } },
+  right: { style: 'thin', color: { rgb: '94A3B8' } },
+};
+
+const totalRowBorder = {
+  top: { style: 'medium', color: { rgb: '0F172A' } },
+  bottom: { style: 'double', color: { rgb: '0F172A' } },
+  left: { style: 'thin', color: { rgb: '94A3B8' } },
+  right: { style: 'thin', color: { rgb: '94A3B8' } },
+};
+
+/**
+ * Builds a single, professionally styled statement sheet for a specific currency.
+ */
+const buildCurrencyStatementSheet = async (
+  company: CompanyInfo,
+  partyName: string,
+  entries: StatementEntry[],
+  currency: string,
+  options: StatementExportOptions
+): Promise<XlsxSheet> => {
+  const XLSX = await loadXLSX();
+  const rows: unknown[][] = [];
+  const theme = getCurrencyTheme(currency);
+  const isSupplier = options.partyType === 'supplier';
+  const todayFormatted = formatLocalDate();
+  const dateRangeText =
+    options.dateFrom && options.dateTo
+      ? `الفترة من: ${options.dateFrom} إلى: ${options.dateTo}`
+      : `حتى تاريخ: ${todayFormatted}`;
+
+  // 1. Corporate Brand Header
+  rows.push([company.name_ar || 'منظومة الجعفري المحاسبية']); // Row 0
+  rows.push([`كشف حساب مالي تفصيلي - ${theme.labelAr} | STATEMENT OF ACCOUNT`]); // Row 1
+  rows.push([
+    `${company.address ? `العنوان: ${company.address}  |  ` : ''}${company.phone ? `هاتف: ${company.phone}  |  ` : ''}${company.tax_number ? `الرقم الضريبي: ${company.tax_number}` : ''}`,
+  ]); // Row 2
+  rows.push([]); // Row 3 (Spacer)
+
+  // 2. Client & Statement Metadata Card (9 cols: 0..2, 3..5, 6..8)
+  rows.push([
+    `${isSupplier ? 'المورد / الجهة' : 'العميل / الجهة'}: ${partyName}`,
+    '',
+    '',
+    `عملة الكشف: ${theme.labelAr}`,
+    '',
+    '',
+    `تاريخ التقرير: ${todayFormatted}`,
+    '',
+    '',
+  ]); // Row 4
+  rows.push([
+    options.partyPhone
+      ? `رقم الهاتف: ${options.partyPhone}`
+      : `التصنيف: ${options.partyCategory || (isSupplier ? 'مورد' : 'عميل')}`,
+    '',
+    '',
+    dateRangeText,
+    '',
+    '',
+    `عدد الحركات: ${entries.length}`,
+    '',
+    '',
+  ]); // Row 5
+  rows.push([]); // Row 6 (Spacer)
+
+  // 3. Table Header (9 columns)
+  const tableHeaderIndex = rows.length; // Row 7
+  const tableHeader = [
+    'م',
+    'التاريخ',
+    'نوع الحركة / السند',
+    'رقم المرجع',
+    'البيان والتفاصيل',
+    'حالة السداد',
+    'مدين (+)',
+    'دائن (-)',
+    `الرصيد (${currency})`,
+  ];
+  rows.push(tableHeader);
+
+  // 4. Data Rows
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  entries.forEach((entry, idx) => {
+    const debit = Number(entry.debit) || 0;
+    const credit = Number(entry.credit) || 0;
+    const balance = Number(entry.balance) || 0;
+    totalDebit += debit;
+    totalCredit += credit;
+
+    const statusAr =
+      entry.payment_status === 'paid'
+        ? 'خالص / مسدد'
+        : entry.payment_status === 'partially_paid'
+          ? 'مسدد جزئياً'
+          : entry.payment_status === 'unpaid'
+            ? 'غير مسدد'
+            : entry.payment_status === 'void'
+              ? 'ملغي'
+              : 'مسوى';
+
+    rows.push([
+      idx + 1,
+      entry.date || '',
+      entry.operation_type || 'قيد محاسبي',
+      entry.reference_no || '—',
+      entry.desc || '—',
+      statusAr,
+      debit,
+      credit,
+      balance,
+    ]);
+  });
+
+  // 5. Total & Summary Footer
+  const finalBalance = entries.length > 0 ? Number(entries[entries.length - 1].balance) || 0 : 0;
+  const summaryStatusText = isSupplier
+    ? finalBalance >= 0
+      ? 'مستحق للمورد (له)'
+      : 'دفعة مقدمة للمورد (عليه)'
+    : finalBalance >= 0
+      ? 'متبقي على العميل (مدين)'
+      : 'متبقي للعميل (دائن)';
+
+  const summaryRowIndex = rows.length; // Summary Row
+  rows.push([
+    `إجمالي الحركات (${currency})`,
+    '',
+    '',
+    '',
+    '',
+    `صافي الرصيد المستحق: ${summaryStatusText}`,
+    totalDebit,
+    totalCredit,
+    finalBalance,
+  ]);
+
+  rows.push([]); // Spacer
+  // 6. Bank & Payment Notes Footer
+  if (company.bank_name || company.bank_account_iban) {
+    rows.push([
+      `📌 تعليمات السداد البنكي: البنك: ${company.bank_name || '—'} | الآيبان (IBAN): ${company.bank_account_iban || '—'}`,
+    ]);
+  }
+  rows.push(['تم استخراج هذا الكشف آلياً من منظومة الجعفري لإدارة المبيعات والمحاسبة.']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Column Widths (9 columns total)
+  ws['!cols'] = [
+    { wch: 6 }, // 0: #
+    { wch: 14 }, // 1: Date
+    { wch: 18 }, // 2: Operation Type
+    { wch: 16 }, // 3: Reference
+    { wch: 38 }, // 4: Description
+    { wch: 14 }, // 5: Payment Status
+    { wch: 18 }, // 6: Debit
+    { wch: 18 }, // 7: Credit
+    { wch: 20 }, // 8: Balance
+  ];
+
+  // Header Merges (9 columns: index 0 to 8)
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }, // Company Name
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }, // Statement Title
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 8 } }, // Company Info
+    { s: { r: 4, c: 0 }, e: { r: 4, c: 2 } }, // Client Name
+    { s: { r: 4, c: 3 }, e: { r: 4, c: 5 } }, // Currency
+    { s: { r: 4, c: 6 }, e: { r: 4, c: 8 } }, // Print Date
+    { s: { r: 5, c: 0 }, e: { r: 5, c: 2 } }, // Client Phone
+    { s: { r: 5, c: 3 }, e: { r: 5, c: 5 } }, // Date Range
+    { s: { r: 5, c: 6 }, e: { r: 5, c: 8 } }, // Transaction Count
+    { s: { r: summaryRowIndex, c: 0 }, e: { r: summaryRowIndex, c: 4 } }, // Summary Label
+  ];
+
+  if (company.bank_name || company.bank_account_iban) {
+    ws['!merges'].push({
+      s: { r: summaryRowIndex + 2, c: 0 },
+      e: { r: summaryRowIndex + 2, c: 8 },
+    });
+    ws['!merges'].push({
+      s: { r: summaryRowIndex + 3, c: 0 },
+      e: { r: summaryRowIndex + 3, c: 8 },
+    });
+  } else {
+    ws['!merges'].push({
+      s: { r: summaryRowIndex + 2, c: 0 },
+      e: { r: summaryRowIndex + 2, c: 8 },
+    });
+  }
+
+  // Ensure grid lines are explicitly enabled
+  ws['!views'] = [{ showGridLines: true }];
+
+  // Cell Styles
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:I1');
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = getCell(ws, cellRef);
+      if (cell === undefined) continue;
+
+      // Base style with visible crisp borders
+      cell.s = {
+        border: crispCellBorder,
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        font: { name: 'Calibri', sz: 10, color: { rgb: '1E293B' } },
+      };
+
+      // Number formatting in English numerals
+      if (typeof cell.v === 'number') {
+        if (C === 0) {
+          cell.z = '0';
+        } else {
+          // Format with 2 decimals
+          cell.z = '#,##0.00';
+          cell.s.alignment = { horizontal: 'right', vertical: 'center' };
+          cell.s.font = { name: 'Calibri', sz: 10.5, bold: false, color: { rgb: '0F172A' } };
+        }
+      }
+
+      // 1. Company Main Header
+      if (R === 0) {
+        cell.s.font = { name: 'Calibri', sz: 16, bold: true, color: { rgb: 'FFFFFF' } };
+        cell.s.fill = { fgColor: { rgb: theme.primaryBg } };
+        cell.s.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+
+      // 2. Subtitle Header
+      if (R === 1) {
+        cell.s.font = { name: 'Calibri', sz: 12, bold: true, color: { rgb: 'FFFFFF' } };
+        cell.s.fill = { fgColor: { rgb: theme.subtitleBg } };
+        cell.s.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+
+      // 3. Company Contact Info
+      if (R === 2) {
+        cell.s.font = { name: 'Calibri', sz: 9.5, color: { rgb: '334155' } };
+        cell.s.fill = { fgColor: { rgb: 'F1F5F9' } };
+        cell.s.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+
+      // 4. Client Metadata Card
+      if (R === 4 || R === 5) {
+        cell.s.font = { name: 'Calibri', sz: 10, bold: true, color: { rgb: '1E293B' } };
+        cell.s.fill = { fgColor: { rgb: 'F8FAFC' } };
+        cell.s.alignment = { horizontal: C === 0 ? 'right' : 'center', vertical: 'center' };
+      }
+
+      // 5. Table Header Styling
+      if (R === tableHeaderIndex) {
+        cell.s.border = headerBorder;
+        cell.s.fill = { fgColor: { rgb: '0F172A' } }; // Slate 900
+        cell.s.font = { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: 'FFFFFF' } };
+        cell.s.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+
+      // 6. Data Rows
+      if (R > tableHeaderIndex && R < summaryRowIndex) {
+        cell.s.border = crispCellBorder;
+        if (C === 4) {
+          cell.s.alignment = { horizontal: 'right', vertical: 'center' };
+        }
+        // Debit column subtle green tint
+        if (C === 6 && typeof cell.v === 'number' && cell.v > 0) {
+          cell.s.font = { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: '059669' } };
+        }
+        // Credit column subtle rose tint
+        if (C === 7 && typeof cell.v === 'number' && cell.v > 0) {
+          cell.s.font = { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: 'E11D48' } };
+        }
+        // Balance column highlight (Column index 8)
+        if (C === 8) {
+          cell.s.font = { name: 'Calibri', sz: 10.5, bold: true, color: { rgb: theme.balanceText } };
+          cell.s.fill = { fgColor: { rgb: theme.balanceBg } };
+        }
+        // Zebra striping
+        if (R % 2 === 0 && C !== 8) {
+          cell.s.fill = { fgColor: { rgb: 'FAFAFA' } };
+        }
+      }
+
+      // 7. Summary Footer Row
+      if (R === summaryRowIndex) {
+        cell.s.border = totalRowBorder;
+        cell.s.fill = { fgColor: { rgb: 'E2E8F0' } };
+        cell.s.font = { name: 'Calibri', sz: 11, bold: true, color: { rgb: '0F172A' } };
+        if (C === 8) {
+          cell.s.fill = { fgColor: { rgb: finalBalance >= 0 ? 'DCFCE7' : 'FEE2E2' } };
+          cell.s.font = {
+            name: 'Calibri',
+            sz: 12,
+            bold: true,
+            color: { rgb: finalBalance >= 0 ? '166534' : '991B1B' },
+          };
+        }
+      }
+
+      // 8. Bank Notes & Bottom Footer
+      if (R > summaryRowIndex) {
+        cell.s.font = { name: 'Calibri', sz: 9, italic: true, color: { rgb: '64748B' } };
+        cell.s.fill = { fgColor: { rgb: 'F8FAFC' } };
+        cell.s.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+    }
+  }
+
+  return ws;
+};
+
+/**
+ * Builds the Consolidated Multi-Currency Summary Sheet.
+ * Displays comparison table between SAR and YER balances and highlights differences.
+ */
+const buildMultiCurrencySummarySheet = async (
+  company: CompanyInfo,
+  partyName: string,
+  currencyBreakdown: Array<{
+    currency: string;
+    totalDebit: number;
+    totalCredit: number;
+    finalBalance: number;
+    count: number;
+  }>,
+  options: StatementExportOptions
+): Promise<XlsxSheet> => {
+  const XLSX = await loadXLSX();
+  const rows: unknown[][] = [];
+  const isSupplier = options.partyType === 'supplier';
+  const todayFormatted = formatLocalDate();
+  const dateRangeText =
+    options.dateFrom && options.dateTo
+      ? `الفترة من: ${options.dateFrom} إلى: ${options.dateTo}`
+      : `حتى تاريخ: ${todayFormatted}`;
+
+  // 1. Corporate Brand Header
+  rows.push([company.name_ar || 'منظومة الجعفري المحاسبية']); // Row 0
+  rows.push(['ملخص كشف الحساب الموحد متعدد العملات | CONSOLIDATED STATEMENT SUMMARY']); // Row 1
+  rows.push([
+    `${company.address ? `العنوان: ${company.address}  |  ` : ''}${company.phone ? `هاتف: ${company.phone}  |  ` : ''}${company.tax_number ? `الرقم الضريبي: ${company.tax_number}` : ''}`,
+  ]); // Row 2
+  rows.push([]); // Row 3 (Spacer)
+
+  // 2. Client & Statement Metadata Card (6 cols)
+  rows.push([
+    `${isSupplier ? 'المورد / الجهة' : 'العميل / الجهة'}: ${partyName}`,
+    '',
+    `العملات النشطة: ${currencyBreakdown.map(c => c.currency).join(' / ')}`,
+    '',
+    `تاريخ التقرير: ${todayFormatted}`,
+    '',
+  ]); // Row 4
+  rows.push([
+    options.partyPhone ? `رقم الهاتف: ${options.partyPhone}` : `التصنيف: ${options.partyCategory || (isSupplier ? 'مورد' : 'عميل')}`,
+    '',
+    dateRangeText,
+    '',
+    `إجمالي عدد العملات: ${currencyBreakdown.length}`,
+    '',
+  ]); // Row 5
+  rows.push([]); // Row 6 (Spacer)
+
+  // 3. Multi-Currency Table Header (6 cols)
+  const tableHeaderIndex = rows.length; // Row 7
+  rows.push([
+    'م',
+    'العملة النقدية',
+    'إجمالي الحركات المدينة (+)',
+    'إجمالي الحركات الدائنة (-)',
+    'صافي الرصيد المستحق',
+    'الموقف المحاسبي للرصيد',
+  ]);
+
+  currencyBreakdown.forEach((item, idx) => {
+    const isPositive = item.finalBalance >= 0;
+    const statusText = isSupplier
+      ? isPositive
+        ? 'مستحق للمورد (له)'
+        : 'دفعة مقدمة للمورد (عليه)'
+      : isPositive
+        ? 'مطلوب سداده من العميل (مدين)'
+        : 'رصيد دائن لصالح العميل (دائن)';
+
+    const label = item.currency === 'SAR' ? '🇸🇦 الريال السعودي (SAR)' : item.currency === 'YER' ? '🇾🇪 الريال اليمني (YER)' : item.currency;
+
+    rows.push([
+      idx + 1,
+      label,
+      item.totalDebit,
+      item.totalCredit,
+      item.finalBalance,
+      statusText,
+    ]);
+  });
+
+  const lastTableIndex = rows.length - 1;
+
+  rows.push([]); // Spacer
+  rows.push([
+    '📌 تنبيه محاسبي: تم فصل أرصدة وحركات الريال السعودي (SAR) عن الريال اليمني (YER) بدقة لمنع تضارب العملات. تجدون الحركات التفصيلية لكل عملة في ورقة العمل المستقلة المرفقة أدناه.',
+  ]);
+  rows.push([]); // Spacer
+
+  if (company.bank_name || company.bank_account_iban) {
+    rows.push([
+      `📌 تعليمات السداد البنكي: البنك: ${company.bank_name || '—'} | الآيبان (IBAN): ${company.bank_account_iban || '—'}`,
+    ]);
+  }
+  rows.push(['تم استخراج هذا الملخص آلياً من منظومة الجعفري لإدارة المبيعات والمحاسبة.']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  ws['!cols'] = [
+    { wch: 6 }, // 0: #
+    { wch: 28 }, // 1: Currency Label
+    { wch: 24 }, // 2: Total Debit
+    { wch: 24 }, // 3: Total Credit
+    { wch: 24 }, // 4: Net Balance
+    { wch: 30 }, // 5: Status
+  ];
+
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } },
+    { s: { r: 4, c: 0 }, e: { r: 4, c: 1 } },
+    { s: { r: 4, c: 2 }, e: { r: 4, c: 3 } },
+    { s: { r: 4, c: 4 }, e: { r: 4, c: 5 } },
+    { s: { r: 5, c: 0 }, e: { r: 5, c: 1 } },
+    { s: { r: 5, c: 2 }, e: { r: 5, c: 3 } },
+    { s: { r: 5, c: 4 }, e: { r: 5, c: 5 } },
+    { s: { r: lastTableIndex + 2, c: 0 }, e: { r: lastTableIndex + 2, c: 5 } },
+  ];
+
+  if (company.bank_name || company.bank_account_iban) {
+    ws['!merges'].push({
+      s: { r: lastTableIndex + 4, c: 0 },
+      e: { r: lastTableIndex + 4, c: 5 },
+    });
+    ws['!merges'].push({
+      s: { r: lastTableIndex + 5, c: 0 },
+      e: { r: lastTableIndex + 5, c: 5 },
+    });
+  } else {
+    ws['!merges'].push({
+      s: { r: lastTableIndex + 4, c: 0 },
+      e: { r: lastTableIndex + 4, c: 5 },
+    });
+  }
+
+  ws['!views'] = [{ showGridLines: true }];
+
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:F1');
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = getCell(ws, cellRef);
+      if (cell === undefined) continue;
+
+      cell.s = {
+        border: crispCellBorder,
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        font: { name: 'Calibri', sz: 10.5, color: { rgb: '1E293B' } },
+      };
+
+      if (typeof cell.v === 'number') {
+        if (C === 0) {
+          cell.z = '0';
+        } else {
+          cell.z = '#,##0.00';
+          cell.s.alignment = { horizontal: 'right', vertical: 'center' };
+          cell.s.font = { name: 'Calibri', sz: 11, bold: true, color: { rgb: '0F172A' } };
+        }
+      }
+
+      if (R === 0) {
+        cell.s.font = { name: 'Calibri', sz: 16, bold: true, color: { rgb: 'FFFFFF' } };
+        cell.s.fill = { fgColor: { rgb: '0F172A' } };
+      }
+      if (R === 1) {
+        cell.s.font = { name: 'Calibri', sz: 12, bold: true, color: { rgb: 'FFFFFF' } };
+        cell.s.fill = { fgColor: { rgb: '2563EB' } };
+      }
+      if (R === 2) {
+        cell.s.font = { name: 'Calibri', sz: 9.5, color: { rgb: '334155' } };
+        cell.s.fill = { fgColor: { rgb: 'F1F5F9' } };
+      }
+      if (R === 4 || R === 5) {
+        cell.s.font = { name: 'Calibri', sz: 10, bold: true, color: { rgb: '1E293B' } };
+        cell.s.fill = { fgColor: { rgb: 'F8FAFC' } };
+      }
+      if (R === tableHeaderIndex) {
+        cell.s.border = headerBorder;
+        cell.s.fill = { fgColor: { rgb: '1E293B' } };
+        cell.s.font = { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } };
+      }
+      if (R > tableHeaderIndex && R <= lastTableIndex) {
+        cell.s.border = crispCellBorder;
+        // Check if SAR or YER row for subtle accenting
+        const rowCurrency = currencyBreakdown[R - tableHeaderIndex - 1]?.currency;
+        if (rowCurrency === 'SAR') {
+          cell.s.fill = { fgColor: { rgb: 'F0F9FF' } }; // Light Sky Blue
+        } else if (rowCurrency === 'YER') {
+          cell.s.fill = { fgColor: { rgb: 'F0FDF4' } }; // Light Mint Green
+        }
+        if (C === 1) {
+          cell.s.alignment = { horizontal: 'right', vertical: 'center' };
+          cell.s.font = { name: 'Calibri', sz: 11, bold: true, color: { rgb: '0F172A' } };
+        }
+        if (C === 4) {
+          // Balance highlight
+          cell.s.fill = { fgColor: { rgb: 'FEF3C7' } }; // Amber light
+          cell.s.font = { name: 'Calibri', sz: 12, bold: true, color: { rgb: '92400E' } };
+        }
+      }
+      if (R > lastTableIndex) {
+        cell.s.font = { name: 'Calibri', sz: 9.5, italic: true, color: { rgb: '475569' } };
+        cell.s.fill = { fgColor: { rgb: 'F8FAFC' } };
+      }
+    }
+  }
+
+  return ws;
+};
+
+export const generateStatementExcelWorkbook = async (
+  company: CompanyInfo,
+  partyName: string,
+  entries: StatementEntry[],
+  options: StatementExportOptions = {}
+) => {
+  const XLSX = await loadXLSX();
+  const wb = XLSX.utils.book_new();
+
+  // Determine distinct currencies present in the entries
+  const currenciesPresent = Array.from(
+    new Set(
+      entries
+        .map(e => e.currency?.trim().toUpperCase())
+        .filter((c): c is string => Boolean(c))
+    )
+  );
+
+  // If options.currencyCode is explicitly specified and not ALL, restrict to it
+  const isFilteringSingleCurrency =
+    Boolean(options.currencyCode) && options.currencyCode !== 'ALL';
+
+  if (isFilteringSingleCurrency && options.currencyCode) {
+    const singleCurr = options.currencyCode.trim().toUpperCase();
+    const singleEntries = entries.filter(
+      e => !e.currency || e.currency.trim().toUpperCase() === singleCurr
+    );
+    const ws = await buildCurrencyStatementSheet(
+      company,
+      partyName,
+      singleEntries.length > 0 ? singleEntries : entries,
+      singleCurr,
+      options
+    );
+    const sheetTitle = singleCurr === 'SAR' ? 'كشف حساب - ريال سعودي' : singleCurr === 'YER' ? 'كشف حساب - ريال يمني' : `كشف حساب (${singleCurr})`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+    enableWorkbookRtl(wb);
+    return wb;
+  }
+
+  // If multiple currencies exist (e.g. SAR and YER), build multi-currency sheets
+  if (currenciesPresent.length > 1) {
+    // 1. Calculate breakdown per currency
+    const currencyBreakdown = currenciesPresent.map(curr => {
+      const currEntries = entries.filter(
+        e => (e.currency?.trim().toUpperCase() || 'SAR') === curr
+      );
+      const totalDebit = currEntries.reduce((s, r) => s + (Number(r.debit) || 0), 0);
+      const totalCredit = currEntries.reduce((s, r) => s + (Number(r.credit) || 0), 0);
+      const finalBalance =
+        currEntries.length > 0 ? Number(currEntries[currEntries.length - 1].balance) || 0 : 0;
+      return {
+        currency: curr,
+        totalDebit,
+        totalCredit,
+        finalBalance,
+        count: currEntries.length,
+      };
+    });
+
+    // 2. Build Summary Sheet
+    const summarySheet = await buildMultiCurrencySummarySheet(
+      company,
+      partyName,
+      currencyBreakdown,
+      options
+    );
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'ملخص شامل للعملات');
+
+    // 3. Build Sheet for each currency
+    for (const curr of currenciesPresent) {
+      const currEntries = entries.filter(
+        e => (e.currency?.trim().toUpperCase() || 'SAR') === curr
+      );
+      const ws = await buildCurrencyStatementSheet(
+        company,
+        partyName,
+        currEntries,
+        curr,
+        options
+      );
+      const sheetName =
+        curr === 'SAR'
+          ? 'ريال سعودي (SAR)'
+          : curr === 'YER'
+            ? 'ريال يمني (YER)'
+            : `حركات (${curr})`;
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    }
+
+    enableWorkbookRtl(wb);
+    return wb;
+  }
+
+  // Single currency default
+  const defaultCurrency =
+    currenciesPresent[0] || options.currencyCode || 'SAR';
+  const ws = await buildCurrencyStatementSheet(
+    company,
+    partyName,
+    entries,
+    defaultCurrency,
+    options
+  );
+  const sheetTitle =
+    defaultCurrency === 'SAR'
+      ? 'كشف حساب - ريال سعودي'
+      : defaultCurrency === 'YER'
+        ? 'كشف حساب - ريال يمني'
+        : `كشف حساب (${defaultCurrency})`;
+  XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+  enableWorkbookRtl(wb);
+  return wb;
+};
+
+export const exportStatementToExcel = async (
+  company: CompanyInfo,
+  partyName: string,
+  data: StatementEntry[],
+  options: StatementExportOptions = {}
+) => {
+  try {
+    const XLSX = await loadXLSX();
+    const wb = await generateStatementExcelWorkbook(company, partyName, data, options);
+    const safeName = sanitizeFileName(partyName);
+    const dateStr = formatLocalDate();
+    XLSX.writeFile(wb, `كشف_حساب_${safeName}_${dateStr}.xlsx`);
+  } catch {
+    throw new Error('فشل تصدير كشف الحساب إلى Excel');
+  }
+};
+
+export const generateStatementExcelBlob = async (
+  company: CompanyInfo,
+  partyName: string,
+  data: StatementEntry[],
+  options: StatementExportOptions = {}
+): Promise<Blob> => {
+  try {
+    const XLSX = await loadXLSX();
+    const wb = await generateStatementExcelWorkbook(company, partyName, data, options);
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    return new Blob([excelBuffer as BlobPart], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+  } catch {
+    throw new Error('فشل إنشاء ملف كشف الحساب');
+  }
+};

@@ -1,0 +1,49 @@
+import { create } from 'zustand';
+import { type AppError, parseError } from '../../core/utils/errorUtils';
+
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+  details?: AppError | undefined; // إضافة تفاصيل الخطأ
+  action?: ToastAction | undefined; // زر إجراء (مثل Retry)
+}
+
+interface FeedbackState {
+  toasts: Toast[];
+  showToast: (message: string, type?: ToastType, rawError?: any, action?: ToastAction) => void;
+  hideToast: (id: string) => void;
+}
+
+export const useFeedbackStore = create<FeedbackState>(set => ({
+  toasts: [],
+  showToast: (message, type = 'success', rawError, action) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    const details = rawError ? parseError(rawError) : undefined;
+
+    // إذا كان هناك خطأ تقني، ندمج رسالته مع الرسالة المخصصة
+    const finalMessage = details ? `${message}: ${details.message}` : message;
+
+    set(state => ({
+      toasts: [...state.toasts, { id, message: finalMessage, type, details, action }],
+    }));
+
+    setTimeout(() => {
+      set(state => ({
+        toasts: state.toasts.filter(t => t.id !== id),
+      }));
+    }, 5000);
+  },
+  hideToast: id => {
+    set(state => ({
+      toasts: state.toasts.filter(t => t.id !== id),
+    }));
+  },
+}));

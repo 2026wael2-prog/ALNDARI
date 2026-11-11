@@ -1,0 +1,203 @@
+import React, { useState } from 'react';
+import { formatCurrency } from '../../../core/utils/currencyUtils';
+import { CLASSIFICATION_META, REMINDER_STATUS_META, escalationBadgeMeta } from '../lib/constants';
+import { buildDebtRowActions, type DebtRowActionHandlers } from '../lib/rowActions';
+import { useDebtStatementExport } from '../hooks/useDebtStatementExport';
+import StatusBadge from './StatusBadge';
+import MobileCardList, { MobileCardRow } from '../../../ui/base/MobileCardList';
+import RowActions from './RowActions';
+import FollowUpExcelGrid from './FollowUpExcelGrid';
+import ReminderModal from './ReminderModal';
+import PromiseFormModal from './PromiseFormModal';
+import AIDebtRiskModal from './AIDebtRiskModal';
+import CollectionTimelineModal from './CollectionTimelineModal';
+import type { FollowUpDashboardRow } from '../types';
+
+interface FollowUpTableProps {
+  rows: FollowUpDashboardRow[];
+  /** Whether the user may create payment promises (debts:manage).
+   *  Secure default: false — the parent must pass the checked value. */
+  canManage?: boolean;
+  /** Whether the user may send WhatsApp reminders (debts:remind).
+   *  Secure default: false — the parent must pass the checked value. */
+  canRemind?: boolean;
+  /** Opens the prefilled receipt-bond flow for the row (تحصيل الآن). */
+  onCollect?: (row: FollowUpDashboardRow) => void;
+}
+
+/**
+ * أعمدة كشف الحساب الاختيارية انتقلت إلى hooks/useDebtStatementExport —
+ * هذا المكوّن للعرض فقط ويستهلك الـ Hook عبر طبقة الخدمة.
+ */
+
+const FollowUpTable: React.FC<FollowUpTableProps> = ({
+  rows,
+  canManage = false,
+  canRemind = false,
+  onCollect,
+}) => {
+  // M-4: التصدير عبر hook (Component → Hook → Service) — الـ Hook يملك رسائل
+  // النجاح/الخطأ وحالة التصدير، فالمكوّن لا يكرّر التنبيهات.
+  const { exportStatement, exportingPartyId } = useDebtStatementExport();
+
+  const [reminderRow, setReminderRow] = useState<FollowUpDashboardRow | null>(null);
+  const [promiseRow, setPromiseRow] = useState<FollowUpDashboardRow | null>(null);
+  const [aiRiskRow, setAiRiskRow] = useState<FollowUpDashboardRow | null>(null);
+  const [timelineRow, setTimelineRow] = useState<FollowUpDashboardRow | null>(null);
+
+  /**
+   * Row action handlers shared by the desktop Excel grid and the mobile cards.
+   * Single source of truth: permissions and labels live in lib/rowActions.ts.
+   */
+  const rowActionHandlers: DebtRowActionHandlers = {
+    canManage,
+    canRemind,
+    exportingPartyId,
+    onAiRisk: row => {
+      setAiRiskRow(row);
+    },
+    onExportStatement: row => {
+      void exportStatement(row);
+    },
+    onRemind: row => {
+      setReminderRow(row);
+    },
+    onCollect,
+    onTimeline: row => {
+      setTimelineRow(row);
+    },
+    onPromise: row => {
+      setPromiseRow(row);
+    },
+  };
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border-2 border-dashed border-[var(--app-border)] p-14 text-center text-sm text-[var(--app-text-secondary)] max-md:p-6">
+        لا توجد سجلات في هذا التصنيف
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* سطح المكتب: شبكة إكسل معيارية (ExcelTable) — أعمدة وتحديد ونسخ ومجاميع */}
+      <FollowUpExcelGrid rows={rows} handlers={rowActionHandlers} />
+
+      <MobileCardList>
+        {rows.map(row => {
+          const classification =
+            CLASSIFICATION_META[row.classification] ?? CLASSIFICATION_META.current;
+          const reminder =
+            REMINDER_STATUS_META[row.reminder_status] ?? REMINDER_STATUS_META.needs_reminder;
+          return (
+            <MobileCardRow
+              key={`${row.party_id}-${row.currency_code}`}
+              id={`${row.party_id}-${row.currency_code}`}
+              title={row.party_name}
+              subtitle={row.party_phone}
+              badge={
+                <>
+                  <StatusBadge {...classification} />
+                  <StatusBadge {...reminder} />
+                </>
+              }
+              badgeSecondary={
+                <>
+                  {row.has_broken_promise ? (
+                    <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600">
+                      ⚠️ وعد مخلَف
+                    </span>
+                  ) : null}
+                  <span
+                    title="مرحلة التصعيد المقترحة حسب أيام التأخير"
+                    className={`rounded-lg border px-1.5 py-0.5 text-[10px] font-bold ${
+                      escalationBadgeMeta(row.escalation_stage).badgeClass
+                    }`}
+                  >
+                    {escalationBadgeMeta(row.escalation_stage).label}
+                  </span>
+                </>
+              }
+              meta={
+                <>
+                  <span className="font-mono text-sm font-bold text-[var(--app-text)]" dir="ltr">
+                    {formatCurrency(row.outstanding_balance, row.currency_code)}
+                  </span>
+                  {row.days_overdue > 0 && (
+                    <span className="text-[11px] font-extrabold text-orange-600">
+                      {row.days_overdue} يوم تأخير
+                    </span>
+                  )}
+                  {row.oldest_due_date !== null && row.oldest_due_date !== '' && (
+                    <span
+                      className="font-mono text-[10px] text-[var(--app-text-secondary)]"
+                      dir="ltr"
+                    >
+                      {row.oldest_due_date}
+                    </span>
+                  )}
+                </>
+              }
+              actions={
+                <RowActions actions={buildDebtRowActions(row, rowActionHandlers)} variant="card" />
+              }
+            />
+          );
+        })}
+      </MobileCardList>
+
+      {/* Collection timeline modal (Phase 2A) */}
+      {timelineRow && (
+        <CollectionTimelineModal
+          isOpen
+          onClose={() => {
+            setTimelineRow(null);
+          }}
+          row={timelineRow}
+          canManage={canManage}
+        />
+      )}
+
+      {/* Reminder Modal */}
+      {reminderRow && (
+        <ReminderModal
+          isOpen
+          onClose={() => {
+            setReminderRow(null);
+          }}
+          row={reminderRow}
+        />
+      )}
+
+      {/* Promise Modal */}
+      {promiseRow && (
+        <PromiseFormModal
+          isOpen
+          onClose={() => {
+            setPromiseRow(null);
+          }}
+          partyId={promiseRow.party_id}
+          partyName={promiseRow.party_name}
+        />
+      )}
+
+      {/* AI Risk Modal */}
+      {aiRiskRow && (
+        <AIDebtRiskModal
+          isOpen
+          onClose={() => {
+            setAiRiskRow(null);
+          }}
+          row={aiRiskRow}
+          onOpenReminder={r => {
+            setAiRiskRow(null);
+            setReminderRow(r);
+          }}
+        />
+      )}
+    </>
+  );
+};
+
+export default FollowUpTable;

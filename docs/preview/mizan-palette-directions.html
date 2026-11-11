@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>الميزان الكلاسيكي — مقارنة اتجاهات الألوان</title>
+    <style>
+      :root { --ink: #1b1b19; --muted: #6b6b66; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 24px; background: #f7f6f3; color: var(--ink); }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      p.lead { margin: 0 0 18px; font-size: 13px; line-height: 1.7; color: var(--muted); }
+      code { background: #eeece6; padding: 1px 4px; border-radius: 2px; }
+      .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); }
+      .dir { border: 1px solid #e2ded6; background: #fff; border-radius: 4px; overflow: hidden;
+             box-shadow: 0 8px 24px rgb(20 16 10 / 8%); }
+      .dir > header { padding: 10px 12px; border-bottom: 1px solid #e2ded6; background: #fbfaf8; }
+      .dir > header b { font-size: 14px; }
+      .dir > header span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+      .pair { display: grid; grid-template-columns: 1fr 1fr; }
+      .mode { border-inline-start: 1px solid #e2ded6; }
+      .mode:first-child { border-inline-start: 0; }
+      .mode-tag { font-size: 10px; font-weight: 800; padding: 4px 8px; color: var(--text2); background: var(--bg); }
+      .titlebar { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; font-size: 11px;
+                  font-weight: 800; background: var(--chrome); border-bottom: 1px solid var(--chrome-border); color: var(--text); }
+      .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--brand); }
+      .menubar { display: flex; gap: 10px; height: 22px; align-items: center; padding: 0 8px; font-size: 11px;
+                 font-weight: 800; background: var(--chrome); border-bottom: 1px solid var(--chrome-border); color: var(--text); }
+      .ribbon { display: flex; gap: 5px; padding: 5px 8px; background: var(--chrome); border-bottom: 1px solid var(--chrome-border); }
+      .chip { display: flex; align-items: center; justify-content: center; width: 46px; height: 22px; font-size: 9px;
+              font-weight: 800; border: 1px solid transparent; border-radius: 2px; background: var(--icon); color: var(--icon-fg); }
+      .chip.sel { background: var(--active); border-color: var(--active-border); }
+      .body { padding: 8px; display: grid; gap: 8px; background: var(--bg); color: var(--text); }
+      .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 2px; padding: 6px; }
+      .card .k { font-size: 9px; color: var(--text2); }
+      .card .v { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+      .panel { background: var(--card); border: 1px solid var(--border); border-radius: 2px; }
+      .row { display: grid; grid-template-columns: 1.4fr 1fr .8fr; gap: 4px; padding: 3px 6px; font-size: 10px;
+             border-bottom: 1px solid var(--divider); font-variant-numeric: tabular-nums; }
+      .row:last-child { border-bottom: 0; }
+      .row.head { background: var(--slate50); font-weight: 800; color: var(--text2); }
+      .row.zebra { background: var(--zebra); }
+      .field { display: flex; gap: 6px; align-items: center; }
+      .input { flex: 1; height: 24px; display: flex; align-items: center; padding: 0 6px; font-size: 10px;
+               color: var(--text2); background: var(--card); border: 1px solid var(--control); border-radius: 2px; }
+      .btn { height: 24px; padding: 0 10px; font-size: 10px; font-weight: 800; border-radius: 2px;
+             border: 1px solid var(--brand); background: var(--brand); color: var(--brand-ink); }
+      .badge { display: inline-flex; align-items: center; height: 18px; padding: 0 5px; font-size: 9px; font-weight: 800;
+               border-radius: 2px; border: 1px solid var(--active-border); background: var(--active); color: var(--text); }
+      .swatches { display: flex; }
+      .swatches i { flex: 1; height: 16px; display: block; }
+    </style>
+  </head>
+  <body>
+    <h1>الميزان الكلاسيكي — ثلاثة اتجاهات لونية (نهاري / ليلي)</h1>
+    <p class="lead">
+      صفحة مقارنة ساكنة (خارج التطبيق) لاختيار الاتجاه قبل تطبيقه على الثيم. كل بطاقة تعرض نفس الشاشة
+      بعناصر حقيقية من التطبيق: شريط عنوان، شريط قوائم، شريط أوامر، ثلاث بطاقات أرقام، جدول بفواصل وصفوف
+      مخططة، حقل إدخال، زر رئيسي، وشارة حالة — ثم شريط التوكنات بترتيب الاستخدام.
+    </p>
+    <div class="grid" id="grid"></div>
+    <p class="lead" style="margin-top:20px">
+      الاتجاه <b>A</b> هو المطبَّق حالياً بعد إصلاح درجات الحدود وجسر النهار. البديلان <b>B</b> و<b>C</b>
+      جاهزان للتطبيق بتغيير قيم التوكنات فقط (بلا أي تعديل على المكوّنات). الملف:
+      <code>docs/preview/mizan-palette-directions.html</code>
+    </p>
+    <script>
+      const MOCK = () => `
+        <div class="titlebar"><span class="dot"></span> الزهراء — فواتير البيع</div>
+        <div class="menubar"><span>ملف</span><span>تعديل</span><span>عرض</span><span>تقارير</span></div>
+        <div class="ribbon">
+          <div class="chip sel">حفظ</div><div class="chip">جديد</div>
+          <div class="chip">طباعة</div><div class="chip">ترحيل</div>
+        </div>
+        <div class="body">
+          <div class="cards">
+            <div class="card"><div class="k">صافي المبيعات</div><div class="v">1,284,500</div></div>
+            <div class="card"><div class="k">عدد الفواتير</div><div class="v">137</div></div>
+            <div class="card"><div class="k">المعلّقة</div><div class="v">4</div></div>
+          </div>
+          <div class="panel">
+            <div class="row head"><span>العميل</span><span>التاريخ</span><span>الإجمالي</span></div>
+            <div class="row"><span>مؤسسة النور</span><span>2026-11-03</span><span>42,300</span></div>
+            <div class="row zebra"><span>ورشة الأمانة</span><span>2026-11-03</span><span>8,750</span></div>
+            <div class="row"><span>قطع الغيار الحديثة</span><span>2026-11-02</span><span>126,000</span></div>
+          </div>
+          <div class="field">
+            <div class="input">ابحث عن صنف أو عميل…</div>
+            <div class="btn">حفظ</div>
+            <div class="badge">مرحّل</div>
+          </div>
+        </div>`;
+
+      const DIRECTIONS = [
+        {
+          id: 'A',
+          title: 'دافئ «حبر وورق» — المطبَّق حالياً',
+          desc: 'ورق دافئ + حبر بنّي + برتقالي الميزان. حدود بشعرة رفيعة، والبطاقات مرتفعة خطوة عن الصفحة.',
+          light: {
+            bg: '#f2f0ec', card: '#ffffff', border: '#e6e2da', divider: '#e0dcd3', control: '#948c7d',
+            text: '#1b1b19', text2: '#5a564f', chrome: '#f7f6f3', chromeInk: '#1b1b19',
+            chromeBorder: '#e6e2da', slate50: '#f7f5f0', zebra: '#fbfaf7', icon: '#f3efe7',
+            iconFg: '#9a4a08', active: '#fce4c8', activeBorder: '#c2410c', brand: '#f58220', brandInk: '#1b1207',
+          },
+          dark: {
+            bg: '#17140f', card: '#2a241c', border: '#3d362c', divider: '#423a30', control: '#82705a',
+            text: '#f4efe6', text2: '#b9ac99', chrome: '#2f2822', chromeInk: '#f4efe6',
+            chromeBorder: '#453c31', slate50: '#332c23', zebra: '#211d17', icon: '#3a3227',
+            iconFg: '#fdba74', active: '#473923', activeBorder: '#f07f18', brand: '#f58220', brandInk: '#1b1207',
+          },
+          swatchLight: ['#f2f0ec', '#ffffff', '#e6e2da', '#948c7d', '#5a564f', '#1b1b19', '#c2410c', '#f58220'],
+          swatchDark: ['#17140f', '#201c16', '#2a241c', '#3d362c', '#82705a', '#b9ac99', '#f4efe6', '#f58220'],
+        },
+        {
+          id: 'B',
+          title: 'محايد بارد «رمادي مكتبي»',
+          desc: 'بلا حرارة إطلاقاً: رمادي مزرق فاتح نهاراً وفحمي محايد ليلاً، وأزرق كلاسيكي للعناصر النشطة.',
+          light: {
+            bg: '#eef1f5', card: '#ffffff', border: '#dbe1e9', divider: '#e5eaf1', control: '#8b97a6',
+            text: '#16202b', text2: '#556273', chrome: '#f4f6f9', chromeInk: '#16202b',
+            chromeBorder: '#d9e0e8', slate50: '#f4f6f9', zebra: '#fafbfd', icon: '#eef2f7',
+            iconFg: '#2f5580', active: '#dce8f7', activeBorder: '#2f6fba', brand: '#2f6fba', brandInk: '#ffffff',
+          },
+          dark: {
+            bg: '#14171b', card: '#232830', border: '#2f3640', divider: '#343c47', control: '#6d7a8b',
+            text: '#eef2f7', text2: '#a5b1c0', chrome: '#20252b', chromeInk: '#eef2f7',
+            chromeBorder: '#343c47', slate50: '#242a31', zebra: '#1e232a', icon: '#2a313a',
+            iconFg: '#8fc0f5', active: '#2c3a4d', activeBorder: '#4f9bea', brand: '#4f9bea', brandInk: '#0b1622',
+          },
+          swatchLight: ['#eef1f5', '#ffffff', '#dbe1e9', '#8b97a6', '#556273', '#16202b', '#2f6fba', '#eef2f7'],
+          swatchDark: ['#14171b', '#1b1f24', '#232830', '#2f3640', '#6d7a8b', '#a5b1c0', '#eef2f7', '#4f9bea'],
+        },
+        {
+          id: 'C',
+          title: 'أزرق مؤسسي «محاسبي تقليدي»',
+          desc: 'شريط عنوان أزرق داكن (روح برامج المحاسبة المكتبية)، أسطح رمادية فاتحة، وأزرق للنشاط.',
+          light: {
+            bg: '#f0f3f6', card: '#ffffff', border: '#d5dee7', divider: '#e2e9f0', control: '#7e8fa3',
+            text: '#12212e', text2: '#4e5f72', chrome: '#1f4e79', chromeInk: '#eaf2fa',
+            chromeBorder: '#173a5a', slate50: '#eef2f7', zebra: '#f9fbfd', icon: '#2b5c8a',
+            iconFg: '#eaf2fa', active: '#3d76ab', activeBorder: '#9cc7ef', brand: '#1f4e79', brandInk: '#ffffff',
+          },
+          dark: {
+            bg: '#0e1620', card: '#1b2b3c', border: '#26384b', divider: '#2b3f54', control: '#5f7c98',
+            text: '#e9f1f8', text2: '#9fb4c9', chrome: '#16334f', chromeInk: '#e9f1f8',
+            chromeBorder: '#22425f', slate50: '#1e2f42', zebra: '#182838', icon: '#22364a',
+            iconFg: '#9dc8f0', active: '#24486a', activeBorder: '#7ab3e8', brand: '#7ab3e8', brandInk: '#08131d',
+          },
+          swatchLight: ['#f0f3f6', '#ffffff', '#d5dee7', '#7e8fa3', '#4e5f72', '#12212e', '#1f4e79', '#cfe2f3'],
+          swatchDark: ['#0e1620', '#152230', '#1b2b3c', '#26384b', '#5f7c98', '#9fb4c9', '#e9f1f8', '#7ab3e8'],
+        },
+      ];
+
+      const applyVars = (node, p) => {
+        const map = {
+          '--bg': p.bg, '--card': p.card, '--border': p.border, '--divider': p.divider,
+          '--control': p.control, '--text': p.text, '--text2': p.text2, '--chrome': p.chrome,
+          '--chrome-ink': p.chromeInk, '--chrome-border': p.chromeBorder, '--slate50': p.slate50,
+          '--zebra': p.zebra, '--icon': p.icon, '--icon-fg': p.iconFg, '--active': p.active,
+          '--active-border': p.activeBorder, '--brand': p.brand, '--brand-ink': p.brandInk,
+        };
+        Object.keys(map).forEach(name => node.style.setProperty(name, map[name]));
+      };
+
+      const modeHtml = (color, swatches, tag) => {
+        const node = document.createElement('div');
+        node.className = 'mode';
+        node.innerHTML =
+          `<div class="mode-tag">${tag}</div>` +
+          MOCK() +
+          '<div class="swatches">' +
+          swatches.map(c => `<i style="background:${c}"></i>`).join('') +
+          '</div>';
+        applyVars(node, color);
+        node.querySelector('.titlebar').style.color = 'var(--chrome-ink)';
+        node.querySelector('.menubar').style.color = 'var(--chrome-ink)';
+        return node;
+      };
+
+      const grid = document.getElementById('grid');
+      DIRECTIONS.forEach(dir => {
+        const section = document.createElement('section');
+        section.className = 'dir';
+        const header = document.createElement('header');
+        header.innerHTML = `<b>${dir.id} · ${dir.title}</b><span>${dir.desc}</span>`;
+        const pair = document.createElement('div');
+        pair.className = 'pair';
+        pair.append(
+          modeHtml(dir.light, dir.swatchLight, 'نهاري'),
+          modeHtml(dir.dark, dir.swatchDark, 'ليلي')
+        );
+        section.append(header, pair);
+        grid.append(section);
+      });
+    </script>
+  </body>
+</html>

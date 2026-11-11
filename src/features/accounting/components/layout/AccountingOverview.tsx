@@ -1,0 +1,49 @@
+import React from 'react';
+import AccountingStats from './AccountingStats';
+import QuickActions from '../overview/QuickActions';
+import KeyAccountBalances from '../overview/KeyAccountBalances';
+import RecentJournals from '../overview/RecentJournals';
+import FinancialPerformanceChart from '../overview/FinancialPerformanceChart';
+import { BarChart3, Activity } from 'lucide-react';
+import Card from '../../../../ui/base/Card';
+
+interface AccountingOverviewProps {
+  onNewJournal?: () => void;
+}
+
+const AccountingOverview: React.FC<AccountingOverviewProps> = ({ onNewJournal }) => {
+  return (
+    <div className="space-y-4 animate-in fade-in duration-500">
+      {/* Top Stats Bar */}
+      <div className="space-y-2">
+         <h3 className="text-[10px] font-bold text-[var(--app-text-secondary)] uppercase tracking-widest px-1 flex items-center gap-2">
+            <Activity size={14} className="text-blue-500" /> الحالة المالية اللحظية
+         </h3>
+         <AccountingStats />
+      </div>
+
+      {/* Main Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-md:gap-3 items-start">
+        {/* Main Column */}
+        <div className="lg:col-span-2 space-y-4">
+            <Card variant="ledger" className="p-4">
+              <h3 className="text-xs font-bold text-[var(--app-text)] mb-4 px-1 flex items-center gap-2">
+                <BarChart3 size={16} className="text-blue-500" />
+                أداء الإيرادات مقابل المصروفات
+              </h3>
+              <FinancialPerformanceChart />
+            </Card>
+            <RecentJournals />
+        </div>
+
+        {/* Sidebar Column */}
+        <div className="lg:col-span-1 space-y-4">
+            <QuickActions {...(onNewJournal ? { onNewJournal } : {})} />
+            <KeyAccountBalances />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AccountingOverview;

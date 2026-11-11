@@ -1,0 +1,482 @@
+import { supabase } from '../../../lib/supabaseClient';
+import type { TableInsert, TableUpdate } from '@/core/types/supabase-helpers';
+import type { Json } from '../../../core/database.types';
+import type { ProductUOM } from '../types';
+import { normalizeArabic } from '@/core/utils/search';
+
+/** Products CRUD and search */
+export const productsApi = {
+  getProducts: async (companyId: string, page = 1, limitNum = 500, signal?: AbortSignal) => {
+    const safeLimit = Math.min(Math.max(1, limitNum), 500);
+    const offset = (page - 1) * safeLimit;
+
+    // Use the optimized RPC that applies LIMIT before the heavy join (33x faster than direct join)
+    try {
+      const rpcQuery = supabase.rpc('get_products_paged', {
+        p_company_id: companyId,
+        p_limit: limitNum,
+        p_offset: offset,
+      });
+      const res = await (signal ? rpcQuery.abortSignal(signal) : rpcQuery);
+      if (!res.error && Array.isArray(res.data)) {
+        return { data: res.data, error: null };
+      }
+    } catch {
+      // fall through to direct query fallback
+    }
+
+    // Fallback: direct query with subquery to ensure limit is applied before join
+    const from = offset;
+    const to = offset + limitNum - 1;
+    const query = supabase
+      .from('products')
+      .select(
+        `
+                id,
+                company_id,
+                name_ar,
+                sku,
+                part_number,
+                brand,
+                category_id,
+                size,
+                description,
+                purchase_price,
+                sale_price,
+                min_stock_level,
+                unit,
+                image_url,
+                is_core,
+                alternative_numbers,
+                barcode,
+                created_at,
+                updated_at,
+                status,
+                category:product_categories(id, name),
+                stock:product_stock(
+                    quantity,
+                    warehouse_id,
+                    warehouses(
+                        name_ar,
+                        branch_id,
+                        branches:branches(id, name)
+                    )
+                )
+            `
+      )
+      .eq('company_id', companyId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    return signal ? query.abortSignal(signal) : query;
+  },
+
+  getProductsWithStock: (companyId: string, signal?: AbortSignal) => {
+    // `get_products_with_stock` is an authenticated-only SECURITY DEFINER RPC
+    // (REVOKE … FROM anon, PUBLIC) typed in `database.types.ts`, so the call is
+    // fully type-checked and the caller receives { data, error } natively.
+    const query = supabase.rpc('get_products_with_stock', { p_company_id: companyId });
+    return signal ? query.abortSignal(signal) : query;
+  },
+
+  getProductById: async (id: string) => {
+    return await supabase.from('products').select('*').eq('id', id).single();
+  },
+
+  createProduct: async (productData: TableInsert<'products'>) => {
+    return await supabase.from('products').insert(productData).select().single();
+  },
+
+  updateProduct: async (id: string, updates: TableUpdate<'products'>) => {
+    return await supabase.from('products').update(updates).eq('id', id).select().single();
+  },
+
+  saveProductUoMs: async (productId: string, uoms: ProductUOM[]) => {
+    // The atomic RPC (`save_product_uoms`) is the single source of truth.
+    // Only when it is genuinely missing (PGRST202 / not deployed) do we
+    // degrade to a direct table write. Real failures (network, constraints,
+    // unexpected exceptions) are PROPAGATED — never reported as success —
+    // so a failed UOM save can't silently look like it worked.
+    // Direct-write fallback result shape (data omitted on failure).
+    interface DirectUomWriteResult {
+      data?: unknown;
+      error: unknown;
+    }
+    const writeUoMsDirectly = async (): Promise<DirectUomWriteResult> => {
+      const { error: deleteError } = await supabase
+        .from('product_uoms')
+        .delete()
+        .eq('product_id', productId);
+      if (deleteError) return { error: deleteError };
+      if (uoms.length > 0) {
+        return await supabase.from('product_uoms').insert(
+          uoms.map(u => ({
+            uom_name: u.uom_name,
+            conversion_factor: u.conversion_factor,
+            product_id: productId,
+          }))
+        );
+      }
+      return { error: null };
+    };
+
+    try {
+      const { data, error } = await supabase.rpc('save_product_uoms', {
+        p_product_id: productId,
+        p_uoms: uoms as unknown as Json,
+      });
+      if (!error) return { data, error: null };
+
+      // If the function is missing, fallback to client-side non-atomic sequence
+      const pgError = error as { code?: string; message?: string };
+      const errCode = pgError.code || '';
+      const errMessage = pgError.message?.toLowerCase() || '';
+      if (
+        errCode === 'PGRST202' ||
+        errMessage.includes('could not find the function') ||
+        errMessage.includes('404')
+      ) {
+        return await writeUoMsDirectly();
+      }
+      return { error };
+    } catch {
+      // Unexpected exception from the RPC path (network / serialization…).
+      // Degrade to the direct write so the feature keeps working, but
+      // surface any real failure instead of faking success.
+      return await writeUoMsDirectly();
+    }
+  },
+
+  deleteProduct: async (id: string) => {
+    // Safety check: prevent deleting products with existing invoice items
+    const { count: invoiceCount, error: invErr } = await supabase
+      .from('invoice_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', id);
+    if (invErr) throw invErr;
+    if (invoiceCount && invoiceCount > 0) {
+      throw new Error('لا يمكن حذف منتج له فواتير بيع أو شراء مرتبطة.');
+    }
+
+    // Safety check: prevent deleting products with inventory transactions
+    const { count: txCount, error: txErr } = await supabase
+      .from('inventory_transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', id);
+    if (txErr) throw txErr;
+    if (txCount && txCount > 0) {
+      throw new Error('لا يمكن حذف منتج له حركات مخزون أو فواتير مسجلة.');
+    }
+
+    // Clean up child tables
+    try {
+      await supabase.from('product_uoms').delete().eq('product_id', id);
+      await supabase.from('product_stock').delete().eq('product_id', id);
+    } catch {
+      // ignore non-fatal child deletion error
+    }
+
+    // Try hard delete first
+    const { error: hardDeleteErr } = await supabase.from('products').delete().eq('id', id);
+    if (!hardDeleteErr) {
+      return { data: null, error: null };
+    }
+    if (
+      hardDeleteErr.code === '42501' ||
+      (typeof hardDeleteErr.message === 'string' &&
+        hardDeleteErr.message.includes('عذراً، لا تمتلك صلاحية'))
+    ) {
+      return { data: null, error: hardDeleteErr };
+    }
+
+    // Fallback: soft-delete via status='archived' + deleted_at so
+    // search_inventory_paginated excludes it. 'deleted' is NOT a permitted value
+    // of products_status_check (active|inactive|archived) and used to fail with 23514.
+    return await supabase
+      .from('products')
+      .update({ status: 'archived', deleted_at: new Date().toISOString() })
+      .eq('id', id);
+  },
+
+  bulkDeleteProducts: async (ids: string[]) => {
+    if (!ids || ids.length === 0) return { data: null, error: null };
+
+    // Safety check: prevent deleting products with existing references
+    const { count: invoiceCount, error: invErr } = await supabase
+      .from('invoice_items')
+      .select('id', { count: 'exact', head: true })
+      .in('product_id', ids);
+    if (invErr) throw invErr;
+    if (invoiceCount && invoiceCount > 0) {
+      throw new Error(`لا يمكن حذف المنتجات: ${invoiceCount} عنصر فاتورة مرتبط بها.`);
+    }
+
+    // Try hard delete first without destroying stock history prematurely
+    const { error: hardDeleteErr } = await supabase.from('products').delete().in('id', ids);
+    if (!hardDeleteErr) {
+      return { data: null, error: null };
+    }
+    if (
+      hardDeleteErr.code === '42501' ||
+      (typeof hardDeleteErr.message === 'string' &&
+        hardDeleteErr.message.includes('عذراً، لا تمتلك صلاحية'))
+    ) {
+      return { data: null, error: hardDeleteErr };
+    }
+
+    // If hard delete fails due to constraints, soft-delete preserving data integrity.
+    // status='archived' — القيمة 'deleted' مرفوضة من products_status_check.
+    return await supabase
+      .from('products')
+      .update({ status: 'archived', deleted_at: new Date().toISOString() })
+      .in('id', ids);
+  },
+
+  searchProduct: async (companyId: string, term: string, branchId?: string | null) => {
+    const cleanTerm = normalizeArabic(term).trim();
+    try {
+      const { data, error } = await supabase.rpc('search_inventory_paginated', {
+        p_company_id: companyId,
+        p_term: cleanTerm,
+        p_limit: 30,
+        p_offset: 0,
+        p_sort_key: 'name_ar',
+        p_sort_dir: 'asc',
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      });
+      if (!error && Array.isArray(data)) {
+        return {
+          data: data.map(item => ({
+            id: item.id,
+            name_ar: item.name_ar,
+            sku: item.sku,
+            sale_price: item.sale_price,
+            purchase_price: item.purchase_price,
+            part_number: item.part_number,
+            alternative_numbers: item.alternative_numbers,
+            brand: item.brand,
+            quantity: Array.isArray(item.stock) ? item.stock : [],
+          })),
+          error: null,
+        };
+      }
+    } catch {
+      // Fall back to direct query on network or RPC errors
+    }
+
+    const searchPattern = `%${cleanTerm}%`;
+    const res = await supabase
+      .from('products')
+      .select(
+        'id, name_ar, sku, sale_price, purchase_price, part_number, alternative_numbers, brand, quantity:product_stock(quantity, warehouses(branch_id))'
+      )
+      .eq('company_id', companyId)
+      .eq('status', 'active')
+      .or(
+        `name_ar.ilike.${searchPattern},sku.ilike.${searchPattern},part_number.ilike.${searchPattern},alternative_numbers.ilike.${searchPattern},brand.ilike.${searchPattern},barcode.ilike.${searchPattern}`
+      )
+      .order('name_ar')
+      .limit(30);
+
+    if (branchId && Array.isArray(res.data)) {
+      return {
+        ...res,
+        data: res.data.map(item => ({
+          ...item,
+          quantity: Array.isArray(item.quantity)
+            ? item.quantity.filter(
+              (s: { warehouses?: { branch_id?: string | null } | Array<{ branch_id?: string | null }> | null }) => {
+                const wh = Array.isArray(s.warehouses) ? s.warehouses[0] : s.warehouses;
+                return wh?.branch_id === branchId;
+              }
+            )
+            : [],
+        })),
+      };
+    }
+
+    return res;
+  },
+
+  getSupplier: async (id: string) => {
+    return await supabase.from('parties').select('name').eq('id', id).single();
+  },
+
+  getCategories: async (companyId: string) => {
+    const { data, error } = await supabase
+      .from('product_categories')
+      .select('*')
+      .eq('company_id', companyId)
+      .is('deleted_at', null)
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  createCategory: async (companyId: string, name: string) => {
+    return await supabase
+      .from('product_categories')
+      .insert({ company_id: companyId, name })
+      .select()
+      .single();
+  },
+
+  deleteCategory: async (id: string) => {
+    return await supabase
+      .from('product_categories')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+  },
+
+  /** Fetch distinct non-empty brands recorded in company products for autocomplete */
+  fetchDistinctBrands: async (companyId: string): Promise<string[]> => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('brand')
+      .eq('company_id', companyId)
+      .is('deleted_at', null)
+      .not('brand', 'is', null)
+      .neq('brand', '')
+      .limit(1000);
+
+    if (error) {
+      return [];
+    }
+
+    const brandSet = new Set<string>();
+    data?.forEach(row => {
+      const trimmed = row.brand?.trim();
+      if (trimmed) {
+        brandSet.add(trimmed);
+      }
+    });
+
+    return Array.from(brandSet).sort((a, b) => a.localeCompare(b, 'ar', { sensitivity: 'base' }));
+  },
+
+  /** Search company products by part number or alternative numbers for smart autocomplete/anti-duplication */
+  searchPartNumbers: async (
+    companyId: string,
+    query: string
+  ): Promise<
+    Array<{
+      id: string;
+      name_ar: string;
+      part_number: string | null;
+      alternative_numbers: string | null;
+      brand: string | null;
+      sku: string;
+      sale_price: number | null;
+      purchase_price: number | null;
+    }>
+  > => {
+    const clean = query.trim();
+    if (!clean) return [];
+    const searchPattern = `%${clean}%`;
+
+    const { data, error } = await supabase
+      .from('products')
+      .select(
+        'id, name_ar, part_number, alternative_numbers, brand, sku, sale_price, purchase_price'
+      )
+      .eq('company_id', companyId)
+      .is('deleted_at', null)
+      .or(`part_number.ilike.${searchPattern},alternative_numbers.ilike.${searchPattern}`)
+      .limit(8);
+
+    if (error) {
+      return [];
+    }
+
+    return data || [];
+  },
+
+  toggleCoreProduct: async (id: string, isCore: boolean) => {
+    return await supabase
+      .from('products')
+      .update({ is_core: isCore })
+      .eq('id', id)
+      .select()
+      .single();
+  },
+
+  bulkSetCoreProducts: async (ids: string[], isCore: boolean) => {
+    return await supabase.from('products').update({ is_core: isCore }).in('id', ids);
+  },
+
+  /**
+   * Get product IDs associated with a specific supplier (via supplier prices or purchase invoices)
+   */
+  getSupplierProductIds: async (companyId: string, supplierId: string): Promise<string[]> => {
+    if (!companyId || !supplierId) return [];
+
+    const [pspRes, invItemsRes] = await Promise.all([
+      supabase
+        .from('product_supplier_prices')
+        .select('product_id')
+        .eq('company_id', companyId)
+        .eq('supplier_id', supplierId),
+      supabase
+        .from('invoice_items')
+        .select('product_id, invoice:invoices!inner(company_id, party_id, type)')
+        .eq('invoice.company_id', companyId)
+        .eq('invoice.party_id', supplierId)
+        .eq('invoice.type', 'purchase'),
+    ]);
+
+    const ids = new Set<string>();
+    (pspRes.data || []).forEach(r => {
+      if (r.product_id) ids.add(r.product_id);
+    });
+    (invItemsRes.data || []).forEach((r: { product_id?: string | null }) => {
+      if (r.product_id) ids.add(r.product_id);
+    });
+
+    return Array.from(ids);
+  },
+
+  /**
+   * Get map of product IDs to their known supplier name
+   */
+  getProductSupplierMap: async (companyId: string): Promise<Record<string, string>> => {
+    if (!companyId) return {};
+
+    const map: Record<string, string> = {};
+
+    const [pspRes, invRes] = await Promise.all([
+      supabase
+        .from('product_supplier_prices')
+        .select('product_id, supplier:parties!supplier_id(name)')
+        .eq('company_id', companyId),
+      supabase
+        .from('invoice_items')
+        .select('product_id, invoice:invoices!inner(party:parties!party_id(name), type, company_id)')
+        .eq('invoice.company_id', companyId)
+        .eq('invoice.type', 'purchase')
+        .order('created_at', { ascending: false })
+        .limit(1000),
+    ]);
+
+    (pspRes.data || []).forEach(
+      (r: { product_id?: string | null; supplier?: { name?: string | null } | null }) => {
+        if (r.product_id && r.supplier?.name && !map[r.product_id]) {
+          map[r.product_id] = r.supplier.name;
+        }
+      }
+    );
+
+    (invRes.data || []).forEach(
+      (r: {
+        product_id?: string | null;
+        invoice?: { party?: { name?: string | null } | null } | null;
+      }) => {
+        if (r.product_id && r.invoice?.party?.name && !map[r.product_id]) {
+          map[r.product_id] = r.invoice.party.name;
+        }
+      }
+    );
+
+    return map;
+  },
+};

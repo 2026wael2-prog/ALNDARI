@@ -1,0 +1,374 @@
+/**
+ * Currency Utilities for Al-Jaafari Smart ERP
+ * Unified currency conversion and formatting functions
+ */
+
+/**
+ * Supported currency codes
+ */
+export type CurrencyCode = 'SAR' | 'YER' | 'USD' | 'OMR' | 'CNY';
+
+/**
+ * Currency symbols mapping
+ */
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+  SAR: 'ر.س',
+  YER: 'ر.ي',
+  USD: '$',
+  OMR: 'ر.ع',
+  CNY: '¥',
+  EGP: 'ج.م',
+  AED: 'د.إ',
+  KWD: 'د.ك',
+  BHD: 'د.ب',
+  QAR: 'ر.ق',
+};
+
+/**
+ * Currency conversion parameters
+ */
+export interface CurrencyConversionParams {
+  amount: number;
+  currencyCode: CurrencyCode | string;
+  exchangeRate: number;
+  exchangeOperator?: 'multiply' | 'divide';
+}
+
+export class CurrencyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CurrencyError';
+  }
+}
+
+export const convertToBaseCurrency = (params: CurrencyConversionParams): number => {
+  const { amount, exchangeRate, exchangeOperator = 'multiply' } = params;
+
+  if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+    throw new CurrencyError(`Invalid exchange rate: ${exchangeRate}. Must be a positive number.`);
+  }
+
+  // التحقق من المبلغ قبل أي مسار إرجاع مبكر — حتى مع rate === 1 لا يمرّ NaN/Infinity.
+  if (!Number.isFinite(amount)) {
+    throw new CurrencyError(`Invalid amount: ${amount}. Must be a finite number.`);
+  }
+
+  if (exchangeRate === 1) {
+    return amount;
+  }
+
+  // إذا كان المعامل 'divide' وسعر الصرف كسري أصغر من 1 (مثل 0.002439 = 1/410)،
+  // فالقسمة المباشرة ستضخم المبلغ أضعافاً مضاعفة بملايين، لذا نعتمد مقلوب الكسر كقاسم حقيقي.
+  const effectiveRate =
+    exchangeOperator === 'divide' && exchangeRate < 1 ? 1 / exchangeRate : exchangeRate;
+
+  const converted = exchangeOperator === 'divide' ? amount / effectiveRate : amount * effectiveRate;
+
+  return Math.round((converted + Number.EPSILON) * 100) / 100;
+};
+
+export const convertFromBaseCurrency = (params: CurrencyConversionParams): number => {
+  const { amount, exchangeRate, exchangeOperator = 'multiply' } = params;
+
+  if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+    throw new CurrencyError(`Invalid exchange rate: ${exchangeRate}. Must be a positive number.`);
+  }
+
+  // التحقق من المبلغ قبل أي مسار إرجاع مبكر — حتى مع rate === 1 لا يمرّ NaN/Infinity.
+  if (!Number.isFinite(amount)) {
+    throw new CurrencyError(`Invalid amount: ${amount}. Must be a finite number.`);
+  }
+
+  if (exchangeRate === 1) {
+    return amount;
+  }
+
+  const effectiveRate =
+    exchangeOperator === 'divide' && exchangeRate < 1 ? 1 / exchangeRate : exchangeRate;
+
+  const converted = exchangeOperator === 'divide' ? amount * effectiveRate : amount / effectiveRate;
+
+  return Math.round((converted + Number.EPSILON) * 100) / 100;
+};
+
+/**
+ * تحويل أي أرقام عربية/فارسية (٠-٩، ۰-۹) إلى أرقام إنجليزية (0-9).
+ * تُستخدم كشبكة أمان نهائية لضمان ظهور جميع الأرقام بالشكل الإنجليزي
+ * حتى لو تسرّبت أرقام عربية من أي مصدر خارجي.
+ */
+export const ensureLatinDigits = (value: string | number): string => {
+  const str = String(value);
+  return str
+    .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+};
+
+/**
+ * تطهير وتوحيد المدخلات الرقمية:
+ * - تحويل الأرقام المشرقية والعربية والفارسية إلى أرقام إنجليزية (0-9)
+ * - تحويل الفاصلة العربية (،) إلى نقطة عشرية (.)
+ * - السماح فقط بالأرقام ونقطة عشرية واحدة وإشارة سالب اختيارية
+ */
+export const sanitizeNumericInput = (value: string, allowNegative = false): string => {
+  if (!value) return '';
+  let cleaned = ensureLatinDigits(value)
+    .replace(/،/g, '.')
+    .replace(/[^\d.-]/g, '');
+
+  if (!allowNegative) {
+    cleaned = cleaned.replace(/-/g, '');
+  } else {
+    const isNegative = cleaned.startsWith('-');
+    cleaned = (isNegative ? '-' : '') + cleaned.replace(/-/g, '');
+  }
+
+  const parts = cleaned.split('.');
+  if (parts.length > 2) {
+    cleaned = parts[0] + '.' + parts.slice(1).join('');
+  }
+
+  return cleaned;
+};
+
+/**
+ * Format a number as currency with the appropriate symbol
+ * Accepts both CurrencyCode and string for flexibility
+ */
+export const formatCurrency = (
+  amount: number,
+  currencyCode: CurrencyCode | string = 'SAR',
+  options?: {
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+  }
+): string => {
+  const { minimumFractionDigits = 2, maximumFractionDigits = 2 } = options || {};
+
+  const formattedNumber = ensureLatinDigits(
+    new Intl.NumberFormat('en-US', {
+      minimumFractionDigits,
+      maximumFractionDigits,
+    }).format(amount)
+  );
+
+  const symbol = CURRENCY_SYMBOLS[currencyCode] || currencyCode;
+
+  if (currencyCode === 'USD') {
+    return `${symbol}${formattedNumber}`;
+  }
+
+  return `${formattedNumber} ${symbol}`;
+};
+
+export const formatNumber = (value: number): string => {
+  return ensureLatinDigits(new Intl.NumberFormat('en-US').format(value));
+};
+
+/**
+ * Parse any numeric input string into a standard float number.
+ * Robustly supports:
+ * - Decimals with dot ("0.50")
+ * - Decimals with comma ("0,50")
+ * - Arabic decimal separator ("0٫50")
+ * - Arabic comma ("0،50")
+ * - Eastern Arabic numerals ("٠.٥٠", "٠٫٥٠")
+ * - Thousand separators ("1,234.50")
+ */
+export const parseNumberFlexible = (value: string | number | null | undefined): number => {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return isNaN(value) ? 0 : value;
+
+  let str = ensureLatinDigits(String(value)).trim();
+  // Strip currency symbols and whitespaces
+  for (const sym of Object.values(CURRENCY_SYMBOLS)) {
+    str = str.split(sym).join('');
+  }
+  str = str.replace(/\s/g, '');
+
+  // Convert Arabic decimal separator (٫) and Arabic comma (،) to dot
+  str = str.replace(/[،٫]/g, '.');
+
+  const hasComma = str.includes(',');
+  const hasDot = str.includes('.');
+
+  if (hasComma && hasDot) {
+    const lastComma = str.lastIndexOf(',');
+    const lastDot = str.lastIndexOf('.');
+    if (lastDot > lastComma) {
+      // e.g. "1,234.50" -> dot is decimal, comma is thousand separator
+      str = str.replace(/,/g, '');
+    } else {
+      // e.g. "1.234,50" -> comma is decimal, dot is thousand separator
+      str = str.replace(/\./g, '').replace(',', '.');
+    }
+  } else if (hasComma) {
+    const commaCount = (str.match(/,/g) || []).length;
+    if (commaCount > 1) {
+      // Multiple commas (e.g. "1,000,000") -> thousand separators
+      str = str.replace(/,/g, '');
+    } else {
+      // Single comma: e.g. "0,50", "12,5", "10,000"
+      const match = /^(-?\d+),(\d+)$/.exec(str);
+      if (match) {
+        const [, integerPart, decimalPart] = match;
+        if (decimalPart.length === 3 && integerPart !== '0' && integerPart.length <= 3) {
+          // e.g. "10,000" or "1,000" -> thousand separator
+          str = str.replace(',', '');
+        } else {
+          // e.g. "0,50", "12,5", "0,005" -> decimal separator
+          str = str.replace(',', '.');
+        }
+      } else {
+        str = str.replace(',', '.');
+      }
+    }
+  }
+
+  const parsed = parseFloat(str);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+export const parseCurrency = (currencyString: string): number => {
+  return parseNumberFlexible(currencyString);
+};
+
+export const calculateExchangeRate = (
+  fromCurrency: CurrencyCode | string,
+  toCurrency: CurrencyCode | string,
+  rates: Record<string, number>
+): number => {
+  if (fromCurrency === toCurrency) {
+    return 1;
+  }
+
+  // لا fallback صامت إلى 1: كان غياب العملة من خريطة الأسعار يجعل التحويل 1:1
+  // فيُسجَّل مبلغ بعملة كأنه بعملة أخرى بلا أي إشارة. الفشل الصريح أأمن.
+  // (Number.isFinite تُرجع false للقيمة الغائبة undefined فتُلتقط هنا.)
+  const fromRate = rates[fromCurrency];
+  const toRate = rates[toCurrency];
+
+  if (!Number.isFinite(fromRate) || fromRate <= 0) {
+    throw new CurrencyError(`سعر صرف العملة ${fromCurrency} غير متوفر أو غير صالح.`);
+  }
+  if (!Number.isFinite(toRate) || toRate <= 0) {
+    throw new CurrencyError(`سعر صرف العملة ${toCurrency} غير متوفر أو غير صالح.`);
+  }
+
+  return fromRate / toRate;
+};
+
+/**
+ * Convert an amount between base and foreign currency.
+ *
+ * IMPORTANT: the arithmetic is delegated to `convertToBaseCurrency` /
+ * `convertFromBaseCurrency` so all call sites share ONE convention. Previously
+ * this helper hard-coded the MULTIPLY convention and silently disagreed with
+ * the two sibling functions when `exchange_operator === 'divide'`, producing
+ * inverted conversions for divide-based currencies.
+ *
+ * @param amount       The amount to convert.
+ * @param rate         Exchange rate against the base currency (must be > 0).
+ * @param direction    `'toBase'` = foreign → base, `'fromBase'` = base → foreign.
+ * @param exchangeOperator Per-currency convention (`'multiply'` default,
+ *                         backward compatible with the old behavior).
+ */
+export function convertCurrency(
+  amount: number,
+  rate: number,
+  direction: 'toBase' | 'fromBase',
+  exchangeOperator: 'multiply' | 'divide' = 'multiply'
+): number {
+  const params: CurrencyConversionParams = {
+    // `currencyCode` is only used by callers that build a full entity; the
+    // conversion arithmetic itself does not depend on it.
+    amount,
+    currencyCode: 'SAR',
+    exchangeRate: rate,
+    exchangeOperator,
+  };
+  return direction === 'toBase' ? convertToBaseCurrency(params) : convertFromBaseCurrency(params);
+}
+
+/**
+ * Returns the default exchange operator for a currency against the SAR base currency.
+ * Currencies where 1 SAR buys multiple units (such as YER where 1 SAR = 415 YER)
+ * use 'divide' to convert foreign amounts to base currency.
+ */
+export const getDefaultExchangeOperator = (currencyCode?: string | null): 'multiply' | 'divide' => {
+  if (!currencyCode) return 'multiply';
+  const code = currencyCode.toUpperCase().trim();
+  if (code === 'YER') return 'divide';
+  return 'multiply';
+};
+
+export const toBaseCurrency = (entity: {
+  amount?: number | null;
+  total_amount?: number | null;
+  currency_code?: string | null;
+  exchange_rate?: number | null;
+  exchange_operator?: string | null;
+}): number => {
+  const amount = Number(entity.amount ?? entity.total_amount ?? 0);
+  const exchangeRate = Number(entity.exchange_rate ?? 1);
+  const currencyCode = entity.currency_code || 'SAR';
+  const exchangeOperator =
+    (entity.exchange_operator as 'multiply' | 'divide') || getDefaultExchangeOperator(currencyCode);
+
+  if (isNaN(amount)) return 0;
+
+  // Fail loudly instead of silently returning the foreign amount as if it were
+  // base currency. A missing/zero/negative rate makes the stored amount
+  // meaningless — surfacing the error beats showing a wrong financial total.
+  return convertToBaseCurrency({
+    amount,
+    currencyCode,
+    exchangeRate,
+    exchangeOperator,
+  });
+};
+
+export const sumInBaseCurrency = (
+  items: Array<{
+    amount?: number | null;
+    total_amount?: number | null;
+    currency_code?: string | null;
+    exchange_rate?: number | null;
+  }>
+): number => {
+  return items.reduce((sum, item) => sum + toBaseCurrency(item), 0);
+};
+
+/**
+ * Resolves the effective exchange rate for a given currency code.
+ * Intelligently handles inverse stored rates (e.g. 0.002439 or 0.002326) for divide operators,
+ * and falls back to standard market rates when no rate record exists yet.
+ */
+export const resolveAutoExchangeRate = (
+  currencyCode?: string | null,
+  ratesList: Array<{ currency_code: string; rate_to_base: number }> = [],
+  currencyList?: Array<{ code: string; exchange_operator?: 'multiply' | 'divide' }>
+): number => {
+  if (!currencyCode) return 1;
+  const code = currencyCode.toUpperCase().trim();
+  if (code === 'SAR') return 1;
+
+  const currencyConfig = currencyList?.find(c => c.code.toUpperCase() === code);
+  const operator = currencyConfig?.exchange_operator || getDefaultExchangeOperator(code);
+
+  const rateRow = ratesList.find(r => r.currency_code.toUpperCase() === code);
+  if (rateRow && Number(rateRow.rate_to_base) > 0) {
+    const rawRate = Number(rateRow.rate_to_base);
+    if (operator === 'divide') {
+      // If stored as inverse (e.g. 0.002439 or 0.002326 for 1/market_rate)
+      return rawRate < 1 ? Math.round(1 / rawRate) : rawRate;
+    }
+    return rawRate;
+  }
+
+  // Reliable market defaults when rates are not yet fetched or configured
+  if (code === 'YER') return 410;
+  if (code === 'USD') return 3.75;
+  if (code === 'OMR') return 9.74;
+  if (code === 'CNY') return 0.515;
+  return 1;
+};

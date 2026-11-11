@@ -1,0 +1,374 @@
+import { generateAIContent } from '../../ai/core/provider';
+import { logger } from '../../../core/utils/logger';
+import { formatLocalDate } from '../../../core/utils/dateUtils';
+import type { FollowUpDashboardRow } from '../types';
+
+export interface WhatsAppCurrencySummary {
+  currency: string;
+  totalDebit: number;
+  totalCredit: number;
+  finalBalance: number;
+}
+
+export interface WhatsAppMovementRow {
+  date: string;
+  ref?: string | undefined;
+  desc?: string | undefined;
+  debit?: number | undefined;
+  credit?: number | undefined;
+  balance?: number | undefined;
+  currency?: string | undefined;
+}
+
+export interface WhatsAppStatementSummaryParams {
+  partyName: string;
+  companyName?: string | undefined;
+  dateRangeText?: string | undefined;
+  bankInfo?: string | undefined;
+  // Single currency fallback
+  totalDebit?: number | undefined;
+  totalCredit?: number | undefined;
+  finalBalance?: number | undefined;
+  currency?: string | undefined;
+  // Multi-currency structured breakdown
+  currencies?: WhatsAppCurrencySummary[] | undefined;
+  // Recent transactions grid preview
+  movements?: WhatsAppMovementRow[] | undefined;
+}
+
+export type ReminderTone = 'friendly' | 'formal' | 'urgent' | 'legal';
+
+export interface SmartReminderResponse {
+  message: string;
+  tone: ReminderTone;
+  highlights: string[];
+}
+
+export interface DebtRiskAnalysis {
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskScore: number; // 0 - 100
+  recoveryProbability: number; // 0 - 100 %
+  summary: string;
+  keyFactors: string[];
+  recommendedStrategy: string;
+  suggestedActions: string[];
+  paymentPlanSuggestion?: string;
+}
+
+const SYSTEM_DEBT_ROLE =
+  'أنت خبير مالي وإداري متخصص في إدارة الائتمان والتحصيل لمنظومة الجعفري المحاسبية. ' +
+  'تتميز باللباقة العالية، الدقة المحاسبية، والقدرة على صياغة رسائل واتساب احترافية تناسب الثقافة العربية وتراعي الحفاظ على علاقة العميل مع ضمان سرعة التحصيل. ' +
+  'أخرج دائماً JSON صالح فقط.';
+
+/**
+ * عتبة اقتراح خطة التقسيط في التحليل الذكي — **عرضية فقط** (نص اقتراح في
+ * بطاقة المخاطر، لا أثر محاسبي إطلاقاً).
+ *
+ * القيم تقريبية لعتبة 5,000 ر.س المرجعية المعتمدة، محسوبة بـ:
+ * - تثبيت الدولار/الريال عند 3.75 (SAR peg) مقابل USD/OMR/CNY.
+ * - معامل المشروع 410× بين SAR و YER (نفس معيار المصروفات في AGENTS.md).
+ * أي عملة غير مدرجة تأخذ قيمة 5,000 بوحدتها (سلوك ما قبل الإصلاح).
+ */
+/** Map (لا كائن بمفتاح متغيّر) — يمنع تنبيه security/detect-object-injection. */
+const INSTALLMENT_THRESHOLDS = new Map<string, number>([
+  ['SAR', 5000],
+  ['YER', 2_050_000], // 5,000 SAR × 410
+  ['USD', 1350], // ≈ 5,000 SAR
+  ['OMR', 500], // ≈ 5,150 SAR (1 OMR ≈ 10.3 SAR)
+  ['CNY', 9500], // ≈ 5,000 SAR
+]);
+
+/** عتبة التقسيط لعملة محددة (5,000 افتراضياً لعملة غير مدرجة). */
+export const installmentThresholdFor = (currency: string): number =>
+  INSTALLMENT_THRESHOLDS.get(currency) ?? 5000;
+
+/** هل يُستحق اقتراح التقسيط لهذه العملة والمبلغ؟ (مقارنة صارمة > العتبة). */
+export const shouldSuggestInstallment = (amount: number, currency: string): boolean =>
+  amount > installmentThresholdFor(currency);
+
+/**
+ * Clean & parse JSON from AI model response
+ */
+function parseAiJson<T>(content: string): T | null {
+  try {
+    const cleaned = content
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/i, '')
+      .trim();
+    return JSON.parse(cleaned) as T;
+  } catch {
+    const start = content.indexOf('{');
+    const end = content.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      try {
+        return JSON.parse(content.slice(start, end + 1)) as T;
+      } catch {
+        /* fallback */
+      }
+    }
+    return null;
+  }
+}
+
+export const debtAiService = {
+  /**
+   * Generate an intelligent, tone-specific WhatsApp reminder message
+   */
+  generateSmartReminder: async (params: {
+    row: FollowUpDashboardRow;
+    tone: ReminderTone;
+    companyName?: string;
+    bankDetails?: string;
+  }): Promise<SmartReminderResponse> => {
+    const { row, tone, companyName, bankDetails } = params;
+
+    const toneInstructions: Record<ReminderTone, string> = {
+      friendly: 'نبرة ودية ومرحبة، تذكير لطيف بالفاتورة، شكر العميل على تعامله، الحفاظ على المودة.',
+      formal:
+        'نبرة رسمية ومهنية راقية، توضيح رقم الحساب والمبلغ المستحق وتاريخ الاستحقاق والرجاء بسداد المبلغ.',
+      urgent:
+        'نبرة حازمة وعاجلة، التركيز على تجاوز موعد الاستحقاق أو إخلاف الوعد وأهمية السداد لتفادي تعليق الحساب.',
+      legal:
+        'نبرة إشعار نهائي رسمي وقانوني، تنبيه نهائي قبل اتخاذ الإجراءات الإدارية والقانونية وإيقاف التسهيلات الائتمانية.',
+    };
+
+    const prompt = `
+قم بصياغة رسالة واتساب احترافية ومؤثرة لتذكير العميل بسداد مديونيته:
+
+بيانات العميل والمديونية:
+- اسم المنشأة: ${companyName || 'منظومة الجعفري'}
+- اسم العميل: ${row.party_name}
+- إجمالي الرصيد المستحق: ${row.outstanding_balance} ${row.currency_code}
+- المبلغ المتأخر: ${row.overdue_amount} ${row.currency_code}
+- عدد أيام التأخير: ${row.days_overdue} يوم
+- تاريخ الاستحقاق: ${row.oldest_due_date || 'غير محدد'}
+- عدد الفواتير: ${row.invoice_count}
+- حالة الوعود السابقة: ${row.has_broken_promise ? 'يوجد وعد سابق تم إخلافه' : 'سجل منتظم'}
+${bankDetails ? `- بيانات التحويل البنكي: ${bankDetails}` : ''}
+
+النبرة المطلوبة:
+${toneInstructions[tone]}
+
+المطلوب:
+أرجع JSON بالهيكل التالي فقط:
+{
+  "message": "نص رسالة الواتساب باللغة العربية مع إيموجي منسق وتنسيق خطوط الواتساب (*غامق*) وتفاصيل السداد",
+  "tone": "${tone}",
+  "highlights": ["نقطة تم التركيز عليها 1", "نقطة 2"]
+}
+`;
+
+    try {
+      const response = await generateAIContent(prompt, SYSTEM_DEBT_ROLE, {
+        jsonMode: true,
+        taskType: 'debt_smart_reminder',
+      });
+      const parsed = parseAiJson<SmartReminderResponse>(response);
+      if (parsed?.message) {
+        return parsed;
+      }
+    } catch (err) {
+      logger.warn(
+        'debtAiService',
+        'AI smart reminder generation failed, using template fallback',
+        err
+      );
+    }
+
+    // Fallback template
+    return {
+      message: `السلام عليكم ورحمة الله وبركاته،\nالأخ العزيز / *${row.party_name}* المحترم 🌸\n\nنود تذكيركم بلطف بوجود رصيد مستحق بقيمة: *${row.outstanding_balance} ${row.currency_code}* لصالح *${companyName || 'منشأتنا'}*.\n\nنرجو التكرم بالاطلاع وترتيب السداد في أقرب وقت شاكرين لكم حسن تعاونكم الدائم. ✨`,
+      tone,
+      highlights: ['تذكير افتراضي بالمبلغ المستحق'],
+    };
+  },
+
+  /**
+   * Deep AI Risk & Recovery Analysis for a Debtor
+   */
+  analyzeDebtRisk: async (
+    row: FollowUpDashboardRow,
+    companyName?: string
+  ): Promise<DebtRiskAnalysis> => {
+    const prompt = `
+قم بتحليل مخاطر الائتمان وتقييم سلوك السداد للعميل التالي وتقديم استراتيجية تحصيل ذكية:
+
+بيانات العميل:
+- اسم العميل: ${row.party_name}
+- المنشأة: ${companyName || 'منظومة الجعفري'}
+- التصنيف: ${row.category}
+- الرصيد القائم: ${row.outstanding_balance} ${row.currency_code}
+- المبلغ المتأخر: ${row.overdue_amount} ${row.currency_code}
+- عدد أيام التأخير: ${row.days_overdue} يوم
+- حد الائتمان المسموح: ${row.credit_limit || 'غير محدد'}
+- عدد الفواتير المستحقة: ${row.invoice_count}
+- الرصيد الافتتاحي: ${row.opening_balance}
+- هل أخلف وعوداً سابقة: ${row.has_broken_promise ? 'نعم' : 'لا'}
+- عدد الوعود القائمة: ${row.pending_promise_count} بمبلغ ${row.pending_promise_amount}
+- تصنيف النظام الحالي: ${row.classification}
+
+المطلوب:
+أرجع JSON بالهيكل التالي:
+{
+  "riskLevel": "low" | "medium" | "high" | "critical",
+  "riskScore": (رقم من 0 إلى 100 يمثل درجة الخطورة),
+  "recoveryProbability": (رقم من 0 إلى 100 يمثل نسبة احتمالية استرداد المبلغ),
+  "summary": "ملخص تشخيصي لحالة العميل وسلوكه الائتماني باللغة العربية",
+  "keyFactors": ["عامل خطر 1", "عامل 2"],
+  "recommendedStrategy": "استراتيجية التحصيل المقترحة بدقة",
+  "suggestedActions": ["إجراء فوري 1", "إجراء 2", "إجراء 3"],
+  "paymentPlanSuggestion": "اقتراح جدولة أو تقسيط إن كان مناسباً"
+}
+`;
+
+    try {
+      const response = await generateAIContent(prompt, SYSTEM_DEBT_ROLE, {
+        jsonMode: true,
+        taskType: 'debt_risk_analysis',
+      });
+      const parsed = parseAiJson<DebtRiskAnalysis>(response);
+      if (parsed?.riskLevel && typeof parsed.riskScore === 'number') {
+        return parsed;
+      }
+    } catch (err) {
+      logger.warn('debtAiService', 'AI risk analysis failed, using rule-based fallback', err);
+    }
+
+    // Rule-based Fallback
+    const isCritical = row.days_overdue > 30 || row.has_broken_promise;
+    const isHigh = row.days_overdue > 14;
+    const isMedium = row.days_overdue > 0;
+
+    const riskLevel = isCritical ? 'critical' : isHigh ? 'high' : isMedium ? 'medium' : 'low';
+    const riskScore = isCritical ? 85 : isHigh ? 65 : isMedium ? 40 : 15;
+    const recoveryProbability = 100 - riskScore + 10;
+
+    const paymentPlanSuggestion = shouldSuggestInstallment(
+      row.outstanding_balance,
+      row.currency_code
+    )
+      ? `تقسيط المبلغ (${row.outstanding_balance} ${row.currency_code}) على دفعتين متساويتين.`
+      : undefined;
+
+    return {
+      riskLevel,
+      riskScore,
+      recoveryProbability: Math.min(100, Math.max(10, recoveryProbability)),
+      summary: `العميل لديه رصيد مستحق بقيمة ${row.outstanding_balance} ${row.currency_code} بتأخير ${row.days_overdue} يوم.`,
+      keyFactors: [
+        `تأخير السداد: ${row.days_overdue} يوم`,
+        row.has_broken_promise ? 'سجل وعد سداد مخلَف سابقاً' : 'لا توجد وعود مخلَفة',
+        `عدد الفواتير المفتوحة: ${row.invoice_count}`,
+      ],
+      recommendedStrategy: isCritical
+        ? 'التواصل الهاتفي العاجل مع الإدارة وطلب دفعة نقدية فورية مع تعليق البيع الآجل.'
+        : 'إرسال تذكير رسمي عبر الواتساب وتحديد موعد مؤكد لوعد السداد.',
+      suggestedActions: [
+        'إرسال تذكير واتساب مخصص',
+        'طلب سداد دفعة بنكية اليوم',
+        'مراجعة حد الائتمان الممنوح',
+      ],
+      ...(paymentPlanSuggestion !== undefined ? { paymentPlanSuggestion } : {}),
+    };
+  },
+
+  /**
+   * Format a high-precision WhatsApp Account Statement Summary
+   * Supports both multi-currency (SAR and YER partitioned) and single-currency
+   */
+  generateWhatsAppStatementSummary: (params: WhatsAppStatementSummaryParams): string => {
+    const {
+      partyName,
+      companyName,
+      dateRangeText,
+      bankInfo,
+      totalDebit = 0,
+      totalCredit = 0,
+      finalBalance = 0,
+      currency = 'SAR',
+      currencies,
+      movements,
+    } = params;
+
+    const todayDate = formatLocalDate();
+    const parts: string[] = [];
+
+    parts.push(`🧾 *كشف حساب مالي تفصيلي*`);
+    parts.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    parts.push(`🏢 *المنشأة:* ${companyName || 'منظومة الجعفري'}`);
+    parts.push(`👤 *الجهة / العميل:* ${partyName}`);
+    parts.push(`📅 *الفترة:* ${dateRangeText || `حتى تاريخ ${todayDate}`}`);
+    parts.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+    // Handle currencies breakdown
+    const activeCurrencies: WhatsAppCurrencySummary[] =
+      currencies && currencies.length > 0
+        ? currencies
+        : [{ currency, totalDebit, totalCredit, finalBalance }];
+
+    parts.push(`📊 *الخلاصة المالية وموقف الأرصدة:*`);
+    activeCurrencies.forEach((item, idx) => {
+      const isSar = item.currency.toUpperCase() === 'SAR';
+      const isYer = item.currency.toUpperCase() === 'YER';
+      const flag = isSar ? '🇸🇦' : isYer ? '🇾🇪' : '🌐';
+      const currTitle = isSar
+        ? 'حساب الريال السعودي (SAR)'
+        : isYer
+          ? 'حساب الريال اليمني (YER)'
+          : `حساب ${item.currency}`;
+
+      const balanceText =
+        item.finalBalance > 0
+          ? `المبلغ المطلوب سداده (مدين): *${item.finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${item.currency}*`
+          : item.finalBalance < 0
+            ? `رصيد دائن لصالحكم (له): *${Math.abs(item.finalBalance).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${item.currency}*`
+            : `الرصيد خالص ومصفر: *0.00 ${item.currency}*`;
+
+      parts.push(``);
+      parts.push(`${flag} *${currTitle}:*`);
+      parts.push(
+        `▫️ إجمالي المبيعات / مدين (+): ${item.totalDebit.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${item.currency}`
+      );
+      parts.push(
+        `▫️ إجمالي المدفوعات / دائن (-): ${item.totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${item.currency}`
+      );
+      parts.push(`📌 ${balanceText}`);
+      if (idx < activeCurrencies.length - 1) {
+        parts.push(`──────────────────────────`);
+      }
+    });
+
+    // Optional transactions list (up to 12 most recent)
+    if (movements && movements.length > 0) {
+      parts.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+      parts.push(`📑 *تفاصيل الحركات (جريد تفصيلي):*`);
+      const recent = movements.slice(-12);
+      recent.forEach(m => {
+        const mCurr = m.currency || 'SAR';
+        const debitVal = Number(m.debit) || 0;
+        const creditVal = Number(m.credit) || 0;
+        const amountStr =
+          debitVal > 0
+            ? `+${debitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${mCurr}`
+            : `-${creditVal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${mCurr}`;
+        const refStr = m.ref ? `[${m.ref}] ` : '';
+        const descStr = m.desc || 'حركة محاسبية';
+        parts.push(`▫️ ${m.date} | ${refStr}${descStr} | *${amountStr}*`);
+      });
+      if (movements.length > 12) {
+        parts.push(`_(يوجد عدد ${movements.length - 12} حركة إضافية موضحة بملف Excel المرفق)_`);
+      }
+    }
+
+    parts.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    if (bankInfo) {
+      parts.push(`💳 *بيانات السداد البنكي:*\n${bankInfo}`);
+      parts.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    }
+
+    parts.push(`📁 _مرفق كشف حساب إكسل تفصيلي عصري ملون بالشبكة الكاملة وفصل العملات (.xlsx)_`);
+    parts.push(`شاكرين ومقدرين تعاملكم الدائم معنا 🌸`);
+
+    return parts.join('\n');
+  },
+};

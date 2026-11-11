@@ -1,0 +1,543 @@
+import type { TrialBalanceItem, LedgerEntry } from '../types/index';
+import { supabase } from '../../../lib/supabaseClient';
+import { logger } from '../../../core/utils/logger';
+import { formatLocalDate, getLocalYearStart } from '../../../core/utils/dateUtils';
+
+interface LedgerRpcLine {
+  entry_date: string | undefined;
+  journal_id: string | undefined;
+  entry_number: number | undefined;
+  branch_id?: string | null | undefined;
+  description: string | undefined;
+  debit_amount: number | undefined;
+  credit_amount: number | undefined;
+  balance: number | undefined;
+  foreign_balance?: number | undefined;
+  currency_code: string | undefined;
+  exchange_rate: number | undefined;
+  foreign_amount: number | undefined;
+  party_id: string | undefined;
+  party_name: string | undefined;
+  reference_type?: string | undefined;
+  reference_id?: string | undefined;
+}
+
+interface LedgerRpcResult {
+  entries?: LedgerRpcLine[];
+}
+
+interface TrialBalanceRpcRow {
+  account_id: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  total_debit: number;
+  total_credit: number;
+  balance: number;
+  // [NEW] علامة COGS من report_profit_loss_detailed (5100/51%)
+  // القيمة الافتراضية false للتوافق مع report_trial_balance الذي لا يحتوي هذا الحقل
+  is_cogs?: boolean;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const toLedgerResult = (value: unknown): LedgerRpcResult => {
+  if (!isRecord(value) || !Array.isArray(value.entries)) return { entries: [] };
+  return {
+    entries: value.entries.filter(isRecord).map(line => ({
+      entry_date: typeof line.entry_date === 'string' ? line.entry_date : undefined,
+      journal_id: typeof line.journal_id === 'string' ? line.journal_id : undefined,
+      entry_number: typeof line.entry_number === 'number' ? line.entry_number : undefined,
+      description: typeof line.description === 'string' ? line.description : undefined,
+      debit_amount: typeof line.debit_amount === 'number' ? line.debit_amount : undefined,
+      credit_amount: typeof line.credit_amount === 'number' ? line.credit_amount : undefined,
+      balance: typeof line.balance === 'number' ? line.balance : undefined,
+      foreign_balance: typeof line.foreign_balance === 'number' ? line.foreign_balance : undefined,
+      currency_code: typeof line.currency_code === 'string' ? line.currency_code : undefined,
+      exchange_rate: typeof line.exchange_rate === 'number' ? line.exchange_rate : undefined,
+      foreign_amount: typeof line.foreign_amount === 'number' ? line.foreign_amount : undefined,
+      branch_id: typeof line.branch_id === 'string' ? line.branch_id : undefined,
+      party_id: typeof line.party_id === 'string' ? line.party_id : undefined,
+      party_name: typeof line.party_name === 'string' ? line.party_name : undefined,
+      reference_type: typeof line.reference_type === 'string' ? line.reference_type : undefined,
+      reference_id: typeof line.reference_id === 'string' ? line.reference_id : undefined,
+    })),
+  };
+};
+
+const toTrialBalanceRows = (value: unknown): TrialBalanceRpcRow[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isRecord).flatMap(row => {
+    const total_debit = Number(row.total_debit);
+    const total_credit = Number(row.total_credit);
+    const balance = Number(row.balance);
+    if (
+      // سطر صافي ربح الفترة في الميزانية (كود 3999) حساب وهمي بلا معرّف
+      (row.account_id !== null && typeof row.account_id !== 'string') ||
+      typeof row.account_code !== 'string' ||
+      typeof row.account_name !== 'string' ||
+      typeof row.account_type !== 'string' ||
+      Number.isNaN(total_debit) ||
+      Number.isNaN(total_credit) ||
+      Number.isNaN(balance)
+    )
+      return [];
+    return [
+      {
+        account_id:
+          typeof row.account_id === 'string' ? row.account_id : `synthetic-${row.account_code}`,
+        account_code: row.account_code,
+        account_name: row.account_name,
+        account_type: row.account_type,
+        total_debit,
+        total_credit,
+        balance,
+        // استيعاب حقل is_cogs الجديد من report_profit_loss_detailed
+        is_cogs: typeof row.is_cogs === 'boolean' ? row.is_cogs : false,
+      },
+    ];
+  });
+};
+
+export const reportService = {
+  // ⚡ Server-side ledger via RPC
+  // DB: get_account_ledger(p_company_id, p_account_id, p_from, p_to, p_branch_id)
+  //     → json { openingBalance, entries[], accountType }
+  getLedger: async (
+    companyId: string,
+    accountId: string,
+    branchId?: string | null,
+    fromDate?: string,
+    toDate?: string
+  ): Promise<LedgerEntry[]> => {
+    const { data, error } = await supabase.rpc('get_account_ledger', {
+      p_company_id: companyId,
+      p_account_id: accountId,
+      ...(fromDate ? { p_from: fromDate } : {}),
+      ...(toDate ? { p_to: toDate } : {}),
+      ...(branchId ? { p_branch_id: branchId } : {}),
+    });
+    if (error) throw error;
+
+    const result = toLedgerResult(data);
+    // NOTE: the RPC returns `openingBalance` (camelCase) — e.g.
+    // json_build_object('openingBalance', v_opening_balance, 'entries', …)
+    const rawData = data as unknown as {
+      openingBalance?: number | null;
+      openingForeignBalance?: number | null;
+      foreignBalance?: number | null;
+      currencyCode?: string | null;
+      accountType?: string | null;
+    } | null;
+
+    const openingBalance = Number(rawData?.openingBalance ?? 0);
+    const openingForeignBalance = Number(rawData?.openingForeignBalance ?? 0);
+    const accountCurrency = rawData?.currencyCode ?? 'SAR';
+    // The RPC also returns `accountType` — the account's nature, used to
+    // interpret the running-balance sign correctly in the UI
+    // (asset/expense → debit-normal; liability/equity/revenue → credit-normal).
+    const accountType = rawData?.accountType ?? undefined;
+
+    const entries = (result.entries ?? []).map((line: LedgerRpcLine) => ({
+      date: line.entry_date ?? '',
+      journal_id: line.journal_id ?? '',
+      journal_entry_id: line.journal_id ?? '',
+      entry_number: line.entry_number ?? 0,
+      description: line.description ?? '',
+      debit_amount: line.debit_amount ?? 0,
+      credit_amount: line.credit_amount ?? 0,
+      balance: line.balance ?? 0,
+      foreign_balance: line.foreign_balance ?? (line.currency_code === 'SAR' ? line.balance : 0),
+      ...(accountType ? { accountType } : {}),
+      currency_code: line.currency_code ?? accountCurrency,
+      exchange_rate: line.exchange_rate ?? 1,
+      foreign_amount: line.foreign_amount ?? 0,
+      ...(line.branch_id != null ? { branch_id: line.branch_id } : {}),
+      ...(line.party_id ? { party_id: line.party_id } : {}),
+      ...(line.party_name ? { party_name: line.party_name } : {}),
+      ...(line.reference_type ? { reference_type: line.reference_type } : {}),
+      ...(line.reference_id ? { reference_id: line.reference_id } : {}),
+    }));
+
+    // عرض الرصيد الافتتاحي (الأرصدة قبل تاريخ البداية) كسطر أول في كشف الحساب
+    if (openingBalance !== 0 || openingForeignBalance !== 0) {
+      entries.unshift({
+        date: fromDate || '',
+        journal_id: '',
+        journal_entry_id: '',
+        entry_number: 0,
+        description: 'رصيد افتتاحي',
+        debit_amount: 0,
+        credit_amount: 0,
+        balance: openingBalance,
+        foreign_balance: openingForeignBalance,
+        ...(accountType ? { accountType } : {}),
+        currency_code: accountCurrency,
+        exchange_rate: 1,
+        foreign_amount: 0,
+      });
+    }
+
+    return entries;
+  },
+
+  // DB: report_trial_balance(p_company_id, p_from, p_to, p_branch_id) → TABLE rows with correct column names
+  getTrialBalance: async (
+    companyId: string,
+    branchId?: string | null,
+    fromDate?: string,
+    toDate?: string
+  ): Promise<TrialBalanceItem[]> => {
+    const from = fromDate || getLocalYearStart();
+    const to = toDate || formatLocalDate();
+
+    const { data, error } = await supabase.rpc('report_trial_balance', {
+      p_company_id: companyId,
+      p_from: from,
+      p_to: to,
+      ...(branchId ? { p_branch_id: branchId } : {}),
+    });
+    if (error) throw error;
+
+    return toTrialBalanceRows(data).map((row: TrialBalanceRpcRow) => ({
+      account_id: row.account_id,
+      code: row.account_code,
+      name: row.account_name,
+      type: row.account_type,
+      total_debit: row.total_debit,
+      total_credit: row.total_credit,
+      net_balance: row.balance,
+    }));
+  },
+
+  // ⚡ Server-side financials
+  // DB report_profit_loss(p_company_id, p_from, p_to) → TABLE rows: { category, amount, type }
+  //    where type ∈ ('revenue', 'expense', 'net_profit')
+  // DB report_balance_sheet(p_company_id, p_as_of_date) → TABLE rows: { category, amount, type }
+  //    where type ∈ ('asset', 'liability', 'equity')
+  getFinancials: async (
+    companyId: string,
+    branchId?: string | null,
+    fromDate?: string,
+    toDate?: string
+  ) => {
+    const from = fromDate || getLocalYearStart();
+    const to = toDate || formatLocalDate();
+
+    // ── P&L ──────────────────────────────────────────────────────────────
+    // Preferred: per-account breakdown via report_profit_loss_detailed
+    // (migration 20260826000012) — same conventions as the aggregate RPC
+    // (posted-only, soft-delete aware, line-level branch filter, positive
+    // balances per side). Graceful fallback to the legacy aggregate RPC
+    // ONLY while that migration has not been applied yet (42883/PGRST202).
+    const toPnlItem = (row: TrialBalanceRpcRow): TrialBalanceItem => ({
+      account_id: row.account_id,
+      code: row.account_code,
+      name: row.account_name,
+      type: row.account_type,
+      total_debit: row.total_debit,
+      total_credit: row.total_credit,
+      // [FIX] لا ABS() — sign convention: expense=debit-credit، revenue=credit-debit
+      // سالب = قيد عكسي يُطرح لا يُجمع
+      net_balance: row.balance,
+      // exactOptionalPropertyTypes: نُدرج is_cogs فقط عند وجود قيمة صريحة
+      ...(typeof row.is_cogs === 'boolean' ? { is_cogs: row.is_cogs } : {}),
+    });
+
+    let revenueTBI: TrialBalanceItem[];
+    let expenseTBI: TrialBalanceItem[];
+    let totalRevenue = 0;
+    let totalExpense = 0;
+    let netIncome = 0;
+
+    const { data: detailRows, error: detailError } = await supabase.rpc(
+      'report_profit_loss_detailed',
+      {
+        p_company_id: companyId,
+        p_from: from,
+        p_to: to,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      }
+    );
+
+    if (detailError === null) {
+      const rows = toTrialBalanceRows(detailRows);
+      revenueTBI = rows.filter(r => r.account_type === 'revenue').map(toPnlItem);
+      expenseTBI = rows.filter(r => r.account_type === 'expense').map(toPnlItem);
+      totalRevenue = revenueTBI.reduce((sum, item) => sum + item.net_balance, 0);
+      // [FIX] totalExpense = كامل المصاريف بما فيها COGS لحساب صافي الربح الصحيح.
+      // لا Math.abs — القيم السالبة (قيود عكسية) تُطرح لا تُجمع.
+      // sign convention: net_balance = debit - credit (موجب = مصروف طبيعي)
+      totalExpense = expenseTBI.reduce((sum, item) => sum + item.net_balance, 0);
+      netIncome = totalRevenue - totalExpense;
+    } else {
+      const detailMessage = String((detailError as { message?: string }).message ?? '');
+      if (!/does not exist|PGRST202|42883/i.test(detailMessage)) throw detailError;
+
+      logger.warn(
+        'reportService',
+        'report_profit_loss_detailed not available — falling back to aggregate report_profit_loss (apply migration 20260826000012)'
+      );
+
+      // report_profit_loss signature: (p_company_id uuid, p_from date, p_to date, p_branch_id uuid DEFAULT NULL)
+      const { data: plRows, error: plError } = await supabase.rpc('report_profit_loss', {
+        p_company_id: companyId,
+        p_from: from,
+        p_to: to,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      });
+      if (plError) throw plError;
+
+      const plData = (plRows || []) as Array<{ category: string; amount: number; type: string }>;
+      const revenueRow = plData.find(r => r.type === 'revenue');
+      const expenseRow = plData.find(r => r.type === 'expense');
+      const netRow = plData.find(r => r.type === 'net_profit');
+
+      totalRevenue = Number(revenueRow?.amount) || 0;
+      totalExpense = Number(expenseRow?.amount) || 0;
+      netIncome = Number(netRow?.amount) || totalRevenue - totalExpense;
+
+      // Build single synthetic items so existing components can iterate
+      revenueTBI = revenueRow
+        ? [
+            {
+              account_id: 'revenue-total',
+              code: '4',
+              name: revenueRow.category,
+              type: 'revenue',
+              total_debit: 0,
+              total_credit: totalRevenue,
+              net_balance: totalRevenue,
+            },
+          ]
+        : [];
+      expenseTBI = expenseRow
+        ? [
+            {
+              account_id: 'expense-total',
+              code: '5',
+              name: expenseRow.category,
+              type: 'expense',
+              total_debit: totalExpense,
+              total_credit: 0,
+              net_balance: totalExpense,
+            },
+          ]
+        : [];
+    }
+
+    // ── Balance Sheet ─────────────────────────────────────────────────────
+    // report_balance_sheet signature: (p_company_id uuid, p_as_of_date date DEFAULT NULL, p_branch_id uuid DEFAULT NULL)
+    const { data: bsRows, error: bsError } = await supabase.rpc('report_balance_sheet', {
+      p_company_id: companyId,
+      p_as_of_date: to,
+      ...(branchId ? { p_branch_id: branchId } : {}),
+    });
+    if (bsError) throw bsError;
+
+    const bsData = (bsRows || []) as Array<{ category: string; amount: number; type: string }>;
+    const assetRow = bsData.find(r => r.type === 'asset');
+    const liabilityRow = bsData.find(r => r.type === 'liability');
+    const equityRow = bsData.find(r => r.type === 'equity');
+    const retainedRow = bsData.find(r => r.type === 'retained_earnings');
+
+    const equityFromServer = Number(equityRow?.amount) || 0;
+    const totalAssets = Number(assetRow?.amount) || 0;
+    const totalLiabilities = Number(liabilityRow?.amount) || 0;
+    const totalRetainedToDate = Number(retainedRow?.amount) || 0;
+    // إذا كان الخادم يرجع بند retained_earnings فإن equityRow يشمل أرباح الفترة سلفاً
+    const totalEquity = retainedRow ? equityFromServer : equityFromServer + netIncome;
+
+    // Fetch detailed accounts breakdown per balance sheet group
+    let assetTBI: TrialBalanceItem[] = [];
+    let liabilityTBI: TrialBalanceItem[] = [];
+    let equityTBI: TrialBalanceItem[] = [];
+
+    const { data: detailBsData, error: detailBsError } = await supabase.rpc(
+      'report_balance_sheet_detailed',
+      {
+        p_company_id: companyId,
+        p_as_of_date: to,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      }
+    );
+
+    if (detailBsError === null && Array.isArray(detailBsData)) {
+      const rows = toTrialBalanceRows(detailBsData);
+      assetTBI = rows
+        .filter(r => r.account_type === 'asset')
+        .map(r => ({
+          account_id: r.account_id,
+          code: r.account_code,
+          name: r.account_name,
+          type: r.account_type,
+          total_debit: r.total_debit,
+          total_credit: r.total_credit,
+          net_balance: r.balance,
+        }));
+      liabilityTBI = rows
+        .filter(r => r.account_type === 'liability')
+        .map(r => ({
+          account_id: r.account_id,
+          code: r.account_code,
+          name: r.account_name,
+          type: r.account_type,
+          total_debit: r.total_debit,
+          total_credit: r.total_credit,
+          net_balance: r.balance,
+        }));
+      equityTBI = rows
+        .filter(r => r.account_type === 'equity')
+        .map(r => ({
+          account_id: r.account_id,
+          code: r.account_code,
+          name: r.account_name,
+          type: r.account_type,
+          total_debit: r.total_debit,
+          total_credit: r.total_credit,
+          net_balance: r.balance,
+        }));
+
+      // Calculate unclosed prior period retained earnings (e.g. earlier years not yet closed to account 3200)
+      const existingRetainedAcc = equityTBI.find(e => e.code === '3200');
+      const existingRetainedBalance = existingRetainedAcc?.net_balance || 0;
+      const priorEarnings = totalRetainedToDate - netIncome - existingRetainedBalance;
+
+      if (priorEarnings > 0.001 || priorEarnings < -0.001) {
+        equityTBI.push({
+          account_id: 'prior-retained-earnings',
+          code: '3200-PRIOR',
+          name: 'أرباح/خسائر مدورة من فترات سابقة',
+          type: 'equity',
+          total_debit: priorEarnings < 0 ? -priorEarnings : 0,
+          total_credit: priorEarnings > 0 ? priorEarnings : 0,
+          net_balance: priorEarnings,
+        });
+      }
+    } else {
+      const baseEquity = retainedRow ? equityFromServer - netIncome : equityFromServer;
+      assetTBI = assetRow
+        ? [
+            {
+              account_id: 'asset-total',
+              code: '1',
+              name: assetRow.category,
+              type: 'asset',
+              total_debit: totalAssets,
+              total_credit: 0,
+              net_balance: totalAssets,
+            },
+          ]
+        : [];
+      liabilityTBI = liabilityRow
+        ? [
+            {
+              account_id: 'liability-total',
+              code: '2',
+              name: liabilityRow.category,
+              type: 'liability',
+              total_debit: 0,
+              total_credit: totalLiabilities,
+              net_balance: totalLiabilities,
+            },
+          ]
+        : [];
+      equityTBI = equityRow
+        ? [
+            {
+              account_id: 'equity-total',
+              code: '3',
+              name: equityRow.category,
+              type: 'equity',
+              total_debit: 0,
+              total_credit: baseEquity,
+              net_balance: baseEquity,
+            },
+          ]
+        : [];
+    }
+
+    const balanceSheetDiff = totalAssets - (totalLiabilities + totalEquity);
+    const isBalanced = balanceSheetDiff > -1 && balanceSheetDiff < 1;
+
+    const cogsItems = expenseTBI.filter(
+      item => item.is_cogs || item.code === '5100' || item.code.startsWith('51')
+    );
+    const totalCogs = cogsItems.reduce((sum, item) => sum + item.net_balance, 0);
+    const operatingExpenses = totalExpense - totalCogs;
+    const grossProfit = totalRevenue - totalCogs;
+
+    return {
+      incomeStatement: {
+        revenues: revenueTBI,
+        expenses: expenseTBI,
+        netIncome,
+        totalRevenue,
+        totalExpense,
+        totalCogs,
+        grossProfit,
+        operatingExpenses,
+      },
+      balanceSheet: {
+        assets: assetTBI,
+        liabilities: liabilityTBI,
+        equity: equityTBI,
+        netIncome,
+        totals: {
+          assets: totalAssets,
+          liabilities: totalLiabilities,
+          equity: totalEquity,
+        },
+        isBalanced,
+        difference: totalAssets - (totalLiabilities + totalEquity),
+      },
+    };
+  },
+
+  // DB: get_monthly_performance(p_company_id, p_year, p_branch_id)
+  getMonthlyPerformance: async (companyId: string, year: number, branchId?: string | null) => {
+    const { data, error } = await supabase.rpc('get_monthly_performance', {
+      p_company_id: companyId,
+      p_year: year,
+      ...(branchId ? { p_branch_id: branchId } : {}),
+    });
+
+    if (error) throw error;
+
+    return (data || []).map(d => ({
+      name: new Date(year, d.month_index, 1).toLocaleString('en-US', { month: 'long' }),
+      revenues: Number(d.revenues) || 0,
+      expenses: Number(d.expenses) || 0,
+      monthIndex: d.month_index,
+    }));
+  },
+
+  getVatReturnReport: async (
+    companyId: string,
+    startDate: string,
+    endDate: string,
+    branchId?: string | null
+  ) => {
+    const { data, error } = await supabase.rpc('fn_get_vat_return_report', {
+      p_company_id: companyId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+      ...(branchId ? { p_branch_id: branchId } : {}),
+    });
+    if (error) throw error;
+    return data as {
+      success: boolean;
+      start_date: string;
+      end_date: string;
+      sales: { taxable_amount: number; tax_amount: number };
+      purchases: { taxable_amount: number; tax_amount: number };
+      net_vat_payable: number;
+      vat_account_summary: {
+        total_credits: number;
+        total_debits: number;
+        net_balance: number;
+      };
+    };
+  },
+};

@@ -1,0 +1,327 @@
+export type InventoryView =
+  | 'products'
+  | 'categories'
+  | 'warehouses'
+  | 'history'
+  | 'low-stock'
+  | 'transfers'
+  | 'audit'
+  | 'analysis'
+  | 'core_products';
+
+/** سجل توافق منتج مع مركبة (VIN / طراز) */
+export interface CarCompatibility {
+  car_id?: string | null;
+  car_name?: string | null;
+  vin?: string | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
+export interface warehouseStock {
+  warehouse_id: string;
+  warehouse_name: string;
+  quantity: number;
+  location: string;
+}
+
+export interface ProductCrossReference {
+  id: string;
+  company_id: string;
+  base_product_id: string;
+  alternative_product_id: string;
+  alternative_product?: Product;
+  match_quality: 'exact' | 'partial' | 'interchangeable';
+  notes?: string | null;
+  created_at: string;
+  created_by?: string;
+}
+
+export interface ProductKitItem {
+  id: string;
+  kit_product_id: string;
+  component_product_id: string;
+  component_product?: Product;
+  quantity: number;
+  created_at: string;
+}
+
+export interface ProductUOM {
+  id?: string;
+  product_id?: string;
+  uom_name: string;
+  conversion_factor: number;
+  barcode?: string;
+  sale_price?: number;
+}
+
+export interface ProductSupplierPrice {
+  id: string;
+  company_id: string;
+  product_id: string;
+  supplier_id: string;
+  supplier_name?: string;
+  cost_price: number;
+  lead_time_days?: number | null;
+  supplier_part_number?: string | null;
+  notes?: string | null;
+  updated_at: string;
+}
+
+export interface Product {
+  id: string;
+  company_id: string;
+  name: string;
+  name_ar: string;
+  name_en?: string | null | undefined;
+  sku: string;
+  part_number: string | null;
+  alternative_numbers: string | null;
+  brand: string | null;
+  manufacturer?: string | undefined;
+  supplier_id?: string | null | undefined;
+  supplier_name?: string | null | undefined;
+  category: string | null;
+  category_id?: string | null | undefined;
+  size: string | null;
+  specifications: string | null;
+  cost_price: number;
+  sale_price: number;
+  selling_price?: number;
+  purchase_price?: number;
+  stock_quantity: number;
+  min_stock_level: number;
+  unit: string;
+  barcode?: string | null | undefined;
+  image_url?: string | null | undefined;
+
+  // Auto Parts Specific Features
+  is_kit?: boolean | undefined;
+  has_core_charge?: boolean | undefined;
+  core_charge_amount?: number | undefined;
+  is_core?: boolean | undefined;
+
+  // Analytics (Computed/RPC)
+  total_sales_qty?: number | undefined;
+  total_purchases_qty?: number | undefined;
+  total_profit?: number | undefined;
+  total_loss?: number | undefined;
+  last_invoice_date?: string | undefined;
+  isLowStock?: boolean | undefined;
+
+  // Relations - merged warehouse_distribution (location is optional for backward compatibility)
+  warehouse_distribution?:
+    | Array<{
+        warehouse_id: string;
+        warehouse_name: string;
+        branch_id?: string | undefined;
+        branch_name?: string | undefined;
+        quantity: number;
+        location?: string | undefined;
+      }>
+    | undefined;
+
+  created_at: string;
+  updated_at?: string;
+
+  alternatives?: string[] | undefined;
+  cross_references?: ProductCrossReference[] | undefined;
+  kit_components?: ProductKitItem[] | undefined;
+  supplier_prices?: ProductSupplierPrice[] | undefined;
+  compatibility?: CarCompatibility[] | undefined;
+
+  location?: string | undefined;
+  locations?:
+    | Array<{
+        warehouse_id: string;
+        aisle: string;
+        shelf: string;
+        bin: string;
+      }>
+    | undefined;
+  uoms?: ProductUOM[] | undefined;
+}
+
+/**
+ * صف من دالة get_item_movements_with_balance (سجل حركات الصنف مع الرصيد التراكمي).
+ *
+ * `quantity` = قيمة مطلقة للعرض، `transaction_type` = اتجاه ('in' | 'out')،
+ * `raw_quantity` = القيمة الموقّعة التي استُخدمت في حساب `balance_after`.
+ */
+export interface ItemMovementRow {
+  id: string;
+  date: string;
+  quantity: number;
+  transaction_type: string;
+  original_type: string | null;
+  reference_type: string | null;
+  source_user: string | null;
+  source_name: string | null;
+  document_number: string | null;
+  notes: string | null;
+  raw_quantity: number | null;
+  balance_after: number | null;
+}
+
+export interface InventoryMovementFeedItem {
+  id: string;
+  date: string;
+  doc_type: string;
+  doc_number: string;
+  reference_id: string;
+  product_id: string;
+  product_name: string;
+  product_sku: string;
+  product_part_number: string | null;
+  product_brand: string | null;
+  party_name: string;
+  movement_type: 'in' | 'out' | 'transfer';
+  quantity: number;
+  unit_cost: number;
+  unit_price: number;
+  user_name: string;
+  notes: string | null;
+  current_stock: number;
+}
+
+export interface InventoryMovementsFilterParams {
+  search?: string | undefined;
+  movementType?: ('all' | 'in' | 'out') | undefined;
+  docType?: string | undefined;
+  productId?: string | null | undefined;
+  startDate?: string | null | undefined;
+  endDate?: string | null | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+}
+
+export interface ProductFormData {
+  name: string;
+  name_ar?: string | undefined;
+  name_en?: string | null | undefined;
+  sku?: string | null | undefined;
+  part_number?: string | null | undefined;
+  brand?: string | null | undefined;
+  size?: string | null | undefined;
+  specifications?: string | null | undefined;
+  alternative_numbers?: string | null | undefined;
+  image_url?: string | null | undefined;
+  barcode?: string | null | undefined;
+  cost_price?: number | string | null | undefined;
+  selling_price?: number | string | null | undefined;
+  min_stock_level?: number | string | null | undefined;
+  stock_quantity?: number | string | null | undefined;
+  location?: string | null | undefined;
+  unit?: 'piece' | 'set' | undefined;
+  category?: string | undefined;
+  is_core?: boolean | undefined;
+  uoms?: ProductUOM[] | undefined;
+  warehouse_id?: string | null | undefined;
+  branch_id?: string | null | undefined;
+}
+
+export interface ProductFilters {
+  search?: string;
+  category?: string;
+  lowStock?: boolean;
+  warehouse_id?: string;
+}
+
+export interface Warehouse {
+  id: string;
+  company_id: string;
+  branch_id?: string | null;
+  name_ar: string;
+  name_en?: string | null | undefined;
+  location: string | null;
+  status: string;
+  is_primary?: boolean;
+  is_active?: boolean | undefined;
+  itemCount?: number;
+  totalStock?: number;
+  stockValue?: number;
+  created_at?: string | undefined;
+  updated_at?: string | undefined;
+  deleted_at?: string | null;
+}
+
+export interface WarehouseFormData {
+  name_ar: string;
+  name_en?: string;
+  location: string;
+  is_active?: boolean;
+}
+
+export interface StockTransfer {
+  id: string;
+  company_id: string;
+  from_warehouse_id: string;
+  to_warehouse_id: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  items: Array<{ product_id: string; quantity: number }>;
+  notes?: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface TransferFormData {
+  from_warehouse_id: string;
+  to_warehouse_id: string;
+  items: Array<{ product_id: string; quantity: number }>;
+  notes?: string;
+}
+
+export interface CreateTransferDTO {
+  from_warehouse_id: string;
+  to_warehouse_id: string;
+  items: Array<{ product_id: string; quantity: number }>;
+  notes?: string;
+  company_id: string;
+  user_id: string;
+}
+
+export interface CreateAuditDTO {
+  title: string;
+  warehouse_id: string;
+  category: string;
+}
+
+export interface InventoryAnalysisData {
+  summary: {
+    stockValue: number;
+    turnoverRate: number;
+    outOfStockItems: number;
+    potentialRevenue: number;
+  };
+  trendData: Array<{ date: string; in: number; out: number }>;
+  topMovingItems: Array<{ name: string; qty: number; trend: string }>;
+  categoryDistribution: Array<{ name: string; value: number; fill: string }>;
+}
+
+export interface InventoryStats {
+  count: number;
+  totalValue: number;
+  lowStockCount: number;
+}
+
+export interface InventoryTransaction {
+  company_id: string;
+  product_id: string;
+  warehouse_id: string;
+  quantity: number;
+  transaction_type:
+    | 'purchase'
+    | 'sales'
+    | 'purchase_return'
+    | 'sales_return'
+    | 'transfer_in'
+    | 'transfer_out'
+    | 'adj_in'
+    | 'adj_out'
+    | 'adj'
+    | 'initial';
+  reference_type?: string;
+  reference_id?: string;
+  created_by: string;
+  created_at?: Date;
+}

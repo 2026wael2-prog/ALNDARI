@@ -1,0 +1,510 @@
+import { partiesApi } from './api';
+import { supabase } from '../../lib/supabaseClient';
+import { parseError } from '../../core/utils/errorUtils';
+import type { Party, PartyStats, PartyFormData, PartyType, PartyCategory } from './types';
+import { logger } from '../../core/utils/logger';
+import { optArg } from '@/core/utils/rpcArgs';
+
+export interface StatementMovement {
+  id: string;
+  date: string;
+  ref: string;
+  desc: string;
+  type: string;
+  debit: number;
+  credit: number;
+  currency: string;
+  operation_type?: string | undefined;
+  balance?: number | undefined;
+  debit_base?: number | undefined;
+  credit_base?: number | undefined;
+  reference_id?: string | null | undefined;
+  reference_type?: string | null | undefined;
+  payment_status?:
+    ('paid' | 'partially_paid' | 'unpaid' | 'void' | 'settled' | 'draft' | 'posted') | undefined;
+  paid_amount?: number | undefined;
+  remaining_amount?: number | undefined;
+  items_count?: number | undefined;
+  is_bf?: number | undefined;
+  custom_color?: string | undefined;
+}
+
+export interface StatementTransactionItem {
+  id: string;
+  item_name: string;
+  sku?: string;
+  part_number?: string;
+  quantity: number;
+  unit_price: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  total_amount: number;
+}
+
+export interface StatementTransactionDetails {
+  kind: 'invoice' | 'bond' | 'opening_balance' | 'journal';
+  invoice_id?: string;
+  invoice_number?: string;
+  issue_date?: string;
+  type?: string;
+  status?: string;
+  currency_code?: string;
+  subtotal?: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  paid_amount?: number;
+  remaining_amount?: number;
+  notes?: string;
+  items?: StatementTransactionItem[];
+  payment_id?: string;
+  payment_number?: string;
+  payment_date?: string;
+  payment_method?: string;
+  account_name?: string;
+  account_code?: string;
+  allocations?: Array<{
+    allocation_id: string;
+    allocated_amount: number;
+    invoice_number: string;
+    invoice_date: string;
+    invoice_total: number;
+  }>;
+  journal_id?: string;
+  entry_number?: string | number;
+  entry_date?: string;
+  lines?: Array<{
+    account_code: string;
+    account_name: string;
+    debit: number;
+    credit: number;
+    currency_code: string;
+    description: string;
+  }>;
+}
+
+export const partiesService = {
+  getParties: async (
+    companyId: string,
+    type: PartyType,
+    branchId?: string | null
+  ): Promise<Party[]> => {
+    const { data, error } = await partiesApi.getParties(companyId, type, branchId);
+    if (error) throw error;
+    return (data || []).map((p: Record<string, unknown>) => {
+      // party_balances is a joined array — take the first record's balance
+      const balanceRecords = p.party_balances as Array<{ balance: number; type: string }> | null;
+      const firstRecord = balanceRecords?.[0];
+      const balance = firstRecord ? firstRecord.balance : 0;
+      return {
+        ...p,
+        category_id: p.category_id,
+        category: (p.party_categories as Record<string, unknown>)?.name || 'عام',
+        balance,
+        balances_by_currency: (p.balances_by_currency as Party['balances_by_currency']) ?? [],
+        status: p.status || 'active',
+      };
+    }) as Party[];
+  },
+
+  // ⚡ Server-side party statement via hardened RPC with brought-forward and enriched fields
+  getStatement: async (
+    partyId: string,
+    _type: PartyType,
+    options?: {
+      startDate?: string;
+      endDate?: string;
+      currencyCode?: string;
+      companyId?: string;
+      branchId?: string | null;
+    },
+    explicitCompanyId?: string
+  ): Promise<StatementMovement[]> => {
+    let companyId = explicitCompanyId ?? options?.companyId;
+
+    // Fallback if not passed explicitly
+    if (!companyId) {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (userId) {
+        const { data: roles } = await supabase
+          .from('user_company_roles')
+          .select('company_id')
+          .eq('user_id', userId)
+          .limit(1);
+        companyId = roles?.[0]?.company_id;
+      }
+    }
+
+    if (!companyId) return [];
+
+    const { data, error } = await supabase.rpc('get_party_statement', {
+      p_company_id: companyId,
+      p_party_id: partyId,
+      ...optArg('p_from_date', options?.startDate),
+      ...optArg('p_to_date', options?.endDate),
+      ...optArg(
+        'p_currency_code',
+        options?.currencyCode && options.currencyCode !== 'ALL' ? options.currencyCode : null
+      ),
+    });
+    if (error) throw error;
+
+    interface RawStatementRpcRow {
+      line_id: string;
+      entry_date: string;
+      ref: string;
+      operation_type?: string;
+      description: string;
+      type: string;
+      debit: number | string | null;
+      credit: number | string | null;
+      currency: string;
+      balance: number | string | null;
+      debit_base?: number | string | null;
+      credit_base?: number | string | null;
+      reference_id?: string | null;
+      reference_type?: string | null;
+      payment_status?: string | null;
+      paid_amount?: number | string | null;
+      remaining_amount?: number | string | null;
+      items_count?: number | string | null;
+      is_bf?: number | null;
+    }
+
+    const rows = (data as unknown as RawStatementRpcRow[]) || [];
+    return rows.map((m): StatementMovement => ({
+      id: m.line_id,
+      date: m.entry_date,
+      ref: m.ref,
+      operation_type: m.operation_type ?? '',
+      desc: m.description,
+      type: m.type,
+      debit: Number(m.debit) || 0,
+      credit: Number(m.credit) || 0,
+      currency: m.currency,
+      balance: Number(m.balance) || 0,
+      debit_base: Number(m.debit_base) || 0,
+      credit_base: Number(m.credit_base) || 0,
+      reference_id: m.reference_id || null,
+      reference_type: m.reference_type || null,
+      payment_status: (m.payment_status as StatementMovement['payment_status']) ?? undefined,
+      paid_amount: Number(m.paid_amount) || 0,
+      remaining_amount: Number(m.remaining_amount) || 0,
+      items_count: Number(m.items_count) || 0,
+      is_bf: Number(m.is_bf) || 0,
+    }));
+  },
+
+  getTransactionDetails: async (
+    companyId: string,
+    referenceType: string,
+    referenceId: string
+  ): Promise<StatementTransactionDetails | null> => {
+    if (!companyId) return null;
+
+    const { data, error } = await supabase.rpc('get_statement_transaction_details', {
+      p_company_id: companyId,
+      p_reference_type: referenceType,
+      p_reference_id: referenceId,
+    });
+    if (error) {
+      logger.error('partiesService', 'Failed to fetch transaction details', error);
+      return null;
+    }
+    return data as StatementTransactionDetails | null;
+  },
+
+  getCategoriesWithStats: async (companyId: string, type: PartyType): Promise<PartyCategory[]> => {
+    const { data: categories, error: catError } = await supabase
+      .from('party_categories')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('type', type)
+      .order('name', { ascending: true });
+
+    if (catError) throw catError;
+
+    const { data: parties } = await partiesApi.getParties(companyId, type);
+    // partiesApi.getParties returns {data, error} but we use it here
+    const partyList = Array.isArray(parties) ? parties : [];
+
+    const result = (Array.isArray(categories) ? categories : []).map(
+      (cat: Record<string, unknown>) => {
+        const matchingParties = partyList.filter(
+          (p: Record<string, unknown>) => p.category_id === cat.id
+        );
+        const totalBalance = matchingParties.reduce((sum: number, p: Record<string, unknown>) => {
+          const bal = (p.party_balances as Array<{ balance: number }> | null)?.[0]?.balance ?? 0;
+          return sum + bal;
+        }, 0);
+        return {
+          id: cat.id as string,
+          name: cat.name as string,
+          type: cat.type as PartyType,
+          count: matchingParties.length,
+          totalBalance,
+        };
+      }
+    );
+
+    return result;
+  },
+
+  calculateStats: (parties: Party[], type: PartyType = 'customer'): PartyStats => {
+    const activeCount = parties.filter(p => (p.status ?? 'active') === 'active').length;
+    const blockedCount = parties.filter(p => p.status === 'blocked').length;
+
+    let totalReceivable = 0;
+    let totalPayable = 0;
+    let totalBalance = 0;
+
+    for (const p of parties) {
+      const b = p.balance ?? 0;
+      totalBalance += b;
+      if (type === 'supplier') {
+        // للموردين: الرصيد الموجب (حسابات 2100 دائن) يمثل مستحقات للمورد واجبة السداد على المنشأة
+        // والرصيد السالب يمثل دفعات مقدمة أو سلف لصالح المنشأة
+        if (b > 0) {
+          totalPayable += b;
+        } else if (b < 0) {
+          totalReceivable += Math.abs(b);
+        }
+      } else {
+        // للعملاء: الرصيد الموجب (حسابات 1100 مدين) يمثل مبالغ مطلوبة لصالح المنشأة
+        // والرصيد السالب يمثل أمانات ودفعات مقدمة من العميل
+        if (b > 0) {
+          totalReceivable += b;
+        } else if (b < 0) {
+          totalPayable += Math.abs(b);
+        }
+      }
+    }
+
+    const currMap = new Map<string, { total: number; count: number }>();
+    for (const p of parties) {
+      if (p.balances_by_currency && p.balances_by_currency.length > 0) {
+        for (const bc of p.balances_by_currency) {
+          if (bc.balance !== 0) {
+            const entry = currMap.get(bc.currency) ?? { total: 0, count: 0 };
+            entry.total += bc.balance;
+            entry.count += 1;
+            currMap.set(bc.currency, entry);
+          }
+        }
+      } else if (p.balance !== undefined && p.balance !== 0) {
+        const entry = currMap.get('SAR') ?? { total: 0, count: 0 };
+        entry.total += p.balance;
+        entry.count += 1;
+        currMap.set('SAR', entry);
+      }
+    }
+
+    const byCurrency = Array.from(currMap.entries()).map(([currency, item]) => ({
+      currency,
+      balance: item.total,
+      count: item.count,
+    }));
+
+    return {
+      totalCount: parties.length,
+      totalBalance,
+      totalReceivable,
+      totalPayable,
+      activeCount,
+      blockedCount,
+      byCurrency,
+    };
+  },
+
+  saveParty: async (
+    companyId: string,
+    data: PartyFormData,
+    id?: string,
+    branchId?: string | null
+  ) => {
+    const trimmedName = (data.name || '').trim();
+    if (!trimmedName) throw new Error('الاسم مطلوب');
+
+    const trimmedPhone = (data.phone || '').trim();
+    const trimmedTaxNumber = (data.tax_number || '').trim();
+    const partyType = data.type || 'customer';
+    const typeLabel =
+      partyType === 'customer' ? 'العميل' : partyType === 'employee' ? 'الموظف' : 'المورد';
+    const relevantTypes = [partyType, 'both'];
+
+    // 1. Check duplicate name for same or overlapping type & company
+    let nameQuery = supabase
+      .from('parties')
+      .select('id, name')
+      .eq('company_id', companyId)
+      .is('deleted_at', null)
+      .in('type', relevantTypes)
+      .ilike('name', trimmedName)
+      .limit(1);
+
+    if (id) {
+      nameQuery = nameQuery.neq('id', id);
+    }
+
+    const { data: duplicateName } = await nameQuery;
+    if (duplicateName && duplicateName.length > 0) {
+      throw new Error(`يوجد ${typeLabel} مسجل مسبقاً بنفس الاسم: "${trimmedName}"`);
+    }
+
+    // 2. Check duplicate phone for same or overlapping type & company (if phone provided)
+    if (trimmedPhone) {
+      let phoneQuery = supabase
+        .from('parties')
+        .select('id, name, phone')
+        .eq('company_id', companyId)
+        .is('deleted_at', null)
+        .in('type', relevantTypes)
+        .eq('phone', trimmedPhone)
+        .limit(1);
+
+      if (id) {
+        phoneQuery = phoneQuery.neq('id', id);
+      }
+
+      const { data: duplicatePhone } = await phoneQuery;
+      if (duplicatePhone && duplicatePhone.length > 0) {
+        throw new Error(
+          `رقم الهاتف (${trimmedPhone}) مسجل مسبقاً لـ ${typeLabel}: "${duplicatePhone[0].name}"`
+        );
+      }
+    }
+
+    // 3. Check duplicate tax_number for same company (if provided)
+    if (trimmedTaxNumber) {
+      let taxQuery = supabase
+        .from('parties')
+        .select('id, name, tax_number')
+        .eq('company_id', companyId)
+        .is('deleted_at', null)
+        .eq('tax_number', trimmedTaxNumber)
+        .limit(1);
+
+      if (id) {
+        taxQuery = taxQuery.neq('id', id);
+      }
+
+      const { data: duplicateTax } = await taxQuery;
+      if (duplicateTax && duplicateTax.length > 0) {
+        throw new Error(
+          `الرقم الضريبي (${trimmedTaxNumber}) مسجل مسبقاً للطرف: "${duplicateTax[0].name}"`
+        );
+      }
+    }
+
+    try {
+      const sanitizedData: PartyFormData = {
+        name: trimmedName,
+        type: partyType,
+        status: data.status || 'active',
+      };
+      if (trimmedPhone) sanitizedData.phone = trimmedPhone;
+      if (trimmedTaxNumber) sanitizedData.tax_number = trimmedTaxNumber;
+      if (data.email?.trim()) sanitizedData.email = data.email.trim();
+      if (data.address?.trim()) sanitizedData.address = data.address.trim();
+      if (data.category_id) sanitizedData.category_id = data.category_id;
+      if (data.category) sanitizedData.category = data.category;
+
+      if (id) {
+        const { error } = await partiesApi.updateParty(id, sanitizedData);
+        if (error) throw parseError(error);
+      } else {
+        const effectiveBranchId =
+          branchId ?? (data as { branch_id?: string | null }).branch_id ?? null;
+        const { error } = await partiesApi.createParty(sanitizedData, companyId, effectiveBranchId);
+        if (error) throw parseError(error);
+      }
+    } catch (error: unknown) {
+      throw error instanceof Error ? error : parseError(error);
+    }
+  },
+
+  deleteParty: async (id: string) => {
+    const { error } = await partiesApi.deleteParty(id);
+    if (error) throw parseError(error);
+  },
+
+  saveCategory: async (companyId: string, data: { name: string; type: PartyType }, id?: string) => {
+    try {
+      if (id) {
+        const { data: result, error } = await supabase
+          .from('party_categories')
+          .update({ name: data.name })
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw parseError(error);
+        return result;
+      }
+      const { data: result, error } = await supabase
+        .from('party_categories')
+        .insert({ company_id: companyId, name: data.name, type: data.type })
+        .select()
+        .single();
+      if (error) throw parseError(error);
+      return result;
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === '23505'
+      ) {
+        throw new Error('عذراً، هذا الاسم موجود مسبقاً في قائمة الفئات');
+      }
+      throw error instanceof Error ? error : parseError(error);
+    }
+  },
+
+  deleteCategory: async (id: string) => {
+    const { error } = await supabase.from('party_categories').delete().eq('id', id);
+    if (error) throw parseError(error);
+    return true;
+  },
+
+  search: async (companyId: string, type: PartyType, query: string) => {
+    const { data, error } = await partiesApi.search(companyId, type, query);
+    if (error) throw parseError(error);
+    return (data || []) as unknown as Party[];
+  },
+
+  getCompanyDetails: async (companyId: string) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('name_ar, address, phone, tax_number, logo_url')
+      .eq('id', companyId)
+      .single();
+    if (error) throw parseError(error);
+    return data;
+  },
+
+  getOrCreateGeneralParty: async (companyId: string, type: PartyType): Promise<Party> => {
+    const name = type === 'customer' ? 'الزبون العام' : 'المورد العام';
+    const { data: searchResults, error: searchError } = await partiesApi.search(
+      companyId,
+      type,
+      name
+    );
+    if (searchError) throw parseError(searchError);
+
+    const existing = (searchResults || []).find((p: Record<string, unknown>) => p.name === name);
+    if (existing) return existing as unknown as Party;
+
+    const { data: created, error: createError } = await partiesApi.createParty(
+      {
+        name,
+        type: type === 'all' ? 'customer' : type,
+        status: 'active',
+      },
+      companyId
+    );
+
+    if (createError) throw parseError(createError);
+    return created as unknown as Party;
+  },
+};

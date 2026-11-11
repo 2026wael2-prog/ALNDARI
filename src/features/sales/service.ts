@@ -1,0 +1,367 @@
+import { salesApi } from './api/index';
+import type { CreateInvoiceDTO, MatchedInvoiceItem } from './types';
+import { messagingService } from '../notifications/messagingService';
+import { notificationService } from '../notifications/service';
+import { toBaseCurrency } from '../../core/utils/currencyUtils';
+import { formatLocalDate } from '../../core/utils/dateUtils';
+import { netUnitPrices } from '../../core/utils/invoiceDiscount';
+import { validateSalePayload, assertValid } from '../../core/utils/validationUtils';
+import { resolveStrictPaymentAccount, type RoutableAccount } from '../../core/utils/accountRouting';
+import { logger } from '../../core/utils/logger';
+import { accountsService } from '../accounting/services/accountsService';
+import { supabase } from '../../lib/supabaseClient';
+
+// Constants (These should eventually be migrated to an i18n translation file e.g., t('cash_customer'))
+const CASH_CUSTOMER_LABEL = 'عميل نقدي';
+
+/**
+ * Convert a row amount to base currency, never throwing for display lists.
+ * A corrupted exchange rate (<= 0 / non-finite) is logged and treated as 0 so
+ * the sales log stays usable instead of crashing — while the underlying
+ * `toBaseCurrency` utility still fails loudly for callers that need correctness.
+ */
+const safeBaseTotal = (
+  amount: number | null | undefined,
+  currency: string | null | undefined,
+  rate: number | null | undefined
+): number => {
+  try {
+    return toBaseCurrency({
+      amount: Number(amount) || 0,
+      currency_code: currency || 'SAR',
+      exchange_rate: Number(rate) || 1,
+    });
+  } catch (err) {
+    logger.warn('SalesService', 'Invalid exchange rate — baseTotal set to 0', {
+      currency,
+      rate,
+      error: err,
+    });
+    return 0;
+  }
+};
+
+// Type for raw invoice data from Supabase
+interface RawInvoice {
+  id: string;
+  invoice_number: string | null;
+  party: { name?: string; phone?: string } | null;
+  issue_date: string;
+  created_at?: string;
+  total_amount: number | null;
+  status: string;
+  type: string;
+  payment_method: string | null;
+  currency_code: string | null;
+  exchange_rate: number | null;
+  invoice_items: Array<{
+    id: string;
+    product_id?: string | null;
+    description?: string | null;
+    quantity: number;
+    unit_price: number;
+    total: number;
+    cost_price?: number | null;
+    product?: {
+      id?: string;
+      name_ar?: string | null;
+      sku?: string | null;
+      part_number?: string | null;
+      brand?: string | null;
+    } | null;
+  }> | null;
+  reference_invoice_id: string | null;
+}
+
+/** Row shape returned by getStats() window queries (invoices). */
+interface SalesStatsRow {
+  total_amount: number | null;
+  currency_code: string | null;
+  exchange_rate: number | null;
+}
+
+export const salesService = {
+  fetchSalesLog: async (companyId: string, page = 0, branchId?: string | null, limit = 150) => {
+    try {
+      const data = await salesApi.getInvoices(companyId, page, limit, branchId);
+      return (data || []).map((inv: unknown) => {
+        const _inv = inv as RawInvoice;
+        return {
+          id: _inv.id,
+          invoiceNumber: _inv.invoice_number,
+          customerName: _inv.party?.name || CASH_CUSTOMER_LABEL,
+          partyPhone: _inv.party?.phone || null,
+          date: formatLocalDate(_inv.issue_date),
+          createdAt: _inv.created_at,
+          total: Number(_inv.total_amount) || 0,
+          baseTotal: safeBaseTotal(_inv.total_amount, _inv.currency_code, _inv.exchange_rate),
+          status: _inv.status,
+          type: _inv.type,
+          paymentMethod: _inv.payment_method,
+          currencyCode: _inv.currency_code || 'SAR',
+          exchangeRate: Number(_inv.exchange_rate) || 1,
+          itemCount: Array.isArray(_inv.invoice_items) ? _inv.invoice_items.length : 0,
+          referenceInvoiceId: _inv.reference_invoice_id,
+          matchedItems: (Array.isArray(_inv.invoice_items)
+            ? _inv.invoice_items.map(item => ({
+                id: item.id,
+                product_id: item.product_id ?? null,
+                product_name: item.product?.name_ar || item.description || 'صنف غير محدد',
+                sku: item.product?.sku ?? null,
+                part_number: item.product?.part_number ?? null,
+                brand: item.product?.brand ?? null,
+                quantity: Number(item.quantity) || 0,
+                unit_price: Number(item.unit_price) || 0,
+                total: Number(item.total) || 0,
+                is_direct_match: false,
+              }))
+            : []) as MatchedInvoiceItem[],
+        };
+      });
+    } catch (error) {
+      logger.error('SalesService', 'Failed to fetch sales log', { companyId, error });
+      throw error;
+    }
+  },
+
+  searchSalesInvoices: async (
+    companyId: string,
+    params: {
+      query?: string | undefined;
+      dateFrom?: string | undefined;
+      dateTo?: string | undefined;
+      status?: string | undefined;
+      paymentMethod?: string | undefined;
+      branchId?: string | null | undefined;
+      type?: string | undefined;
+      page?: number | undefined;
+      limit?: number | undefined;
+    }
+  ) => {
+    try {
+      const page = params.page ?? 0;
+      const limit = params.limit ?? 500;
+      const offset = page * limit;
+
+      const rows = await salesApi.searchInvoicesAdvanced(companyId, {
+        type: params.type ?? 'sale',
+        query: params.query,
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        status: params.status,
+        paymentMethod: params.paymentMethod,
+        branchId: params.branchId,
+        limit,
+        offset,
+      });
+
+      return rows.map(r => ({
+        id: r.id,
+        invoiceNumber: r.invoice_number,
+        customerName: r.party_name || CASH_CUSTOMER_LABEL,
+        partyPhone: r.party_phone,
+        date: formatLocalDate(r.issue_date),
+        createdAt: (r as any).created_at || r.issue_date,
+        total: Number(r.total_amount) || 0,
+        baseTotal: safeBaseTotal(r.total_amount, r.currency_code, r.exchange_rate),
+        status: r.status as any,
+        type: r.type as any,
+        paymentMethod: r.payment_method,
+        currencyCode: r.currency_code || 'SAR',
+        exchangeRate: Number(r.exchange_rate) || 1,
+        itemCount: Number(r.item_count) || 0,
+        referenceInvoiceId: r.reference_invoice_id,
+        matchedItems: Array.isArray(r.matched_items) ? r.matched_items : [],
+        notes: r.notes,
+        totalMatchingCount: Number(r.total_matching_count) || 0,
+      }));
+    } catch (error) {
+      logger.error('SalesService', 'Failed to search sales invoices', { companyId, error });
+      throw error;
+    }
+  },
+
+  processNewSale: async (companyId: string, userId: string, payload: CreateInvoiceDTO) => {
+    // H6: Validate items before sending to RPC
+    assertValid(
+      validateSalePayload({
+        items: payload.items.map(i => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+        })),
+        paymentMethod: payload.paymentMethod,
+      })
+    );
+
+    if (payload.type === 'sale_return') {
+      return await salesApi.commitReturnRPC(companyId, userId, payload);
+    }
+
+    // Strict multi-currency and payment method resolution:
+    // - Credit (آجل) without down payment: undefined -> debits AR (1100)
+    // - Cash (نقداً) or Credit with down payment: resolved strictly to currency cashbox
+    let finalTreasuryAccountId: string | undefined = undefined;
+    const hasCashDeposit =
+      payload.paymentMethod !== 'credit' || Boolean(payload.paidAmount && payload.paidAmount > 0);
+    if (hasCashDeposit) {
+      const accounts = await accountsService.getAccounts(companyId);
+      finalTreasuryAccountId = resolveStrictPaymentAccount(
+        accounts as unknown as RoutableAccount[],
+        payload.paymentMethod !== 'credit' ? payload.paymentMethod || 'cash' : 'cash',
+        payload.currency || 'SAR',
+        payload.treasuryAccountId
+      );
+      // لا تُوجَّه عملية نقدية أو دفعة مقدمة بلا حساب مطابق بصمت
+      if (!finalTreasuryAccountId && payload.paymentMethod !== 'credit') {
+        throw new Error(
+          'لم يُعثر على حساب صندوق/بنك مطابق لعملة الفاتورة — اختر الحساب يدوياً ثم أعد المحاولة'
+        );
+      }
+    }
+
+    // [AUDIT-FIX] توزيع خصم الفاتورة على أسعار الوحدات الصافية قبل الإرسال:
+    // commit_sales_invoice_v2 لا يقبل discount إطلاقاً، فكان الخصم الذي يراه
+    // المستخدم (إجمالي الخصم/الصافي) يُفقد كلياً ويُخزَّن إجمالي أعلى من المعروض.
+    // بتوزيع الخصم تناسبياً على unit_price يطابق المبلغ المخزَّن إجمالي الواجهة.
+    const netLines = netUnitPrices(
+      payload.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      payload.discount
+    );
+    const netItems = payload.items.map((item, index) => ({
+      ...item,
+      unitPrice: netLines[index]?.unitPrice ?? item.unitPrice,
+    }));
+
+    const { treasuryAccountId: _omittedTreasuryAccountId, ...restPayload } = payload;
+    const enhancedPayload = {
+      ...restPayload,
+      items: netItems,
+      ...(finalTreasuryAccountId ? { treasuryAccountId: finalTreasuryAccountId } : {}),
+    };
+    const result = await salesApi.commitInvoiceRPC(companyId, userId, enhancedPayload);
+
+    // 🔔 Fire-and-forget notification
+    if (result) {
+      const itemsTotal = netItems.reduce(
+        (sum: number, it: { quantity: number; unitPrice: number }) =>
+          sum + it.quantity * it.unitPrice,
+        0
+      );
+      const typedResult = result;
+      messagingService.notify(
+        companyId,
+        'sale',
+        {
+          invoiceNumber: typedResult.invoice_number || '',
+          customerName: payload.customerName || CASH_CUSTOMER_LABEL, // [FIX] استخدام اسم العميل المُمرر
+          amount: itemsTotal,
+          currency: payload.currency || 'SAR',
+          date: formatLocalDate(),
+          paymentMethod: payload.paymentMethod || 'cash',
+          itemCount: payload.items?.length || 0,
+        },
+        typedResult.id
+      );
+
+      // In-App Notification
+      notificationService.notifySale(
+        companyId,
+        typedResult.invoice_number || '',
+        payload.customerName,
+        itemsTotal,
+        payload.currency || 'SAR'
+      );
+    }
+
+    return result;
+  },
+
+  // ⚡ Client-side stats computation via direct query
+  // [FIX] Uses rolling 30-day window instead of current calendar month to prevent
+  // stats showing all-zero when the month just started. Also filters voided invoices.
+  getStats: async (companyId: string, branchId?: string | null) => {
+    const today = new Date();
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const isoDate = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    // Current 30-day window: [today - 30d, today]
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * MS_PER_DAY);
+    const startOfThisWindow = isoDate(thirtyDaysAgo);
+
+    // Previous 30-day window: [today - 60d, today - 31d]
+    const sixtyDaysAgo = new Date(today.getTime() - 60 * MS_PER_DAY);
+    const thirtyOneDaysAgo = new Date(today.getTime() - 31 * MS_PER_DAY);
+    const startOfPrevWindow = isoDate(sixtyDaysAgo);
+    const endOfPrevWindow = isoDate(thirtyOneDaysAgo);
+
+    try {
+      // Query this period's invoices (last 30 days) — exclude voided and deleted
+      let queryThisWindow = supabase
+        .from('invoices')
+        .select('total_amount, currency_code, exchange_rate')
+        .eq('company_id', companyId)
+        .eq('type', 'sale')
+        .neq('status', 'void')
+        .is('deleted_at', null)
+        .gte('issue_date', startOfThisWindow);
+
+      if (branchId) {
+        queryThisWindow = queryThisWindow.eq('branch_id', branchId);
+      }
+
+      const { data: thisWindowData, error: thisWindowError } = await queryThisWindow;
+      if (thisWindowError) throw thisWindowError;
+
+      // Query previous 30-day period for growth comparison — also exclude voided
+      let queryPrevWindow = supabase
+        .from('invoices')
+        .select('total_amount, currency_code, exchange_rate')
+        .eq('company_id', companyId)
+        .eq('type', 'sale')
+        .neq('status', 'void')
+        .is('deleted_at', null)
+        .gte('issue_date', startOfPrevWindow)
+        .lte('issue_date', endOfPrevWindow);
+
+      if (branchId) {
+        queryPrevWindow = queryPrevWindow.eq('branch_id', branchId);
+      }
+
+      const { data: prevWindowData, error: prevWindowError } = await queryPrevWindow;
+      if (prevWindowError) throw prevWindowError;
+
+      // Calculate totals, converting to base currency if necessary
+      const calcTotal = (data: SalesStatsRow[]) =>
+        data.reduce((sum, inv) => {
+          return sum + toBaseCurrency(inv);
+        }, 0);
+
+      const totalSales = calcTotal(thisWindowData || []);
+      const invoiceCount = (thisWindowData || []).length;
+      const avgSale = invoiceCount > 0 ? totalSales / invoiceCount : 0;
+
+      const prevWindowSales = calcTotal(prevWindowData || []);
+
+      let monthlyGrowth: number | null = null;
+      if (prevWindowSales > 0) {
+        monthlyGrowth = ((totalSales - prevWindowSales) / prevWindowSales) * 100;
+      }
+
+      return {
+        totalSales,
+        invoiceCount,
+        avgSale,
+        monthlyGrowth,
+      };
+    } catch (error) {
+      logger.error('SalesService', 'Failed to calculate stats', error);
+      return { totalSales: 0, invoiceCount: 0, avgSale: 0, monthlyGrowth: null };
+    }
+  },
+};

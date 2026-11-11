@@ -1,0 +1,267 @@
+import React, { useState } from 'react';
+import {
+  Plus,
+  Check,
+  Edit3,
+  Trash2,
+  Users,
+  Receipt,
+  Package,
+  Bot,
+  RefreshCw,
+  Building2,
+} from 'lucide-react';
+import type { SubscriptionPlan } from '../../types';
+import { useSubscriptionPlans, usePlanMutations } from '../../hooks/useAdminData';
+import { EditPlanModal } from './EditPlanModal';
+import { AdminPageHeader } from '../shared/AdminPageHeader';
+import Button from '../../../../ui/base/Button';
+import { ConfirmModal } from '../../../../ui/base/ConfirmModal';
+
+export const PlansManager: React.FC = () => {
+  const { data: plans = [], isLoading, isError, refetch } = useSubscriptionPlans();
+  const { deletePlan, isDeleting } = usePlanMutations();
+  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<SubscriptionPlan | null>(null);
+
+  const handleConfirmDelete = async () => {
+    if (!planToDelete?.id) return;
+    if ((planToDelete.companies_count ?? 0) > 0) return;
+    try {
+      await deletePlan(planToDelete.id);
+    } finally {
+      setPlanToDelete(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header Bar — ترويسة موحّدة */}
+      <AdminPageHeader
+        title="باقات وخطط الاشتراك في المنصة"
+        subtitle="تحكم في أسعار الباقات، حدود المستخدمين، الحصص الشهرية، وميزات كل خطة."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              className="px-2.5 py-1.5 text-xs"
+              title="تحديث"
+            >
+              <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setIsCreating(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+            >
+              <Plus size={14} />
+              <span>إضافة باقة جديدة</span>
+            </Button>
+          </>
+        }
+      />
+
+      {/* Plans Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-64 animate-pulse rounded-xl bg-[var(--app-surface-hover)]" />
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-8 text-center text-xs font-bold text-rose-600">
+          تعذر تحميل باقات الاشتراك. يرجى التحقق من الاتصال ثم إعادة المحاولة.
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-8 text-center text-xs text-[var(--app-text-secondary)]">
+          لا توجد خطط اشتراك مسجلة حالياً.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+          {plans.map(plan => (
+            <div
+              key={plan.id}
+              className="hover:border-[var(--app-text-secondary)]/30 relative flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-xs transition-colors"
+            >
+              {/* Top Accent Indicator */}
+              <div
+                className="absolute inset-x-0 top-0 h-1"
+                style={{ backgroundColor: plan.color || '#3B82F6' }}
+              />
+
+              <div>
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: plan.color || '#3B82F6' }}
+                    />
+                    <h3 className="text-xs font-bold text-[var(--app-text)]">{plan.name_ar}</h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setEditingPlan(plan);
+                      }}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--app-border)] text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]"
+                      title="تعديل الباقة"
+                    >
+                      <Edit3 size={13} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPlanToDelete(plan);
+                      }}
+                      disabled={isDeleting || (plan.companies_count ?? 0) > 0}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--app-border)] text-[var(--app-text-secondary)] transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      title={
+                        (plan.companies_count ?? 0) > 0
+                          ? `لا يمكن حذف الباقة لوجود ${String(plan.companies_count ?? 0)} منشأة مرتبطة بها حالياً`
+                          : 'حذف الباقة'
+                      }
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="mt-3 flex items-baseline gap-1.5 border-b border-[var(--app-border)] pb-3">
+                  <span className="font-mono text-2xl font-bold text-[var(--app-text)]">
+                    {plan.price_monthly}
+                  </span>
+                  <span className="text-[11px] font-medium text-[var(--app-text-secondary)]">
+                    ر.س / شهرياً
+                  </span>
+                  <span className="ms-auto font-mono text-[11px] text-[var(--app-text-secondary)]">
+                    ({plan.price_yearly} ر.س سنوي)
+                  </span>
+                </div>
+
+                {/* Companies Count Info */}
+                <div className="mt-3 flex items-center justify-between rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 py-1.5 text-[11px]">
+                  <span className="flex items-center gap-1.5 text-[var(--app-text-secondary)]">
+                    <Building2 size={13} />
+                    <span>المنشآت المشتركة:</span>
+                  </span>
+                  <span className="font-mono font-bold text-[var(--app-text)]">
+                    {(plan.companies_count ?? 0) > 0 ? (
+                      <span className="text-blue-600 dark:text-blue-400">
+                        {plan.companies_count} منشأة
+                      </span>
+                    ) : (
+                      <span className="text-[var(--app-text-secondary)]">0 منشأة</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Quotas */}
+                <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-[var(--app-surface-hover)] p-2.5 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-[var(--app-text)]">
+                    <Users size={13} className="text-[var(--app-text-secondary)]" />
+                    <span>
+                      المستخدمين: <strong>{plan.max_users}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[var(--app-text)]">
+                    <Receipt size={13} className="text-[var(--app-text-secondary)]" />
+                    <span>
+                      الفواتير: <strong>{plan.max_invoices_monthly}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[var(--app-text)]">
+                    <Package size={13} className="text-[var(--app-text-secondary)]" />
+                    <span>
+                      الأصناف: <strong>{plan.max_products}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[var(--app-text)]">
+                    <Bot size={13} className="text-[var(--app-text-secondary)]" />
+                    <span>
+                      AI Tokens: <strong>{plan.ai_tokens_monthly}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Features List */}
+                <div className="mt-3 space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase text-[var(--app-text-secondary)]">
+                    الميزات المتضمنة:
+                  </span>
+                  <ul className="space-y-1 text-xs">
+                    {(plan.features || []).length > 0 ? (
+                      (plan.features || []).map((feat, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-1.5 text-[11px] text-[var(--app-text)]"
+                        >
+                          <Check size={12} className="flex-shrink-0 text-emerald-600" />
+                          <span>{feat}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-[11px] text-[var(--app-text-secondary)]">
+                        لا توجد ميزات مخصصة إضافية
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="mt-4 flex items-center justify-between border-t border-[var(--app-border)] pt-3 text-[11px]">
+                <span
+                  className={
+                    plan.is_active ? 'font-bold text-emerald-600' : 'font-bold text-rose-500'
+                  }
+                >
+                  {plan.is_active ? '● الباقة مفعلة' : '○ الباقة مخفية'}
+                </span>
+                <span className="font-mono text-[10px] text-[var(--app-text-secondary)]">
+                  الترتيب: {plan.sort_order}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit / Create Modal */}
+      {(editingPlan || isCreating) && (
+        <EditPlanModal
+          plan={editingPlan}
+          existingNames={plans
+            .filter(p => p.id !== editingPlan?.id)
+            .map(p => p.name_ar)
+            .filter(name => name.trim() !== '')}
+          onClose={() => {
+            setEditingPlan(null);
+            setIsCreating(false);
+          }}
+        />
+      )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={!!planToDelete}
+        title={`حذف باقة "${planToDelete?.name_ar ?? ''}"`}
+        message={
+          (planToDelete?.companies_count ?? 0) > 0
+            ? `لا يمكن حذف هذه الباقة نظراً لوجود ${String(planToDelete?.companies_count ?? 0)} منشأة مشتركة بها حالياً. قم بإلغاء أو تعديل اشتراك المنشآت أولاً ثم أعد المحاولة.`
+            : `هل أنت متأكد من حذف باقة "${planToDelete?.name_ar ?? ''}" نهائياً من النظام؟`
+        }
+        variant="danger"
+        confirmLabel="حذف نهائي"
+        isLoading={isDeleting}
+        onClose={() => {
+          setPlanToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+      />
+    </div>
+  );
+};

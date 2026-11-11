@@ -1,0 +1,218 @@
+{
+  "errors": 8952,
+  "warnings": 201,
+  "capturedAt": "2026-11-08",
+  "method": "npx eslint . --report-unused-disable-directives --format json (full scan of repo)",
+  "history": [
+    {
+      "date": "2026-11-08",
+      "errors": 8952,
+      "note": "cross-branch realtime activity and notifications with audio chimes (-10)"
+    },
+    {
+      "date": "2026-11-08",
+      "errors": 8962,
+      "note": "dashboard & analytics enterprise UI cleanup and anti-slop refactor (-1)"
+    },
+    {
+      "date": "2026-11-08",
+      "errors": 8963,
+      "note": "multi-product batch transfers with part_number and brand linkage (-82)"
+    },
+    {
+      "date": "2026-11-07",
+      "errors": 9045,
+      "note": "inter-branch transfer interactive dispatch modals and UI upgrade (-14)"
+    },
+    {
+      "date": "2026-11-07",
+      "errors": 9059,
+      "note": "Al-Mizan invoice navigator and parallel multi-draft invoices (-2)"
+    },
+    {
+      "date": "2026-11-07",
+      "errors": 9061,
+      "note": "strategic products supplier and manufacturer filtering (-24)"
+    },
+    {
+      "date": "2026-11-07",
+      "errors": 9085,
+      "note": "comprehensive branch/warehouse/accounting hardening (-117)"
+    },
+    {
+      "date": "2026-09-18",
+      "errors": 10482,
+      "note": "initial ceiling measured"
+    },
+    {
+      "date": "2026-09-18",
+      "errors": 10145,
+      "note": "eslint --fix auto-fixes (-337)"
+    },
+    {
+      "date": "2026-09-18",
+      "errors": 10068,
+      "note": "phase 1 cleanup progress (-77)"
+    },
+    {
+      "date": "2026-09-20",
+      "errors": 10063,
+      "note": "strict currency cashbox ground-truth refactoring (-5)"
+    },
+    {
+      "date": "2026-09-21",
+      "errors": 10128,
+      "note": "deep filtering and sorting across views, branch KPI RPCs, voucher prefetch optimizations"
+    },
+    {
+      "date": "2026-09-24",
+      "errors": 9986,
+      "note": "harden account statements and interactive detailed Excel grid (-142)"
+    },
+    {
+      "date": "2026-09-24",
+      "errors": 9982,
+      "note": "lock in multi-channel debt dispatch and expenses ledger ratchet (-4)"
+    },
+    {
+      "date": "2026-09-24",
+      "errors": 9867,
+      "note": "link landlord rent payables and sales withdrawals, harden expenses ledger (-115)"
+    },
+    {
+      "date": "2026-09-24",
+      "errors": 9798,
+      "note": "modularize DebtAgingReport and BondsPage into focused components and custom hooks (-69)"
+    },
+    {
+      "date": "2026-09-24",
+      "errors": 9792,
+      "note": "stagger dashboard API batches and harden RPC execution (-6)"
+    },
+    {
+      "date": "2026-09-24",
+      "errors": 9781,
+      "note": "modularize AuditSessionPage into subcomponents and harden incentive detection (-11)"
+    },
+    {
+      "date": "2026-09-25",
+      "errors": 9771,
+      "note": "disambiguate prc_supplier_products composite tenant FK and modularize quotations (-10)"
+    },
+    {
+      "date": "2026-09-25",
+      "errors": 9760,
+      "note": "modularize ExcelCartTable into subcomponents and clean table row cells (-11)"
+    },
+    {
+      "date": "2026-09-27",
+      "errors": 9776,
+      "note": "parallelize product duplicate checks and decompose useBondForm into dedicated subhooks (-3)"
+    },
+    {
+      "date": "2026-09-28",
+      "errors": 9761,
+      "note": "harden sales returns with dual RPC fallback and ratcheted clean code (-15)"
+    },
+    {
+      "date": "2026-09-28",
+      "errors": 9757,
+      "note": "single-write quotation creation, empty-string RPC args, returns currency column (-4)"
+    },
+    {
+      "date": "2026-09-28",
+      "errors": 9638,
+      "note": "rebuild the quotation details modal on the shared print template + WhatsApp text share (-119)"
+    },
+    {
+      "date": "2026-09-28",
+      "errors": 9635,
+      "note": "professional quotation Excel grid + cleanup of the shared Excel styling base (-3)"
+    },
+    {
+      "date": "2026-09-28",
+      "errors": 9634,
+      "note": "real RTL in every exported Excel workbook + quotation print action fix (-1)"
+    },
+    {
+      "date": "2026-09-29",
+      "errors": 9616,
+      "note": "grabbable table scrollbars + bounded quotation lists; lock in quotation ratchet progress (-18)"
+    },
+    {
+      "date": "2026-11-03",
+      "errors": 9610,
+      "note": "debts collection engine: priority-queue card, desktop/push alerting, due-date taxonomy wiring (-6)"
+    },
+    {
+      "date": "2026-11-03",
+      "errors": 9609,
+      "note": "Al-Mizan classic M2.5: drop the pointless (preset as any) cast in themeStore (-1)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9441,
+      "note": "deep-audit remediation: fix 5 confirmed defects + split ExcelTable and AuditSessionPage into hooks/components (-168)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9440,
+      "note": "wave 3: type-check the 154 test files via tsconfig.test.json + remove dead test helpers (-1)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9434,
+      "note": "wave 3 cleanup: retire stale assertions/optional-chains in test files touched by the type pass (-6)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9299,
+      "note": "wave 3: type the remaining financial/reporting + Excel-engine anys (IncomeStatement, ExpenseBreakdownChart, settings hooks, supplier-portal excelEngine) (-135)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9257,
+      "note": "fix crash: single shared realtime presence channel per company (ref-counted + serialized removal) so remounts never add presence handlers post-subscribe; + regression suite (-42)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9205,
+      "note": "field audit stability: save-progress no-op guard + AND-ed trgm search RPC, ref-stable audit persistence hooks, memoized audit table/header, non-shifting connection banner (-46)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9186,
+      "note": "audit correctness wave: single source for counted quantities (NaN-free), unblocked financial impact via cost_price, live diff while typing, normalized table filter, bulk-populate through mutation (-19)"
+    },
+    {
+      "date": "2026-11-04",
+      "errors": 9164,
+      "note": "CI ratchet alignment: per-file lint debts in touched audit files paid down (header split into focused actions, nullish/empty-string handling, product-row resolver, offline enqueue extracted) so the changed-files ratchet passes without raising any ceiling (-22)"
+    },
+    {
+      "date": "2026-11-05",
+      "errors": 9162,
+      "note": "P0 fix wave: balance sheet net-profit row + official report_balance_sheet_detailed RPC, invoice INSERT/UPDATE RLS hardening, configurable per-line discount ceiling, discount double-subtraction in the journal trigger; typed the detailed balance sheet RPCs (dropped 2 as-any casts) and de-duplicated the account mappers (-2)"
+    },
+    {
+      "date": "2026-11-05",
+      "errors": 9158,
+      "note": "Chat P1 wave: ref-stable realtime subscription (module-level channel + ref-count, enum-based status comparison, void-ed channel removals), reactive unread badge selector, peer read receipts; new regression suites kept at zero lint debt (-4)"
+    },
+    {
+      "date": "2026-11-05",
+      "errors": 8985,
+      "note": "W1: split PrintableInvoice (173->0 errors incl. 8 rules-of-hooks) + split PriorityQueueCard (-173 total)"
+    },
+    {
+      "date": "2026-11-06",
+      "errors": 9221,
+      "note": "Sync ceiling after debt command center, UltraMsg WhatsApp integration, and Al-Mizan Pro classic desktop theme"
+    },
+    {
+      "date": "2026-11-06",
+      "errors": 9202,
+      "note": "Print overhaul: UniversalDocumentHeader luxury letterhead, balanced print styles, dark-mode print neutralization, modal print isolation, unified commercial headers across bonds, purchases, sales, statements (-19)"
+    }
+  ]
+}

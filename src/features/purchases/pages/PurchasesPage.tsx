@@ -1,0 +1,465 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  BarChart3,
+  FileText,
+  History,
+  Plus,
+  RefreshCw,
+  ShoppingCart,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
+import PurchaseStats from '../components/PurchaseStats';
+import PurchasesTable from '../components/PurchasesTable';
+import CreatePurchaseModal from '../components/CreatePurchaseModal';
+import PurchaseDetailsModal from '../components/PurchaseDetailsModal';
+import CreatePaymentModal from '../components/CreatePaymentModal';
+import { AuditModal } from '../../accounting/components/AuditModal';
+import PurchasesAnalytics from '../components/Analytics/PurchasesAnalytics';
+import { usePurchases } from '../hooks';
+import MicroHeader from '../../../ui/base/MicroHeader';
+import { useTranslation } from '../../../lib/hooks/useTranslation';
+import SmartImportView, { type ExtractedItem } from '../../smart-import/components/SmartImportView';
+import { usePurchaseStore } from '../store';
+import { useAuthStore } from '../../auth/store';
+import type { AuthUser } from '../../auth/types';
+import PurchaseReturnsView from '../components/Returns/PurchaseReturnsView';
+import PurchaseQuotationsTab from '../components/quotations/PurchaseQuotationsTab';
+import { useAIPrefillStore } from '../../ai/store';
+
+import type { AIEntityItem } from '../../ai/core/types';
+import InvoiceSearchToolbar from '../../../ui/common/InvoiceSearchToolbar';
+import type { DatePreset } from '@/core/types/invoiceSearch';
+
+type PurchaseTab = 'create' | 'list' | 'returns' | 'analytics' | 'smart_import' | 'quotations';
+type AuthUserState = AuthUser | null;
+type PurchaseRows = React.ComponentProps<typeof PurchasesTable>['data'];
+
+const isPurchaseTab = (value: string): value is PurchaseTab =>
+  ['create', 'list', 'returns', 'analytics', 'smart_import', 'quotations'].includes(value);
+
+const usePurchasePrefill = (
+  setActiveTab: React.Dispatch<React.SetStateAction<PurchaseTab>>
+): void => {
+  const { bulkLoadItems, setMetadata, setSupplier } = usePurchaseStore();
+  const consumePrefill = useAIPrefillStore(state => state.consumePrefill);
+  useEffect(() => {
+    const aiData = consumePrefill(['create_purchase_invoice', 'create_return_purchase']);
+    const entities = aiData?.entities;
+    if (entities === undefined) return;
+    if (entities.partyName !== undefined && entities.partyName !== '')
+      setSupplier({ id: `ai_temp_${String(Date.now())}`, name: entities.partyName });
+    if (entities.items !== undefined && entities.items.length > 0) {
+      bulkLoadItems(
+        entities.items.map((item: AIEntityItem) => ({
+          productId: '',
+          sku: '',
+          name: item.productName ?? 'صنف غير محدد',
+          partNumber: item.productCode ?? '',
+          brand: item.manufacturer ?? '',
+          quantity: item.quantity ?? 1,
+          unitPrice: item.unitPrice ?? 0,
+          costPrice: item.unitPrice ?? 0,
+        }))
+      );
+    }
+    if (entities.paymentMethod !== undefined)
+      setMetadata('invoiceType', entities.paymentMethod === 'credit' ? 'credit' : 'cash');
+    setActiveTab('create');
+  }, [bulkLoadItems, consumePrefill, setActiveTab, setMetadata, setSupplier]);
+};
+
+interface HeaderActionsProps {
+  user: AuthUserState;
+  setIsPaymentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsAuditOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+// NOTE: The destructive maintenance actions (delete duplicates / fix ledger)
+// previously exposed here have been REMOVED. They performed non-transactional
+// direct DB writes from the browser (see docs/frontend-backend-deep-audit).
+// Any repair must go through a protected server-side RPC with dry-run + audit.
+const PurchaseHeaderActions: React.FC<HeaderActionsProps> = ({
+  user,
+  setIsPaymentModalOpen,
+  setIsAuditOpen,
+}) => {
+  return (
+    <div className="flex gap-3">
+      {user?.role === 'admin' && (
+        <button
+          onClick={() => {
+            setIsAuditOpen(true);
+          }}
+          className="flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2 font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
+        >
+          <ShieldCheck size={20} />
+          <span className="hidden md:inline">فحص النظام</span>
+        </button>
+      )}
+      <button
+        onClick={() => {
+          setIsPaymentModalOpen(true);
+        }}
+        className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg shadow-purple-500/20 active:scale-95"
+      >
+        <Wallet size={14} />
+        سند صرف
+      </button>
+    </div>
+  );
+};
+
+interface PageContentProps {
+  activeTab: PurchaseTab;
+  data: PurchaseRows;
+  isLoading: boolean;
+  searchTerm: string;
+  onSearchChange: (val: string) => void;
+  datePreset: DatePreset;
+  onDatePresetChange: (
+    preset: DatePreset,
+    range: { from?: string | undefined; to?: string | undefined }
+  ) => void;
+  dateFrom?: string | undefined;
+  onDateFromChange?: ((val: string) => void) | undefined;
+  dateTo?: string | undefined;
+  onDateToChange?: ((val: string) => void) | undefined;
+  statusFilter?: string | undefined;
+  onStatusFilterChange?: ((val: string) => void) | undefined;
+  paymentMethodFilter?: string | undefined;
+  onPaymentMethodFilterChange?: ((val: string) => void) | undefined;
+  currencyFilter?: string | undefined;
+  onCurrencyFilterChange?: ((curr: string) => void) | undefined;
+  sortBy?: string | undefined;
+  sortOrder?: 'asc' | 'desc' | undefined;
+  onSortChange?: ((by: string, order: 'asc' | 'desc') => void) | undefined;
+  limit?: number | undefined;
+  onLimitChange?: ((limit: number) => void) | undefined;
+  onResetFilters: () => void;
+
+  setViewInvoiceId: React.Dispatch<React.SetStateAction<string | null>>;
+  setActiveTab: React.Dispatch<React.SetStateAction<PurchaseTab>>;
+  handleSmartImportConfirm: (data: {
+    items: ExtractedItem[];
+    supplierName?: string;
+    currency?: string;
+  }) => void;
+}
+const PurchasePageContent: React.FC<PageContentProps> = ({
+  activeTab,
+  data,
+  isLoading,
+  searchTerm,
+  onSearchChange,
+  datePreset,
+  onDatePresetChange,
+  dateFrom,
+  onDateFromChange,
+  dateTo,
+  onDateToChange,
+  statusFilter,
+  onStatusFilterChange,
+  paymentMethodFilter,
+  onPaymentMethodFilterChange,
+  currencyFilter,
+  onCurrencyFilterChange,
+  sortBy,
+  sortOrder,
+  onSortChange,
+  limit,
+  onLimitChange,
+  onResetFilters,
+  setViewInvoiceId,
+  setActiveTab,
+  handleSmartImportConfirm,
+}) => {
+  switch (activeTab) {
+    case 'create':
+      return (
+        <CreatePurchaseModal
+          onSuccess={() => {
+            setActiveTab('list');
+          }}
+        />
+      );
+    case 'smart_import':
+      return <SmartImportView mode="invoice" onConfirm={handleSmartImportConfirm} />;
+    case 'list':
+      return (
+        <div className="flex min-h-0 flex-1 flex-col space-y-3">
+          <InvoiceSearchToolbar
+            searchTerm={searchTerm}
+            onSearchChange={onSearchChange}
+            datePreset={datePreset}
+            onDatePresetChange={onDatePresetChange}
+            dateFrom={dateFrom}
+            onDateFromChange={onDateFromChange}
+            dateTo={dateTo}
+            onDateToChange={onDateToChange}
+            statusFilter={statusFilter}
+            onStatusFilterChange={onStatusFilterChange}
+            paymentMethodFilter={paymentMethodFilter}
+            onPaymentMethodFilterChange={onPaymentMethodFilterChange}
+            currencyFilter={currencyFilter}
+            onCurrencyFilterChange={onCurrencyFilterChange}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={onSortChange}
+            totalMatches={data.length}
+            totalMatchingCount={(data[0] as any)?.total_matching_count || data.length}
+            limit={limit}
+            onLimitChange={onLimitChange}
+            isLoading={isLoading}
+            onResetFilters={onResetFilters}
+            scopeLabel="purchases"
+          />
+          <PurchasesTable data={data} isLoading={isLoading} onView={setViewInvoiceId} />
+        </div>
+      );
+
+    case 'returns':
+      return <PurchaseReturnsView searchTerm={searchTerm} onViewDetails={setViewInvoiceId} />;
+    case 'quotations':
+      return (
+        <PurchaseQuotationsTab
+          onConvertToPurchase={() => {
+            setActiveTab('create');
+          }}
+        />
+      );
+    case 'analytics':
+      return <PurchasesAnalytics />;
+    default:
+      return null;
+  }
+};
+
+const PurchasesPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<PurchaseTab>('list');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isAuditOpen, setIsAuditOpen] = useState(false);
+  const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [datePreset, setDatePreset] = useState<DatePreset>('all');
+  const [dateFrom, setDateFrom] = useState<string | undefined>();
+  const [dateTo, setDateTo] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [currencyFilter, setCurrencyFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'date' | 'total' | 'number'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [limit, setLimit] = useState(500);
+  const { t } = useTranslation();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
+
+  const searchParams = useMemo(
+    () => ({
+      searchTerm: debouncedSearch,
+      dateFrom,
+      dateTo,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      paymentMethod: paymentMethodFilter !== 'all' ? paymentMethodFilter : undefined,
+      type: activeTab === 'returns' ? 'purchase_return' : 'purchase',
+      limit,
+    }),
+    [debouncedSearch, dateFrom, dateTo, statusFilter, paymentMethodFilter, activeTab, limit]
+  );
+
+  const { data: allPurchases = [], isLoading } = usePurchases(searchParams);
+  const { bulkLoadItems, setMetadata, setSupplier } = usePurchaseStore();
+  usePurchasePrefill(setActiveTab);
+
+  const handleResetFilters = useCallback(() => {
+    setSearchTerm('');
+    setDebouncedSearch('');
+    setDatePreset('all');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setStatusFilter('all');
+    setPaymentMethodFilter('all');
+    setCurrencyFilter('all');
+    setSortBy('date');
+    setSortOrder('desc');
+  }, []);
+
+  const handleSmartImportConfirm = useCallback(
+    (data: { items: ExtractedItem[]; supplierName?: string; currency?: string }): void => {
+      bulkLoadItems(data.items);
+      if (data.supplierName !== undefined && data.supplierName !== '')
+        setSupplier({ id: 'ai_detected', name: data.supplierName });
+      if (data.currency !== undefined && data.currency !== '')
+        setMetadata('currency', data.currency);
+      setActiveTab('create');
+    },
+    [bulkLoadItems, setActiveTab, setMetadata, setSupplier]
+  );
+
+  const filteredData = useMemo(() => {
+    let result = (allPurchases || []) as any[];
+
+    if (currencyFilter !== 'all') {
+      result = result.filter(
+        p =>
+          (p.currency_code || p.currencyCode || '').toUpperCase() === currencyFilter.toUpperCase()
+      );
+    }
+
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'total') {
+        const totA = Number(a.total_amount ?? a.total ?? 0);
+        const totB = Number(b.total_amount ?? b.total ?? 0);
+        cmp = totA - totB;
+      } else if (sortBy === 'number') {
+        const numA = String(a.invoice_number ?? a.invoiceNumber ?? '');
+        const numB = String(b.invoice_number ?? b.invoiceNumber ?? '');
+        cmp = numA.localeCompare(numB, undefined, { numeric: true });
+      } else {
+        const dateA = new Date(a.issue_date ?? a.date ?? 0).getTime() || 0;
+        const dateB = new Date(b.issue_date ?? b.date ?? 0).getTime() || 0;
+        cmp = dateA - dateB;
+        if (cmp === 0) {
+          const createdA = new Date(a.created_at ?? 0).getTime() || 0;
+          const createdB = new Date(b.created_at ?? 0).getTime() || 0;
+          if (createdA !== createdB) {
+            cmp = createdA - createdB;
+          } else {
+            const numA = String(a.invoice_number ?? a.invoiceNumber ?? '');
+            const numB = String(b.invoice_number ?? b.invoiceNumber ?? '');
+            cmp = numA.localeCompare(numB, undefined, { numeric: true });
+          }
+        }
+      }
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+
+    return result as PurchaseRows;
+  }, [allPurchases, currencyFilter, sortBy, sortOrder]);
+
+  const TABS = [
+    { id: 'list', label: t('purchases_log'), icon: History },
+    { id: 'create', label: t('new_invoice'), icon: Plus },
+    { id: 'smart_import', label: 'استيراد ذكي (AI)', icon: Sparkles },
+    { id: 'returns', label: t('supplier_returns'), icon: RefreshCw },
+    { id: 'quotations', label: 'عروض الأسعار', icon: FileText },
+    { id: 'analytics', label: t('financial_analytics'), icon: BarChart3 },
+  ];
+  return (
+    <div className="font-cairo flex h-full flex-col bg-gray-50 dark:bg-slate-950">
+      <MicroHeader
+        title={activeTab === 'create' ? 'فاتورة توريد جديدة' : t('purchasing_and_supply')}
+        icon={ShoppingCart}
+        iconColor="text-blue-600"
+        actions={
+          activeTab === 'create' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('list');
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-2.5 py-1 text-xs font-bold text-[var(--app-text)] shadow-xs transition-all hover:bg-[var(--app-surface-hover)] active:scale-95"
+            >
+              <History size={13} className="text-blue-500" />
+              <span>سجل الفواتير</span>
+            </button>
+          ) : (
+            <PurchaseHeaderActions
+              user={user}
+              setIsPaymentModalOpen={setIsPaymentModalOpen}
+              setIsAuditOpen={setIsAuditOpen}
+            />
+          )
+        }
+        {...(activeTab !== 'create'
+          ? {
+              tabs: TABS,
+              searchPlaceholder: t('search_by_invoice_or_supplier'),
+              searchValue: searchTerm,
+              onSearchChange: setSearchTerm,
+            }
+          : {})}
+        activeTab={activeTab}
+        onTabChange={(id: string): void => {
+          if (isPurchaseTab(id)) setActiveTab(id);
+        }}
+      />
+      <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-16 pt-0">
+        <div className="h-full space-y-3 pt-2">
+          {activeTab !== 'analytics' && activeTab !== 'create' && activeTab !== 'smart_import' && (
+            <PurchaseStats />
+          )}
+          <div className="animate-in fade-in slide-in-from-bottom-1 h-full">
+            <PurchasePageContent
+              activeTab={activeTab}
+              data={filteredData}
+              isLoading={isLoading}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              datePreset={datePreset}
+              onDatePresetChange={(preset, range) => {
+                setDatePreset(preset);
+                setDateFrom(range.from);
+                setDateTo(range.to);
+              }}
+              dateFrom={dateFrom}
+              onDateFromChange={setDateFrom}
+              dateTo={dateTo}
+              onDateToChange={setDateTo}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              paymentMethodFilter={paymentMethodFilter}
+              onPaymentMethodFilterChange={setPaymentMethodFilter}
+              currencyFilter={currencyFilter}
+              onCurrencyFilterChange={setCurrencyFilter}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={(by, order) => {
+                setSortBy(by as 'date' | 'total' | 'number');
+                setSortOrder(order);
+              }}
+              limit={limit}
+              onLimitChange={setLimit}
+              onResetFilters={handleResetFilters}
+              setViewInvoiceId={setViewInvoiceId}
+              setActiveTab={setActiveTab}
+              handleSmartImportConfirm={handleSmartImportConfirm}
+            />
+          </div>
+        </div>
+      </div>
+      <PurchaseDetailsModal
+        invoiceId={viewInvoiceId}
+        onClose={() => {
+          setViewInvoiceId(null);
+        }}
+      />
+      <CreatePaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => {
+          setIsPaymentModalOpen(false);
+        }}
+      />
+      {isAuditOpen && (
+        <AuditModal
+          onClose={() => {
+            setIsAuditOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default PurchasesPage;

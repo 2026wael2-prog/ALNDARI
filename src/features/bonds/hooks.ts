@@ -1,0 +1,124 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { bondsService } from './service';
+import { useAuthStore } from '../auth/store';
+import { useFeedbackStore } from '../feedback/store';
+import type { BondType, BondFormData } from './types';
+import { assertPermission } from '../../core/hooks/usePermission';
+import { useBranchFilter } from '../branches/hooks/useBranchFilter';
+import { invalidateFinancialQueries } from '../../core/utils/querySyncUtils';
+import { invalidateByPreset } from '../../lib/invalidation';
+import { parseError } from '../../core/utils/errorUtils';
+import { syncStore } from '../../core/lib/sync-store';
+
+export const useBonds = (type?: BondType) => {
+  const { user } = useAuthStore();
+  const { branchId } = useBranchFilter();
+  return useQuery({
+    queryKey: ['bonds', user?.company_id, branchId, type],
+    queryFn: () =>
+      user?.company_id
+        ? bondsService.fetchBonds(user.company_id, branchId, type)
+        : Promise.resolve([]),
+    enabled: !!user?.company_id,
+  });
+};
+
+export const useBondsAnalytics = (period?: 'today' | 'week' | 'month' | 'quarter' | 'year') => {
+  const { user } = useAuthStore();
+  const { branchId } = useBranchFilter();
+  return useQuery({
+    queryKey: ['bonds_analytics', user?.company_id, branchId, period],
+    queryFn: () =>
+      user?.company_id
+        ? bondsService.getBondsStats(user.company_id, branchId, period)
+        : Promise.resolve(null),
+    enabled: !!user?.company_id,
+  });
+};
+
+export const useBondMutation = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { showToast } = useFeedbackStore();
+  const { branchId } = useBranchFilter();
+
+  return useMutation({
+    mutationFn: async (data: BondFormData) => {
+      if (!user?.company_id || !user?.id) throw new Error('جلسة العمل منتهية');
+
+      // فحص الصلاحية لإصدار السندات
+      await assertPermission('accounting:create', 'إصدار سندات مالية');
+
+      return bondsService.createBond(user.company_id, user.id, {
+        ...data,
+        ...(typeof branchId === 'string' && branchId.length > 0 ? { branchId } : {}),
+      });
+    },
+    onSuccess: (_, variables) => {
+      void invalidateFinancialQueries(queryClient, user?.company_id, { bonds: true });
+      invalidateByPreset(queryClient, 'bond');
+      const typeName =
+        variables.type === 'receipt' ? 'قبض' : variables.type === 'transfer' ? 'تحويل' : 'صرف';
+      showToast(`تم إصدار سند ال${typeName} وترحيله آلياً`, 'success');
+    },
+    onError: (error: unknown, variables) => {
+      const isOffline =
+        !navigator.onLine ||
+        (error instanceof Error && error.message.includes('Failed to fetch'));
+      if (isOffline && user?.company_id !== undefined && user.company_id !== '' && user.id !== '') {
+        void syncStore.enqueue({
+          mutationKey: ['bonds', 'create'],
+          variables: {
+            ...variables,
+            ...(typeof branchId === 'string' && branchId.length > 0 ? { branchId } : {}),
+            company_id: user.company_id,
+            user_id: user.id,
+          },
+        });
+        showToast('تم حفظ السند محلياً (وضع عدم الاتصال). ستتم المزامنة تلقائياً فور عودة الإنترنت.', 'info');
+        return;
+      }
+      const appErr = parseError(error);
+      showToast(appErr.message, 'error');
+    },
+  });
+};
+
+export const useDeleteBond = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { showToast } = useFeedbackStore();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error('يرجى تسجيل الدخول');
+
+      await assertPermission('accounting:delete', 'حذف سند مالي');
+
+      return bondsService.deleteBond(id);
+    },
+    onSuccess: () => {
+      invalidateFinancialQueries(queryClient, user?.company_id, { bonds: true });
+      invalidateByPreset(queryClient, 'bond');
+      showToast('تم إلغاء السند وعكس القيود بنجاح', 'success');
+    },
+    onError: (error: unknown) => {
+      const appErr = parseError(error);
+      showToast(appErr.message || 'حدث خطأ غير متوقع', 'error');
+    },
+  });
+};
+
+export const useUnpaidPartyInvoices = (partyId?: string, partyType?: 'customer' | 'supplier') => {
+  const { user } = useAuthStore();
+  const { branchId } = useBranchFilter();
+
+  return useQuery({
+    queryKey: ['unpaid_invoices', user?.company_id, branchId, partyId, partyType],
+    queryFn: () =>
+      user?.company_id && partyId && partyType
+        ? bondsService.getUnpaidPartyInvoices(user.company_id, partyId, partyType, branchId)
+        : Promise.resolve([]),
+    enabled: !!user?.company_id && !!partyId && !!partyType,
+  });
+};

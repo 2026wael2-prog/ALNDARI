@@ -1,0 +1,345 @@
+import { supabase } from '../../lib/supabaseClient';
+import { parseError } from '../../core/utils/errorUtils';
+import type { CreatePurchaseDTO, SupplierPaymentData } from './types';
+import type { Json } from '../../core/database.types';
+import { treasuryApi } from '../accounting/api/treasuryApi';
+import type { MatchedInvoiceItem, SearchInvoiceResultRow } from '@/core/types/invoiceSearch';
+import { optArg } from '@/core/utils/rpcArgs';
+import { broadcastCrossBranchActivity } from '@/features/branches/api';
+
+type PurchaseItem = CreatePurchaseDTO['items'][number];
+interface PurchaseItemPayload {
+  product_id: string;
+  quantity: number;
+  unit_cost: number;
+  discount: number;
+  /** The create RPC (`commit_purchase_invoice`) reads `discount_amount`,
+   *  while the return RPC (`commit_purchase_return`) reads `discount` — send
+   *  both keys so the two functions each get the value they expect. */
+  discount_amount: number;
+  line_total: number;
+  warehouse_id?: string;
+}
+interface PurchaseRpcParams {
+  p_company_id: string;
+  p_user_id: string;
+  p_supplier_id: string;
+  p_items: Json;
+  p_currency: string;
+  p_exchange_rate: number;
+  p_payment_method: string;
+  p_payment_account_id?: string;
+  p_invoice_number?: string;
+  p_issue_date?: string;
+  p_due_date?: string;
+  p_notes?: string;
+  p_branch_id?: string;
+  p_paid_amount?: number;
+}
+interface PurchaseReturnRpcParams {
+  p_company_id: string;
+  p_user_id: string;
+  p_supplier_id: string;
+  p_items: Json;
+  p_currency: string;
+  p_exchange_rate: number;
+  p_notes: string;
+  p_return_reason?: string;
+  p_branch_id?: string;
+  p_reference_invoice_id?: string;
+}
+
+const hasText = (value: string | null | undefined): value is string =>
+  value !== null && value !== undefined && value !== '';
+const requireText = (value: string | null | undefined, field: string): string => {
+  if (!hasText(value)) throw new Error(`${field} is required`);
+  return value;
+};
+const asError = (error: unknown): Error => {
+  if (error instanceof Error) return error;
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return new Error(String((error as { message?: unknown }).message));
+  }
+  return new Error(String(error));
+};
+const warehousePayload = (
+  warehouseId: string | null | undefined
+): Pick<PurchaseItemPayload, 'warehouse_id'> =>
+  hasText(warehouseId) ? { warehouse_id: warehouseId } : {};
+
+const itemPayload = (
+  item: PurchaseItem & {
+    product_id?: string;
+    cost_price?: number;
+    unit_price?: number;
+    unit_cost?: number;
+    warehouse_id?: string | null;
+  }
+): PurchaseItemPayload => {
+  const discount = item.discount ?? 0;
+  const productId = item.productId || item.product_id || '';
+  const unitCost =
+    item.costPrice ?? item.unit_cost ?? item.cost_price ?? item.unit_price ?? 0;
+  const quantity = item.quantity ?? 0;
+  const warehouseId = item.warehouseId || item.warehouse_id;
+  return {
+    product_id: productId,
+    quantity,
+    unit_cost: unitCost,
+    discount,
+    discount_amount: discount,
+    line_total: Math.max(0, quantity * unitCost - discount),
+    ...warehousePayload(warehouseId),
+  };
+};
+
+const buildPurchaseParams = (
+  companyId: string,
+  userId: string,
+  data: CreatePurchaseDTO
+): PurchaseRpcParams => {
+  const paymentAccountId = data.cashAccountId || data.bankAccountId;
+  return {
+    p_company_id: companyId,
+    p_user_id: userId,
+    p_supplier_id: requireText(data.supplierId, 'Supplier'),
+    ...(hasText(data.invoiceNumber) ? { p_invoice_number: data.invoiceNumber } : {}),
+    ...(hasText(data.issueDate) ? { p_issue_date: data.issueDate } : {}),
+    ...(hasText(data.dueDate) ? { p_due_date: data.dueDate } : {}),
+    p_items: data.items.map(itemPayload) as unknown as Json,
+    ...(hasText(data.notes) ? { p_notes: data.notes } : {}),
+    p_currency: data.currency ?? 'SAR',
+    p_exchange_rate: (data.currency ?? 'SAR') === 'SAR' ? 1 : (data.exchangeRate ?? 1),
+    p_payment_method: data.paymentMethod,
+    ...(hasText(paymentAccountId) ? { p_payment_account_id: paymentAccountId } : {}),
+    ...(hasText(data.branchId) ? { p_branch_id: data.branchId } : {}),
+    p_paid_amount: Number(data.paidAmount) || 0,
+  };
+};
+
+const buildReturnParams = (
+  companyId: string,
+  userId: string,
+  data: CreatePurchaseDTO
+): PurchaseReturnRpcParams => ({
+  p_company_id: companyId,
+  p_user_id: userId,
+  p_supplier_id: requireText(data.supplierId, 'Supplier'),
+  p_items: data.items.map(itemPayload) as unknown as Json,
+  p_currency: data.currency ?? 'SAR',
+  p_exchange_rate: (data.currency ?? 'SAR') === 'SAR' ? 1 : (data.exchangeRate ?? 1),
+  p_notes: data.notes ?? '',
+  ...(hasText(data.returnReason) ? { p_return_reason: data.returnReason } : {}),
+  ...(hasText(data.branchId) ? { p_branch_id: data.branchId } : {}),
+  ...(hasText(data.referenceInvoiceId) ? { p_reference_invoice_id: data.referenceInvoiceId } : {}),
+});
+
+export const purchasesApi = {
+  getPurchases: async (companyId: string, branchId?: string | null, limit = 150) => {
+    let query = supabase
+      .from('invoices')
+      .select(
+        `
+      id, invoice_number, issue_date, total_amount, status, type, payment_method,
+      currency_code, exchange_rate, notes, return_reason, reference_invoice_id, created_at,
+      reference_invoice:reference_invoice_id(id, invoice_number),
+      party:party_id(name, phone),
+      invoice_items(
+        id, product_id, cost_price, quantity, unit_price, total, description,
+        product:products!fk_invoice_items_company_product(id, name_ar, sku, part_number, brand)
+      )
+    `
+      )
+      .eq('company_id', companyId)
+      .in('type', ['purchase', 'purchase_return'])
+      .is('deleted_at', null);
+    if (hasText(branchId)) query = query.eq('branch_id', branchId);
+    return query
+      .order('issue_date', { ascending: false })
+      .order('created_at', { ascending: false, nullsFirst: false })
+      .order('id', { ascending: false })
+      .limit(limit);
+  },
+
+  searchPurchasesAdvanced: async (
+    companyId: string,
+    params: {
+      type?: string | undefined;
+      query?: string | undefined;
+      dateFrom?: string | undefined;
+      dateTo?: string | undefined;
+      status?: string | undefined;
+      paymentMethod?: string | undefined;
+      branchId?: string | null | undefined;
+      limit?: number | undefined;
+      offset?: number | undefined;
+    }
+  ): Promise<SearchInvoiceResultRow[]> => {
+    if (companyId === '') return [];
+    const { data, error } = await supabase.rpc('search_invoices_advanced', {
+      p_company_id: companyId,
+      p_type: params.type ?? 'purchase',
+      ...optArg('p_query', params.query?.trim() !== '' ? params.query?.trim() : null),
+      ...optArg('p_date_from', params.dateFrom),
+      ...optArg('p_date_to', params.dateTo),
+      ...optArg('p_status', params.status),
+      ...optArg('p_payment_method', params.paymentMethod),
+      ...optArg('p_branch_id', params.branchId),
+      p_limit: params.limit ?? 500,
+      p_offset: params.offset ?? 0,
+    });
+
+    if (error) throw asError(parseError(error));
+    // `matched_items` is a jsonb column on the RPC contract; the API layer
+    // exposes it as the typed MatchedInvoiceItem[] the search views consume.
+    return (data ?? []).map(row => ({
+      ...row,
+      matched_items: row.matched_items as unknown as MatchedInvoiceItem[],
+    }));
+  },
+
+  getPurchaseDetails: async (purchaseId: string, companyId?: string | null) => {
+    let query = supabase
+      .from('invoices')
+      .select(
+        `
+      *, party:party_id(*), invoice_items(*, product:products(name_ar, sku))
+    `
+      )
+      .eq('id', purchaseId);
+
+    if (companyId) {
+      query = query.eq('company_id', companyId);
+    }
+
+    const { data, error } = await query.single();
+    return { data, error };
+  },
+
+  createPurchaseRPC: async (companyId: string, userId: string, data: CreatePurchaseDTO) => {
+    const { data: result, error } = await supabase.rpc(
+      'commit_purchase_invoice',
+      buildPurchaseParams(companyId, userId, data)
+    );
+    if (error) throw asError(parseError(error));
+
+    const invId =
+      typeof result === 'string'
+        ? result
+        : typeof (result as Record<string, unknown> | null)?.id === 'string'
+          ? ((result as Record<string, unknown>).id as string)
+          : '';
+    if (invId) {
+      const totalAmount = data.items.reduce((sum, item) => sum + (item.total || 0), 0);
+      void broadcastCrossBranchActivity(companyId, {
+        id: invId,
+        company_id: companyId,
+        branch_id: data.branchId ?? null,
+        type: 'purchase_created',
+        title: 'فاتورة مشتريات جديدة',
+        message: 'تم توريد فاتورة مشتريات جديدة',
+        amount: totalAmount,
+        currency_code: data.currency ?? 'YER',
+        link: '/purchases',
+        created_by: userId,
+      });
+    }
+
+    return result;
+  },
+
+  createPurchaseReturnRPC: async (companyId: string, userId: string, data: CreatePurchaseDTO) => {
+    const { data: result, error } = await supabase.rpc(
+      'commit_purchase_return',
+      buildReturnParams(companyId, userId, data)
+    );
+    if (error) throw asError(parseError(error));
+    return result;
+  },
+
+  /**
+   * سند صرف لمورد — يمر عبر RPC المالي الذرّي create_financial_bond.
+   *
+   * ترتيب تحديد الحساب المالي:
+   * 1) الحساب الذي اختاره المستخدم صراحةً من منتقي الخزينة (treasuryAccountId).
+   * 2) احتياطياً: أول صندوق نشط مرتبط بحساب دفتري.
+   *
+   * [FIX] سابقاً كان البحث ثابتاً على رمز الحساب '1010' برسالة خطأ إنجليزية،
+   * ما كان يفشل عند غيابه ويمنع الدفع البنكي أو من عملات أخرى.
+   */
+  createSupplierPayment: async (
+    paymentData: SupplierPaymentData,
+    companyId: string,
+    userId: string
+  ) => {
+    let treasuryAccountId = hasText(paymentData.treasuryAccountId)
+      ? paymentData.treasuryAccountId
+      : null;
+
+    if (treasuryAccountId === null) {
+      const { data: cashboxes, error: cashboxError } = await treasuryApi.getCashboxes(
+        companyId,
+        paymentData.branchId
+      );
+      if (cashboxError !== null) throw asError(parseError(cashboxError));
+      const linkedAccountId = (cashboxes ?? [])
+        .map(cb => cb.account_id)
+        .find((id): id is string => id !== null && id !== '');
+      if (linkedAccountId === undefined) {
+        throw new Error(
+          'لا يوجد صندوق نشط مرتبط بحساب مالي — أنشئ خزينة من صفحة المحاسبة أو اختر الحساب يدوياً'
+        );
+      }
+      treasuryAccountId = linkedAccountId;
+    }
+
+    const { data, error } = await supabase.rpc('create_financial_bond', {
+      p_bond_type: 'payment',
+      p_company_id: companyId,
+      p_user_id: userId,
+      p_amount: paymentData.amount,
+      p_date: paymentData.date,
+      p_cash_account_id: treasuryAccountId,
+      p_counterparty_type: 'party',
+      p_counterparty_id: paymentData.supplierId,
+      p_description: paymentData.notes ?? 'سند صرف لمورد',
+      p_currency_code: paymentData.currencyCode ?? 'SAR',
+      p_exchange_rate: paymentData.exchangeRate ?? 1,
+      p_foreign_amount: paymentData.foreignAmount ?? paymentData.amount,
+      ...(hasText(paymentData.branchId) ? { p_branch_id: paymentData.branchId } : {}),
+    });
+    // [FIX] سابقاً كان خطأ الـ RPC يعود كقيمة بدون رمي → نجاح وهمي في الواجهة
+    if (error !== null) throw asError(parseError(error));
+    return { data, error: null };
+  },
+
+  getPurchaseInvoicesForReturn: async (
+    companyId: string,
+    supplierId: string | null,
+    branchId?: string | null
+  ) => {
+    let query = supabase
+      .from('invoices')
+      .select(
+        `
+      id, invoice_number, issue_date, total_amount, status, type, payment_method, warehouse_id,
+      currency_code, exchange_rate, party:party_id(id, name),
+      invoice_items(id, product_id, description, quantity, unit_price, total, cost_price, product:products!fk_invoice_items_company_product(id, name_ar, sku, part_number, brand))
+    `
+      )
+      .eq('company_id', companyId)
+      .eq('type', 'purchase')
+      .neq('status', 'void')
+      .neq('status', 'cancelled')
+      .is('deleted_at', null);
+    if (hasText(branchId)) query = query.eq('branch_id', branchId);
+    if (hasText(supplierId)) query = query.eq('party_id', supplierId);
+    return query.order('issue_date', { ascending: false }).limit(1000);
+  },
+
+  deletePurchase: async (id: string) => {
+    const { data, error } = await supabase.rpc('void_invoice', { p_invoice_id: id });
+    if (error) throw asError(parseError(error));
+    return { data, error: null };
+  },
+};

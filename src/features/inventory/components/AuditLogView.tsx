@@ -1,0 +1,85 @@
+import React, { useState } from 'react';
+import { useItemMovement } from '../hooks/index';
+import { Info } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { cn } from '../../../core/utils';
+import AuditLogHeader from './audit/AuditLogHeader';
+import AuditLogTable from './audit/AuditLogTable';
+import GeneralMovementsFeed from './audit/GeneralMovementsFeed';
+
+const AuditLogView: React.FC = () => {
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [isMaximized, setIsMaximized] = useState(false);
+
+    const { data: log, isLoading: isLogLoading } = useItemMovement(selectedProduct?.id || null);
+
+    const content = (
+        <div className={cn(
+            "flex flex-col animate-in fade-in duration-500 max-w-none mx-auto transition-all h-full",
+            isMaximized 
+                ? "fixed inset-0 z-[999] bg-[var(--app-surface)] overflow-hidden p-4 sm:p-6" 
+                : "gap-4"
+        )}>
+            <div className={cn(
+                "flex-1 flex flex-col min-h-0 bg-[var(--app-surface)] transition-all",
+                isMaximized 
+                    ? "h-full" 
+                    : "rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+            )}>
+                {selectedProduct ? (
+                    <>
+                        <AuditLogHeader
+                            selectedProduct={selectedProduct}
+                            log={log}
+                            isMaximized={isMaximized}
+                            setIsMaximized={setIsMaximized}
+                            onBack={() => { setSelectedProduct(null); }}
+                        />
+
+                        <div className="flex-1 overflow-auto custom-scrollbar relative p-4">
+                            {isLogLoading ? (
+                                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                                    <div className="w-8 h-8 border-2 border-blue-500/10 border-t-blue-500 rounded-full animate-spin" />
+                                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">جاري تجهيز البيانات التدقيقية...</p>
+                                </div>
+                            ) : !log || log.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                                    <Info size={40} className="mb-3 opacity-10" />
+                                    <p className="text-xs font-bold">لا توجد حركات مسجلة لهذا الصنف</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <AuditLogTable log={log} />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={cn(
+                            "p-3 px-8 bg-gray-50 dark:bg-slate-800 border-t dark:border-slate-700 flex justify-between items-center text-[10px] font-black text-gray-400 transition-all",
+                            isMaximized && "py-4"
+                        )}>
+                            <div className="flex gap-6">
+                                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" /> واردات (مشتريات/مردود)</span>
+                                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50" /> صادرات (مبيعات/هالك)</span>
+                            </div>
+                            <span className="opacity-60 italic">* كافة الكميات معالجة ومربوطة بالرصيد التراكمي في الوقت الفعلي</span>
+                        </div>
+                    </>
+                ) : (
+                    <GeneralMovementsFeed 
+                        onSelectProduct={(p) => { setSelectedProduct(p); }}
+                    />
+                )}
+            </div>
+        </div>
+    );
+
+    if (isMaximized) {
+        return createPortal(content, document.body);
+    }
+
+    return content;
+};
+
+export default AuditLogView;
+

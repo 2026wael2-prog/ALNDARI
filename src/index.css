@@ -1,0 +1,2481 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   CSS Custom Properties — Theme System
+   تُستخدم هذه المتغيرات بواسطة الثيمات لتغيير ألوان التطبيق
+   ============================================================ */
+@layer base {
+  :root {
+    --app-bg: #f8fafc;
+    --app-surface: #ffffff;
+    --app-surface-hover: #f1f5f9;
+    --app-border: #e2e8f0;
+    --app-text: #1e293b;
+    --app-text-secondary: #64748b;
+    --accent: #3b82f6;
+
+    /* ────────────────────────────────────────────────────────────
+       طبقة الهوية (Brand Layer) — مشتقة تلقائياً من --accent
+       تغيير الـ accent (يدوياً أو عبر ثيم) يعيد تلوين الشريط والأزرار
+       دون الحاجة لتعديل أي مكوّن.
+       ──────────────────────────────────────────────────────────── */
+    --brand-600: var(--accent);
+    --brand-500: color-mix(in srgb, var(--accent) 72%, #ffffff);
+    --brand-700: color-mix(in srgb, var(--accent) 82%, #000000);
+    --brand-ink: #1f1f1f;
+
+    /* خطوط شبكة/صفوف الجداول — زخرفية، ولا تُستخدم لحدود حقول الإدخال */
+    --app-grid: #d9d9d9;
+    --app-zebra: #fafaf9;
+
+    /* كان --app-card مستخدماً في 6 ملفات وغير معرّف (كروت شفافة) */
+    --app-card: var(--app-surface);
+
+    /* توكنات الهوية الكلاسيكية وحقول الإدخال والجداول */
+    --app-input-bg: var(--app-surface);
+    --table-header-bg: var(--app-bg);
+    --table-header-fg: var(--app-text);
+    --table-selected-row: color-mix(in srgb, var(--accent) 18%, var(--app-surface));
+    --field-modified-bg: #F4C58A;
+    --interactive-blue: #164F85;
+    --secondary-gold: #F2B52B;
+    --accent-gold-yellow: #F5C04A;
+
+    /* ────────────────────────────────────────────────────────────
+       قشرة الميزان الكلاسيكي — قيم افتراضية مشتقة من الثيم النشط.
+       أي ثيم يعمل مع الشكل الكلاسيكي دون تعريفها، و«الميزان الكلاسيكي»
+       يحسمها بقيم صريحة في الوضعين. تُمسح inline قبل كل تبديل ثيم
+       (CLASSIC_CHROME_VARS في themeStore) فتعود هذه الافتراضات.
+       ──────────────────────────────────────────────────────────── */
+    --classic-chrome: color-mix(in srgb, var(--app-surface) 94%, var(--brand-500));
+    --classic-chrome-2: color-mix(in srgb, var(--app-surface) 97%, var(--brand-500));
+    --classic-chrome-border: color-mix(in srgb, var(--app-border) 65%, var(--app-surface));
+    --classic-hover: color-mix(in srgb, var(--brand-500) 16%, var(--app-surface));
+    --classic-hover-border: color-mix(in srgb, var(--brand-500) 45%, var(--app-surface));
+    --classic-active: color-mix(in srgb, var(--brand-500) 26%, var(--app-surface));
+    --classic-active-border: var(--brand-600);
+    --classic-icon: color-mix(in srgb, var(--brand-500) 12%, var(--app-surface));
+    --classic-icon-fg: var(--brand-700);
+    --classic-panel: var(--app-surface);
+    --classic-panel-border: var(--app-grid);
+    --classic-panel-shadow: 0 10px 26px rgb(0 0 0 / 16%), 0 2px 6px rgb(0 0 0 / 10%);
+
+    --app-font-size: 15px;
+    --radius: 0.5rem;
+    --glass-blur: 10px;
+    --glass-opacity: 0.1;
+    --shadow-strength: 0.05;
+    /* Responsive scale factor — used by components */
+    --scale: 1;
+  }
+
+  /* ⚡ Mobile Compact: -20% scaling for screens < 768px */
+  @media (max-width: 767px) {
+    :root {
+      --scale: 0.8;
+      --radius: 0.4rem;
+    }
+  }
+
+  /* Dark mode overrides (Clean neutral OLED dark, not washed blue) */
+  .dark {
+    --app-bg: #09090b;
+    --app-surface: #141417;
+    --app-surface-hover: #1f1f24;
+    --app-border: #27272a;
+    --app-text: #fafafa;
+    --app-text-secondary: #a1a1aa;
+    --accent: #3b82f6;
+
+    /* طبقة الهوية في الوضع الليلي */
+    --brand-ink: #1a1a1a;
+    --app-grid: #3d3d3d;
+    --app-zebra: #262626;
+
+    --app-input-bg: var(--app-surface);
+    --table-header-bg: var(--app-bg);
+    --table-header-fg: var(--app-text);
+    --table-selected-row: color-mix(in srgb, var(--accent) 25%, var(--app-surface));
+    --field-modified-bg: #5c3d1e;
+    --interactive-blue: #38bdf8;
+    --secondary-gold: #F2B52B;
+    --accent-gold-yellow: #F5C04A;
+
+    /* قشرة الميزان ليلاً: تفتيح التحديد وظل أعمق (الظل الفاتح غير مرئي) */
+    --classic-chrome: color-mix(in srgb, var(--app-surface) 92%, var(--brand-500));
+    --classic-chrome-2: var(--app-surface);
+    --classic-chrome-border: color-mix(in srgb, var(--app-border) 80%, var(--app-surface));
+    --classic-hover: color-mix(in srgb, var(--brand-500) 22%, var(--app-surface));
+    --classic-hover-border: color-mix(in srgb, var(--brand-500) 55%, var(--app-surface));
+    --classic-active: color-mix(in srgb, var(--brand-500) 32%, var(--app-surface));
+    --classic-icon: color-mix(in srgb, var(--brand-500) 18%, var(--app-surface));
+    --classic-icon-fg: color-mix(in srgb, var(--brand-500) 65%, #ffffff);
+    --classic-panel-shadow: 0 12px 30px rgb(0 0 0 / 60%), 0 2px 6px rgb(0 0 0 / 45%);
+  }
+
+  html {
+    scrollbar-gutter: stable;
+    /* Stepped responsive typography tied dynamically to user font-size setting.
+       Mobile: بلا معامل انكماش إضافي — الجذر = 15px × scale(0.8) = 12px على الهاتف
+       (كان 9.24px مع معامل 0.77 — غير مقروء). Desktop: 15px عند md فأعلى (كما كان). */
+    font-size: calc(var(--app-font-size, 15px) * var(--scale, 1));
+  }
+
+  @media (min-width: 1280px) {
+    html {
+      font-size: calc(var(--app-font-size, 15px) * var(--scale, 1) * 1.06);
+    }
+  }
+
+  @media (min-width: 1920px) {
+    html {
+      font-size: calc(var(--app-font-size, 15px) * var(--scale, 1) * 1.13);
+    }
+  }
+
+  @media (min-width: 2560px) {
+    html {
+      font-size: calc(var(--app-font-size, 15px) * var(--scale, 1) * 1.2);
+    }
+  }
+
+  /* تطبيق ألوان الثيم على الخلفية الأساسية */
+  body {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ============================================================
+   الوضع المكتبي الكلاسيكي — زوايا شبه مربعة (روح الميزان / إكسل)
+   محدَّدية html[data-corners='square'] :is(.rounded-*) = (0,2,1)
+   تتغلب على hover:rounded-* (0,2,0) دون الحاجة إلى !important.
+   تُفعَّل فقط من الثيمات التي تحمل corners: 'square'.
+   ============================================================ */
+html[data-corners='square']
+  :is(.rounded-sm, .rounded, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl) {
+  border-radius: 2px;
+}
+html[data-corners='square'] :is(.rounded-full) {
+  border-radius: 9999px; /* الدوائر تبقى دائرية (أفاتار، نقاط الحالة) */
+}
+
+/* ============================================================
+   هوية الجداول وحقول الإدخال الكلاسيكية (روح الميزان دوت نت)
+   ============================================================ */
+html[data-corners='square'] input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+html[data-corners='square'] select,
+html[data-corners='square'] textarea {
+  background-color: var(--app-input-bg, #ffffff);
+  border-color: var(--app-border-strong, var(--app-border));
+  color: var(--app-text);
+}
+
+html[data-corners='square'] table thead tr th,
+html[data-corners='square'] thead.sticky tr th {
+  background-color: var(--table-header-bg, var(--app-bg));
+  color: var(--table-header-fg, var(--app-text));
+  border-color: var(--app-grid, var(--app-border));
+}
+
+html[data-corners='square'] table tbody tr:nth-child(even) {
+  background-color: var(--app-zebra, var(--app-surface));
+}
+
+html[data-corners='square'] table tr:has(input[type="checkbox"]:checked) {
+  background-color: var(--table-selected-row, #A0D995) !important;
+}
+
+html[data-corners='square'] table td,
+html[data-corners='square'] table th {
+  border-color: var(--app-grid, var(--app-border));
+}
+
+.field-modified,
+[data-modified='true'],
+input.is-modified {
+  background-color: var(--field-modified-bg, #F4C58A) !important;
+}
+
+/* ============================================================
+   ثيم «الميزان الذهبي ERP» — تطبيق صارم وحرفي للألوان المعتمدة
+   ============================================================ */
+
+/* ── أ) الوضع النهاري: نصوص حادة وقوية وتباين عالي مع هوية الميزان الذهبي ── */
+html[data-preset='classic-golden-erp']:not(.dark) {
+  /* وضوح وقوة الخطوط في كامل التطبيق (منع البهتان) */
+  color: #111111 !important;
+
+  & * {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* تقوية النصوص الثانوية والمسميات لضمان القراءة السريعة */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-neutral-400,
+  & .text-neutral-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #383838 !important;
+    font-weight: 600 !important;
+  }
+
+  & p, & span, & label {
+    font-weight: 500;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #0a0a0a !important;
+    font-weight: 800 !important;
+  }
+
+  /* 1. الترويسات والعناصر الرئيسية: البرتقالي الذهبي والبرتقالي الداكن */
+  & .classic-titlebar {
+    background: linear-gradient(to bottom, #E99A00, #D99000) !important;
+    border-bottom: 1px solid #B87B00 !important;
+    box-shadow: none !important;
+  }
+  & .classic-titlebar span,
+  & .classic-titlebar div {
+    color: #111111 !important;
+    font-weight: 800 !important;
+  }
+  & header {
+    background: linear-gradient(to bottom, #E99A00, #D99000) !important;
+    border-bottom: 1px solid #B87B00 !important;
+  }
+  & header span,
+  & header button,
+  & header div {
+    color: #111111 !important;
+    font-weight: 700 !important;
+  }
+  & .classic-brand-mark {
+    background-color: #111111 !important;
+    color: #E99A00 !important;
+  }
+
+  /* 2. قشرة الشريط والقوائم: الرمادي الفاتح مع تمييز نشط ذهبي وبرتقالي */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #F4F4F4 !important;
+    border-bottom: 1px solid #C8C8C8 !important;
+  }
+  & .classic-menu-btn {
+    color: #111111 !important;
+    font-weight: 700 !important;
+  }
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #F5C04A33 !important;
+    border-color: #D99000 !important;
+    color: #000000 !important;
+  }
+  & .classic-ribbon-item {
+    color: #111111 !important;
+    font-weight: 700 !important;
+  }
+  & .classic-ribbon-item:hover {
+    background-color: #F5C04A26 !important;
+    border-color: #F2B52B !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #F5C04A33 !important;
+    border-color: #D99000 !important;
+    box-shadow: inset 0 -3px 0 0 #D99000 !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #E99A00 !important;
+    color: #111111 !important;
+  }
+
+  /* 3. الجداول المحاسبية: ترويسات خضراء واضحة، صفوف بديلة، ونصوص قوية */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background-color: #80C77B !important;
+    color: #111111 !important;
+    border-color: #C8C8C8 !important;
+    font-weight: 800 !important;
+    font-size: 12px !important;
+  }
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #111111 !important;
+    font-weight: 800 !important;
+  }
+  & table tbody tr {
+    background-color: #F4F4F4 !important;
+    border-color: #C8C8C8 !important;
+    color: #111111 !important;
+  }
+  & table tbody tr:nth-child(even) {
+    background-color: #EAEAEA !important;
+  }
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #A0D995 !important;
+  }
+  & table td,
+  & table th {
+    border-color: #C8C8C8 !important;
+    color: #111111 !important;
+    font-weight: 600 !important;
+  }
+
+  /* 4. حقول الإدخال: بيضاء نقية مع خطوط واضحة */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #FFFFFF !important;
+    border-color: #C8C8C8 !important;
+    color: #111111 !important;
+    font-weight: 600 !important;
+  }
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #164F85 !important;
+    outline-color: #164F85 !important;
+  }
+
+  /* 5. العناصر التفاعلية والأزرار */
+  & .bg-blue-600 {
+    background-color: #164F85 !important;
+    border-color: #164F85 !important;
+  }
+  & .hover\:bg-blue-700:hover {
+    background-color: #0f365c !important;
+    border-color: #0f365c !important;
+  }
+  & .text-blue-600 {
+    color: #164F85 !important;
+    font-weight: 700 !important;
+  }
+
+  /* 6. توافق صفحة الهبوط نهاراً مع هوية الميزان الذهبي */
+  & .landing-page .bg-blue-600,
+  & [data-theme-scope='landing'] .bg-blue-600 {
+    background-color: #E99A00 !important;
+    border-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+  & .landing-page .hover\:bg-blue-700:hover,
+  & [data-theme-scope='landing'] .hover\:bg-blue-700:hover {
+    background-color: #D99000 !important;
+    border-color: #D99000 !important;
+  }
+  & .landing-page .text-blue-600,
+  & [data-theme-scope='landing'] .text-blue-600 {
+    color: #E99A00 !important;
+  }
+  & .landing-page h1 span,
+  & [data-theme-scope='landing'] h1 span {
+    color: #E99A00 !important;
+  }
+  & .landing-page nav button:hover,
+  & [data-theme-scope='landing'] nav button:hover {
+    color: #E99A00 !important;
+  }
+  & .landing-page nav span.bg-blue-600,
+  & [data-theme-scope='landing'] nav span.bg-blue-600 {
+    background-color: #E99A00 !important;
+  }
+  & .landing-page .border-blue-200,
+  & [data-theme-scope='landing'] .border-blue-200 {
+    border-color: rgba(233, 154, 0, 0.4) !important;
+    background-color: rgba(233, 154, 0, 0.1) !important;
+    color: #D99000 !important;
+  }
+}
+
+/* ── ب) الوضع الليلي: ليل الميزان الذهبي المريح والفخم (غرافيت دافئ متناسق خالي من السواد القاتم والباهت، وبلمسات ذهبية مشرقة) ── */
+html[data-preset='classic-golden-erp'].dark {
+  /* جسر لوحة slate: درجات غرافيت دافئة متناسقة ومريحة جداً للعين (غير باهتة وغير قاتمة سواداً) */
+  --slate-50: 255 255 255;
+  --slate-100: 249 250 251;
+  --slate-200: 243 244 246;
+  --slate-300: 229 231 235;
+  --slate-400: 209 213 219;
+  --slate-500: 148 153 167;
+  --slate-600: 75 80 94;
+  --slate-700: 53 56 68;
+  --slate-750: 42 46 55;
+  --slate-800: 34 37 44;
+  --slate-850: 29 32 38;
+  --slate-900: 25 27 32;
+  --slate-950: 20 22 27;
+
+  background-color: #191b20 !important;
+  color: #ffffff !important;
+
+  /* خلفيات مساحة العمل والحاويات الرئيسية */
+  &,
+  & body,
+  & div[data-theme-scope='app'],
+  & div[data-theme-scope='landing'],
+  & .landing-page,
+  & main {
+    background-color: #191b20 !important;
+  }
+
+  /* وضوح وقوة خطوط الليل: نصوص نقية قوية عالية التباين خالية تماماً من البهتان */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #d1d5db !important;
+    font-weight: 500 !important;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  /* استبدال تام للأزرق الأصلي للنظام بالألوان الذهبية المشرقة لهوية الميزان */
+  & .bg-blue-600,
+  & .bg-blue-500,
+  & button.bg-blue-600,
+  & button.bg-blue-500,
+  & a.bg-blue-600 {
+    background-color: #E99A00 !important;
+    border-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+  & .bg-blue-600:hover,
+  & .hover\:bg-blue-700:hover,
+  & button.bg-blue-600:hover,
+  & button.bg-blue-500:hover {
+    background-color: #D99000 !important;
+    border-color: #D99000 !important;
+  }
+  & .text-blue-600,
+  & .text-blue-500,
+  & .text-blue-400,
+  & .dark\:text-blue-400,
+  & .dark\:text-blue-300 {
+    color: #F5C04A !important;
+    font-weight: 700 !important;
+  }
+  & .border-blue-600,
+  & .border-blue-500,
+  & .border-blue-400,
+  & .dark\:border-blue-800\/50,
+  & .dark\:border-blue-500 {
+    border-color: #E99A00 !important;
+  }
+  & .bg-blue-50,
+  & .bg-blue-100,
+  & .bg-blue-950\/40,
+  & .dark\:bg-blue-950\/40,
+  & .bg-blue-500\/10,
+  & .dark\:bg-blue-500\/20 {
+    background-color: rgba(233, 154, 0, 0.18) !important;
+    border-color: rgba(233, 154, 0, 0.45) !important;
+    color: #F5C04A !important;
+  }
+  & ::selection {
+    background-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+
+  /* 1. الترويسات وشريط العنوان في الوضع الليلي: غرافيت دافئ فاخر مع خط ذهبي برتقالي بارز */
+  & .classic-titlebar,
+  & header {
+    background: #22252c !important;
+    border-bottom: 2px solid #E99A00 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  }
+  & .classic-titlebar span,
+  & .classic-titlebar div,
+  & header span,
+  & header button,
+  & header div {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+  & .classic-brand-mark {
+    background-color: #E99A00 !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
+  }
+
+  /* 2. شريط الأوامر والقوائم ليلاً: أسطح متناسقة مع تبويب نشط ذهبي */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #1d2026 !important;
+    border-bottom: 1px solid #353844 !important;
+  }
+  & .classic-menu-btn {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+  }
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #E99A002e !important;
+    border-color: #E99A00 !important;
+    color: #F5C04A !important;
+  }
+  & .classic-ribbon-item {
+    color: #d1d5db !important;
+  }
+  & .classic-ribbon-item:hover {
+    background-color: #E99A0022 !important;
+    border-color: #B87B00 !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #E99A0033 !important;
+    border-color: #E99A00 !important;
+    box-shadow: inset 0 -3px 0 0 #E99A00 !important;
+    color: #F5C04A !important;
+    font-weight: 700 !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+
+  /* 3. الجداول المحاسبية ليلاً: ترويسة خضراء محاسبية أنيقة مع تباين عالي */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background-color: #193f24 !important;
+    color: #A0D995 !important;
+    border-color: #353844 !important;
+    font-weight: 800 !important;
+  }
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #A0D995 !important;
+  }
+  & table tbody tr {
+    background-color: #22252c !important;
+    border-color: #353844 !important;
+    color: #ffffff !important;
+  }
+  & table tbody tr:nth-child(even) {
+    background-color: #272a33 !important;
+  }
+  & table tbody tr:hover {
+    background-color: rgba(233, 154, 0, 0.15) !important;
+  }
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #1e4d2b !important;
+  }
+  & table td,
+  & table th {
+    border-color: #353844 !important;
+    color: #ffffff !important;
+  }
+
+  /* 4. حقول الإدخال ليلاً: أسطح مريحة وحدود دقيقة وخطوط بيضاء واضحة */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #1a1c22 !important;
+    border-color: #3d414f !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+  }
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #E99A00 !important;
+    outline: 1px solid #E99A00 !important;
+    box-shadow: 0 0 0 2px rgba(233, 154, 0, 0.25) !important;
+  }
+
+  /* 5. البطاقات والحاويات والقوائم الجانبية ليلاً */
+  & aside,
+  & .bg-white,
+  & .bg-\[var\(--app-surface\)\] {
+    background-color: #22252c !important;
+    color: #ffffff !important;
+    border-color: #353844 !important;
+  }
+
+  /* 6. توافق صفحة الهبوط الكامل في الوضع الليلي */
+  & .landing-page,
+  & [data-theme-scope='landing'] {
+    background-color: #191b20 !important;
+  }
+  & .landing-page [class*="bg-[linear-gradient(180deg,#08111f"],
+  & [data-theme-scope='landing'] [class*="bg-[linear-gradient(180deg,#08111f"] {
+    background: linear-gradient(180deg, #1d2026 0%, #191b20 100%) !important;
+  }
+  & .landing-glass {
+    background: rgba(34, 37, 44, 0.92) !important;
+    border: 1px solid rgba(233, 154, 0, 0.3) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35) !important;
+  }
+  & .landing-page .bg-slate-950,
+  & [data-theme-scope='landing'] .bg-slate-950 {
+    background-color: #14161b !important;
+    border-top: 1px solid #353844 !important;
+  }
+  & .landing-page button[aria-label*="الوضع"],
+  & [data-theme-scope='landing'] button[aria-label*="الوضع"] {
+    background-color: #22252c !important;
+    border-color: #353844 !important;
+    color: #F5C04A !important;
+  }
+  & .landing-page .border-y.border-slate-200\/70,
+  & [data-theme-scope='landing'] .border-y {
+    border-color: #353844 !important;
+    color: #d1d5db !important;
+  }
+}
+
+/* ============================================================
+   ثيم «الميزان برو (محلات النظاري)» — مطابقة تامة لواجهة ويندوز الكلاسيكية
+   ============================================================ */
+
+/* ── أ) الوضع النهاري: قشرة سطح المكتب الكلاسيكية، ترويسة أيرو الزرقاء، شبكة إكسل بصفوف خضراء ── */
+html[data-preset='al-mizan-pro']:not(.dark) {
+  /* خط ويندوز الكلاسيكي الأصلي ونصوص سوداء حادة */
+  font-family: Tahoma, 'Segoe UI', Arial, sans-serif !important;
+  color: #000000 !important;
+
+  & * {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* نصوص واضحة وقوية تمنع البهتان */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-neutral-400,
+  & .text-neutral-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #445566 !important;
+    font-weight: 600 !important;
+  }
+
+  & p, & span, & label {
+    font-weight: 500;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  /* 1. ترويسة البرنامج وشريط العنوان (Aero Titlebar Gradient) */
+  & .classic-titlebar,
+  & header {
+    background: linear-gradient(180deg, #a9cbea, #c6dcf2 45%, #d9eafa) !important;
+    border-bottom: 1px solid #8aa9c9 !important;
+    box-shadow: none !important;
+  }
+
+  & .classic-titlebar span,
+  & .classic-titlebar div,
+  & header span,
+  & header button,
+  & header div {
+    color: #0a2b4a !important;
+    font-weight: 700 !important;
+  }
+
+  /* أيقونة شارة البرنامج (Golden Icon Badge) */
+  & .classic-brand-mark {
+    background: linear-gradient(180deg, #f5c46a, #d98523) !important;
+    border: 1px solid #8a5a12 !important;
+    color: #7a4a08 !important;
+  }
+
+  /* 2. شريط القوائم والريبون (Ribbon & Menubar) */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #b9b9b9 !important;
+  }
+
+  & .classic-menu-btn {
+    color: #000000 !important;
+    font-weight: 600 !important;
+  }
+
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #eaf3fc !important;
+    border-color: #b7d4ee !important;
+    color: #000000 !important;
+  }
+
+  & .classic-ribbon-item {
+    color: #000000 !important;
+    font-weight: 600 !important;
+  }
+
+  & .classic-ribbon-item:hover {
+    background-color: #eaf3fc !important;
+    border-color: #b7d4ee !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #ffffff !important;
+    border-color: #cfcfcf !important;
+    box-shadow: inset 0 2px 0 0 #2472c8 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #eaf3fc !important;
+    color: #2472c8 !important;
+  }
+
+  /* 3. الجداول المحاسبية والشبكة (Data Grid) */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background: linear-gradient(180deg, #fafafa, #e6e6e6) !important;
+    border-bottom: 1px solid #c9c9c9 !important;
+    border-left: 1px solid #e2e2e2 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+  }
+
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  & table tbody tr {
+    background-color: #ffffff !important;
+    border-color: #e2e2e2 !important;
+    color: #000000 !important;
+  }
+
+  /* صفوف التموج الخضراء الكلاسيكية (Classic Pale Green Zebra) */
+  & table tbody tr:nth-child(even) {
+    background-color: #98fb98 !important;
+  }
+
+  /* عمود التسلسل / رأس الصف الرمادي */
+  & table tbody tr td:first-child,
+  & table tbody tr td.num {
+    background-color: #ececec !important;
+    color: #444444 !important;
+    text-align: center !important;
+  }
+
+  /* تحويم الصف وتحديده */
+  & table tbody tr:hover td:not(:first-child) {
+    outline: 1px solid #7aa7d6 !important;
+  }
+
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #cce0f7 !important;
+  }
+
+  & table td,
+  & table th {
+    border-color: #e2e2e2 !important;
+    color: #000000 !important;
+  }
+
+  /* الخلية النشطة (Active Cell Border) */
+  & table td:focus,
+  & table td.active {
+    outline: 2px solid #2472c8 !important;
+    outline-offset: -2px !important;
+    background-color: #ffffff !important;
+  }
+
+  /* 4. حقول الإدخال والاختيار (Windows Classic Input Fields) */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #ffffff !important;
+    border: 1px solid #abadb3 !important;
+    border-radius: 2px !important;
+    color: #000000 !important;
+  }
+
+  & input[readonly],
+  & textarea[readonly] {
+    background-color: #f6f6f6 !important;
+    color: #333333 !important;
+  }
+
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #2472c8 !important;
+    box-shadow: 0 0 0 1px #b8d6f5 !important;
+    outline: none !important;
+  }
+
+  /* 5. مجموعات الحقول والبطاقات (Classic Group Boxes) */
+  & fieldset,
+  & .grp,
+  & .border-slate-200,
+  & .border-gray-200 {
+    border-color: #cdcdcd !important;
+  }
+
+  /* 6. الأزرار الكلاسيكية والأزرار الرئيسية */
+  & button:not(.classic-menu-btn):not(.classic-ribbon-item) {
+    border-radius: 2px !important;
+  }
+
+  & .bg-blue-600,
+  & button.bg-blue-600 {
+    background: linear-gradient(180deg, #4d9df2, #2272c7) !important;
+    border: 1px solid #164e8a !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  & .hover\:bg-blue-700:hover,
+  & button.bg-blue-600:hover {
+    background: linear-gradient(180deg, #61abf7, #287cd9) !important;
+    border-color: #164e8a !important;
+  }
+
+  & .text-blue-600 {
+    color: #2472c8 !important;
+    font-weight: 700 !important;
+  }
+
+  /* 7. شريط الحالة السفلي (Status Bar) */
+  & .classic-statusbar,
+  & footer {
+    background: linear-gradient(180deg, #c9d5e9, #eaebef) !important;
+    border-top: 1px solid #b6c3d6 !important;
+    color: #000000 !important;
+  }
+}
+
+/* ── ب) الوضع الليلي: تصميم داكن متناسق مع النمط المكتبي الكلاسيكي وأزرق ناعم ── */
+html[data-preset='al-mizan-pro'].dark {
+  --slate-50: 240 246 252;
+  --slate-100: 225 235 245;
+  --slate-200: 200 215 230;
+  --slate-300: 170 190 210;
+  --slate-400: 139 156 181;
+  --slate-500: 90 110 135;
+  --slate-600: 61 86 120;
+  --slate-700: 38 55 77;
+  --slate-750: 30 44 63;
+  --slate-800: 22 33 48;
+  --slate-850: 18 26 38;
+  --slate-900: 14 22 34;
+  --slate-950: 10 15 24;
+
+  font-family: Tahoma, 'Segoe UI', Arial, sans-serif !important;
+  background-color: #0e1622 !important;
+  color: #f0f6fc !important;
+
+  &,
+  & body,
+  & div[data-theme-scope='app'],
+  & main {
+    background-color: #0e1622 !important;
+  }
+
+  /* وضوح النصوص ليلاً */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #8b9cb5 !important;
+    font-weight: 500 !important;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #f0f6fc !important;
+    font-weight: 700 !important;
+  }
+
+  /* 1. ترويسة البرنامج وشريط العنوان ليلاً */
+  & .classic-titlebar,
+  & header {
+    background: linear-gradient(180deg, #1b2a3d, #142030) !important;
+    border-bottom: 1px solid #2b3e57 !important;
+    box-shadow: none !important;
+  }
+
+  & .classic-titlebar span,
+  & .classic-titlebar div,
+  & header span,
+  & header button,
+  & header div {
+    color: #f0f6fc !important;
+    font-weight: 700 !important;
+  }
+
+  & .classic-brand-mark {
+    background: linear-gradient(180deg, #388bfd, #1f6feb) !important;
+    border: 1px solid #58a6ff !important;
+    color: #ffffff !important;
+  }
+
+  /* 2. شريط القوائم والريبون ليلاً */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #162130 !important;
+    border-bottom: 1px solid #26374d !important;
+  }
+
+  & .classic-menu-btn {
+    color: #f0f6fc !important;
+  }
+
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #1f3552 !important;
+    border-color: #388bfd !important;
+    color: #58a6ff !important;
+  }
+
+  & .classic-ribbon-item {
+    color: #8b9cb5 !important;
+  }
+
+  & .classic-ribbon-item:hover {
+    background-color: #1f3552 !important;
+    border-color: #388bfd !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #1a2c44 !important;
+    border-color: #388bfd !important;
+    box-shadow: inset 0 2px 0 0 #58a6ff !important;
+    color: #58a6ff !important;
+    font-weight: 700 !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #24426b !important;
+    color: #58a6ff !important;
+  }
+
+  /* 3. الجداول المحاسبية ليلاً */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background: linear-gradient(180deg, #1c2b3d, #142030) !important;
+    color: #c9d5e9 !important;
+    border-color: #26374d !important;
+    font-weight: 700 !important;
+  }
+
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #c9d5e9 !important;
+  }
+
+  & table tbody tr {
+    background-color: #162130 !important;
+    border-color: #223145 !important;
+    color: #f0f6fc !important;
+  }
+
+  & table tbody tr:nth-child(even) {
+    background-color: #142820 !important;
+  }
+
+  & table tbody tr td:first-child,
+  & table tbody tr td.num {
+    background-color: #141e2c !important;
+    color: #8b9cb5 !important;
+    text-align: center !important;
+  }
+
+  & table tbody tr:hover td:not(:first-child) {
+    outline: 1px solid #388bfd !important;
+  }
+
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #1a3b63 !important;
+  }
+
+  & table td,
+  & table th {
+    border-color: #223145 !important;
+    color: #f0f6fc !important;
+  }
+
+  /* 4. حقول الإدخال ليلاً */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #0d141e !important;
+    border: 1px solid #3d5678 !important;
+    border-radius: 2px !important;
+    color: #f0f6fc !important;
+  }
+
+  & input[readonly],
+  & textarea[readonly] {
+    background-color: #111a26 !important;
+    color: #8b9cb5 !important;
+  }
+
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #58a6ff !important;
+    box-shadow: 0 0 0 1px #388bfd !important;
+    outline: none !important;
+  }
+
+  /* 5. البطاقات والحاويات ليلاً */
+  & aside,
+  & .bg-white,
+  & .bg-\[var\(--app-surface\)\] {
+    background-color: #162130 !important;
+    color: #f0f6fc !important;
+    border-color: #26374d !important;
+  }
+
+  /* 6. الأزرار التفاعلية ليلاً */
+  & .bg-blue-600,
+  & button.bg-blue-600 {
+    background: linear-gradient(180deg, #1f6feb, #1158c7) !important;
+    border: 1px solid #388bfd !important;
+    color: #ffffff !important;
+  }
+
+  & .hover\:bg-blue-700:hover,
+  & button.bg-blue-600:hover {
+    background: linear-gradient(180deg, #388bfd, #1f6feb) !important;
+    border-color: #58a6ff !important;
+  }
+
+  & .text-blue-600,
+  & .text-blue-400,
+  & .dark\:text-blue-400 {
+    color: #58a6ff !important;
+  }
+
+  /* 7. شريط الحالة السفلي ليلاً */
+  & .classic-statusbar,
+  & footer {
+    background: linear-gradient(180deg, #162436, #0e1622) !important;
+    border-top: 1px solid #26374d !important;
+    color: #8b9cb5 !important;
+  }
+}
+
+/* ============================================================
+   قشرة الميزان الكلاسيكي — قوائم + شريط أوامر (Ribbon) مكتبي
+   تُستخدم فقط عندما يكون الشكل الكلاسيكي نشطاً (lg = 1024px فأعلى).
+   كل الألوان من التوكنات (--classic-* تسقط إلى قيم مشتقة في :root/.dark)،
+   بلا !important، والزوايا 2px لتثبيت الهوية حتى لو كان الثيم دائرياً.
+   التحقق البصري/التبايني مؤتمت في classicIdentity.test.ts.
+   ============================================================ */
+@layer components {
+  /* ── شريط العنوان ──────────────────────────────────────────
+     تدرّج خفيف + قاعدة برتقالية 3px عبر inset shadow (بلا إزاحة تخطيط)
+     كي يُقرأ الشريط كرأس نافذة مكتبية دون التأثير على أي تباين نصي. */
+  .classic-titlebar {
+    background-image: linear-gradient(to bottom, var(--classic-chrome), var(--classic-chrome-2));
+    border-bottom: 1px solid var(--classic-chrome-border);
+    box-shadow: inset 0 3px 0 0 var(--brand-500);
+  }
+
+  .classic-brand-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 2px;
+    background-color: var(--brand-500);
+    color: var(--brand-ink);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-ink) 22%, transparent);
+  }
+
+  /* ── شريط القوائم ───────────────────────────────────────── */
+  .classic-menubar {
+    background-color: var(--classic-chrome-2);
+    border-bottom: 1px solid var(--classic-chrome-border);
+  }
+
+  .classic-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 1.5rem;
+    padding-inline: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background-color: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--app-text);
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .classic-menu-btn:hover,
+  .classic-menu-btn[aria-expanded='true'] {
+    border-color: var(--classic-hover-border);
+    background-color: var(--classic-hover);
+  }
+
+  .classic-menu-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* ── اللوحة المنسدلة ────────────────────────────────────── */
+  .classic-menu-panel {
+    position: absolute;
+    top: calc(100% + 2px);
+    z-index: 60;
+    min-width: 15rem;
+    padding: 3px;
+    border: 1px solid var(--classic-panel-border);
+    border-radius: 2px;
+    background-color: var(--classic-panel);
+    box-shadow: var(--classic-panel-shadow);
+  }
+
+  .classic-menu-separator {
+    height: 1px;
+    margin: 3px 4px;
+    background-color: var(--classic-chrome-border);
+  }
+
+  .classic-menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: start;
+    color: var(--app-text);
+    transition: background-color 120ms ease;
+  }
+
+  .classic-menu-item:hover,
+  .classic-menu-item:focus-visible {
+    outline: none;
+    background-color: var(--classic-hover);
+  }
+
+  /* العنصر المفعّل حالياً (الشكل أو الحالة) — --brand-600 = --accent المحقّق لـ AA */
+  .classic-menu-item[aria-checked='true'] {
+    font-weight: 800;
+    color: var(--brand-600);
+  }
+
+  .classic-menu-check {
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+
+  /* ── شريط الأوامر ───────────────────────────────────────── */
+  .classic-ribbon {
+    background-color: var(--classic-chrome-2);
+    border-bottom: 1px solid var(--classic-chrome-border);
+  }
+
+  .classic-ribbon-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-inline: 0.375rem;
+    border-inline-end: 1px solid var(--classic-chrome-border);
+  }
+
+  .classic-ribbon-group:last-child {
+    border-inline-end: 0;
+  }
+
+  .classic-ribbon-group-label {
+    padding-block: 3px 2px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--app-text-secondary);
+  }
+
+  .classic-ribbon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 4.5rem;
+    max-width: 5.5rem;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.15;
+    text-align: center;
+    color: var(--app-text);
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .classic-ribbon-item:hover {
+    border-color: var(--classic-hover-border);
+    background-color: var(--classic-hover);
+  }
+
+  .classic-ribbon-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* العنصر النشط: خلفية + إطار + مؤشر سفلي 3px.
+     المؤشر يستخدم --accent (≥ 3:1 مع --classic-active) كي لا يكون
+     التمييز معتمداً على اللون وحده فقط. */
+  .classic-ribbon-item[aria-current='page'] {
+    border-color: var(--classic-active-border);
+    background-color: var(--classic-active);
+    box-shadow: inset 0 -3px 0 0 var(--accent);
+    font-weight: 800;
+  }
+
+  /* الأيقونة هادئة افتراضياً وتُلوَّن عند المرور/التحديد — يمنع ضجيج
+     19 مربعاً برتقالياً في نفس الوقت. */
+  .classic-ribbon-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 2px;
+    background-color: var(--classic-icon);
+    color: var(--classic-icon-fg);
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .classic-ribbon-item:hover .classic-ribbon-icon {
+    background-color: color-mix(in srgb, var(--brand-500) 26%, var(--app-surface));
+  }
+
+  .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: var(--brand-500);
+    color: var(--brand-ink);
+  }
+
+  .classic-ribbon-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .classic-menu-btn,
+    .classic-menu-item,
+    .classic-ribbon-item,
+    .classic-ribbon-icon {
+      transition: none;
+    }
+  }
+}
+
+/* ============================================================
+   iOS: منع التكبير التلقائي عند تركيز حقول الإدخال (يجب ≥ 16px)
+   هذا هو البديل القياسي لإزالة user-scalable=no مع الحفاظ على
+   قدرة المستخدم على التكبير اليدوي (WCAG 1.4.4)
+   ============================================================ */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):focus,
+  select:focus,
+  textarea:focus {
+    font-size: 16px;
+  }
+}
+
+/* ============================================================
+   تلميح بصري للتمرير الأفقي — يظهر ظل خفيف على الحافة عندما يوجد
+   فائض فعلي فقط (خدعة background-attachment: local vs scroll).
+   للتطبيق على حاويات overflow-x-auto ذات الجداول العريضة.
+   لون غطاء الحافة يُخصَّص حسب خلفية الحاوية عبر --scroll-hint-cover.
+   ============================================================ */
+.scroll-x-hint {
+  --scroll-hint-cover: var(--app-bg);
+  background-image:
+    linear-gradient(to right, var(--scroll-hint-cover), rgba(0, 0, 0, 0)),
+    linear-gradient(to left, var(--scroll-hint-cover), rgba(0, 0, 0, 0)),
+    linear-gradient(to right, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0)),
+    linear-gradient(to left, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0));
+  background-position: left center, right center, left center, right center;
+  background-size: 24px 100%, 24px 100%, 10px 100%, 10px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+.scroll-x-hint-surface { --scroll-hint-cover: var(--app-surface); }
+.scroll-x-hint-card { --scroll-hint-cover: var(--app-card); }
+.scroll-x-hint-solid { --scroll-hint-cover: #ffffff; }
+.dark .scroll-x-hint-solid { --scroll-hint-cover: var(--app-surface); }
+
+/* ============================================================
+   Theme-aware overrides 
+   تظليل Tailwind الافتراضي بمتغيرات الثيم
+   ============================================================ */
+@layer utilities {
+
+  /* خلفية الصفحات الرئيسية */
+  .theme-bg {
+    background-color: var(--app-bg) !important;
+  }
+
+  .theme-surface {
+    background-color: var(--app-surface) !important;
+  }
+
+  .theme-surface-hover:hover {
+    background-color: var(--app-surface-hover) !important;
+  }
+
+  .theme-border {
+    border-color: var(--app-border) !important;
+  }
+
+  .theme-text {
+    color: var(--app-text) !important;
+  }
+
+  .theme-text-secondary {
+    color: var(--app-text-secondary) !important;
+  }
+
+  .theme-accent {
+    color: var(--accent) !important;
+  }
+
+  .theme-accent-bg {
+    background-color: var(--accent) !important;
+  }
+}
+
+/* ============================================================
+   Global Theme Application
+   تطبيق عام — يُغيّر ألوان خلفية التطبيق حسب الثيم المختار
+   ============================================================ */
+
+/* Custom Scrollbar — شريط تمرير واضح وقابل للإمساك بالماوس.
+   كان 6px بلون باهت ومسار شفاف، فكان الشريط الأفقي أسفل الجداول يكاد لا يُرى
+   ولا يمكن التقاطه بالمؤشر. الحد الأدنى العملي للإمساك ~10px. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  /* مسار مرئي خفيف: بدونه يذوب الشريط في خلفية الجدول */
+  background: color-mix(in srgb, var(--app-text-secondary) 14%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb {
+  /* يتبع الثيم بدل اللون الفولاذي الثابت (#94a3b8) الذي كان يشذّ عن أي لوحة. */
+  background: color-mix(in srgb, var(--app-text-secondary) 45%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--app-text-secondary) 65%, transparent);
+}
+::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--app-text-secondary) 85%, transparent);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--app-text-secondary) 50%, transparent);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--app-text-secondary) 70%, transparent);
+}
+
+/* خلفيات الصفحات */
+[data-theme-scope] .bg-gray-50,
+[data-theme-scope] .bg-\[\#f8fafc\],
+.bg-gray-50.theme-aware,
+.bg-\[\#f8fafc\].theme-aware {
+  background-color: var(--app-bg) !important;
+}
+
+.dark [data-theme-scope] .dark\:bg-slate-950,
+.dark .dark\:bg-slate-950,
+.dark [data-theme-scope] .dark\:bg-gray-950,
+.dark .dark\:bg-gray-950 {
+  background-color: var(--app-bg) !important;
+}
+
+/* خلفيات الأسطح (كروت، سايدبار، هيدر) */
+[data-theme-scope] .bg-white\/80,
+[data-theme-scope] .bg-white\/40 {
+  background-color: color-mix(in srgb, var(--app-surface) 80%, transparent) !important;
+}
+
+.dark [data-theme-scope] .dark\:bg-slate-900\/80,
+.dark .dark\:bg-slate-900\/80 {
+  background-color: color-mix(in srgb, var(--app-surface) 80%, transparent) !important;
+}
+
+.dark [data-theme-scope] .dark\:bg-slate-950\/40,
+.dark .dark\:bg-slate-950\/40 {
+  background-color: color-mix(in srgb, var(--app-surface) 40%, transparent) !important;
+}
+
+/* أسطح بيضاء صافية / كروت */
+[data-theme-scope] .bg-white,
+.bg-white.theme-surface-auto {
+  background-color: var(--app-surface) !important;
+}
+
+.dark [data-theme-scope] .dark\:bg-slate-900,
+.dark .dark\:bg-slate-900,
+.dark [data-theme-scope] .dark\:bg-gray-900,
+.dark .dark\:bg-gray-900 {
+  background-color: var(--app-surface) !important;
+}
+
+/* حدود — ثلاث درجات دلالية:
+   (1) شعرة  border-gray-100 / dark:border-slate-800   ≈ 1.15:1
+   (2) فاصل  border-gray-200 / dark:border-slate-700   ≈ 1.30:1
+   (3) تحكّم border-gray-300 / dark:border-slate-600   ≥ 3.0:1 (WCAG 1.4.11)
+   قبل هذا التقسيم كانت الدرجات الثلاث تُسقَط على توكن واحد بقيمة ~3.5:1،
+   فبدا كل جدول وبطاقة محاطاً بشبكة ثقيلة في الوضعين النهاري والليلي. */
+[data-theme-scope] .border-gray-100 {
+  border-color: var(--app-border-subtle, var(--app-border)) !important;
+}
+
+[data-theme-scope] .border-gray-200 {
+  border-color: var(--app-border) !important;
+}
+
+[data-theme-scope] .border-gray-300 {
+  border-color: var(--app-border-strong, var(--app-border)) !important;
+}
+
+.dark [data-theme-scope] .dark\:border-slate-800,
+.dark .dark\:border-slate-800,
+.dark [data-theme-scope] .dark\:border-gray-800,
+.dark .dark\:border-gray-800 {
+  border-color: var(--app-border-subtle, var(--app-border)) !important;
+}
+
+.dark [data-theme-scope] .dark\:border-slate-700,
+.dark .dark\:border-slate-700 {
+  border-color: var(--app-border) !important;
+}
+
+.dark [data-theme-scope] .dark\:border-slate-600,
+.dark .dark\:border-slate-600 {
+  border-color: var(--app-border-strong, var(--app-border)) !important;
+}
+
+/* فواصل الصفوف (divide-*): تُلوَّن على الأبناء لا على الحاوية.
+   `dark:divide-slate-800` يساوي حرفياً --app-card في المقياس الليلي، فكان
+   يفقد فواصل الجداول ويذوب الصف في الذي يليه؛ لذلك يُرفع إلى درجة الفاصل. */
+.dark [data-theme-scope] .dark\:divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.dark [data-theme-scope] .dark\:divide-slate-900 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-slate-900 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--app-border) !important;
+}
+
+[data-theme-scope] .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--app-border-subtle, var(--app-border)) !important;
+}
+
+[data-theme-scope] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--app-border) !important;
+}
+
+/* خلفيات عناصر تفاعلية */
+[data-theme-scope] .bg-gray-50\/50,
+[data-theme-scope] .bg-\[\#f3f4f6\] {
+  background-color: var(--app-surface-hover) !important;
+}
+
+/* المناطق الشفافة: تُحفظ شفافيتها (سابقاً كانت تُفرض معتمة بلون hover
+   فتُسطَّح كل طبقات العمق ويبدو الوضع الليلي مسطحاً). */
+.dark [data-theme-scope] .dark\:bg-slate-900\/50,
+.dark .dark\:bg-slate-900\/50 {
+  background-color: color-mix(in srgb, var(--app-surface) 50%, transparent) !important;
+}
+
+.dark [data-theme-scope] .dark\:bg-slate-900\/30,
+.dark .dark\:bg-slate-900\/30 {
+  background-color: color-mix(in srgb, var(--app-surface) 30%, transparent) !important;
+}
+
+/* البطاقات: `dark:bg-slate-800` هو سطح البطاقة لا لون المرور، وإلا صارت
+   كل بطاقة بنفس لون الـhover وضاعت هرمية الأسطح (بطاقة فوق سطح فوق صفحة). */
+.dark [data-theme-scope] .dark\:bg-slate-800,
+.dark .dark\:bg-slate-800,
+.dark [data-theme-scope] .dark\:bg-gray-800,
+.dark .dark\:bg-gray-800 {
+  background-color: var(--app-card) !important;
+}
+
+/* حقول الإدخال: حدّ عنصر تحكّم دائماً (لا الفاصل الخفيف).
+   كثير من الحقول تُرسم بـ`border-[var(--app-border)]` أو `border-gray-200`،
+   فكانت ستصبح بلا حد بعد تحويل --app-border إلى درجة فاصلة. هذه القاعدة
+   ترفع حدود الحقول إلى الدرجة القوية وحدها (ولا تُضيف إطاراً لعنصر بلا حد:
+   تغيير `border-color` وحده لا يرسم حداً حين تكون `border-width: 0`). */
+[data-theme-scope] input:not([type='checkbox']):not([type='radio']):not([type='range']),
+[data-theme-scope] select,
+[data-theme-scope] textarea {
+  border-color: var(--app-border-strong, var(--app-border)) !important;
+}
+
+/* رسوم Recharts: الشبكة والمحاور كانت تُلوَّن بألوان فولاذية ثابتة داخل
+   المكوّنات (#334155، #94a3b8، #cbd5e1)، فتبقى زرقاء رمادية على أي لوحة دافئة.
+   صفات SVG التقديمية أدنى أولوية من أي قاعدة CSS، فهذه القواعد تغلبها بلا
+   !important ولا تعديل أي مكوّن. ألوان السلاسل (stroke على المنحنيات) لا تُمَس
+   لأنها ليست شبكة ولا نص محاور. */
+.recharts-cartesian-grid line,
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: var(--app-grid, var(--app-border));
+}
+.recharts-text.recharts-cartesian-axis-tick-value,
+.recharts-text.recharts-label {
+  fill: var(--app-text-secondary);
+}
+.recharts-legend-item-text {
+  color: var(--app-text-secondary);
+}
+.recharts-default-tooltip {
+  background-color: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+/* نصوص */
+[data-theme-scope] .text-gray-800 {
+  color: var(--app-text) !important;
+}
+
+.dark [data-theme-scope] .dark\:text-slate-100,
+.dark .dark\:text-slate-100 {
+  color: var(--app-text) !important;
+}
+
+[data-theme-scope] .text-gray-500,
+[data-theme-scope] .text-gray-400 {
+  color: var(--app-text-secondary) !important;
+}
+
+.dark [data-theme-scope] .dark\:text-slate-400,
+.dark .dark\:text-slate-400,
+.dark [data-theme-scope] .dark\:text-slate-500,
+.dark .dark\:text-slate-500 {
+  color: var(--app-text-secondary) !important;
+}
+
+/* Custom scrollbar */
+@media (min-width: 768px) {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 12px;
+    /* كان العرض فقط محدَّداً (8px) دون الارتفاع، فبقي الشريط الأفقي أسفل الجداول
+       عند 6px العام ولا يُلتقط بالمؤشر. */
+    height: 12px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--app-text-secondary) 16%, transparent);
+    border-radius: 999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--app-text-secondary) 75%, transparent);
+    border-radius: 999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--app-text-secondary);
+    border-radius: 999px;
+  }
+}
+
+/* ملاحظة: لا نضع `scrollbar-width`/`scrollbar-color` — ففي Chrome 121+ وجودهما
+   يُلغي أنماط `::-webkit-scrollbar` بالكامل ويعيد الشريط للوضع الافتراضي
+   (وقد يظهر طافياً غير قابل للإمساك). الافتراضي في Firefox أصلاً شريط كامل. */
+
+/* ============================================================
+   منفذ عرض جداول القوائم الطويلة:
+   جدول بعشرات الصفوف يبلغ آلاف البكسلات ارتفاعاً، فيقع شريط التمرير
+   الأفقي (السفلي) خارج مجال النظر ولا يمكن الإمساك به بالمؤشر.
+   تقييد الارتفاع يُبقي الشريطين في نطاق الشاشة، مع تثبيت رأس الجدول
+   أثناء التمرير الرأسي (نمط Excel المتبع في ExcelTable).
+   ============================================================ */
+.table-scroll-viewport {
+  /* احتياطي للمتصفحات التي لا تدعم dvh */
+  max-height: min(72vh, 46rem);
+  /* ارتفاع الشاشة ناقص مساحة الترويسة والفلاتر — ليبقى الشريط السفلي مرئياً */
+  max-height: min(calc(100dvh - 22rem), 46rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.table-scroll-viewport > table > thead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* خلفية معتمة احتياطية لرأس الجدول الثابت: الرؤوس الأصلية شبه شفافة
+   (bg-gray-50/50) فتظهر الصفوف من خلفها عند التمرير.
+   استخدام `:where()` يُصفّر أولوية هذا المُحدِّد، فيبقى القرار للمكوّن:
+   أي لون صريح يُكتب على صف الرأس (مثل الرأس الداكن bg-slate-800 في جدول
+   الجرد) يطغى على هذه الخلفية الاحتياطية ولا يُمحى. */
+:where(.table-scroll-viewport) > table > thead > tr {
+  background-color: color-mix(in srgb, var(--app-text) 4%, var(--app-surface));
+}
+
+/* ============================================================
+   Notifications Dropdown Styles
+   ============================================================ */
+
+/* Smooth dropdown animations */
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Notification badge animation */
+@keyframes badgePulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Enhanced scrollbar for notifications on mobile */
+@media (max-width: 768px) {
+  .custom-scrollbar {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--app-text-secondary) 14%, transparent);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--app-text-secondary) 55%, transparent);
+    border-radius: 999px;
+  }
+}
+
+/* Focus visible styles for accessibility */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Landing Page — Particle Animation
+   ============================================================ */
+.landing-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent);
+  animation: landingFloat linear infinite;
+  pointer-events: none;
+}
+
+.dark .landing-particle {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent);
+}
+
+@keyframes landingFloat {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-120px) translateX(30px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Responsive Auto-Scaling System
+   All components scale automatically based on screen size
+   ============================================================ */
+
+/* Standard Desktop (1440px - average monitors) */
+@media (min-width: 1440px) {
+  :root {
+    --scale: 1.05;
+  }
+
+  /* Slightly bigger spacing */
+  [data-theme-scope] .p-2 {
+    padding: 0.625rem;
+  }
+
+  [data-theme-scope] .p-3 {
+    padding: 0.875rem;
+  }
+
+  [data-theme-scope] .gap-2 {
+    gap: 0.625rem;
+  }
+
+  [data-theme-scope] .gap-4 {
+    gap: 1.125rem;
+  }
+
+  /* Slightly bigger table cells */
+  table td,
+  table th {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+}
+
+/* Large screens (1920px - MacBook Pro 14/16") */
+@media (min-width: 1920px) {
+  :root {
+    --scale: 1.15;
+  }
+
+  /* Larger cards on big screens */
+  [data-theme-scope] .bg-white,
+  [data-theme-scope] .dark .dark\:bg-slate-900 {
+    border-radius: 1.25rem;
+  }
+
+  /* Sidebar content spacing */
+  .sidebar-content {
+    padding: 1.5rem;
+  }
+
+  /* Larger table cells */
+  .excel-table td,
+  .excel-table th {
+    padding: 1.25rem 1.5rem;
+  }
+
+  table td,
+  table th {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  /* Larger inputs globally */
+  input[type="text"],
+  input[type="number"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  /* Larger buttons */
+  button {
+    font-size: 0.9rem;
+  }
+
+  /* Stats cards larger */
+  .stat-card {
+    padding: 1.5rem;
+  }
+
+  .stat-card .value {
+    font-size: 2rem;
+  }
+}
+
+/* Extra large screens (2560px - iMac 24" / 4K monitors) */
+@media (min-width: 2560px) {
+  :root {
+    --scale: 1.3;
+  }
+
+  /* Ultra-wide layouts */
+  .layout-ultra-wide {
+    max-width: 2800px;
+    margin: 0 auto;
+  }
+
+  /* Sidebar */
+  .sidebar-content {
+    padding: 1.5rem;
+  }
+
+  /* Larger table cells */
+  .excel-table td,
+  .excel-table th {
+    padding: 1.25rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  table td,
+  table th {
+    padding-top: 1.125rem;
+    padding-bottom: 1.125rem;
+  }
+
+  /* Stats cards */
+  .stat-card .value {
+    font-size: 2.5rem;
+  }
+
+  /* Dashboard grid */
+  .dashboard-grid {
+    gap: 1.5rem;
+  }
+
+  /* Bigger rounded corners */
+  .rounded-xl {
+    border-radius: 1rem;
+  }
+
+  .rounded-2xl {
+    border-radius: 1.5rem;
+  }
+
+  .rounded-3xl {
+    border-radius: 2rem;
+  }
+}
+
+/* ============================================================
+   Tablet Specific Styles
+   ============================================================ */
+
+/* iPad and similar tablets (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .tablet-layout {
+    /* Tablet specific styles */
+  }
+
+  /* Sidebar behavior on tablet */
+  .sidebar-tablet {
+    width: 5rem;
+  }
+
+  /* Table card view on tablet */
+  .excel-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Tablet landscape (iPad Air/Pro landscape) */
+@media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+  .tablet-landscape .main-content {
+    margin-left: 5rem;
+  }
+
+  .sidebar-mini {
+    width: 5rem;
+  }
+
+  .sidebar-mini .nav-label {
+    display: none;
+  }
+}
+
+/* Tablet portrait */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .tablet-portrait .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .tablet-portrait .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* ============================================================
+   Phone Specific Styles
+   ============================================================ */
+
+/* Compact landscape mode for phones */
+@media (max-height: 500px) and (orientation: landscape) {
+  .landscape-compact .nav-items {
+    gap: 0.5rem;
+  }
+
+  .landscape-compact .header {
+    height: 3rem;
+    padding: 0.5rem;
+  }
+
+  .landscape-compact .bottom-nav {
+    height: 3rem;
+  }
+
+  .landscape-compact .main-content {
+    padding-bottom: 3.5rem;
+  }
+
+  .landscape-compact .stat-card {
+    padding: 0.5rem;
+  }
+
+  .landscape-compact .stat-card .label {
+    font-size: 0.625rem;
+  }
+
+  .landscape-compact .stat-card .value {
+    font-size: 1rem;
+  }
+}
+
+/* Phone portrait */
+@media (max-width: 480px) {
+  .phone-portrait .stat-card {
+    padding: 1rem;
+  }
+
+  .phone-portrait .stat-card .value {
+    font-size: 1.5rem;
+  }
+
+  .phone-portrait .excel-table {
+    font-size: 0.75rem;
+  }
+
+  .phone-portrait .excel-table td,
+  .phone-portrait .excel-table th {
+    padding: 0.5rem;
+  }
+}
+
+/* ============================================================
+   Phone Compact Layer — Mobile-First
+   يضغط الأحجام والمسافات والحواف على شاشات الهاتف العمودية
+   مع الحفاظ على أحجام اللمس الملائمة (Touch Targets)
+   ============================================================ */
+@media (max-width: 639px) {
+
+  /* تقليل زاوية الحواف العامة */
+  :root {
+    --radius: 0.35rem;
+  }
+
+  /* ضغط الزوايا الكبيرة في البطاقات والحواف */
+  .rounded-3xl {
+    border-radius: 0.625rem;
+  }
+
+  .rounded-2xl {
+    border-radius: 0.5rem;
+  }
+
+  .rounded-xl {
+    border-radius: 0.375rem;
+  }
+
+  /* ضغط المسافات الداخلية للبطاقات والأقسام لمنع التضخم على الهاتف */
+  .p-6 {
+    padding: 0.625rem;
+  }
+
+  .p-5 {
+    padding: 0.5rem;
+  }
+
+  .p-4 {
+    padding: 0.5rem;
+  }
+
+  .px-6 {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+
+  .px-5 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .px-4 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .py-6 {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+  }
+
+  .py-5 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .py-4 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .gap-6 {
+    gap: 0.625rem;
+  }
+
+  .gap-4 {
+    gap: 0.5rem;
+  }
+
+  /* ضغط أحجام العناوين والنصوص الكبيرة لتلائم شاشات الهواتف بكثافة عالية */
+  h1 {
+    font-size: 1.125rem;
+    line-height: 1.4;
+  }
+
+  h2 {
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  h3 {
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+
+  .text-4xl {
+    font-size: 1.375rem;
+  }
+
+  .text-3xl {
+    font-size: 1.25rem;
+  }
+
+  .text-2xl {
+    font-size: 1.125rem;
+  }
+
+  .text-xl {
+    font-size: 1rem;
+  }
+
+  .text-5xl {
+    font-size: 1.625rem;
+  }
+
+  /* ضغط gap في الأعمدة والصفوف */
+  .gap-8 {
+    gap: 0.75rem;
+  }
+
+  .gap-3 {
+    gap: 0.375rem;
+  }
+
+  .gap-2 {
+    gap: 0.25rem;
+  }
+
+  /* ضغط مسافات p-3 وp-8 */
+  .p-3 {
+    padding: 0.375rem;
+  }
+
+  .p-8 {
+    padding: 0.75rem;
+  }
+
+  .px-3 {
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+  }
+
+  .py-3 {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+  }
+
+  /* ضغط الظلال القوية لتوفير الأداء على الهاتف */
+  .shadow-2xl {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .shadow-xl {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  /* ضبط الحجم الأقصى للأيقونات التفاعلية */
+  button svg,
+  .btn svg {
+    max-width: 1.125rem;
+    max-height: 1.125rem;
+  }
+
+  /* ضغط خلايا الجداول مع الحفاظ على قابلية القراءة والضغط العالي */
+  td,
+  th {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+  }
+}
+
+/* منع التمرير الأفقي غير المقصود على مستوى الصفحة في الهاتف */
+@media (max-width: 639px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .overflow-x-auto {
+    overflow-x: auto;
+  }
+}
+
+/* ============================================================
+   HiDPI / Retina Display Styles
+   ============================================================ */
+
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
+  /* Sharper text on HiDPI displays */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Sharper borders */
+  .border-1,
+  .border {
+    border-width: 0.5px;
+  }
+
+  /* Crisp icons */
+  .icon-crisp {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+}
+
+/* ============================================================
+   Responsive Content Density System
+   ============================================================ */
+
+/* Laptop: زيادة المسافات البيضاء بشكل مريح */
+@media (min-width: 1280px) {
+  :root {
+    --content-padding: 2rem;
+    --card-padding: 1.5rem;
+    --section-gap: 1.5rem;
+  }
+}
+
+/* Desktop: مساحات أوسع + قراءة مريحة */
+@media (min-width: 1920px) {
+  :root {
+    --content-padding: 2.5rem;
+    --card-padding: 2rem;
+    --section-gap: 2rem;
+  }
+
+  /* تحسين قابلية قراءة النصوص الطويلة */
+  .prose-container {
+    max-width: 75ch;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Ultra-wide: تنظيم المحتوى في أعمدة متعددة */
+@media (min-width: 2560px) {
+  :root {
+    --content-padding: 3rem;
+    --card-padding: 2.25rem;
+    --section-gap: 2.25rem;
+  }
+}
+
+/* Off-screen host used as the html2canvas / PDF capture source.
+   It must stay laid out (never display:none) so the capture has real dimensions,
+   and it must be wide enough to keep the print templates at their natural page width. */
+.pdf-capture-host {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  width: 210mm;
+  max-width: 210mm;
+  z-index: -1;
+  pointer-events: none;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+@media print {
+  /* Physical printing must never include the off-screen capture host. */
+  .pdf-capture-host {
+    display: none !important;
+  }
+
+  /* Universal modal print isolation */
+  body:has(#bond-printable-voucher) > *:not(:has(#bond-printable-voucher)) {
+    display: none !important;
+  }
+
+  #bond-printable-voucher {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
+/* Screen-only helpers (toolbars, buttons) must stay out of the PDF capture too. */
+.pdf-capture-host .no-print {
+  display: none !important;
+}
+
+/* ============================================================
+   Universal Print Styles (High Contrast, Balanced Geometry)
+   ============================================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .print-break-before {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .print-break-after {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Print-optimized layout: pristine white paper & crisp text */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Neutralize dark-mode styles in print to prevent dark/washed-out paper output */
+  .dark, [data-theme="dark"], [data-theme-scope] {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .dark [class*="dark:text-white"],
+  .dark [class*="dark:text-slate-100"],
+  .dark [class*="dark:text-slate-200"],
+  .dark [class*="dark:text-slate-300"] {
+    color: #0f172a !important;
+  }
+
+  .dark [class*="dark:bg-slate-900"],
+  .dark [class*="dark:bg-slate-950"],
+  .dark [class*="dark:bg-slate-800"] {
+    background-color: #ffffff !important;
+  }
+
+  .dark [class*="dark:border-slate-800"],
+  .dark [class*="dark:border-slate-700"] {
+    border-color: #cbd5e1 !important;
+  }
+
+  /* Ensure all content is fully visible */
+  [class*="overflow-"] {
+    overflow: visible !important;
+  }
+
+  /* Disable scrollbars and decorative drop shadows in print */
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  [class*="shadow-"] {
+    box-shadow: none !important;
+  }
+
+  [class*="backdrop-blur-"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  [class*="animate-"] {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Balanced, high-contrast tables */
+  table {
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  th, td {
+    border-color: #cbd5e1;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  th {
+    font-weight: 800 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Balanced page margins for standard A4 and commercial printing */
+  @page {
+    margin: 8mm 10mm;
+    size: auto;
+  }
+
+  /* Thermal POS receipt print formatting (78-80mm roll) */
+  .thermal-receipt-print {
+    width: 78mm !important;
+    max-width: 78mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+  }
+
+  /* Hide raw link destinations */
+  a[href]:after {
+    content: none !important;
+  }
+}
+/* ==========================================================================
+   DENSITY PASS 2026-11-10 — ضغط ~30% لمسافات المحتوى (بدون تصغير الخطوط)
+   النطاق: #main-content فقط (لا يؤثر على الهيدر العام أو الطباعة).
+   الهدف: تقليل الفراغات الرأسية والأفقية بين البطاقات والصفوف.
+   ========================================================================== */
+#main-content .space-y-6 > * + * { margin-top: 1rem !important; }
+#main-content .space-y-5 > * + * { margin-top: 0.85rem !important; }
+#main-content .space-y-4 > * + * { margin-top: 0.65rem !important; }
+#main-content .space-y-3 > * + * { margin-top: 0.5rem !important; }
+#main-content .space-y-2 > * + * { margin-top: 0.35rem !important; }
+
+#main-content .gap-6 { gap: 1rem !important; }
+#main-content .gap-5 { gap: 0.85rem !important; }
+#main-content .gap-4 { gap: 0.65rem !important; }
+#main-content .gap-3 { gap: 0.5rem !important; }
+#main-content .gap-2\\.5 { gap: 0.4rem !important; }
+
+#main-content .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+#main-content .py-5 { padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; }
+#main-content .py-4 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+#main-content .py-3 { padding-top: 0.45rem !important; padding-bottom: 0.45rem !important; }
+
+#main-content .p-6 { padding: 1rem !important; }
+#main-content .p-5 { padding: 0.85rem !important; }
+#main-content .p-4 { padding: 0.65rem !important; }
+#main-content .p-3 { padding: 0.5rem !important; }
+
+#main-content .mb-6 { margin-bottom: 0.85rem !important; }
+#main-content .mb-4 { margin-bottom: 0.65rem !important; }
+#main-content .mb-3 { margin-bottom: 0.5rem !important; }
+#main-content .mt-4 { margin-top: 0.65rem !important; }
+#main-content .mt-3 { margin-top: 0.5rem !important; }
+#main-content .mt-2 { margin-top: 0.35rem !important; }

@@ -1,0 +1,298 @@
+import React, { useState } from 'react';
+import {
+  Search,
+  Plus,
+  Building2,
+  User,
+  Hash,
+  Layers,
+  Megaphone,
+  MessageSquare,
+  Mic,
+} from 'lucide-react';
+import { useChatStore } from '../stores/chatStore';
+import { useAuthStore } from '../../auth/store';
+import { NewChatModal } from './NewChatModal';
+import { MessageStatusTicks } from './messages/MessageStatusTicks';
+import type { ChannelType } from '../types';
+
+interface Props {
+  onSelectChannel?: () => void;
+}
+
+export const ConversationList: React.FC<Props> = ({ onSelectChannel }) => {
+  const {
+    channels,
+    activeChannelId,
+    setActiveChannel,
+    activeFilter,
+    setActiveFilter,
+    searchQuery,
+    setSearchQuery,
+    presences,
+    isLoadingChannels,
+  } = useChatStore();
+  const { user } = useAuthStore();
+
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+
+  // Filter channels according to tab and search query
+  const filteredChannels = channels.filter(ch => {
+    // Tab filter
+    if (activeFilter === 'branch' && ch.type !== 'branch') return false;
+    if (activeFilter === 'direct' && ch.type !== 'direct') return false;
+    if (activeFilter === 'topic' && ch.type !== 'topic' && ch.type !== 'department') return false;
+    if (activeFilter === 'contextual' && ch.type !== 'contextual') return false;
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = ch.name.toLowerCase().includes(q);
+      const matchLastMsg = ch.last_message?.content.toLowerCase().includes(q);
+      const matchBranch = ch.branch_name?.toLowerCase().includes(q);
+      return matchName || matchLastMsg || matchBranch;
+    }
+
+    return true;
+  });
+
+  const getChannelIcon = (type: ChannelType) => {
+    switch (type) {
+      case 'branch':
+        return <Building2 size={16} className="text-amber-500" />;
+      case 'direct':
+        return <User size={16} className="text-blue-500" />;
+      case 'contextual':
+        return <Layers size={16} className="text-indigo-500" />;
+      case 'department':
+        return <Building2 size={16} className="text-cyan-500" />;
+      case 'general':
+      case 'announcement':
+        return <Megaphone size={16} className="text-rose-500" />;
+      default:
+        return <Hash size={16} className="text-emerald-500" />;
+    }
+  };
+
+  return (
+    <div className="flex h-full min-h-0 flex-col border-e border-[var(--app-border)] bg-[var(--app-surface)]">
+      {/* Header & Search — ثابت لا يتقلّص (`shrink-0`) كي يبقى البحث مرئياً دائماً */}
+      <div className="shrink-0 space-y-2.5 border-b border-[var(--app-border)] p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <MessageSquare size={20} className="flex-shrink-0 text-[var(--accent)]" />
+            <h2 className="truncate text-base font-bold text-[var(--app-text)]">
+              المحادثات والتواصل
+            </h2>
+          </div>
+          <button
+            onClick={() => {
+              setIsNewChatOpen(true);
+            }}
+            title="محادثة جديدة"
+            className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 text-xs font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
+          >
+            <Plus size={15} />
+            <span className="hidden sm:inline">جديد</span>
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search
+            size={14}
+            className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--app-text-secondary)]"
+          />
+          <input
+            type="text"
+            placeholder="بحث في القنوات (بالاسم أو آخر رسالة)..."
+            value={searchQuery}
+            onChange={e => {
+              setSearchQuery(e.target.value);
+            }}
+            className="w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] py-1.5 pe-3 ps-8 text-xs text-[var(--app-text)] outline-none focus:border-[var(--accent)]"
+          />
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex shrink-0 gap-1 overflow-x-auto pb-1 text-[11px] font-semibold">
+          {[
+            { id: 'all', label: 'الكل' },
+            { id: 'branch', label: 'الفروع' },
+            { id: 'direct', label: 'الخاص' },
+            { id: 'topic', label: 'المواضيع' },
+            { id: 'contextual', label: 'العمليات' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveFilter(tab.id as any);
+              }}
+              className={`whitespace-nowrap rounded-lg px-2.5 py-1 transition-all ${
+                activeFilter === tab.id
+                  ? 'bg-[var(--accent)] text-white shadow-xs'
+                  : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Channel list — `min-h-0` + `overflow-y-auto` = التمرير داخل القائمة فقط
+          بدل تمدّدها ودفع بقية الواجهة خارج الشاشة */}
+      <div className="custom-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-2">
+        {isLoadingChannels && channels.length === 0 && (
+          <div className="py-10 text-center text-xs text-[var(--app-text-secondary)]">
+            جاري تحميل المحادثات...
+          </div>
+        )}
+
+        {!isLoadingChannels && filteredChannels.length === 0 && (
+          <div className="py-10 text-center text-xs text-[var(--app-text-secondary)]">
+            لا توجد محادثات مطابقة
+          </div>
+        )}
+
+        {filteredChannels.map(channel => {
+          const isSelected = activeChannelId === channel.id;
+          const directUserId = channel.direct_user?.id;
+          const presence = directUserId ? presences[directUserId] : null;
+          const isOnline = presence?.status === 'online';
+
+          const formattedTime = channel.last_message
+            ? new Date(channel.last_message.created_at).toLocaleTimeString('ar-SA-u-nu-latn', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : '';
+
+          return (
+            <button
+              key={channel.id}
+              onClick={() => {
+                setActiveChannel(channel.id);
+                onSelectChannel?.();
+              }}
+              className={`group flex w-full min-w-0 items-center gap-3 rounded-xl p-2.5 text-start transition-all ${
+                isSelected
+                  ? 'bg-[var(--accent)] text-white shadow-sm ring-1 ring-inset ring-white/25'
+                  : 'text-[var(--app-text)] hover:bg-[var(--app-surface-hover)]'
+              }`}
+            >
+              {/* Channel / User Avatar */}
+              <div className="relative flex-shrink-0">
+                {channel.type === 'direct' && channel.direct_user?.avatar_url ? (
+                  <img
+                    src={channel.direct_user.avatar_url}
+                    alt={channel.name}
+                    className="h-10 w-10 rounded-full border border-[var(--app-border)] object-cover"
+                  />
+                ) : (
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
+                      isSelected
+                        ? 'border-white/30 bg-white/20 text-white'
+                        : 'border-[var(--app-border)] bg-[var(--app-bg)]'
+                    }`}
+                  >
+                    {getChannelIcon(channel.type)}
+                  </div>
+                )}
+
+                {/* Online Indicator for Direct */}
+                {channel.type === 'direct' && (
+                  <span
+                    className={`absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 ${
+                      isSelected ? 'border-[var(--accent)]' : 'border-[var(--app-surface)]'
+                    } ${isOnline ? 'bg-emerald-500' : 'bg-zinc-400'}`}
+                  />
+                )}
+              </div>
+
+              {/* Title & Preview */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="truncate text-xs font-bold">{channel.name}</span>
+                  {formattedTime && (
+                    <span
+                      className={`flex-shrink-0 text-[10px] ${
+                        isSelected ? 'text-white/80' : 'text-[var(--app-text-secondary)]'
+                      }`}
+                    >
+                      {formattedTime}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-0.5 flex items-center justify-between gap-1">
+                  <div
+                    className={`flex items-center gap-1 truncate text-[11px] ${
+                      isSelected ? 'text-white/80' : 'text-[var(--app-text-secondary)]'
+                    }`}
+                  >
+                    {channel.last_message && channel.last_message.sender_id === user?.id && (
+                      <MessageStatusTicks
+                        status={
+                          channel.peer_last_read_message_id === channel.last_message.id
+                            ? 'read'
+                            : isOnline
+                              ? 'delivered'
+                              : 'sent'
+                        }
+                        isOptimistic={channel.last_message.is_optimistic}
+                        className="flex-shrink-0"
+                      />
+                    )}
+
+                    {channel.last_message?.message_type === 'audio' ? (
+                      <span className="flex items-center gap-1">
+                        <Mic size={12} className={isSelected ? 'text-white' : 'text-emerald-500'} />
+                        <span>تسجيل صوتي</span>
+                      </span>
+                    ) : (
+                      <span className="truncate">
+                        {channel.last_message
+                          ? channel.last_message.content || 'بطاقة تفاعلية / مرفق'
+                          : channel.description || 'محادثة جديدة'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Unread Badge */}
+                  {channel.unread_count ? (
+                    <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white shadow-xs">
+                      {channel.unread_count}
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Branch tag */}
+                {channel.branch_name && channel.type !== 'direct' && (
+                  <span
+                    className={`py-0.2 mt-1 block max-w-full truncate rounded px-1.5 text-[10px] font-medium ${
+                      isSelected
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)]'
+                    }`}
+                  >
+                    {channel.branch_name}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* New Chat Modal */}
+      <NewChatModal
+        isOpen={isNewChatOpen}
+        onClose={() => {
+          setIsNewChatOpen(false);
+        }}
+      />
+    </div>
+  );
+};

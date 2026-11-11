@@ -1,0 +1,165 @@
+import { bondsApi } from './api';
+import type { Bond, BondType, BondFormData } from './types';
+import { messagingService } from '../notifications/messagingService';
+import { notificationService } from '../notifications/service';
+import { toBaseCurrency } from '../../core/utils/currencyUtils';
+import { formatLocalDate } from '../../core/utils/dateUtils';
+import { logger } from '../../core/utils/logger';
+import { broadcastCrossBranchActivity } from '@/features/branches/api';
+
+// Raw shape returned by the Supabase join query in bondsApi.getBonds
+interface RawPaymentRow {
+  id: string;
+  payment_number: string | null;
+  payment_date: string;
+  amount: number;
+  currency_code: string;
+  exchange_rate: number;
+  payment_method: string;
+  type: string;
+  notes: string | null;
+  status: string;
+  foreign_amount?: number;
+  party?: { name: string } | null;
+  account?: { name_ar: string; code: string } | null;
+}
+
+export const bondsService = {
+  fetchBonds: async (
+    companyId: string,
+    branchId?: string | null,
+    type?: BondType
+  ): Promise<Bond[]> => {
+    const { data, error } = await bondsApi.getBonds(companyId, branchId, type);
+    if (error) throw error;
+
+    return ((data as unknown as RawPaymentRow[]) || []).map((p: RawPaymentRow) => {
+      // payments.amount in DB stores the user-entered transaction amount in p.currency_code.
+      const rawAmount = Number(p.amount) || 0;
+      const safeRate = Number(p.exchange_rate) > 0 ? Number(p.exchange_rate) : 1;
+      let baseAmount = rawAmount;
+      try {
+        baseAmount = toBaseCurrency({
+          amount: rawAmount,
+          currency_code: p.currency_code ?? 'SAR',
+          exchange_rate: safeRate,
+        });
+      } catch (err) {
+        logger.warn(
+          'bondsService',
+          'Failed to convert to base currency, fallback to raw amount',
+          err
+        );
+        baseAmount = rawAmount;
+      }
+
+      return {
+        id: p.id,
+        payment_number: p.payment_number ?? '-',
+        date: p.payment_date,
+        description: p.notes ?? '',
+        amount: rawAmount,
+        base_amount: baseAmount,
+        currency_code: p.currency_code ?? 'SAR',
+        exchange_rate: safeRate,
+        type: (p.type === 'disbursement' ? 'payment' : p.type) as BondType,
+        party_name: p.party?.name ?? '',
+        account_name: p.account?.name_ar ?? p.account?.code ?? '',
+        status: p.status as Bond['status'],
+        payment_method: p.payment_method,
+      };
+    });
+  },
+
+  createBond: async (companyId: string, userId: string, data: BondFormData) => {
+    const result = await bondsApi.createPaymentRPC(companyId, userId, data);
+
+    // 🔔 Fire-and-forget notification
+    if (result) {
+      const eventType = data.type === 'receipt' ? 'bond_receipt' : 'bond_payment';
+      const resultObj = result as Record<string, unknown>;
+      messagingService.notify(
+        companyId,
+        eventType,
+        {
+          entryNumber: (resultObj.payment_number as string) || '',
+          amount: data.amount || 0,
+          currency: data.currency_code || 'SAR',
+          description: data.description || '',
+          accountName: '',
+          date: formatLocalDate(),
+        },
+        resultObj.id as string
+      );
+
+      // In-App Notification
+      notificationService.notifyBond(
+        companyId,
+        (resultObj.payment_number as string) || '',
+        data.type === 'receipt' ? 'receipt' : 'payment',
+        data.amount || 0,
+        data.currency_code || 'SAR',
+        data.description || undefined
+      );
+
+      // Cross-Branch Live Broadcast
+      const bondId = typeof resultObj.id === 'string' ? resultObj.id : Math.random().toString(36);
+      const paymentNumber = typeof resultObj.payment_number === 'string' ? resultObj.payment_number : '';
+      void broadcastCrossBranchActivity(companyId, {
+        id: bondId,
+        company_id: companyId,
+        branch_id: data.branchId ?? null,
+        type: 'bond_created',
+        title: data.type === 'receipt' ? 'سند قبض جديد' : 'سند صرف جديد',
+        message: `تم إصدار ${data.type === 'receipt' ? 'سند قبض' : 'سند صرف'} ${paymentNumber ? `رقم ${paymentNumber}` : ''}`,
+        amount: data.amount || 0,
+        currency_code: data.currency_code || 'SAR',
+        document_number: paymentNumber,
+        link: '/bonds',
+        created_by: userId,
+      });
+    }
+
+    return result;
+  },
+
+  deleteBond: async (id: string) => {
+    const { error } = await bondsApi.deleteBond(id);
+    if (error) throw error;
+  },
+
+  getUnpaidPartyInvoices: async (
+    companyId: string,
+    partyId: string,
+    partyType: 'customer' | 'supplier',
+    branchId?: string | null
+  ) => {
+    const data = await bondsApi.getUnpaidPartyInvoices(companyId, partyId, partyType, branchId);
+    return data;
+  },
+
+  getBondsStats: async (companyId: string, branchId?: string | null, period?: string) => {
+    const { data, error } = await bondsApi.getBondsStats(companyId, branchId, period);
+    if (error) throw error;
+    return data;
+  },
+
+  getBondById: async (bondId: string): Promise<Bond | null> => {
+    const { data, error } = await bondsApi.getBondById(bondId);
+    if (error || !data) return null;
+    return {
+      id: data.id,
+      payment_number: data.payment_number ?? '-',
+      date: data.payment_date,
+      description: data.notes ?? '',
+      amount: Number(data.amount) || 0,
+      currency_code: data.currency_code ?? 'SAR',
+      type: (data.type === 'disbursement' ? 'payment' : data.type) as BondType,
+      party_name: (data.party as { name?: string } | null)?.name ?? '',
+      account_name: (data.account as { name_ar?: string } | null)?.name_ar ?? '',
+      status: data.status as Bond['status'],
+      payment_method: data.payment_method,
+      exchange_rate: data.exchange_rate,
+    };
+  },
+};

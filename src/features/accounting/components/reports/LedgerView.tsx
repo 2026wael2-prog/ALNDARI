@@ -1,0 +1,262 @@
+import React, { useState } from 'react';
+import { useAccounts, useLedger } from '../../hooks/index';
+import type { LedgerEntry } from '../../types/index';
+import ExcelTable from '../../../../ui/common/ExcelTable';
+import { formatCurrency, formatNumberDisplay } from '../../../../core/utils';
+import { Loader2, FileText } from 'lucide-react';
+import EmptyState from '../../../../ui/base/EmptyState';
+import ShareButton from '../../../../ui/common/ShareButton';
+import SearchableAccountSelector from '../../../../ui/common/SearchableAccountSelector';
+import { getLedgerBalanceLabel } from '../../utils/ledgerBalance';
+
+interface Props {
+  dateRange: { from: string; to: string };
+  accountId?: string | null;
+  showAccountSelector?: boolean;
+}
+
+/** A foreign amount is rendered only when it is defined and strictly positive. */
+const isPositiveAmount = (value: number | null | undefined): value is number =>
+  value !== null && value !== undefined && value > 0;
+
+/**
+ * مقدار مطلق للعرض فقط: تسمية الرصيد (له/عليه) هي التي تحمل الاتجاه،
+ * فلا نطبّق `Math.abs()` على بنود الحساب (AGENTS.md §6).
+ */
+const magnitude = (value: number): number => (value < 0 ? -value : value);
+
+/** هل يختلف المبلغ الأجنبي عن مبلغ العملة الأساسية بأكثر من قرش، في أي اتجاه؟ */
+const differsByMoreThanCent = (a: number, b: number): boolean => a - b > 0.01 || b - a > 0.01;
+
+const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector = true }) => {
+  const { data: accounts } = useAccounts();
+  const [internalAccountId, setInternalAccountId] = useState<string>('');
+
+  // Determine effective account ID: prop takes precedence (an empty string is
+  // treated as "not provided" so the internal selector can take over).
+  const effectiveAccountId: string =
+    accountId !== null && accountId !== undefined && accountId !== ''
+      ? accountId
+      : internalAccountId;
+
+  const { data: ledger, isLoading } = useLedger(
+    effectiveAccountId || null,
+    dateRange.from,
+    dateRange.to
+  );
+
+  const selectedAccount = accounts?.find(a => a.id === effectiveAccountId);
+  const selectedAccountName = selectedAccount?.name ?? '';
+  const selectedAccountCode = selectedAccount?.code ?? '';
+  const selectedAccountCurrency = selectedAccount?.currency_code ?? '';
+  const lastLedgerEntry = ledger?.[ledger.length - 1];
+
+  const columns = [
+    {
+      header: 'التاريخ',
+      accessor: (row: LedgerEntry) => (
+        <span dir="ltr" className="font-mono text-xs">
+          {row.date}
+        </span>
+      ),
+      width: 'w-24',
+    },
+    {
+      header: 'رقم القيد',
+      accessor: (row: LedgerEntry) =>
+        row.entry_number > 0 ? (
+          <span
+            dir="ltr"
+            className="cursor-pointer font-mono text-xs text-blue-600 hover:underline"
+          >
+            #{formatNumberDisplay(row.entry_number)}
+          </span>
+        ) : (
+          '-'
+        ),
+      width: 'w-24',
+    },
+    {
+      header: 'البيان',
+      accessor: (row: LedgerEntry) => {
+        const referenceType = row.reference_type ?? '';
+        const isReversal =
+          referenceType.includes('void') ||
+          referenceType.includes('return') ||
+          row.description.includes('عكس');
+
+        return (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-semibold">{row.description}</span>
+            {isReversal && (
+              <span className="inline-flex items-center rounded border border-amber-200/60 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-300">
+                قيد عكسي
+              </span>
+            )}
+          </div>
+        );
+      },
+      className: 'text-right min-w-[200px]',
+    },
+    {
+      header: 'العميل / المورد',
+      accessor: (row: LedgerEntry) =>
+        (row.party_name ?? '') !== '' ? (
+          <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+            {row.party_name}
+          </span>
+        ) : (
+          <span className="text-gray-400">-</span>
+        ),
+      className: 'text-right min-w-[150px]',
+    },
+    {
+      header: 'مدين',
+      accessor: (row: LedgerEntry) => (
+        <div className="space-y-0.5 text-left">
+          <div
+            dir="ltr"
+            className={`font-mono text-xs font-bold ${row.debit_amount > 0 ? 'text-emerald-600' : 'text-gray-400'}`}
+          >
+            {row.debit_amount > 0 ? formatCurrency(row.debit_amount) : '-'}
+          </div>
+          {isPositiveAmount(row.foreign_amount) &&
+          differsByMoreThanCent(row.debit_amount, row.foreign_amount) ? (
+            <div dir="ltr" className="font-mono text-[10px] text-gray-400">
+              ({formatCurrency(row.foreign_amount, row.currency_code)})
+            </div>
+          ) : null}
+        </div>
+      ),
+      className: 'w-28',
+      footer: (data: LedgerEntry[]) => (
+        <span dir="ltr" className="font-mono text-xs font-bold text-emerald-700">
+          {formatCurrency(data.reduce((sum, row) => sum + row.debit_amount, 0))}
+        </span>
+      ),
+    },
+    {
+      header: 'دائن',
+      accessor: (row: LedgerEntry) => (
+        <div className="space-y-0.5 text-left">
+          <div
+            dir="ltr"
+            className={`font-mono text-xs font-bold ${row.credit_amount > 0 ? 'text-red-600' : 'text-gray-400'}`}
+          >
+            {row.credit_amount > 0 ? formatCurrency(row.credit_amount) : '-'}
+          </div>
+          {isPositiveAmount(row.foreign_amount) &&
+          differsByMoreThanCent(row.credit_amount, row.foreign_amount) ? (
+            <div dir="ltr" className="font-mono text-[10px] text-gray-400">
+              ({formatCurrency(row.foreign_amount, row.currency_code)})
+            </div>
+          ) : null}
+        </div>
+      ),
+      className: 'w-28',
+      footer: (data: LedgerEntry[]) => (
+        <span dir="ltr" className="font-mono text-xs font-bold text-red-700">
+          {formatCurrency(data.reduce((sum, row) => sum + row.credit_amount, 0))}
+        </span>
+      ),
+    },
+    {
+      header: 'الرصيد',
+      accessor: (row: LedgerEntry) => {
+        // get_account_ledger returns a sign-normalised running balance; the
+        // label depends on the account nature (asset/expense vs credit-normal)
+        const { label: balanceLabel, isCredit } = getLedgerBalanceLabel(
+          row.balance,
+          row.accountType
+        );
+        const foreignBalance = row.foreign_balance;
+        const isForeignLine =
+          foreignBalance !== undefined &&
+          (row.currency_code ?? '') !== '' &&
+          row.currency_code !== 'SAR';
+        return (
+          <div className="space-y-0.5 text-left">
+            <span
+              className={`flex items-center text-xs font-bold max-md:gap-1 ${isCredit ? 'text-red-600' : 'text-blue-600'}`}
+            >
+              <span>{balanceLabel}</span>
+              <span dir="ltr" className="font-mono">
+                {isForeignLine
+                  ? formatCurrency(magnitude(foreignBalance), row.currency_code)
+                  : formatCurrency(magnitude(row.balance))}
+              </span>
+            </span>
+            {isForeignLine && (
+              <div dir="ltr" className="font-mono text-[10px] text-gray-400">
+                ≈ {formatCurrency(magnitude(row.balance), 'SAR')}
+              </div>
+            )}
+          </div>
+        );
+      },
+      className: 'w-28 bg-gray-50/50 dark:bg-slate-800/50',
+    },
+  ];
+
+  return (
+    <div className="print-area flex h-full flex-col space-y-4">
+      {/* Show dropdown only if explicitly requested and no account is forced */}
+      {showAccountSelector && (accountId ?? '') === '' && (
+        <div className="no-print flex items-center gap-3 border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-sm max-md:gap-2 max-md:p-1">
+          <SearchableAccountSelector
+            accounts={accounts ?? []}
+            selectedId={internalAccountId}
+            onSelect={setInternalAccountId}
+            placeholder="-- اختر حساباً لعرض كشف الحساب --"
+            className="flex-1"
+          />
+          {effectiveAccountId && ledger && ledger.length > 0 && (
+            <ShareButton
+              size="sm"
+              showLabel
+              eventType="ledger"
+              title={`مشاركة كشف حساب ${selectedAccountName}`}
+              message={`📒 دفتر الأستاذ - كشف حساب\n━━━━━━━━━━━━━━\n📋 الحساب: ${selectedAccountName} (${selectedAccountCode})\n📗 إجمالي المدين: ${formatCurrency(ledger.reduce((s: number, r: LedgerEntry) => s + r.debit_amount, 0))}\n📕 إجمالي الدائن: ${formatCurrency(ledger.reduce((s: number, r: LedgerEntry) => s + r.credit_amount, 0))}\n💰 الرصيد النهائي: ${
+                selectedAccountCurrency !== '' &&
+                selectedAccountCurrency !== 'SAR' &&
+                lastLedgerEntry?.foreign_balance !== undefined
+                  ? `${formatCurrency(lastLedgerEntry.foreign_balance, selectedAccountCurrency)} (≈ ${formatCurrency(lastLedgerEntry.balance, 'SAR')})`
+                  : formatCurrency(lastLedgerEntry?.balance ?? 0)
+              }\n📅 الفترة: من ${dateRange.from} إلى ${dateRange.to}`}
+            />
+          )}
+        </div>
+      )}
+
+      {effectiveAccountId ? (
+        isLoading ? (
+          <div className="flex flex-1 items-center justify-center p-12 max-md:p-5">
+            <Loader2 className="animate-spin text-blue-600" size={32} />
+          </div>
+        ) : (
+          <div className="flex min-h-[480px] flex-1 flex-col overflow-hidden border border-[var(--app-border)] shadow-sm">
+            <ExcelTable
+              columns={columns}
+              data={ledger ?? []}
+              resizeStorageKey="ledger_account_statement"
+              title={`كشف حساب: ${selectedAccountName} (${selectedAccountCode})`}
+              colorTheme="blue"
+            />
+          </div>
+        )
+      ) : (
+        (accountId ?? '') === '' && (
+          <div className="flex flex-1 items-center justify-center">
+            <EmptyState
+              icon={FileText}
+              title="دفتر الأستاذ العام"
+              description="يعرض هذا التقرير كشف حساب تفصيلي لكل حساب في شجرة الحسابات. يرجى اختيار حساب من القائمة أعلاه."
+            />
+          </div>
+        )
+      )}
+    </div>
+  );
+};
+
+export default LedgerView;

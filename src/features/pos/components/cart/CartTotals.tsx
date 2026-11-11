@@ -1,0 +1,120 @@
+import React from 'react';
+import { CreditCard } from 'lucide-react';
+import { useSalesStore } from '../../../sales/store';
+import { useDiscountStore } from '../../../settings/taxDiscountStore';
+import { useTranslation } from '../../../../lib/hooks/useTranslation';
+import { formatCurrency } from '../../../../core/utils';
+
+interface CartTotalsProps {
+  onPay: () => void;
+  canPay: boolean;
+  isProcessing?: boolean | undefined;
+  isCrossBranch?: boolean;
+}
+
+/** صف الخصم — مُستخرج لإبقاء المكوّن الرئيس تحت حد طول الدالة. */
+const DiscountRow: React.FC<{ amount: number; currency: string }> = ({ amount, currency }) => (
+  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-rose-400">
+    <span>خصم</span>
+    <span dir="ltr" className="font-mono">
+      -{formatCurrency(amount)} {currency}
+    </span>
+  </div>
+);
+
+const PayButton: React.FC<{
+  onPay: () => void;
+  canPay: boolean;
+  isProcessing: boolean;
+}> = ({ onPay, canPay, isProcessing }) => {
+  const { t } = useTranslation();
+  return (
+    <button
+      onClick={onPay}
+      disabled={!canPay || isProcessing}
+      className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 py-4 text-base font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all hover:from-blue-700 hover:to-blue-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 max-md:gap-2"
+    >
+      {isProcessing ? (
+        <>
+          <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          <span>جاري إتمام البيع...</span>
+        </>
+      ) : (
+        <>
+          <CreditCard size={20} className="transition-transform group-hover:rotate-12" />
+          {t('complete_and_pay')}
+        </>
+      )}
+    </button>
+  );
+};
+
+export const CartTotals: React.FC<CartTotalsProps> = React.memo(
+  ({ onPay, canPay, isProcessing = false, isCrossBranch = false }) => {
+    const { t } = useTranslation();
+    const { summary, currency } = useSalesStore();
+    // [FIX] اشتراك تفاعلي بدل getState() داخل الرندر — القراءة غير المشتركة
+    // كانت تعرض صف الخصم حسب قيمة قديمة إن غيّر المتجر دون إعادة رندر.
+    const discountEnabled = useDiscountStore(state => state.discountEnabled);
+    const { items, warehouseId } = useSalesStore();
+
+    // Check if any item in the cart relies entirely on another warehouse's stock
+    const hasCrossBranchItem = React.useMemo(() => {
+      if (!isCrossBranch || !items || items.length === 0) return false;
+      return items.some((item: any) => {
+        if (!item.productId) return false;
+        const wd = item.warehouse_distribution || [];
+        const localStock = wd.find((w: any) => w.warehouse_id === warehouseId)?.quantity || 0;
+        return localStock === 0 && wd.some((w: any) => w.quantity > 0);
+      });
+    }, [isCrossBranch, items, warehouseId]);
+
+    return (
+      <div className="shrink-0 space-y-2 border-t border-slate-800 bg-slate-950 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-white dark:bg-slate-950">
+        {hasCrossBranchItem && (
+          <div className="mb-2 flex items-start gap-2 rounded-lg border border-amber-700/50 bg-amber-900/40 p-2.5 text-[11px] text-amber-200 md:text-xs">
+            <span className="mt-0.5 text-lg font-bold leading-none text-amber-400">!</span>
+            <p className="leading-snug">
+              تنبيه: تتضمن السلة منتجات من فرع آخر. سيتم تسجيل فاتورة داخلية تلقائياً بسعر التكلفة.
+            </p>
+          </div>
+        )}
+        {/* Subtotal row */}
+        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span>{t('subtotal')}</span>
+          <span dir="ltr" className="font-mono">
+            {formatCurrency(summary.subtotal)} {currency}
+          </span>
+        </div>
+
+        {/* Discount row */}
+        {discountEnabled && summary.discountAmount > 0 && (
+          <DiscountRow amount={summary.discountAmount} currency={currency} />
+        )}
+
+        {/* Grand total */}
+        <div className="flex items-end justify-between border-t border-white/10 pt-2">
+          <span className="text-xs font-black uppercase tracking-wider text-blue-400">
+            {t('net_payable')}
+          </span>
+          <div className="text-right">
+            <span
+              dir="ltr"
+              className="block font-mono text-3xl font-black leading-none tracking-tighter text-white max-md:text-xl"
+            >
+              {formatCurrency(summary.totalAmount)}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400/80">
+              {currency}
+            </span>
+          </div>
+        </div>
+
+        {/* Pay button */}
+        <PayButton onPay={onPay} canPay={canPay} isProcessing={isProcessing} />
+      </div>
+    );
+  }
+);
+
+CartTotals.displayName = 'CartTotals';

@@ -1,0 +1,394 @@
+// ============================================
+// useStockAudit — إدارة جلسات الجرد والتسوية
+// ============================================
+import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { inventoryService, type DeleteAuditItemParams } from '../service';
+import { useAuthStore } from '../../auth/store';
+import { useFeedbackStore } from '../../feedback/store';
+import { supabase } from '../../../lib/supabaseClient';
+import { logger } from '../../../core/utils/logger';
+import { syncStore } from '../../../core/lib/sync-store';
+import { parseError } from '../../../core/utils/errorUtils';
+import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
+
+/** جلب قائمة جلسات الجرد */
+export interface AuditSessionListItem {
+  id: string;
+  company_id: string;
+  warehouse_id: string;
+  title: string;
+  status: 'active' | 'completed' | 'cancelled';
+  created_at: string;
+  completed_at?: string | null;
+  completed_by?: string | null;
+  warehouse_name?: string;
+  progress?: number;
+  accuracy?: number;
+}
+
+export const useAuditSessions = (warehouseId?: string | null) => {
+  const { user } = useAuthStore();
+  const { branchId, warehouseId: activeWarehouseId } = useBranchFilter();
+  const effectiveWarehouseId = warehouseId !== undefined ? warehouseId : activeWarehouseId;
+  return useQuery<AuditSessionListItem[]>({
+    queryKey: ['audit_sessions', user?.company_id, branchId, effectiveWarehouseId],
+    queryFn: async () => {
+      if (!user?.company_id) return [];
+      const rows = await inventoryService.getAuditSessions(
+        user.company_id,
+        branchId,
+        effectiveWarehouseId
+      );
+      return rows as unknown as AuditSessionListItem[];
+    },
+    enabled: !!user?.company_id,
+  });
+};
+
+/**
+ * [PERF-FIX — عاصفة إبطال] كان كل حدث Realtime على `audit_items` يُطلق
+ * `invalidateQueries` فوراً. وحفظ جرد من 88 صنفاً يُولّد 88 حدثاً ⇒ 88 إعادة
+ * جلب كاملة، وكل إعادة جلب تُنفّذ استعلامين ثقيلين (جلسة + أصناف مع
+ * `products(*)`). النتيجة: تجمّد الواجهة، بطء واضح، وانقطاعات اتصال.
+ * الآن تُجمَّع أحداث كل جلسة في إبطال واحد مؤجّل (trailing debounce).
+ */
+const AUDIT_INVALIDATE_DEBOUNCE_MS = 600;
+const pendingAuditInvalidations = new Map<string, ReturnType<typeof setTimeout>>();
+
+function scheduleAuditSessionInvalidation(queryClient: QueryClient, sessionId: string): void {
+  const pending = pendingAuditInvalidations.get(sessionId);
+  if (pending !== undefined) clearTimeout(pending);
+
+  const timer = setTimeout(() => {
+    pendingAuditInvalidations.delete(sessionId);
+    void queryClient.invalidateQueries({ queryKey: ['audit_session', sessionId] });
+  }, AUDIT_INVALIDATE_DEBOUNCE_MS);
+
+  pendingAuditInvalidations.set(sessionId, timer);
+}
+
+/**
+ * إنشاء قناة Realtime لأصناف جلسة الجرد — مُستخرجة من الـ effect
+ * لإبقاء تعقيد الوظيفة تحت الحد المعتمد.
+ */
+function createAuditItemsChannel(
+  channelKey: string,
+  sessionId: string,
+  queryClient: QueryClient
+): ReturnType<typeof supabase.channel> {
+  return supabase
+    .channel(channelKey)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'audit_items',
+        filter: `session_id=eq.${sessionId}`,
+      },
+      (payload: Record<string, unknown>) => {
+        // لا نُسلسل الحمولة كاملة في كل حدث (تكلفة CPU على مسار سريع).
+        const eventType = typeof payload.eventType === 'string' ? payload.eventType : 'change';
+        logger.debug('Audit', `audit_items ${eventType} → ${channelKey}`);
+        scheduleAuditSessionInvalidation(queryClient, sessionId);
+      }
+    )
+    .subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        logger.debug('Audit', `Realtime channel [${channelKey}] subscribed`);
+      }
+    });
+}
+
+const channelRegistry = new Map<
+  string,
+  { channel: ReturnType<typeof supabase.channel>; refCount: number }
+>();
+
+/** جلب تفاصيل جلسة جرد مع Realtime subscription */
+export const useAuditSession = (sessionId: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['audit_session', sessionId],
+    queryFn: () =>
+      sessionId
+        ? inventoryService.getAuditSessionDetails(sessionId)
+        : Promise.reject(new Error('No session ID')),
+    enabled: !!sessionId,
+    // [PERF-FIX] الجلسة ثقيلة (أصناف + منتجات كاملة)، لذلك نمنع إعادة الجلب
+    // عند مجرّد العودة إلى التبويب ونُبقي البيانات «طازجة» لفترة قصيرة قبل
+    // أي إعادة تحقق تلقائية.
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const channelKey = `audit_session_${sessionId}`;
+
+    const existing = channelRegistry.get(channelKey);
+    if (existing !== undefined) {
+      existing.refCount += 1;
+    } else {
+      channelRegistry.set(channelKey, {
+        channel: createAuditItemsChannel(channelKey, sessionId, queryClient),
+        refCount: 1,
+      });
+    }
+
+    return () => {
+      // [FIX] كان الـ cleanup لا يفعل شيئاً ("keep channel alive") فتتراكم
+      // الاشتراكات الحية لكل جلسة جرّدت زيارتها وتستقبل أحداثاً وتطلق
+      // إبطالات في الخلفية لصفحات تركها المستخدم. الآن نُحرر المرجع، وإذا
+      // لم يعد له مستهلكون نُلغي الاشتراك فعلياً ونحذفه من السجل.
+      const entry = channelRegistry.get(channelKey);
+      if (entry === undefined) return;
+      entry.refCount -= 1;
+      if (entry.refCount <= 0) {
+        channelRegistry.delete(channelKey);
+        void supabase.removeChannel(entry.channel);
+      }
+    };
+  }, [sessionId, queryClient]);
+
+  return query;
+};
+
+/** mutations خاصة بجلسات الجرد والتسوية السريعة */
+export const useInventoryMutations = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { showToast } = useFeedbackStore();
+
+  const transfer = useMutation({
+    mutationFn: (
+      data: Omit<Parameters<typeof inventoryService.createTransfer>[0], 'company_id' | 'user_id'>
+    ) => {
+      if (!user?.company_id || !user.id) throw new Error('Auth error');
+      return inventoryService.createTransfer({
+        ...data,
+        company_id: user.company_id,
+        user_id: user.id,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['transfers'] });
+      showToast('تمت المناقلة بنجاح', 'success');
+    },
+    onError: (err, variables) => {
+      if (
+        !navigator.onLine ||
+        err.message?.includes('Failed to fetch') ||
+        (err as Error & { status?: number }).status === 0
+      ) {
+        void syncStore.enqueue({
+          mutationKey: ['inventory', 'transfer'],
+          variables: { ...variables, company_id: user?.company_id, user_id: user?.id },
+        });
+        showToast('تمت المناقلة محلياً (وضع عدم الاتصال).', 'info');
+        return;
+      }
+      showToast('فشل المناقلة: ' + parseError(err).message, 'error');
+    },
+  });
+
+  const audit = useMutation({
+    mutationFn: (data: { warehouse_id: string; title: string }) => {
+      if (!user?.company_id || !user.id) throw new Error('Auth error');
+      return inventoryService.startAudit(data, user.company_id, user.id);
+    },
+    onSuccess: async newSession => {
+      await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
+      showToast('تم بدء جلسة الجرد', 'success');
+      return newSession;
+    },
+    onError: (err, variables) => {
+      if (
+        !navigator.onLine ||
+        err.message?.includes('Failed to fetch') ||
+        (err as Error & { status?: number }).status === 0
+      ) {
+        void syncStore.enqueue({
+          mutationKey: ['inventory', 'start_audit'],
+          variables: { ...variables, company_id: user?.company_id, user_id: user?.id },
+        });
+        showToast('بدء الجرد محلياً (وضع عدم الاتصال).', 'info');
+        return;
+      }
+      showToast('فشل بدء الجرد: ' + parseError(err).message, 'error');
+    },
+  });
+
+  const finalize = useMutation({
+    mutationFn: ({
+      sessionId,
+      items,
+    }: {
+      sessionId: string;
+      items: Parameters<typeof inventoryService.finalizeAudit>[1];
+    }) => {
+      if (!user?.company_id || !user.id) throw new Error('Auth error');
+      return inventoryService.finalizeAudit(sessionId, items, user.company_id, user.id);
+    },
+    onSuccess: async (_, { sessionId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
+      await queryClient.invalidateQueries({ queryKey: ['audit_session', sessionId] });
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      showToast('تم إغلاق الجرد وترحيل الفروقات', 'success');
+    },
+    onError: err => {
+      showToast('فشل إنهاء الجرد: ' + parseError(err).message, 'error');
+      logger.error('useStockAudit', 'Finalize Audit Error:', err);
+    },
+  });
+
+  const saveProgress = useMutation({
+    mutationFn: (
+      payload:
+        | { sessionId?: string; items: Parameters<typeof inventoryService.saveAuditProgress>[0] }
+        | Parameters<typeof inventoryService.saveAuditProgress>[0]
+    ) => {
+      if (!Array.isArray(payload) && 'items' in payload) {
+        return inventoryService.saveAuditProgress(payload.items, payload.sessionId);
+      }
+      return inventoryService.saveAuditProgress(payload);
+    },
+    onSuccess: async (_, variables) => {
+      const sessId =
+        !Array.isArray(variables) && 'sessionId' in variables
+          ? (variables as { sessionId?: string }).sessionId
+          : undefined;
+      if (sessId) {
+        await queryClient.invalidateQueries({ queryKey: ['audit_session', sessId] });
+      }
+      showToast('تم حفظ التقدم بنجاح', 'success', { hideAfter: 2000 });
+    },
+    onError: (err, variables) => {
+      if (
+        !navigator.onLine ||
+        err.message?.includes('Failed to fetch') ||
+        (err as Error & { status?: number }).status === 0
+      ) {
+        void syncStore.enqueue({
+          mutationKey: ['inventory', 'save_audit_progress'],
+          variables,
+        });
+        showToast('تم حفظ التقدم محلياً (وضع عدم الاتصال)', 'info');
+        return;
+      }
+      showToast('فشل حفظ التقدم: ' + parseError(err).message, 'error');
+      logger.error('useStockAudit', 'Save Progress Error:', err);
+    },
+  });
+
+  const quickAdjust = useMutation({
+    mutationFn: (items: Array<{ product_id: string; warehouse_id: string; quantity: number }>) => {
+      if (!user?.company_id || !user.id) throw new Error('Auth error');
+      return inventoryService.quickAdjustStock(user.company_id, items, user.id);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
+      showToast('تم إضافة التسويات السريعة بنجاح', 'success');
+    },
+    onError: err => {
+      showToast('فشلت التسوية السريعة: ' + parseError(err).message, 'error');
+    },
+  });
+
+  const addItem = useMutation({
+    mutationFn: ({
+      sessionId,
+      productId,
+      expectedQuantity,
+    }: {
+      sessionId: string;
+      productId: string;
+      expectedQuantity: number;
+    }) => {
+      return inventoryService.addAuditItem(
+        sessionId,
+        productId,
+        expectedQuantity,
+        user?.company_id || '',
+        user?.id || ''
+      );
+    },
+    onSuccess: async (_, { sessionId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['audit_session', sessionId] });
+    },
+    onError: err => {
+      showToast('فشل إضافة الصنف: ' + parseError(err).message, 'error');
+    },
+  });
+
+  const removeItem = useMutation({
+    mutationFn: (params: DeleteAuditItemParams) => {
+      return inventoryService.deleteAuditItem(params);
+    },
+    onSuccess: async (_, variables) => {
+      const sessId = typeof variables === 'object' ? variables.sessionId : undefined;
+      await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
+      if (sessId) {
+        await queryClient.invalidateQueries({ queryKey: ['audit_session', sessId] });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ['audit_session'] });
+      }
+      showToast('تم إزالة الصنف من الجلسة', 'info');
+    },
+    onError: err => {
+      showToast('فشل إزالة الصنف: ' + parseError(err).message, 'error');
+    },
+  });
+
+  const deleteSession = useMutation({
+    mutationFn: (sessionId: string) => inventoryService.deleteAuditSession(sessionId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
+      showToast('تم حذف جلسة الجرد', 'success');
+    },
+    onError: err => {
+      showToast('فشل حذف الجلسة: ' + parseError(err).message, 'error');
+    },
+  });
+
+  const populateWarehouse = useMutation({
+    mutationFn: (sessionId: string) => inventoryService.populateWarehouseItems(sessionId),
+    onSuccess: async (_, sessionId) => {
+      await queryClient.invalidateQueries({ queryKey: ['audit_session', sessionId] });
+      await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
+      showToast('تم إدراج جميع منتجات المستودع في جلسة الجرد بنجاح', 'success');
+    },
+    onError: err => {
+      showToast('فشل تعبئة منتجات المستودع: ' + parseError(err).message, 'error');
+    },
+  });
+
+  return {
+    createTransfer: transfer.mutate,
+    isTransferring: transfer.isPending,
+    startAudit: audit.mutate,
+    isStartingAudit: audit.isPending,
+    finalizeAudit: finalize.mutate,
+    isFinalizing: finalize.isPending,
+    saveAuditProgress: saveProgress.mutate,
+    // [LAYERS-FIX] الصفحة تحتاج انتظار الحفظ قبل تعبئة أصناف المستودع، وكانت
+    // تنادي `inventoryService.saveAuditProgress` مباشرة (خرق طبقة + بلا معالجة
+    // خطأ). الآن تُنتظر نفس الـmutation التي تعالج الرسائل ووضع عدم الاتصال.
+    saveAuditProgressAsync: saveProgress.mutateAsync,
+    isSavingProgress: saveProgress.isPending,
+    quickAdjustStock: quickAdjust.mutate,
+    isQuickAdjusting: quickAdjust.isPending,
+    addItemToAudit: addItem.mutate,
+    isAddingItem: addItem.isPending,
+    removeItemFromAudit: removeItem.mutate,
+    isRemovingItem: removeItem.isPending,
+    deleteAuditSession: deleteSession.mutate,
+    isDeletingSession: deleteSession.isPending,
+    populateWarehouseItems: populateWarehouse.mutate,
+    isPopulatingWarehouse: populateWarehouse.isPending,
+  };
+};

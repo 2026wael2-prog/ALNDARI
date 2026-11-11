@@ -1,0 +1,46 @@
+/**
+ * FeatureBoundary
+ * ===============
+ * A thin Suspense + ErrorBoundary wrapper for each lazy-loaded route.
+ *
+ * Benefits:
+ *  - A crash in ONE feature never takes down the whole app.
+ *  - The `inline` ErrorBoundary fallback stays within the content area (not full-screen).
+ *  - The `resetKeys` prop accepts [pathname] so navigating away & back auto-resets the error.
+ *
+ * Usage:
+ *   <FeatureBoundary name="inventory">
+ *     <InventoryPage />
+ *   </FeatureBoundary>
+ */
+
+import React, { Suspense, type ReactNode } from 'react';
+import { ErrorBoundary } from './ErrorBoundary';
+import PageLoader from '../../ui/base/PageLoader';
+import { useLocation } from 'react-router-dom';
+import { logger } from '../utils/logger';
+
+interface FeatureBoundaryProps {
+  children: ReactNode;
+  /** Feature name for logging context (e.g. "inventory", "sales") */
+  name: string;
+}
+
+export const FeatureBoundary: React.FC<FeatureBoundaryProps> = ({ children, name }) => {
+  const { pathname } = useLocation();
+
+  return (
+    <ErrorBoundary
+      inline
+      resetKeys={[pathname]}
+      onError={(err, errorInfo) => {
+        // In production this is where you'd forward to Sentry / analytics
+        logger.error('FeatureBoundary', `Error in feature: ${name}`, { error: err, ...errorInfo });
+      }}
+    >
+      <Suspense fallback={<PageLoader />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
+};
+
+export default FeatureBoundary;

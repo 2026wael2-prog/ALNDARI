@@ -1,0 +1,81 @@
+/* ============================================================
+   Landing Page — Theme-Aware CSS Variables & Animations
+   مرتبط بنظام الثيمات العام للتطبيق
+   ============================================================ */
+
+/* ── Landing Brand Identity Tokens ── */
+:root {
+  --landing-primary: #2563eb;
+  --landing-card-radius: 1rem;
+}
+
+/* ── Glass Morphism Base ── */
+.landing-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .landing-glass {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+/* ── Animations ── */
+@keyframes landing-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* ── Feature Card Subtle Effects ── */
+.landing-feature-card {
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.landing-feature-card:hover {
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+/* ── Smooth Scroll Behavior ── */
+.landing-page {
+  scroll-behavior: smooth;
+}
+
+/* ── Anchor scrolling clears the fixed header (~5rem) ── */
+.landing-page section {
+  scroll-margin-top: 5rem;
+}
+
+/* ── Trusted By Marquee ── */
+.landing-marquee-track {
+  animation: landing-marquee 35s linear infinite;
+  display: flex;
+  width: max-content;
+}
+
+.landing-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── Pricing Card Popular ── */
+.landing-pricing-popular {
+  position: relative;
+  border: 2px solid var(--landing-primary);
+}
+
+/* ── FAQ Accordion item ── */
+.landing-faq-item {
+  transition: border-color 0.2s ease;
+}
+
+/* ── Responsive adjustments ── */
+@media (max-width: 768px) {
+  :root {
+    --landing-card-radius: 0.75rem;
+  }
+}

@@ -1,0 +1,14 @@
+{
+  /* Same strictness as the production config, but *including* test files.
+     tsconfig.json deliberately excludes them from `npm run build`; this config
+     exists so the ~154 test files are finally type-checked too. */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": ["src"],
+  "exclude": [],
+  "references": []
+}

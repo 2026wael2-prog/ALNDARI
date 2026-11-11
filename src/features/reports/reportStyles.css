@@ -1,0 +1,163 @@
+/* Financial Reports Pro Max Design System - Clean ERP Standards */
+
+:root {
+    --report-navy: #0F172A;
+    --report-navy-light: #1E293B;
+    --report-gold: #CA8A04;
+    --report-emerald: #10B981;
+    --report-rose: #EF4444;
+    --report-blue: #2563EB;
+    --report-surface: var(--app-surface, #ffffff);
+    --report-border: var(--app-border, #e2e8f0);
+    --report-transition: 0.2s ease-in-out;
+}
+
+/* ============ Surface Panels ============ */
+.glass-panel,
+.glass-card {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    transition: border-color var(--report-transition);
+}
+
+.glass-card:hover {
+    border-color: var(--app-border-hover, #cbd5e1);
+}
+
+/* ============ High-Density Grid ============ */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 0.75rem;
+}
+
+.bento-item {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+/* ============ Content Transition ============ */
+.report-content-enter {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.report-content-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+/* ============ Animations ============ */
+@keyframes pulse-soft {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(0.98);
+    }
+}
+
+.pulse-soft {
+    animation: pulse-soft 3s infinite ease-in-out;
+}
+
+.number-reveal {
+    animation: slide-up 0.5s ease-out;
+}
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Financial Specific Accents */
+.stat-value-profit {
+    color: var(--report-emerald);
+}
+
+.stat-value-loss {
+    color: var(--report-rose);
+}
+
+.category-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ============ Print Styles ============ */
+@media print {
+
+    /* Hide non-essential UI elements */
+    .no-print,
+    header,
+    nav,
+    .MicroHeader,
+    button,
+    .ShareButton,
+    .extra-row,
+    .category-badge {
+        display: none !important;
+    }
+
+    /* Full-width print layout */
+    body {
+        background: white !important;
+        font-size: 12pt;
+        color: black !important;
+    }
+
+    .glass-card,
+    .glass-panel,
+    .bento-item {
+        box-shadow: none !important;
+        border: 1px solid #e2e8f0 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        background: white !important;
+        backdrop-filter: none !important;
+        transform: none !important;
+    }
+
+    .stat-value-profit,
+    .stat-value-loss {
+        text-shadow: none !important;
+    }
+
+    /* Ensure tables fit */
+    table {
+        font-size: 10pt;
+    }
+
+    /* Color-safe accents */
+    .dark .glass-card,
+    .dark .glass-panel {
+        background: white !important;
+        color: black !important;
+    }
+
+    /* Hide animations */
+    .animate-in,
+    .fade-in,
+    .slide-in-from-bottom-4 {
+        animation: none !important;
+    }
+}

@@ -1,0 +1,157 @@
+import React from 'react';
+import { Save, Landmark } from 'lucide-react';
+import type { ExpenseFormData } from '../../types';
+import Button from '../../../../ui/base/Button';
+import Modal from '../../../../ui/base/Modal';
+import { useExpenseForm } from './hooks/useExpenseForm';
+import { ExpenseAmountSection } from './components/ExpenseAmountSection';
+import { ExpenseCategorySection } from './components/ExpenseCategorySection';
+
+import { ExpenseFinancialSection } from './components/ExpenseFinancialSection';
+import { useFeedbackStore } from '../../../feedback/store';
+import { createIdempotencyKey } from '../../../../core/utils/idempotency';
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: ExpenseFormData) => void;
+  isSubmitting: boolean;
+}
+
+const CreateExpenseModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
+  const {
+    form,
+    categories,
+    currencies,
+    newCatMode,
+    setNewCatMode,
+    newCatName,
+    setNewCatName,
+    handleAddCategory,
+    isAddingCategory,
+    isManualRate,
+    handleToggleManualRate,
+  } = useExpenseForm(isOpen);
+
+  const { register, handleSubmit, watch, setValue } = form;
+
+  const { showToast } = useFeedbackStore();
+  const [localSubmitting, setLocalSubmitting] = React.useState(false);
+  const idempotencyKeyRef = React.useRef(createIdempotencyKey('expense'));
+
+  React.useEffect(() => {
+    if (isOpen) {
+      idempotencyKeyRef.current = createIdempotencyKey('expense');
+    }
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    if (!isOpen || !isSubmitting) {
+      setLocalSubmitting(false);
+    }
+  }, [isOpen, isSubmitting]);
+
+  const handleSafeSubmit = (data: ExpenseFormData): void => {
+    if (isSubmitting || localSubmitting) return;
+
+    if (data.currency_code === 'SAR' && data.amount >= 500) {
+      const isDailyPetty =
+        /(عشاء|غداء|غدا|قات|ماء|ثلج|حلاقة|رصيد|تكس|مدرسة|دفاتر|طماط|بصل|كريم|سيجارة|نثري)/i.test(
+          data.description || ''
+        );
+      if (isDailyPetty && data.confirm_large_sar !== true) {
+        const confirmed = window.confirm(
+          `تنبيه تدقيق مالي:\nالمبلغ المدخل هو (${String(data.amount)} ريال سعودي) لبيان نثري (${data.description}).\n\nهل أنت متأكد تماماً أن هذا المبلغ بالريال السعودي وليس بالريال اليمني؟`
+        );
+        if (!confirmed) {
+          return;
+        }
+        data.confirm_large_sar = true;
+      }
+    }
+
+    setLocalSubmitting(true);
+    onSubmit({ ...data, idempotency_key: data.idempotency_key ?? idempotencyKeyRef.current });
+  };
+
+  const onInvalidSubmit = (errors: Record<string, unknown>): void => {
+    // Collect error messages
+    const errorMessages = Object.keys(errors).map(key => {
+      const fieldNames: Record<string, string> = {
+        category_id: 'التصنيف',
+        amount: 'المبلغ',
+        expense_date: 'تاريخ الصرف',
+        description: 'البيان',
+        exchange_rate: 'سعر الصرف',
+      };
+      return `حقل ${fieldNames[key] ?? key} مطلوب أو غير صالح`;
+    });
+
+    if (errorMessages.length > 0) {
+      showToast(errorMessages.join(' | '), 'error');
+    } else {
+      showToast('الرجاء التأكد من تعبئة جميع الحقول المطلوبة', 'error');
+    }
+  };
+
+  const isBusy = isSubmitting || localSubmitting;
+
+  const footer = (
+    <div className="flex w-full gap-2 p-1">
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isBusy}
+        className="flex-1 border bg-gray-50 py-3 text-[11px] font-bold uppercase tracking-widest text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800"
+      >
+        إلغاء
+      </button>
+      <Button
+        onClick={() => void handleSubmit(handleSafeSubmit, onInvalidSubmit)()}
+        isLoading={isBusy}
+        disabled={isBusy}
+        className="flex-[2] rounded-none border-rose-700 bg-rose-600 text-[11px] font-bold uppercase tracking-widest shadow-xl"
+        leftIcon={<Save size={16} />}
+      >
+        حفظ واعتماد المصروف
+      </Button>
+    </div>
+  );
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      icon={Landmark}
+      title="قسيمة صرف مالي"
+      description="إدارة التدفقات النقدية الخارجة"
+      footer={footer}
+    >
+      <form className="flex flex-col">
+        <ExpenseAmountSection
+          register={register}
+          currenciesData={currencies.data || []}
+          watch={watch}
+          setValue={setValue}
+          isManualRate={isManualRate}
+          onToggleManualRate={handleToggleManualRate}
+        />
+
+        <ExpenseCategorySection
+          register={register}
+          categories={categories as any[]}
+          newCatMode={newCatMode}
+          setNewCatMode={setNewCatMode}
+          newCatName={newCatName}
+          setNewCatName={setNewCatName}
+          handleAddCategory={handleAddCategory}
+          isAddingCategory={isAddingCategory}
+        />
+
+        <ExpenseFinancialSection watch={watch} setValue={setValue} />
+      </form>
+    </Modal>
+  );
+};
+
+export default CreateExpenseModal;

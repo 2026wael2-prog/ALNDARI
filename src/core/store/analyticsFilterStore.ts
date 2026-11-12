@@ -28,40 +28,40 @@ export const computePeriodDateRange = (period: AnalyticsPeriod): DateRange => {
 
   switch (period) {
     case 'today':
-      return { startDate: todayStr, endDate: todayStr };
+return { startDate: todayStr, endDate: todayStr };
 
     case 'yesterday': {
-      const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      const yStr = formatLocalDate(yesterday);
-      return { startDate: yStr, endDate: yStr };
-    }
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const yStr = formatLocalDate(yesterday);
+  return { startDate: yStr, endDate: yStr };
+}
 
     case 'week': {
-      // Last 7 days including today
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      return { startDate: formatLocalDate(startOfWeek), endDate: todayStr };
-    }
+  // Last 7 days including today
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+  return { startDate: formatLocalDate(startOfWeek), endDate: todayStr };
+}
 
     case 'month': {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { startDate: formatLocalDate(startOfMonth), endDate: todayStr };
-    }
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  return { startDate: formatLocalDate(startOfMonth), endDate: todayStr };
+}
 
     case 'quarter': {
-      const currentMonth = now.getMonth();
-      const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
-      const startOfQuarter = new Date(now.getFullYear(), quarterStartMonth, 1);
-      return { startDate: formatLocalDate(startOfQuarter), endDate: todayStr };
-    }
+  const currentMonth = now.getMonth();
+  const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+  const startOfQuarter = new Date(now.getFullYear(), quarterStartMonth, 1);
+  return { startDate: formatLocalDate(startOfQuarter), endDate: todayStr };
+}
 
     case 'year': {
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      return { startDate: formatLocalDate(startOfYear), endDate: todayStr };
-    }
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  return { startDate: formatLocalDate(startOfYear), endDate: todayStr };
+}
 
     case 'custom':
     default:
-      return { startDate: todayStr, endDate: todayStr };
+return { startDate: todayStr, endDate: todayStr };
   }
 };
 

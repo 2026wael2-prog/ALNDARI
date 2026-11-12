@@ -144,3 +144,4 @@ WHERE currency_code = 'YER'
   AND status NOT IN ('void', 'cancelled');
 COMMIT;
 */
+

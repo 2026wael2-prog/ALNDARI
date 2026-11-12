@@ -3,6 +3,8 @@ import { useSalesStore } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import { formatCurrency, cn } from '../../../../core/utils';
 import { Wallet, HandCoins, AlertTriangle, ArrowRightLeft } from 'lucide-react';
+import { CustomerCreditAlertCard } from './CustomerCreditAlertCard';
+import { InvoiceProfitMarginCard } from './InvoiceProfitMarginCard';
 
 interface InvoiceTotalsProps {
   notes: string;
@@ -13,7 +15,7 @@ const NotesSection: React.FC<{ notes: string; onNotesChange: (v: string) => void
   notes,
   onNotesChange,
 }) => (
-  <div className="flex-1 p-2.5 sm:p-4">
+  <div className="w-full">
     <label
       htmlFor="sales-invoice-notes"
       className="text-[10px] font-bold uppercase tracking-widest text-gray-400"
@@ -28,7 +30,7 @@ const NotesSection: React.FC<{ notes: string; onNotesChange: (v: string) => void
       }}
       rows={2}
       placeholder="أدخل أي ملاحظات على الفاتورة..."
-      className="mt-1.5 h-16 w-full resize-none rounded-lg border border-slate-200/50 bg-slate-50/50 p-2 text-xs font-bold outline-none focus:border-blue-500/50 dark:border-slate-800 dark:bg-slate-900/40 sm:h-20"
+      className="mt-1 h-12 w-full resize-none rounded-lg border border-slate-200/50 bg-slate-50/50 p-2 text-xs font-bold outline-none focus:border-blue-500/50 dark:border-slate-800 dark:bg-slate-900/40 sm:h-14"
     />
   </div>
 );
@@ -128,6 +130,8 @@ const NetTotalDisplay: React.FC<{
 
 const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({ notes, onNotesChange }) => {
   const {
+    items,
+    selectedCustomer,
     summary,
     currency,
     exchangeRate,
@@ -163,7 +167,26 @@ const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({ notes, onNotesChange }) =
         </div>
       )}
       <div className="flex flex-col items-stretch justify-between md:flex-row">
-        <NotesSection notes={notes} onNotesChange={onNotesChange} />
+        <div className="flex-1 flex flex-col justify-between p-2.5 sm:p-4 space-y-2.5">
+          <NotesSection notes={notes} onNotesChange={onNotesChange} />
+
+          {/* 1. تنبيه رصيد وسجل العميل السابق وآخر دفعة سددها */}
+          {selectedCustomer?.id && (
+            <CustomerCreditAlertCard
+              customer={selectedCustomer}
+              invoiceCurrency={currency}
+            />
+          )}
+
+          {/* 2. بطاقة تحليل الربحية وهامش الخصم المتاح للعميل */}
+          <InvoiceProfitMarginCard
+            items={items}
+            currency={currency}
+            exchangeRate={exchangeRate}
+            exchangeOperator={exchangeOperator}
+            totalAmount={summary.totalAmount}
+          />
+        </div>
 
         {/* Partial Payment Section for Credit Invoices */}
         {invoiceType === 'credit' && (

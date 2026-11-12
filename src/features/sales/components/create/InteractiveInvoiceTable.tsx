@@ -13,6 +13,7 @@ const InteractiveInvoiceTable: React.FC = () => {
   const {
     items,
     warehouseId,
+    currency,
     setProductForRow,
     addItem,
     updateItem,
@@ -315,7 +316,18 @@ const InteractiveInvoiceTable: React.FC = () => {
                 style={{ width: colWidths.price }}
                 className="group relative border-b border-l p-2.5 text-center dark:border-slate-800 max-md:!w-[18%] max-md:p-1"
               >
-                سعر الوحدة
+                <div className="flex items-center justify-center gap-1">
+                  <span>سعر الوحدة</span>
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-black ${
+                      currency === 'YER'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                    }`}
+                  >
+                    ({currency === 'YER' ? 'ر.ي' : 'ر.س'})
+                  </span>
+                </div>
                 <div
                   onMouseDown={e => {
                     onMouseDown(e, 'price');

@@ -611,7 +611,7 @@ export const salesApi = {
     if (saleInvoiceIds.length > 0) {
       const { data: itemRows } = await supabase
         .from('invoice_items')
-        .select('product_id, quantity, subtotal')
+        .select('product_id, quantity, total')
         .in('invoice_id', saleInvoiceIds);
 
       if (itemRows && itemRows.length > 0) {
@@ -621,7 +621,7 @@ export const salesApi = {
           if (pid) {
             const entry = prodMap.get(pid) ?? { quantity: 0, revenue: 0 };
             entry.quantity += Number(it.quantity || 0);
-            entry.revenue += Number(it.subtotal || 0);
+            entry.revenue += Number(it.total || 0);
             prodMap.set(pid, entry);
           }
         }
@@ -640,9 +640,9 @@ export const salesApi = {
           return {
             productId: pid,
             productName: detail?.name_ar || 'صنف',
-            sku: detail?.sku,
-            partNumber: detail?.part_number,
-            brand: detail?.brand,
+            ...(detail?.sku ? { sku: detail.sku } : {}),
+            partNumber: detail?.part_number ?? null,
+            brand: detail?.brand ?? null,
             quantity: v.quantity,
             revenue: v.revenue,
           };

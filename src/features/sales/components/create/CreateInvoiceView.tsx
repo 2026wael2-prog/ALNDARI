@@ -55,6 +55,7 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
     notes,
     setMetadata,
     setCustomer,
+    setCurrencyPreservingPrices,
   } = useSalesStore();
   const { mutate: createInvoice, isPending } = useCreateInvoice();
   const { invoice: invoiceSettings } = useSettingsStore();
@@ -440,6 +441,7 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
         total={summary.totalAmount}
         paidAmount={invoiceType === 'credit' ? paidAmount : undefined}
         notes={notes}
+        onSwitchToYER={() => setCurrencyPreservingPrices('YER')}
       />
     </>
   );

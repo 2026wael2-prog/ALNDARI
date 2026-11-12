@@ -18,6 +18,7 @@ import { useSalesStore } from '../../store';
 import { usePaymentAccounts } from '../../../accounting/hooks/index';
 import { useWarehouses } from '../../../inventory/hooks/useInventoryManagement';
 import { useCurrencies } from '../../../settings/hooks';
+import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 import CustomerSelector from './CustomerSelector';
 import { cn } from '../../../../core/utils';
 import { formatLocalDate } from '../../../../core/utils/dateUtils';
@@ -44,8 +45,35 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
   const { data: paymentAccounts } = usePaymentAccounts();
   const { data: warehouses } = useWarehouses();
   const { currencies, rates } = useCurrencies();
+  const { branchId, branchName } = useBranchFilter();
   const prevCurrency = useRef(currency);
   const ratesLoaded = useRef(false);
+
+  // Automatic Branch-Aware Currency Initialization:
+  // If the active branch is Wael's branch or has YER saved as preferred currency,
+  // automatically initialize the invoice currency to YER instead of forcing SAR.
+  useEffect(() => {
+    const isWaelBranch =
+      Boolean(
+        branchName &&
+          (branchName.includes('وائل') ||
+            branchName.includes('النظاري') ||
+            branchName.toLowerCase().includes('wael'))
+      ) || (branchId ? localStorage.getItem(`branch_pref_currency_${branchId}`) === 'YER' : false);
+
+    if (isWaelBranch && currency === 'SAR' && rates.data) {
+      const preferred = (branchId && localStorage.getItem(`branch_pref_currency_${branchId}`)) || 'YER';
+      const autoRate = resolveAutoExchangeRate(
+        preferred,
+        rates.data,
+        currencies.data as Array<{ code: string; exchange_operator?: 'multiply' | 'divide' }>
+      );
+      prevCurrency.current = preferred;
+      setMetadata('currency', preferred);
+      setMetadata('exchangeRate', autoRate);
+      setMetadata('exchangeOperator', getDefaultExchangeOperator(preferred));
+    }
+  }, [branchId, branchName, rates.data, currencies.data]);
 
   // Treasury dropdown state
   const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
@@ -285,6 +313,14 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
                   const newCurr = e.target.value;
                   prevCurrency.current = newCurr;
                   setMetadata('currency', newCurr);
+
+                  if (branchId) {
+                    try {
+                      localStorage.setItem(`branch_pref_currency_${branchId}`, newCurr);
+                    } catch {
+                      // ignore quota errors
+                    }
+                  }
 
                   if (newCurr === 'SAR') {
                     setMetadata('exchangeRate', 1);

@@ -65,6 +65,11 @@ interface SalesState {
     exchangeRate?: number,
     exchangeOperator?: 'multiply' | 'divide'
   ) => void;
+  setCurrencyPreservingPrices: (
+    currency: string,
+    exchangeRate?: number,
+    exchangeOperator?: 'multiply' | 'divide'
+  ) => void;
   toggleColumn: (field: 'showDiscount') => void;
   resetCart: () => void;
   loadCartState: (cartState: Partial<SalesState>) => void;
@@ -397,6 +402,52 @@ export const useSalesStore = create<SalesState>()(
             exchangeRate: newRate,
             exchangeOperator: newOperator,
             items: newItems,
+          };
+        });
+        get().calculateTotals();
+      },
+
+      setCurrencyPreservingPrices: (currency, customRate, customOperator) => {
+        set(state => {
+          let newRate = customRate ?? (currency === 'SAR' ? 1 : state.exchangeRate);
+          let newOperator =
+            customOperator ?? (currency === 'SAR' ? 'multiply' : state.exchangeOperator);
+
+          if (currency === 'SAR') {
+            newRate = 1;
+            newOperator = 'multiply';
+          } else if (customRate === undefined || customRate <= 0 || newRate === 1) {
+            if (currency === 'YER') {
+              newRate = state.exchangeRate && state.exchangeRate > 1 ? state.exchangeRate : 410;
+              newOperator = 'divide';
+            } else if (currency === 'USD') {
+              newRate = state.exchangeRate && state.exchangeRate !== 1 ? state.exchangeRate : 3.75;
+              newOperator = 'multiply';
+            }
+          }
+
+          // [PRESERVE PRICES] نحافظ على الأرقام التي كتبها المستخدم كما هي (مثلاً 50,000 ريال يمني)
+          // ونعيد حساب basePrice بالريال السعودي فقط.
+          const updatedItems = state.items.map(item => {
+            if (!item.productId && item.price === 0) return item;
+            let newBasePrice = item.price;
+            try {
+              newBasePrice = convertCurrency(item.price, newRate, 'toBase', newOperator);
+            } catch {
+              newBasePrice = item.price;
+            }
+            return {
+              ...item,
+              basePrice: newBasePrice,
+            };
+          });
+
+          return {
+            ...state,
+            currency,
+            exchangeRate: newRate,
+            exchangeOperator: newOperator,
+            items: updatedItems,
           };
         });
         get().calculateTotals();

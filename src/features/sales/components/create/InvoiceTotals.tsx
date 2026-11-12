@@ -2,7 +2,7 @@ import React from 'react';
 import { useSalesStore } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import { formatCurrency, cn } from '../../../../core/utils';
-import { Wallet, HandCoins } from 'lucide-react';
+import { Wallet, HandCoins, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 
 interface InvoiceTotalsProps {
   notes: string;
@@ -71,35 +71,97 @@ const TotalsBreakdown: React.FC<BreakdownProps> = ({
   </div>
 );
 
-const NetTotalDisplay: React.FC<{ totalAmount: number; currency: string }> = ({
-  totalAmount,
-  currency,
-}) => (
-  <div className="group relative flex flex-1 items-center justify-between overflow-hidden bg-slate-950 p-3 text-white sm:p-4">
-    <div className="relative z-10">
-      <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">
-        صافي الفاتورة
-      </span>
-      <h2
-        dir="ltr"
-        className="font-mono text-xl font-bold leading-none tracking-tighter transition-transform duration-500 group-hover:scale-105 sm:text-2xl lg:text-3xl"
-      >
-        {formatCurrency(totalAmount, currency)}
-      </h2>
+const NetTotalDisplay: React.FC<{
+  totalAmount: number;
+  currency: string;
+  exchangeRate: number;
+  exchangeOperator?: string;
+}> = ({ totalAmount, currency, exchangeRate, exchangeOperator }) => {
+  const isForeign = currency !== 'SAR';
+  const effectiveRate =
+    exchangeOperator === 'divide' && exchangeRate < 1 ? 1 / exchangeRate : exchangeRate || 410;
+  const baseEquivalent = isForeign
+    ? exchangeOperator === 'divide'
+      ? totalAmount / effectiveRate
+      : totalAmount * effectiveRate
+    : totalAmount;
+
+  return (
+    <div className="group relative flex flex-1 flex-col justify-between overflow-hidden bg-slate-950 p-3 text-white sm:p-4">
+      <div className="flex items-start justify-between">
+        <div className="relative z-10">
+          <div className="flex items-center gap-2">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">
+              صافي الفاتورة
+            </span>
+            <span
+              className={cn(
+                'rounded-md px-1.5 py-0.5 text-[10px] font-black',
+                currency === 'YER'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+              )}
+            >
+              {currency === 'YER' ? 'الريال اليمني (YER)' : 'الريال السعودي (SAR)'}
+            </span>
+          </div>
+          <h2
+            dir="ltr"
+            className="mt-1 font-mono text-xl font-bold leading-none tracking-tighter transition-transform duration-500 group-hover:scale-105 sm:text-2xl lg:text-3xl text-white"
+          >
+            {formatCurrency(totalAmount, currency)}
+          </h2>
+          {isForeign && (
+            <p className="mt-1 font-mono text-xs font-bold text-amber-300">
+              المعادل: ≈ {formatCurrency(baseEquivalent, 'SAR')} (صرف {effectiveRate})
+            </p>
+          )}
+        </div>
+        <div className="relative z-10 rounded-xl bg-blue-600 p-2.5 shadow-lg shadow-blue-500/40 sm:p-3">
+          <Wallet size={18} className="sm:h-5 sm:w-5" />
+        </div>
+      </div>
+      <div className="absolute left-0 top-0 h-0.5 w-full animate-pulse bg-blue-500"></div>
     </div>
-    <div className="relative z-10 rounded-xl bg-blue-600 p-2.5 shadow-lg shadow-blue-500/40 sm:p-3">
-      <Wallet size={18} className="sm:h-5 sm:w-5" />
-    </div>
-    <div className="absolute left-0 top-0 h-0.5 w-full animate-pulse bg-blue-500"></div>
-  </div>
-);
+  );
+};
 
 const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({ notes, onNotesChange }) => {
-  const { summary, currency, invoiceType, paidAmount, setMetadata } = useSalesStore();
+  const {
+    summary,
+    currency,
+    exchangeRate,
+    exchangeOperator,
+    invoiceType,
+    paidAmount,
+    setMetadata,
+    setCurrencyPreservingPrices,
+  } = useSalesStore();
   const { discountEnabled } = useDiscountStore();
+
+  const isSuspiciouslyHighSAR = currency === 'SAR' && summary.totalAmount >= 5000;
 
   return (
     <div className="rounded-b-2xl border-t-2 border-gray-100 bg-[var(--app-surface)] dark:border-slate-800">
+      {/* Smart Currency Warning Banner */}
+      {isSuspiciouslyHighSAR && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-300/80 bg-amber-500/10 px-4 py-2.5 text-amber-900 dark:border-amber-800/80 dark:bg-amber-950/30 dark:text-amber-200">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span className="text-[11px] font-black">
+              تنبيه تدقيق العملة: إجمالي الفاتورة ({formatCurrency(summary.totalAmount, 'SAR')}) مرتفع جداً بالنسبة للريال السعودي. هل تقصد الريال اليمني (YER)؟
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCurrencyPreservingPrices('YER')}
+            className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1 text-xs font-black text-white shadow-xs transition hover:bg-amber-700"
+          >
+            <ArrowRightLeft size={13} />
+            تحويل العملة إلى ريال يمني (YER) الآن
+          </button>
+        </div>
+      )}
       <div className="flex flex-col items-stretch justify-between md:flex-row">
         <NotesSection notes={notes} onNotesChange={onNotesChange} />
 
@@ -190,7 +252,12 @@ const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({ notes, onNotesChange }) =
             currency={currency}
             discountEnabled={discountEnabled}
           />
-          <NetTotalDisplay totalAmount={summary.totalAmount} currency={currency} />
+          <NetTotalDisplay
+            totalAmount={summary.totalAmount}
+            currency={currency}
+            exchangeRate={exchangeRate}
+            exchangeOperator={exchangeOperator}
+          />
         </div>
       </div>
     </div>

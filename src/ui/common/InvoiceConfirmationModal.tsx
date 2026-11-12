@@ -10,6 +10,8 @@ import {
   User,
   ShieldCheck,
   AlertCircle,
+  AlertTriangle,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { formatCurrency, formatNumberDisplay } from '../../core/utils';
 import { getDefaultExchangeOperator } from '../../core/utils/currencyUtils';
@@ -47,6 +49,7 @@ export interface InvoiceConfirmationModalProps {
   total: number;
   paidAmount?: number | undefined;
   notes?: string | undefined;
+  onSwitchToYER?: (() => void) | undefined;
 }
 
 export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> = ({
@@ -70,6 +73,7 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
   total,
   paidAmount = 0,
   notes,
+  onSwitchToYER,
 }) => {
   // إغلاق بمفتاح Escape إذا لم تكن الفاتورة قيد الحفظ
   useEffect(() => {
@@ -167,6 +171,31 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
 
         {/* محتوى النافذة القابل للتمرير */}
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+          {/* Smart Currency Guard Alert */}
+          {currency === 'SAR' && total >= 5000 && onSwitchToYER && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border-2 border-rose-500/80 bg-rose-50/90 p-3 text-rose-950 dark:border-rose-600/80 dark:bg-rose-950/40 dark:text-rose-100 shadow-sm">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
+                <div>
+                  <p className="text-xs font-black">
+                    تنبيه تدقيق: الفاتورة ستُرحل بالريال السعودي (SAR) بإجمالي {formatCurrency(total, 'SAR')}!
+                  </p>
+                  <p className="text-[11px] font-semibold text-rose-800 dark:text-rose-300">
+                    إذا كانت هذه المبالغ بالريال اليمني (YER)، اضغط هنا للتحويل الفوري قبل الاعتماد لمنع تسجيلها كـريال سعودي.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onSwitchToYER}
+                className="flex items-center gap-1.5 shrink-0 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-3 py-1.5 shadow-md transition cursor-pointer"
+              >
+                <ArrowRightLeft size={13} />
+                تحويل إلى ريال يمني (YER)
+              </button>
+            </div>
+          )}
+
           {/* بطاقات البيانات الأساسية */}
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {/* العميل / المورد */}

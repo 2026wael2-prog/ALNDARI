@@ -10,7 +10,11 @@ import type { MatchedInvoiceItem, SearchInvoiceResultRow } from '@/core/types/in
 import { optArg } from '@/core/utils/rpcArgs';
 import { resolveSaleInvoiceDueDate } from '../utils/dueDate';
 import { broadcastCrossBranchActivity } from '@/features/branches/api';
-import { batchLookupParties, computePreviousDateRange } from '@/core/utils/dataFetching';
+import {
+  batchLookupParties,
+  batchLookupProducts,
+  computePreviousDateRange,
+} from '@/core/utils/dataFetching';
 
 // Re-export quotations API
 export { salesQuotationsApi };
@@ -518,14 +522,20 @@ export const salesApi = {
       const method = r.payment_method || 'cash';
 
       let baseAmt = amt;
-      try {
-        baseAmt = toBaseCurrency({
-          amount: amt,
-          currency_code: curr,
-          exchange_rate: rate,
-        });
-      } catch {
+      if (params.currency && params.currency !== 'ALL') {
+        // When filtered specifically by a single currency (e.g. YER or SAR),
+        // use nominal currency amounts directly to preserve accurate values
         baseAmt = amt;
+      } else {
+        try {
+          baseAmt = toBaseCurrency({
+            amount: amt,
+            currency_code: curr,
+            exchange_rate: rate,
+          });
+        } catch {
+          baseAmt = amt;
+        }
       }
       const day = r.issue_date || '';
       const dEntry = byDay.get(day) ?? { sales: 0, returns: 0 };
@@ -582,6 +592,64 @@ export const salesApi = {
       if (found) entry[1].customerName = found.name;
     }
 
+    // 3.5 Fast decoupled top products lookup for matching invoices
+    const saleInvoiceIds = (invRows || [])
+      .filter(r => r.type === 'sale')
+      .map(r => r.id)
+      .slice(0, 100);
+
+    let topProducts: Array<{
+      productId: string;
+      productName: string;
+      sku?: string;
+      partNumber?: string | null;
+      brand?: string | null;
+      quantity: number;
+      revenue: number;
+    }> = [];
+
+    if (saleInvoiceIds.length > 0) {
+      const { data: itemRows } = await supabase
+        .from('invoice_items')
+        .select('product_id, quantity, subtotal')
+        .in('invoice_id', saleInvoiceIds);
+
+      if (itemRows && itemRows.length > 0) {
+        const prodMap = new Map<string, { quantity: number; revenue: number }>();
+        for (const it of itemRows) {
+          const pid = it.product_id;
+          if (pid) {
+            const entry = prodMap.get(pid) ?? { quantity: 0, revenue: 0 };
+            entry.quantity += Number(it.quantity || 0);
+            entry.revenue += Number(it.subtotal || 0);
+            prodMap.set(pid, entry);
+          }
+        }
+
+        const topProdEntries = Array.from(prodMap.entries())
+          .sort((a, b) => b[1].revenue - a[1].revenue)
+          .slice(0, 10);
+
+        const prodDetailsMap = await batchLookupProducts(
+          topProdEntries.map(([id]) => id),
+          supabase
+        );
+
+        topProducts = topProdEntries.map(([pid, v]) => {
+          const detail = prodDetailsMap.get(pid);
+          return {
+            productId: pid,
+            productName: detail?.name_ar || 'صنف',
+            sku: detail?.sku,
+            partNumber: detail?.part_number,
+            brand: detail?.brand,
+            quantity: v.quantity,
+            revenue: v.revenue,
+          };
+        });
+      }
+    }
+
     // 4. Calculate previous period metrics
     let prevTotalSales = 0;
     let prevTotalReturns = 0;
@@ -590,10 +658,14 @@ export const salesApi = {
       const rate = pr.exchange_rate ?? 1;
       const curr = (pr.currency_code || 'SAR').toUpperCase();
       let baseAmt = amt;
-      try {
-        baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
-      } catch {
+      if (params.currency && params.currency !== 'ALL') {
         baseAmt = amt;
+      } else {
+        try {
+          baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
+        } catch {
+          baseAmt = amt;
+        }
       }
       if (pr.type === 'sale') prevTotalSales += baseAmt;
       else if (pr.type === 'sale_return') prevTotalReturns += baseAmt;
@@ -619,7 +691,7 @@ export const salesApi = {
         prevTotalSales,
         prevTotalReturns,
         prevNetSales,
-        topProducts: [],
+        topProducts,
         topCustomers: topCustomerEntries.map(([customerId, v]) => ({ customerId, ...v })),
         salesByDay: Array.from(byDay.entries())
           .map(([date, v]) => ({ date, ...v }))

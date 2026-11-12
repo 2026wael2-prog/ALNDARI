@@ -37,7 +37,11 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
   className,
 }) => {
   const { user } = useAuthStore();
-  const isManager = user?.role === 'owner' || user?.role === 'admin';
+  const isManager =
+    user?.role === 'owner' ||
+    user?.role === 'admin' ||
+    user?.role === 'manager' ||
+    !user?.branch_id;
 
   const {
     period,

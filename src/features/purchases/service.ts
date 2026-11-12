@@ -315,12 +315,17 @@ export const purchasesService = {
 
       let baseAmt = amt;
       let baseDebt = debt;
-      try {
-        baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
-        baseDebt = toBaseCurrency({ amount: debt, currency_code: curr, exchange_rate: rate });
-      } catch {
+      if (filters.currency && filters.currency !== 'ALL') {
         baseAmt = amt;
         baseDebt = debt;
+      } else {
+        try {
+          baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
+          baseDebt = toBaseCurrency({ amount: debt, currency_code: curr, exchange_rate: rate });
+        } catch {
+          baseAmt = amt;
+          baseDebt = debt;
+        }
       }
 
       if (r.type === 'purchase') {
@@ -402,14 +407,18 @@ export const purchasesService = {
       const amt = r.total_amount ?? 0;
       const rate = r.exchange_rate ?? 1;
       let baseAmt = amt;
-      try {
-        baseAmt = toBaseCurrency({
-          amount: amt,
-          currency_code: r.currency_code || 'SAR',
-          exchange_rate: rate,
-        });
-      } catch {
+      if (filters.currency && filters.currency !== 'ALL') {
         baseAmt = amt;
+      } else {
+        try {
+          baseAmt = toBaseCurrency({
+            amount: amt,
+            currency_code: r.currency_code || 'SAR',
+            exchange_rate: rate,
+          });
+        } catch {
+          baseAmt = amt;
+        }
       }
 
       const partyId = r.party_id;

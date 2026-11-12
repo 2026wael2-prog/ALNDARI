@@ -32,6 +32,9 @@ export const useExpenseCategories = () => {
     queryFn: () =>
       companyId ? expensesService.getExpenseCategories(companyId) : Promise.resolve([]),
     enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    placeholderData: prev => prev,
     select: data => (Array.isArray(data) ? data : []),
   });
 };
@@ -63,6 +66,9 @@ export const useExpensesData = (searchTerm = '') => {
     queryFn: () =>
       Boolean(companyId) ? expensesService.getExpensesList(companyId ?? '', branchId) : Promise.resolve([]),
     enabled: Boolean(companyId),
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: prev => prev,
   });
 
   const filteredExpenses = useMemo(() => {

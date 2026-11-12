@@ -59,21 +59,27 @@ export const WorkspaceTabBar: React.FC = () => {
     });
   }, [location.pathname, location.search, isEnabled, openTab]);
 
-  // التمرير التلقائي لجعل التبويب النشط مرئياً دائماً
+  // التمرير التلقائي لجعل التبويب النشط مرئياً دائماً بدون حبس الـ DOM أو reflow
   useEffect(() => {
     if (!scrollContainerRef.current) return;
-    const activeEl = scrollContainerRef.current.querySelector(
-      `[data-tab-id="${CSS.escape(activeTabId)}"]`
-    );
-    if (activeEl && typeof activeEl.scrollIntoView === 'function') {
-      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    }
+    const container = scrollContainerRef.current;
+    const rafId = requestAnimationFrame(() => {
+      const activeEl = container.querySelector(
+        `[data-tab-id="${CSS.escape(activeTabId)}"]`
+      );
+      if (activeEl && typeof activeEl.scrollIntoView === 'function') {
+        activeEl.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [activeTabId]);
 
-  // معالجة النقر على تبويب
+  // معالجة النقر على تبويب بانتقال غير مانع (Concurrent Transition)
   const handleTabClick = (tab: WorkspaceTab) => {
     setActiveTab(tab.id);
-    navigate(tab.path);
+    React.startTransition(() => {
+      navigate(tab.path);
+    });
   };
 
   // معالجة إغلاق التبويب
@@ -84,7 +90,9 @@ export const WorkspaceTabBar: React.FC = () => {
       }
       const nextPath = closeTab(tabId);
       if (nextPath) {
-        navigate(nextPath);
+        React.startTransition(() => {
+          navigate(nextPath);
+        });
       }
     },
     [closeTab, navigate]

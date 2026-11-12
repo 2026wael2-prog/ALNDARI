@@ -230,15 +230,21 @@ const INVALIDATION_PRESETS = {
 export type InvalidationPreset = keyof typeof INVALIDATION_PRESETS;
 
 /**
- * Invalidate all queries related to a mutation preset.
+ * Invalidate all queries related to a mutation preset in a single cache traversal pass.
  */
 export function invalidateByPreset(queryClient: QueryClient, preset: InvalidationPreset): void {
   const keys = INVALIDATION_PRESETS[preset];
   if (!keys) return;
-  const uniqueKeys = [...new Set(keys)];
-  for (const key of uniqueKeys) {
-    void queryClient.invalidateQueries({ queryKey: [key] });
-  }
+  const uniqueKeys = new Set<string>(keys);
+
+  // Single-pass predicate invalidation: traverses the cache once instead of sequential iterations
+  void queryClient.invalidateQueries({
+    predicate: query => {
+      const firstKey = query.queryKey[0];
+      return typeof firstKey === 'string' && uniqueKeys.has(firstKey);
+    },
+    refetchType: 'active',
+  });
 }
 
 /**

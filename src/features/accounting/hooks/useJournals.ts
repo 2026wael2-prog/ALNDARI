@@ -35,6 +35,8 @@ export const useJournals = () => {
       return allPages?.length ?? 1;
     },
     enabled: !!companyId,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 };
 

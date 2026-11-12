@@ -170,7 +170,7 @@ export const QueueStageCell: React.FC<{ stage: string | null }> = ({ stage }) =>
 /** الأمر التنفيذي التالي — أزرق لأنه «افعل هذا الآن»، لا معلومة للقراءة. */
 export const QueueNextActionCell: React.FC<{ row: DebtPriorityQueueRow }> = ({ row }) => (
   <span
-    className="line-clamp-2 text-[11px] font-bold leading-relaxed text-blue-700 dark:text-blue-400"
+    className="line-clamp-2 whitespace-normal text-[11px] font-bold leading-relaxed text-blue-700 dark:text-blue-400"
     title={`${row.next_action}${row.reference_info !== null ? ` • ${row.reference_info}` : ''}`}
   >
     {row.next_action}
@@ -181,7 +181,7 @@ interface QueueActionsProps {
   row: DebtPriorityQueueRow;
   canRemind: boolean;
   canManage: boolean;
-  hasDashboardRow: boolean;
+  hasDashboardRow?: boolean;
   onRemind: (row: DebtPriorityQueueRow) => void;
   onPromise: (row: DebtPriorityQueueRow) => void;
 }
@@ -189,9 +189,9 @@ interface QueueActionsProps {
 const iconButton =
   'rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 text-[var(--app-text-secondary)] transition-colors hover:border-blue-500/50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40';
 
-const remindHint = (canRemind: boolean, hasRow: boolean): string => {
+const remindHint = (canRemind: boolean, hasPhone: boolean): string => {
   if (!canRemind) return 'تحتاج صلاحية debts:remind';
-  if (!hasRow) return 'لا يوجد صف متابعة مطابق لهذا العميل';
+  if (!hasPhone) return 'العميل لا يملك رقم هاتف مسجل';
   return 'إرسال تذكير واتساب';
 };
 
@@ -234,41 +234,43 @@ export const QueueActionsCell: React.FC<QueueActionsProps> = ({
   row,
   canRemind,
   canManage,
-  hasDashboardRow,
   onRemind,
   onPromise,
-}) => (
-  <div className="flex items-center justify-center gap-1">
-    <IconAction
-      label="إرسال تذكير"
-      title={remindHint(canRemind, hasDashboardRow)}
-      disabled={!canRemind || !hasDashboardRow}
-      onClick={() => {
-        onRemind(row);
-      }}
-    >
-      <MessageSquare size={13} />
-    </IconAction>
-    <IconAction
-      label="تسجيل وعد دفع"
-      title={canManage ? 'تسجيل وعد دفع' : 'تحتاج صلاحية debts:manage'}
-      disabled={!canManage}
-      onClick={() => {
-        onPromise(row);
-      }}
-    >
-      <Handshake size={13} />
-    </IconAction>
-    <Link
-      to={`${ROUTES.DASHBOARD.DEBTS_FOLLOWUP}?party=${row.party_id}`}
-      className={iconButton}
-      title="فتح ملف التحصيل الكامل للعميل"
-      aria-label="فتح ملف التحصيل"
-      onClick={event => {
-        event.stopPropagation();
-      }}
-    >
-      <ArrowUpRight size={13} />
-    </Link>
-  </div>
-);
+}) => {
+  const hasPhone = (row.party_phone ?? '').trim() !== '';
+  return (
+    <div className="flex items-center justify-center gap-1">
+      <IconAction
+        label="إرسال تذكير"
+        title={remindHint(canRemind, hasPhone)}
+        disabled={!canRemind || !hasPhone}
+        onClick={() => {
+          onRemind(row);
+        }}
+      >
+        <MessageSquare size={13} />
+      </IconAction>
+      <IconAction
+        label="تسجيل وعد دفع"
+        title={canManage ? 'تسجيل وعد دفع' : 'تحتاج صلاحية debts:manage'}
+        disabled={!canManage}
+        onClick={() => {
+          onPromise(row);
+        }}
+      >
+        <Handshake size={13} />
+      </IconAction>
+      <Link
+        to={`${ROUTES.DASHBOARD.DEBTS_FOLLOWUP}?party=${row.party_id}`}
+        className={iconButton}
+        title="فتح ملف التحصيل الكامل للعميل"
+        aria-label="فتح ملف التحصيل"
+        onClick={event => {
+          event.stopPropagation();
+        }}
+      >
+        <ArrowUpRight size={13} />
+      </Link>
+    </div>
+  );
+};

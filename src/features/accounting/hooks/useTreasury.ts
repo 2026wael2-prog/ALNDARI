@@ -20,6 +20,9 @@ export const useCashboxes = (explicitBranchId?: string | null) => {
       return data;
     },
     enabled: Boolean(user?.company_id),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    placeholderData: prev => prev,
   });
 };
 
@@ -39,6 +42,9 @@ export const useExchangeCompanies = (explicitBranchId?: string | null) => {
       return data;
     },
     enabled: Boolean(user?.company_id),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    placeholderData: prev => prev,
   });
 };
 

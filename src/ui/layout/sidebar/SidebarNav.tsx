@@ -275,7 +275,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
           <button
             key={item.id}
             type="button"
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              React.startTransition(() => {
+                navigate(item.path);
+              });
+            }}
             onMouseEnter={() => {
               prefetchRoute(item.path);
             }}

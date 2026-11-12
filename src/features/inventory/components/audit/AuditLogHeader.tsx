@@ -1,7 +1,7 @@
 import React from 'react';
 import { History, Maximize2, Minimize2, X, Download } from 'lucide-react';
 import { cn, formatNumberDisplay } from '../../../../core/utils';
-import { exportToCSV } from '../../../../lib/exportUtils';
+import { exportGenericTableToExcel } from '../../../../core/utils/genericExcelExporter';
 import type { ItemMovementRow } from '../../types';
 
 /**
@@ -34,17 +34,17 @@ const AuditLogHeader: React.FC<AuditLogHeaderProps> = ({
 }) => {
     const handleExport = (): void => {
         if (!log || log.length === 0) return;
-        const exportData = log.map((entry, index) => ({
-            index: log.length - index,
-            date: new Date(entry.date).toLocaleString('en-GB'),
-            document_number: entry.document_number ?? '',
-            reference_type: entry.reference_type ?? '',
-            source_name: entry.source_name ?? '',
-            transaction_type: entry.transaction_type === 'in' ? 'وارد' : 'صادر',
-            quantity: entry.quantity,
-            balance_after: entry.balance_after ?? 0,
-            source_user: entry.source_user ?? ''
-        }));
+        const rows = log.map((entry, index) => [
+            log.length - index,
+            new Date(entry.date).toLocaleString('en-GB'),
+            entry.document_number ?? '',
+            entry.reference_type ?? '',
+            entry.source_name ?? '',
+            entry.transaction_type === 'in' ? 'وارد' : 'صادر',
+            entry.quantity,
+            entry.balance_after ?? 0,
+            entry.source_user ?? ''
+        ]);
 
         const headers = [
             '#',
@@ -59,7 +59,13 @@ const AuditLogHeader: React.FC<AuditLogHeaderProps> = ({
         ];
 
         const productName = selectedProduct.name_ar ?? selectedProduct.name ?? 'item';
-        exportToCSV(exportData, `سجل_حركة_${productName}`, headers);
+        void exportGenericTableToExcel({
+            title: `سجل حركة الصنف: ${productName}`,
+            subtitle: `رمز الصنف (SKU): ${selectedProduct.sku ?? '—'} | رقم القطعة: ${selectedProduct.part_number ?? '—'}`,
+            headers,
+            rows,
+            colorTheme: 'blue',
+        });
     };
 
     const productName = selectedProduct.name_ar ?? selectedProduct.name ?? 'الصنف';

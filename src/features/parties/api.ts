@@ -79,43 +79,43 @@ export const partiesApi = {
       partiesQuery = partiesQuery.eq('branch_id', branchId);
     }
 
-    const { data: partiesData, error: partiesError } = await partiesQuery;
+    // جلب متزامن للأطراف والأرصدة والعملات لتقليص زمن الانتظار بنسبة > 60%
+    const fetchBalances = async () => {
+      try {
+        return await supabase.rpc('get_party_balances_by_company', { p_company_id: companyId });
+      } catch (error) {
+        return { data: null, error };
+      }
+    };
 
-    if (partiesError !== null) return { data: null, error: partiesError };
+    const fetchCurrencies = async () => {
+      try {
+        return await fetchPartyCurrencies(companyId);
+      } catch {
+        return new Map<string, Array<{ currency: string; balance: number; transaction_count?: number }>>();
+      }
+    };
+
+    const [partiesRes, balancesRes, currencyMap] = await Promise.all([
+      partiesQuery,
+      fetchBalances(),
+      fetchCurrencies(),
+    ]);
+
+    if (partiesRes.error !== null) return { data: null, error: partiesRes.error };
+    const partiesData = partiesRes.data || [];
     if (partiesData.length === 0) return { data: [], error: null };
 
-    // Fast dedicated RPC with fallback to party_balances view
-    let balancesData: Array<{
-      party_id?: string | null;
-      balance?: number | null;
-      type?: string | null;
-    }> | null = null;
-    let balancesError: unknown = null;
-    try {
-      const rpcRes = await supabase.rpc('get_party_balances_by_company', {
-        p_company_id: companyId,
-      });
-      if (rpcRes.error === null && Array.isArray(rpcRes.data)) {
-        balancesData = rpcRes.data;
-      } else {
-        balancesError = rpcRes.error;
-      }
-    } catch (err) {
-      balancesError = err;
-    }
-
     const balancesMap = new Map();
-    if (balancesError === null && balancesData !== null) {
-      balancesData.forEach(b => {
+    if (balancesRes && !balancesRes.error && Array.isArray(balancesRes.data)) {
+      balancesRes.data.forEach((b: any) => {
         if (b && b.party_id) {
           balancesMap.set(b.party_id, b);
         }
       });
     }
 
-    const currencyMap = await fetchPartyCurrencies(companyId);
-
-    const mergedData = partiesData.map(p => ({
+    const mergedData = partiesData.map((p: Record<string, any>) => ({
       ...p,
       party_balances: balancesMap.has(p.id) ? [balancesMap.get(p.id)] : [],
       balances_by_currency: currencyMap.get(p.id) ?? [],

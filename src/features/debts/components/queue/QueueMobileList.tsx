@@ -6,7 +6,7 @@ interface QueueMobileListProps {
   rows: DebtPriorityQueueRow[];
   canRemind: boolean;
   canManage: boolean;
-  partiesWithDetail: ReadonlySet<string>;
+  partiesWithDetail?: ReadonlySet<string>;
   onRemind: (row: DebtPriorityQueueRow) => void;
   onPromise: (row: DebtPriorityQueueRow) => void;
 }
@@ -16,7 +16,6 @@ const QueueMobileList: React.FC<QueueMobileListProps> = ({
   rows,
   canRemind,
   canManage,
-  partiesWithDetail,
   onRemind,
   onPromise,
 }) => (
@@ -37,7 +36,6 @@ const QueueMobileList: React.FC<QueueMobileListProps> = ({
           row={row}
           canRemind={canRemind}
           canManage={canManage}
-          hasDashboardRow={partiesWithDetail.has(row.party_id)}
           onRemind={onRemind}
           onPromise={onPromise}
         />

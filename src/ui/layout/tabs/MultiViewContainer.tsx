@@ -8,7 +8,7 @@
  */
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { useOutlet } from 'react-router-dom';
+import { useOutlet, useLocation } from 'react-router-dom';
 import { useWorkspaceTabStore, type WorkspaceTab } from '../../../core/store/workspaceTabStore';
 import { useBreakpoint } from '../../../lib/hooks/useBreakpoint';
 import { ErrorBoundary } from '../../base/ErrorBoundary';
@@ -81,6 +81,27 @@ function pruneViewCache(
   return changed;
 }
 
+interface TabPanelContentProps {
+  children: React.ReactNode;
+  tabKey: string;
+}
+
+/**
+ * ⚡ Insulated Tab Content Wrapper:
+ * Frozen from parent visibility toggles so that hiding an inactive tab
+ * (style.display = 'none') does NOT reconcile or re-render child components.
+ */
+const TabPanelContent = React.memo(
+  function TabPanelContent({ children }: TabPanelContentProps) {
+    return (
+      <ErrorBoundary>
+        <React.Suspense fallback={<PageLoader />}>{children}</React.Suspense>
+      </ErrorBoundary>
+    );
+  },
+  (prev, next) => prev.tabKey === next.tabKey
+);
+
 interface TabPanelProps {
   tabId: string;
   isActive: boolean;
@@ -90,7 +111,7 @@ interface TabPanelProps {
 /**
  * ⚡ Custom comparator for TabPanel memoization:
  * 1. If tab ID changed -> re-render
- * 2. If active status changed (switched to/from this tab) -> re-render
+ * 2. If active status changed (switched to/from this tab) -> re-render container style only
  * 3. If the tab was inactive and remains inactive -> SKIP re-render completely!
  *    (Zero background re-renders across hidden tabs when user navigates or writes).
  * 4. If active -> only re-render if children changed.
@@ -112,9 +133,7 @@ const TabPanel = React.memo(function TabPanel({ tabId, isActive, children }: Tab
       className={cn('h-full w-full flex-1 flex-col', isActive ? 'flex' : 'hidden')}
       style={{ display: isActive ? 'flex' : 'none' }}
     >
-      <ErrorBoundary>
-        <React.Suspense fallback={<PageLoader />}>{children}</React.Suspense>
-      </ErrorBoundary>
+      <TabPanelContent tabKey={tabId}>{children}</TabPanelContent>
     </div>
   );
 }, areTabPanelPropsEqual);
@@ -128,10 +147,10 @@ function useViewsCache(
   const viewsCacheRef = useRef<Map<string, CacheEntry>>(new Map());
   const [, forceUpdate] = useState({});
 
-  useEffect(() => {
-    if (activeTabId === '' || outlet === null) return;
+  // Synchronous cache update during render so the active view is immediately available
+  if (activeTabId !== '' && outlet !== null && outlet !== undefined) {
     viewsCacheRef.current.set(activeTabId, { view: outlet, lastUsed: Date.now() });
-  }, [activeTabId, outlet]);
+  }
 
   useEffect(() => {
     const openIds = new Set(tabs.map(t => t.id));
@@ -146,11 +165,15 @@ function useViewsCache(
 
 export const MultiViewContainer: React.FC = () => {
   const outlet = useOutlet();
+  const location = useLocation();
   const isDesktop = useBreakpoint('md');
 
   const tabs = useWorkspaceTabStore(s => s.tabs);
-  const activeTabId = useWorkspaceTabStore(s => s.activeTabId);
+  const storeActiveTabId = useWorkspaceTabStore(s => s.activeTabId);
   const isEnabled = useWorkspaceTabStore(s => s.isEnabled);
+
+  // Synchronize active tab ID with current route immediately to prevent double-render lag
+  const activeTabId = location.pathname || storeActiveTabId;
   const tabsKey = useWorkspaceTabStore(s => s.tabs.map(t => t.id).join('|'));
 
   const viewsCacheRef = useViewsCache(activeTabId, outlet, tabs, tabsKey);

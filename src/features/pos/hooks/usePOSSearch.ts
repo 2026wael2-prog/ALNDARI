@@ -92,8 +92,8 @@ export function usePOSSearch(options: UsePOSSearchOptions = {}) {
     queryKey: ['pos_search', companyId, branchId, debouncedQuery, filters, limit],
     queryFn: () => posSearchService.search(companyId, debouncedQuery, filters, limit, branchId),
     enabled: !!companyId && debouncedQuery.length >= minChars,
-    staleTime: 15_000, // 15 seconds stale time
-    gcTime: 60_000, // 1 minute garbage collection
+    staleTime: 45_000, // 45 seconds stale time for instant re-queries
+    gcTime: 180_000, // 3 minutes garbage collection
     placeholderData: prev => prev, // Keep previous data while loading
   });
 

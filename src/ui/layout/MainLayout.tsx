@@ -273,7 +273,11 @@ const MainLayout: React.FC = () => {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  React.startTransition(() => {
+                    navigate(item.path);
+                  });
+                }}
                 aria-label={item.label}
                 className={cn(
                   'flex h-full flex-1 flex-col items-center justify-center transition-all duration-300 active:scale-90',
@@ -338,7 +342,9 @@ const MainLayout: React.FC = () => {
                 <button
                   key={item.path}
                   onClick={() => {
-                    navigate(item.path);
+                    React.startTransition(() => {
+                      navigate(item.path);
+                    });
                     setIsMoreSheetOpen(false);
                   }}
                   aria-label={item.label}

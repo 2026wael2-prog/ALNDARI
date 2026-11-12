@@ -114,6 +114,16 @@ describe('PriorityQueueCard', () => {
     expect(screen.queryAllByText('شركة الفجر')).toHaveLength(0);
   });
 
+  it('shows the clear filters button when active and resets on click', () => {
+    renderCard();
+    expect(screen.queryByText('مسح الفلاتر')).toBeNull();
+    fireEvent.click(screen.getByTitle('درجة الأهمية ≥ 70'));
+    const clearBtn = screen.getByText('مسح الفلاتر');
+    expect(clearBtn).toBeDefined();
+    fireEvent.click(clearBtn);
+    expect(screen.getAllByText('شركة الفجر').length).toBeGreaterThan(0);
+  });
+
   it('shows the Excel-style status bar totals in the base currency', () => {
     renderCard();
     expect(screen.getAllByText(/المعروض:/).length).toBeGreaterThan(0);

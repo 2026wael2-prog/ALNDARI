@@ -24,6 +24,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve((process as any).cwd(), './src'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   define: {
     'process.env': {},

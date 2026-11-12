@@ -2,6 +2,7 @@
 // This file provides backward compatibility while using the new modular services
 
 export { productService } from './productService';
+export { productQueryService, productQueryKeys } from './productQueryService';
 export { warehouseService } from './warehouseService';
 export { transferService } from './transferService';
 export { auditService } from './auditService';

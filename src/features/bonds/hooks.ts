@@ -20,6 +20,9 @@ export const useBonds = (type?: BondType) => {
         ? bondsService.fetchBonds(user.company_id, branchId, type)
         : Promise.resolve([]),
     enabled: !!user?.company_id,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: prev => prev,
   });
 };
 
@@ -33,6 +36,9 @@ export const useBondsAnalytics = (period?: 'today' | 'week' | 'month' | 'quarter
         ? bondsService.getBondsStats(user.company_id, branchId, period)
         : Promise.resolve(null),
     enabled: !!user?.company_id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    placeholderData: prev => prev,
   });
 };
 

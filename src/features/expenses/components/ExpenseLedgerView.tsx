@@ -1,7 +1,7 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/consistent-type-imports, @typescript-eslint/array-type, @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-confusing-void-expression, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing, jsx-a11y/label-has-associated-control, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unnecessary-condition */
 import React, { useMemo, useState } from 'react';
 import { Building2, Loader2 } from 'lucide-react';
-import { exportToCSV } from '@/lib/exportUtils';
+import { exportGenericTableToExcel } from '@/core/utils/genericExcelExporter';
 import EmptyState from '@/ui/base/EmptyState';
 import ExcelTable from '@/ui/common/ExcelTable';
 import { useAccounts, useLedger } from '../../accounting/hooks';
@@ -129,21 +129,28 @@ export const ExpenseLedgerView: React.FC<Props> = ({ initialAccountId, onBackToL
       'الرصيد التراكمي (له / عليه)',
     ];
     const isDebitNormal = isDebitNormalAccount(selectedAccount.type);
-    const exportData = ledger.map(r => {
+    const rows = ledger.map(r => {
       const isCredit = isDebitNormal ? r.balance < 0 : r.balance > 0;
       const isZero = r.balance > -0.001 && r.balance < 0.001;
       const statusText = isZero ? 'متزن' : isCredit ? 'له' : 'عليه';
-      return {
-        date: r.date,
-        entry_no: r.entry_number > 0 ? `#${r.entry_number}` : '-',
-        desc: r.description,
-        party: r.party_name || '-',
-        debit: r.debit_amount,
-        credit: r.credit_amount,
-        balance: `${statusText}: ${r.balance < 0 ? -r.balance : r.balance}`,
-      };
+      return [
+        r.date,
+        r.entry_number > 0 ? `#${r.entry_number}` : '-',
+        r.description,
+        r.party_name || '-',
+        r.debit_amount,
+        r.credit_amount,
+        `${statusText}: ${r.balance < 0 ? -r.balance : r.balance}`,
+      ];
     });
-    exportToCSV(exportData, `كشف_حساب_${selectedAccount.code}_${selectedAccount.name}`, headers);
+
+    void exportGenericTableToExcel({
+      title: `كشف حساب المصروفات: ${selectedAccount.name} (${selectedAccount.code})`,
+      subtitle: dateFrom && dateTo ? `الفترة: من ${dateFrom} إلى ${dateTo}` : 'كشف حساب تفصيلي',
+      headers,
+      rows,
+      colorTheme: 'orange',
+    });
   };
 
   const handlePrint = () => {

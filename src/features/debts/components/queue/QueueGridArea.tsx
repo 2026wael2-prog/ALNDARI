@@ -95,7 +95,6 @@ const QueueGridArea: React.FC<QueueGridAreaProps> = ({
         rows={data.visible}
         canRemind={canRemind}
         canManage={canManage}
-        partiesWithDetail={selection.partiesWithDetail}
         onRemind={selection.setRemindRow}
         onPromise={selection.setPromiseRow}
       />

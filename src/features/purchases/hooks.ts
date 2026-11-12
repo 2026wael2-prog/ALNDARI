@@ -54,6 +54,7 @@ export const usePurchases = (options?: UsePurchasesOptions): UseQueryResult<Purc
     queryKey: ['purchases', companyId, branchId, options],
     queryFn: async (): Promise<PurchaseList> => {
       if (!hasCompany) return [];
+      const effectiveLimit = options?.limit ?? 100;
       if (isSearchMode) {
         return (await purchasesService.searchPurchases(companyId, {
           query: options?.searchTerm,
@@ -64,13 +65,15 @@ export const usePurchases = (options?: UsePurchasesOptions): UseQueryResult<Purc
           type: options?.type,
           branchId,
           page: options?.page ?? 0,
-          limit: options?.limit ?? 150,
+          limit: effectiveLimit,
         })) as unknown as PurchaseList;
       }
-      return purchasesService.getPurchases(companyId, branchId, options?.limit ?? 500);
+      return purchasesService.getPurchases(companyId, branchId, effectiveLimit);
     },
     enabled: hasCompany,
-    staleTime: isSearchMode ? 30 * 1000 : 5 * 60 * 1000,
+    staleTime: isSearchMode ? 60 * 1000 : 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: prev => prev,
   });
 };
 
@@ -87,6 +90,8 @@ export const usePurchaseStats = (): UseQueryResult<PurchaseStats | null> => {
       return purchasesService.getStats(companyId, branchId);
     },
     enabled: hasCompany,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 };
 

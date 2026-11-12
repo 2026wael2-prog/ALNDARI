@@ -85,7 +85,8 @@ export const QUEUE_SAVED_VIEWS: readonly QueueSavedView[] = [
 ];
 
 /** مفتاح الصف في الشبكة: معرّف المهمة فريد داخل الطابور. */
-export const queueRowId = (row: DebtPriorityQueueRow): string => row.task_id;
+export const queueRowId = (row: DebtPriorityQueueRow | undefined | null): string =>
+  row?.task_id ?? '';
 
 /** هل مضى على آخر تواصل عتبة الانقطاع (أو لا سجل تواصل أصلاً)؟ */
 export const isStaleContact = (daysSinceContact: number | null): boolean =>
@@ -144,6 +145,18 @@ export const isSavedViewActive = (filters: QueueFilters, view: QueueSavedView): 
     const expected = view.filters[key as keyof QueueFilters];
     return current === expected;
   });
+
+/** هل توجد أي فلاتر نشطة تخالف الحالة الافتراضية؟ */
+export const isFilterActive = (filters: QueueFilters): boolean =>
+  filters.search.trim() !== '' ||
+  filters.minScore > 0 ||
+  filters.minDaysLate > 0 ||
+  filters.currency !== '' ||
+  filters.stage !== '' ||
+  filters.assignee !== '' ||
+  filters.onlyPhone ||
+  filters.onlyOverdue ||
+  filters.onlyStaleContact;
 
 /** ملخص الشبكة: كل المبالغ بالعملة الأساس، والمعدلات مقرّبة لخانة واحدة. */
 export interface QueueSummary {

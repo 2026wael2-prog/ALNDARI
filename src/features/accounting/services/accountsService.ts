@@ -36,31 +36,25 @@ export const accountsService = {
     companyId: string,
     options?: { includeBalances?: boolean; branchId?: string | null }
   ): Promise<Account[]> => {
-    // Fetch account metadata
-    const { data, error } = await accountsApi.getAccounts(companyId);
-    if (error) throw parseError(error);
-
-    // Balances are fetched from the cumulative-balance RPC (the accounts table
-    // has no balance column). `report_account_balances` sums ALL posted
-    // movements up to today (not just the current calendar year), so opening
-    // balances from previous years are included. It is only run when balances
-    // are actually needed (e.g. the accounts list view); callers that only
-    // route by account metadata (id/code/type) skip it entirely.
-    const balanceMap = new Map<string, number>();
-    const foreignBalanceMap = new Map<string, number>();
-    if (options?.includeBalances) {
-      const { data: balances, error: balancesError } = await supabase.rpc(
-        'report_account_balances',
-        {
+    // جلب متزامن لهيكل الحسابات وأرصدتها التراكمية لتسريع تحميل دليل الحسابات
+    const accountsPromise = accountsApi.getAccounts(companyId);
+    const balancesPromise = options?.includeBalances
+      ? supabase.rpc('report_account_balances', {
           p_company_id: companyId,
           p_as_of_date: formatLocalDate(),
           ...(options.branchId ? { p_branch_id: options.branchId } : {}),
-        }
-      );
-      // Fail loudly rather than silently zeroing every account balance.
-      if (balancesError) throw parseError(balancesError);
+        })
+      : Promise.resolve({ data: null, error: null });
 
-      for (const row of balances ?? []) {
+    const [accountsRes, balancesRes] = await Promise.all([accountsPromise, balancesPromise]);
+
+    if (accountsRes.error) throw parseError(accountsRes.error);
+    if (balancesRes.error) throw parseError(balancesRes.error);
+
+    const balanceMap = new Map<string, number>();
+    const foreignBalanceMap = new Map<string, number>();
+    if (options?.includeBalances && balancesRes.data) {
+      for (const row of balancesRes.data) {
         const r = row as {
           account_id: string;
           balance?: number | null;
@@ -72,7 +66,7 @@ export const accountsService = {
     }
 
     // Map to Account model
-    return (data ?? []).map(acc => {
+    return (accountsRes.data ?? []).map(acc => {
       // report_trial_balance returns flat `balance = SUM(debit) - SUM(credit)`
       // for every account type. Normalise the sign by type so that
       // liabilities / equity / revenue appear as positive CREDIT balances

@@ -3,8 +3,8 @@ import { Trash2, Calendar, Receipt } from 'lucide-react';
 import ExcelTable from '../../../ui/common/ExcelTable';
 import { toBaseCurrency } from '../../../core/utils';
 import type { Expense } from '../types';
-import { exportToCSV } from '../../../lib/exportUtils';
 import EmptyState from '../../../ui/base/EmptyState';
+import { exportGenericTableToExcel } from '../../../core/utils/genericExcelExporter';
 
 interface ExpenseTableProps {
   expenses: Expense[];
@@ -20,17 +20,23 @@ const ExpenseTable: React.FC<ExpenseTableProps> = ({
   onViewLedger,
 }) => {
   const handleExport = () => {
-    const headers = ['Voucher', 'Description', 'Category', 'Date', 'Amount', 'Currency', 'Status'];
-    const exportData = expenses.map(e => ({
-      no: e.voucher_number || (e as any).voucher_no || (e as any).reference_no || '---',
-      desc: e.description,
-      cat: e.category_name,
-      date: e.expense_date,
-      amount: e.amount,
-      currency: e.currency_code,
-      status: e.status,
-    }));
-    exportToCSV(exportData, 'Al-Jaafari-Expenses', headers);
+    const headers = ['رقم السند', 'البيان', 'التصنيف', 'التاريخ', 'المبلغ', 'العملة', 'الحالة'];
+    const rows = expenses.map(e => [
+      e.voucher_number || (e as any).voucher_no || (e as any).reference_no || '---',
+      e.description,
+      e.category_name,
+      e.expense_date,
+      e.amount,
+      e.currency_code,
+      e.status === 'posted' ? 'مدفوع' : e.status === 'void' ? 'ملغي' : 'مسودة',
+    ]);
+    void exportGenericTableToExcel({
+      title: 'سجل المصروفات التشغيلية',
+      subtitle: `إجمالي المصروفات: ${expenses.length} سند`,
+      headers,
+      rows,
+      colorTheme: 'orange',
+    });
   };
 
   const columns = [

@@ -60,7 +60,7 @@ const priorityColumns = (ctx: QueueColumnContext): Array<Column<DebtPriorityQueu
         {String(ctx.rankById.get(row.task_id) ?? '—')}
       </span>
     ),
-    width: 'w-10',
+    width: '60px',
     align: 'center',
   },
   {
@@ -68,7 +68,7 @@ const priorityColumns = (ctx: QueueColumnContext): Array<Column<DebtPriorityQueu
     accessorKey: 'priority_score',
     accessor: row => <QueueScoreCell score={row.priority_score} drivers={row.score_drivers} />,
     sortKey: 'priority_score',
-    width: 'w-20',
+    width: '100px',
     align: 'center',
   },
   {
@@ -76,7 +76,7 @@ const priorityColumns = (ctx: QueueColumnContext): Array<Column<DebtPriorityQueu
     accessorKey: 'party_name',
     accessor: row => <QueuePartyCell row={row} />,
     sortKey: 'party_name',
-    width: 'w-56',
+    width: '220px',
     align: 'right',
   },
 ];
@@ -91,7 +91,7 @@ const moneyColumns = (
     accessorKey: 'amount',
     accessor: row => <QueueAmountCell row={row} />,
     sortKey: 'amount_base',
-    width: 'w-32',
+    width: '130px',
     align: 'left',
   },
   {
@@ -103,7 +103,7 @@ const moneyColumns = (
       </span>
     ),
     sortKey: 'currency_code',
-    width: 'w-16',
+    width: '70px',
     align: 'center',
   },
   {
@@ -113,7 +113,7 @@ const moneyColumns = (
       <QueueBaseCell row={row} baseTotal={metrics.summary.baseTotal} maxBase={metrics.maxBase} />
     ),
     sortKey: 'amount_base',
-    width: 'w-24',
+    width: '120px',
     align: 'left',
     footer: () => baseTotalLabel(metrics.summary, ctx.baseCurrency),
   },
@@ -122,7 +122,7 @@ const moneyColumns = (
     accessorKey: 'days_late',
     accessor: row => <QueueDaysCell days={row.days_late} maxDays={metrics.maxDays} />,
     sortKey: 'days_late',
-    width: 'w-20',
+    width: '90px',
     align: 'center',
     footer: () => (metrics.summary.count === 0 ? '' : `${String(metrics.summary.avgDaysLate)} يوم`),
   },
@@ -135,7 +135,7 @@ const contactColumns = (): Array<Column<DebtPriorityQueueRow>> => [
     accessorKey: 'days_since_contact',
     accessor: row => <QueueContactCell days={row.days_since_contact} />,
     sortKey: 'days_since_contact',
-    width: 'w-20',
+    width: '90px',
     align: 'center',
   },
   {
@@ -143,7 +143,7 @@ const contactColumns = (): Array<Column<DebtPriorityQueueRow>> => [
     accessorKey: 'escalation_stage',
     accessor: row => <QueueStageCell stage={row.escalation_stage} />,
     sortKey: 'escalation_stage',
-    width: 'w-24',
+    width: '100px',
     align: 'center',
   },
   {
@@ -158,7 +158,7 @@ const contactColumns = (): Array<Column<DebtPriorityQueueRow>> => [
       </span>
     ),
     sortKey: 'assigned_name',
-    width: 'w-28',
+    width: '120px',
     align: 'right',
   },
 ];
@@ -170,7 +170,7 @@ const workColumns = (ctx: QueueColumnContext): Array<Column<DebtPriorityQueueRow
     accessorKey: 'next_action',
     accessor: row => <QueueNextActionCell row={row} />,
     sortKey: 'next_action',
-    width: 'w-64',
+    width: '260px',
     align: 'right',
   },
   {
@@ -182,22 +182,22 @@ const workColumns = (ctx: QueueColumnContext): Array<Column<DebtPriorityQueueRow
       </span>
     ),
     sortKey: 'reference_info',
-    width: 'w-28',
+    width: '110px',
     align: 'center',
   },
   {
     header: 'الإجراءات',
+    accessorKey: 'actions',
     accessor: row => (
       <QueueActionsCell
         row={row}
         canRemind={ctx.canRemind}
         canManage={ctx.canManage}
-        hasDashboardRow={ctx.partiesWithDetail.has(row.party_id)}
         onRemind={ctx.onRemind}
         onPromise={ctx.onPromise}
       />
     ),
-    width: 'w-24',
+    width: '110px',
     align: 'center',
   },
 ];

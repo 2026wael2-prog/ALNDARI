@@ -109,6 +109,9 @@ export const useProductSearch = (searchTerm: string, options?: UseProductSearchO
       });
     },
     enabled: enabled && !!companyId && normalizedTerm.length >= 2,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: prev => prev,
   });
 
   const search = useCallback((term: string) => {

@@ -7,6 +7,7 @@ import {
   coverageShare,
   filterQueueRows,
   heatLevel,
+  isFilterActive,
   isSavedViewActive,
   isStaleContact,
   matchesQueueFilters,
@@ -49,6 +50,8 @@ const withFilters = (patch: Partial<QueueFilters>): QueueFilters => ({
 describe('queueRowId', () => {
   it('uses the task id because one party can own several queue tasks', () => {
     expect(queueRowId(row())).toBe('inv:1');
+    expect(queueRowId(undefined)).toBe('');
+    expect(queueRowId(null)).toBe('');
   });
 });
 
@@ -185,5 +188,14 @@ describe('buildQueueFilterOptions', () => {
     expect(options.currencies).toEqual(['SAR', 'YER']);
     expect(options.stages).toEqual(['call', 'visit']);
     expect(options.assignees.map(item => item.id)).toEqual(['u1', 'u2']);
+  });
+});
+
+describe('isFilterActive', () => {
+  it('detects when filters deviate from defaults', () => {
+    expect(isFilterActive(EMPTY_QUEUE_FILTERS)).toBe(false);
+    expect(isFilterActive(withFilters({ search: 'أحمد' }))).toBe(true);
+    expect(isFilterActive(withFilters({ minScore: 50 }))).toBe(true);
+    expect(isFilterActive(withFilters({ onlyPhone: true }))).toBe(true);
   });
 });

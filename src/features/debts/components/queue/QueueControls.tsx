@@ -13,6 +13,7 @@ import { escalationLabel } from '../../lib/constants';
 import {
   QUEUE_SAVED_VIEWS,
   baseTotalLabel,
+  isFilterActive,
   isSavedViewActive,
   type QueueFilterOptions,
   type QueueFilters,
@@ -111,14 +112,16 @@ export const QueuePresetChips: React.FC<PresetChipsProps> = ({ filters, onApply,
           {view.label}
         </button>
       ))}
-      <button
-        type="button"
-        onClick={onClear}
-        title="مسح كل الفلاتر"
-        className={cn(chipBase, chipIdle, 'hover:border-rose-500/40 hover:text-rose-600')}
-      >
-        <X size={11} /> مسح
-      </button>
+      {isFilterActive(filters) && (
+        <button
+          type="button"
+          onClick={onClear}
+          title="مسح كل الفلاتر النشطة"
+          className={cn(chipBase, 'border-rose-500/40 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20')}
+        >
+          <X size={11} /> مسح الفلاتر
+        </button>
+      )}
       {pct > 0 && (
         <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
           درجة ≥ {String(pct)}

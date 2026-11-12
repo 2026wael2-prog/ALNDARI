@@ -47,18 +47,16 @@ export const useTabIndicator = ({ activeTab, tabRefs, containerRef }: UseTabIndi
           return;
         }
 
-        const containerRect = container.getBoundingClientRect();
-        const tabRect = activeTabRef.getBoundingClientRect();
         const rtl = isRTL();
-        const containerStyle = window.getComputedStyle(container);
-        const paddingLeft = parseFloat(containerStyle.paddingLeft);
-        const paddingRight = parseFloat(containerStyle.paddingRight);
+        const tabWidth = activeTabRef.offsetWidth;
+        const containerWidth = container.clientWidth;
 
+        // Position relative to container without expensive window.getComputedStyle (prevents layout thrashing)
         const x = rtl
-          ? containerRect.right - tabRect.right - paddingRight
-          : tabRect.left - containerRect.left - paddingLeft;
+          ? containerWidth - (activeTabRef.offsetLeft + tabWidth)
+          : activeTabRef.offsetLeft;
 
-        setIndicatorPosition({ x, width: tabRect.width, opacity: animate ? 1 : 0 });
+        setIndicatorPosition({ x, width: tabWidth, opacity: animate ? 1 : 0 });
       });
     },
     [activeTab, tabRefs, containerRef]
@@ -66,25 +64,12 @@ export const useTabIndicator = ({ activeTab, tabRefs, containerRef }: UseTabIndi
 
   // تحديث الموضع عند تغيير التاب النشط
   useEffect(() => {
-    let t1: ReturnType<typeof setTimeout> | undefined;
-    let t2: ReturnType<typeof setTimeout> | undefined;
-
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      t1 = setTimeout(() => {
-        updateIndicatorPosition(false);
-      }, 0);
-      t2 = setTimeout(() => {
-        setIndicatorPosition(prev => ({ ...prev, opacity: 1 }));
-      }, 50);
+      updateIndicatorPosition(false);
     } else {
       updateIndicatorPosition(true);
     }
-
-    return () => {
-      if (t1) clearTimeout(t1);
-      if (t2) clearTimeout(t2);
-    };
   }, [activeTab, updateIndicatorPosition]);
 
   // تحديث الموضع عند تغيير حجم الـ container

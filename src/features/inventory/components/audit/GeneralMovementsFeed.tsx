@@ -10,7 +10,7 @@ import {
   Package,
 } from 'lucide-react';
 import { cn, formatNumberDisplay } from '../../../../core/utils';
-import { exportToCSV } from '@/lib/exportUtils';
+import { exportGenericTableToExcel } from '@/core/utils/genericExcelExporter';
 import type { InventoryMovementsFilterParams } from '../../types';
 import { useInventoryMovementsFeed } from '../../hooks';
 
@@ -109,23 +109,29 @@ export const GeneralMovementsFeed: React.FC<GeneralMovementsFeedProps> = ({ onSe
       'ملاحظات',
     ];
 
-    const exportRows = movements.map(m => ({
-      date: new Date(m.date).toLocaleString('ar-SA'),
-      docType: DOC_TYPE_LABELS[m.doc_type]?.label || m.doc_type,
-      docNumber: m.doc_number,
-      productName: m.product_name,
-      productSku: m.product_sku,
-      productPartNumber: m.product_part_number || '',
-      productBrand: m.product_brand || '',
-      movementType: m.movement_type === 'in' ? 'وارد' : 'صادر',
-      quantity: m.quantity,
-      currentStock: m.current_stock,
-      partyName: m.party_name,
-      userName: m.user_name?.split('@')[0] || 'النظام',
-      notes: m.notes || '',
-    }));
+    const exportRows = movements.map(m => [
+      new Date(m.date).toLocaleString('ar-SA'),
+      DOC_TYPE_LABELS[m.doc_type]?.label || m.doc_type,
+      m.doc_number,
+      m.product_name,
+      m.product_sku,
+      m.product_part_number || '',
+      m.product_brand || '',
+      m.movement_type === 'in' ? 'وارد' : 'صادر',
+      m.quantity,
+      m.current_stock,
+      m.party_name,
+      m.user_name?.split('@')[0] || 'النظام',
+      m.notes || '',
+    ]);
 
-    exportToCSV(exportRows, `سجل_حركات_المخزون_${new Date().toISOString().split('T')[0]}`, headers);
+    void exportGenericTableToExcel({
+      title: 'سجل حركات المخزون العامة',
+      subtitle: `إجمالي الحركات: ${movements.length}`,
+      headers,
+      rows: exportRows,
+      colorTheme: 'blue',
+    });
   };
 
   return (

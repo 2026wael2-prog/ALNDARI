@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import type { BondFormData, BondType } from './types';
 
 export const bondsApi = {
-  getBonds: async (companyId: string, branchId?: string | null, type?: BondType) => {
+  getBonds: async (companyId: string, branchId?: string | null, type?: BondType, limitNum = 200) => {
     // Map BondType → payments.type
     const paymentType =
       type === 'receipt'
@@ -37,7 +37,8 @@ export const bondsApi = {
       .eq('company_id', companyId)
       .is('deleted_at', null)
       .neq('status', 'void')
-      .order('payment_date', { ascending: false });
+      .order('payment_date', { ascending: false })
+      .limit(limitNum);
 
     // Only filter by type when explicitly requested
     if (paymentType) {

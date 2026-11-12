@@ -1,6 +1,6 @@
 import React from 'react';
 import { type LucideIcon, ArrowRight, ArrowLeft, Maximize2, Minimize2, Eye, EyeOff } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../../core/utils';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import { AdvancedTabBar, type TabItem } from '../components/AdvancedTabBar';
@@ -52,9 +52,14 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
   onToggleZen,
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { dir } = useTranslation();
-  const isRoot = location.pathname === '/';
+  // Safe root check without subscribing to router location context (prevents cascading re-renders across hidden tabs)
+  const isRoot =
+    typeof window !== 'undefined'
+      ? window.location.hash === '#/' ||
+        window.location.hash === '' ||
+        window.location.pathname === '/'
+      : false;
   const setPageSearch = useSearchStore(s => s.setPageSearch);
   const clearPageSearch = useSearchStore(s => s.clearPageSearch);
 

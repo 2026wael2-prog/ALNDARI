@@ -14,6 +14,19 @@ const DhikrTicker = lazy(() => import('../../features/dhikr/DhikrTicker'));
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import { useSearchStore } from '../../core/store/searchStore';
 
+class SafeDhikrBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch() {
+    // Graceful fallback: hide ticker if an error occurs without breaking header
+  }
+  render() {
+    return this.state.hasError ? null : this.props.children;
+  }
+}
+
 interface HeaderProps {
   onMenuClick: () => void;
 }
@@ -56,7 +69,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <Menu size={24} />
           </button>
           <div
-            onClick={() => navigate('/')}
+            onClick={() => {
+              React.startTransition(() => {
+                navigate('/');
+              });
+            }}
             className="cursor-pointer rounded-lg bg-blue-600 p-1.5 text-white shadow-md shadow-blue-500/20 transition-all duration-300 active:scale-95 md:hidden"
             aria-label="الرئيسية"
           >
@@ -181,9 +198,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       )}
 
       {/* Non-intrusive Dhikr & Prayer ticker */}
-      <Suspense fallback={null}>
-        <DhikrTicker />
-      </Suspense>
+      <SafeDhikrBoundary>
+        <Suspense fallback={null}>
+          <DhikrTicker />
+        </Suspense>
+      </SafeDhikrBoundary>
     </div>
   );
 };

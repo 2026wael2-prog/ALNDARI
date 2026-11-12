@@ -24,8 +24,17 @@ const ROUTE_PREFETCH_MAP: Record<string, PrefetchFn> = {
   '/clients': () => import('../../features/parties/PartiesPage'),
   '/suppliers': () => import('../../features/parties/PartiesPage'),
   '/reports': () => import('../../features/reports/ReportsPage'),
-  '/debts': () => import('../../features/debts/pages/OverviewPage'),
+  '/debts': async () => {
+    await Promise.all([
+      import('../../features/debts/pages/DebtsLayout'),
+      import('../../features/debts/pages/OverviewPage'),
+    ]);
+  },
   '/appearance': () => import('../../features/appearance/AppearancePage'),
+  '/commissions': () => import('../../features/commissions/pages/CommissionDashboardPage'),
+  '/daily-reconciliation': () =>
+    import('../../features/reconciliation/pages/DailyReconciliationPage'),
+  '/vin': () => import('../../features/vin-intelligence/pages/VINPage'),
 };
 
 // Track which routes have already been prefetched to avoid duplicate fetches
@@ -79,6 +88,7 @@ export function prefetchCriticalRoutes(): void {
       '/clients',
       '/suppliers',
       '/reports',
+      '/debts',
     ];
     criticalRoutes.forEach((path, index) => {
       setTimeout(

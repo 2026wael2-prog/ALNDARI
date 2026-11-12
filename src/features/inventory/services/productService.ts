@@ -522,12 +522,18 @@ export const productService = {
   /**
    * Get minimal product list (for dropdowns and quick selections)
    */
-  getMinimalProducts: async (companyId: string) => {
-    const { data, error } = await supabase
+  getMinimalProducts: async (companyId: string, limitNum = 1000) => {
+    let query = supabase
       .from('products')
       .select('id, name_ar, sku, sale_price')
       .eq('company_id', companyId)
       .eq('status', 'active');
+
+    if (limitNum > 0) {
+      query = query.limit(limitNum);
+    }
+
+    const { data, error } = await query;
     if (error) throw parseError(error);
     return (data || []).map(
       (p: { id: string; name_ar: string; sku: string | null; sale_price: number | null }) => ({

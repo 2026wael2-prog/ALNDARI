@@ -36,6 +36,7 @@ export const useInvoices = (options?: UseInvoicesOptions) => {
     queryKey: ['invoices', companyId, branchId, options],
     queryFn: () => {
       if (!companyId) return Promise.resolve([]);
+      const effectiveLimit = options?.limit ?? 100;
       if (isSearchMode) {
         return salesService.searchSalesInvoices(companyId, {
           query: options?.searchTerm,
@@ -46,18 +47,20 @@ export const useInvoices = (options?: UseInvoicesOptions) => {
           type: options?.type ?? 'sale',
           branchId,
           page: options?.page ?? 0,
-          limit: options?.limit ?? 500,
+          limit: effectiveLimit,
         });
       }
       return salesService.fetchSalesLog(
         companyId,
         options?.page ?? 0,
         branchId,
-        options?.limit ?? 500
+        effectiveLimit
       );
     },
     enabled: !!companyId,
     staleTime: isSearchMode ? 60 * 1000 : 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: prev => prev,
     // إعادة المحاولة مرتين بتأخير تصاعدي لمعالجة أخطاء QUIC/الشبكة العابرة
     retry: 2,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),

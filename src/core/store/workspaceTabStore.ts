@@ -76,13 +76,24 @@ export const useWorkspaceTabStore = create<WorkspaceTabState>()(
         const existingIndex = tabs.findIndex(t => t.id === tabId);
 
         if (existingIndex >= 0) {
+          const existing = tabs[existingIndex];
+          const hasPathChanged = existing.path !== newTab.path;
+          const hasTitleChanged = Boolean(newTab.title && newTab.title !== existing.title);
+          const hasIconChanged = Boolean(newTab.iconKey && newTab.iconKey !== existing.iconKey);
+          const hasActiveChanged = activeTabId !== tabId;
+
+          // If tab is already open, active, and unchanged: skip redundant state update!
+          if (!hasPathChanged && !hasTitleChanged && !hasIconChanged && !hasActiveChanged) {
+            return;
+          }
+
           // التبويب موجود بالفعل: نقوم بتحديث المسار في حال تغيرت معلمات البحث وتنشيطه
           const updatedTabs = [...tabs];
           updatedTabs[existingIndex] = {
-            ...updatedTabs[existingIndex],
+            ...existing,
             path: newTab.path,
-            title: newTab.title || updatedTabs[existingIndex].title,
-            iconKey: newTab.iconKey || updatedTabs[existingIndex].iconKey,
+            title: newTab.title || existing.title,
+            iconKey: newTab.iconKey || existing.iconKey,
           };
           set({
             tabs: updatedTabs,
@@ -173,7 +184,8 @@ export const useWorkspaceTabStore = create<WorkspaceTabState>()(
       },
 
       setActiveTab: tabId => {
-        const { tabs } = get();
+        const { tabs, activeTabId } = get();
+        if (activeTabId === tabId) return;
         if (tabs.some(t => t.id === tabId)) {
           set({ activeTabId: tabId });
         }

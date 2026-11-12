@@ -22,7 +22,7 @@ import { ExcelTableResizeHandles } from './ExcelTableResizeHandles';
 import FullscreenContainer from '../base/FullscreenContainer';
 import ExcelTableToolbar from './ExcelTableToolbar';
 import { EXCEL_TABLE_THEMES, type ExcelTableColorTheme } from './excelTableThemes';
-import { exportToCSV } from '../../lib/exportUtils';
+import { exportGenericTableToExcel } from '../../core/utils/genericExcelExporter';
 
 export interface Column<T> {
   header: string;
@@ -73,6 +73,7 @@ function ExcelTable<T>({
   columns,
   data,
   title,
+  subtitle,
   emptyMessage,
   colorTheme = 'blue',
   onExport,
@@ -161,10 +162,10 @@ function ExcelTable<T>({
   );
 
 
-  // Reset page when search/data changes
+  // Reset page when search/data changes or when currentPage exceeds totalPages
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, data.length]);
+  }, [searchTerm, data]);
 
   const paginatedData = useMemo(() => {
     if (!enablePagination) return processedData;
@@ -173,6 +174,12 @@ function ExcelTable<T>({
   }, [processedData, currentPage, itemsPerPage, enablePagination]);
 
   const totalPages = Math.ceil(processedData.length / itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, totalPages]);
 
   // Custom Hooks
   const {
@@ -275,22 +282,36 @@ function ExcelTable<T>({
     const exportHeaders = columns
       .map(c => c.header)
       .filter(h => typeof h === 'string' && h.trim() !== '');
+
     const exportRows = processedData.map(row => {
-      const obj: Record<string, unknown> = {};
-      columns.forEach(col => {
-        if (!col.header || typeof col.header !== 'string' || col.header.trim() === '') return;
-        if (col.accessorKey) {
-          obj[col.header] = (row as Record<string, unknown>)[String(col.accessorKey)] ?? '';
-        } else {
+      return columns
+        .filter(c => typeof c.header === 'string' && c.header.trim() !== '')
+        .map(col => {
+          if (col.accessorKey) {
+            const raw = (row as Record<string, unknown>)[String(col.accessorKey)];
+            if (raw === null || raw === undefined) return '';
+            if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
+              return raw;
+            }
+            return String(raw);
+          }
           const val = col.accessor(row);
-          obj[col.header] = typeof val === 'string' || typeof val === 'number' ? val : '';
-        }
-      });
-      return obj;
+          if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+            return val;
+          }
+          return '';
+        });
     });
-    const safeTitle = title?.trim() ? title.replace(/\s+/g, '_') : 'Table_Export';
-    exportToCSV(exportRows, safeTitle, exportHeaders);
-  }, [onExport, processedData, columns, title]);
+
+    const safeTitle = title?.trim() ? title : 'بيانات_الجدول';
+    void exportGenericTableToExcel({
+      title: safeTitle,
+      subtitle: subtitle?.trim() ? subtitle : undefined,
+      headers: exportHeaders,
+      rows: exportRows,
+      colorTheme,
+    });
+  }, [onExport, processedData, columns, title, subtitle, colorTheme]);
 
   return (
     <FullscreenContainer
@@ -443,6 +464,9 @@ function ExcelTable<T>({
                         key={idx}
                         className={cn(
                           'border-r border-[var(--app-border)] p-2 text-[11px] font-bold',
+                          col.align === 'center' && 'text-center',
+                          col.align === 'left' && 'text-left',
+                          col.align === 'right' && 'text-right',
                           col.className
                         )}
                       >

@@ -124,7 +124,8 @@ export function useProductSelectionTable({
       }
     },
     enabled: isOpen && !!companyId,
-    staleTime: 1000 * 15,
+    staleTime: 1000 * 60,
+    placeholderData: prev => prev,
   });
 
   // In-stock filter

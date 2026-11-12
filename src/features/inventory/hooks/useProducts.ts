@@ -142,6 +142,9 @@ export const useProducts = (
           )
         : Promise.resolve([]),
     enabled: options.enabled ?? (companyId !== undefined && companyId !== ''),
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   // NOTE: live updates for `products` are handled by the app-wide

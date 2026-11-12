@@ -60,7 +60,7 @@ const HeaderActions: React.FC = () => {
       setPendingCount(pending.length);
     };
     checkPending();
-    const interval = setInterval(checkPending, 5000);
+    const interval = setInterval(checkPending, 20000);
     return () => {
       clearInterval(interval);
     };

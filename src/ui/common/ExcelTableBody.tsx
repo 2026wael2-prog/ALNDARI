@@ -182,6 +182,7 @@ export function ExcelTableBody<T>({
       {virtualItems.map(virtualRow => {
         const rowIdx = virtualRow.index;
         const row = orderedData[rowIdx];
+        if (!row) return null;
         const rowId = getRowId
           ? getRowId(row)
           : ((row as Record<string, unknown>)?.id as string) || String(rowIdx);

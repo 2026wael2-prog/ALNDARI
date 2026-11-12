@@ -10,6 +10,7 @@ import type { MatchedInvoiceItem, SearchInvoiceResultRow } from '@/core/types/in
 import { optArg } from '@/core/utils/rpcArgs';
 import { resolveSaleInvoiceDueDate } from '../utils/dueDate';
 import { broadcastCrossBranchActivity } from '@/features/branches/api';
+import { batchLookupParties, computePreviousDateRange } from '@/core/utils/dataFetching';
 
 // Re-export quotations API
 export { salesQuotationsApi };
@@ -460,14 +461,10 @@ export const salesApi = {
     });
 
     if (params.start_date && params.end_date) {
-      const startD = new Date(params.start_date);
-      const endD = new Date(params.end_date);
-      const diffMs = endD.getTime() - startD.getTime();
-      const diffDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
-      const prevEndD = new Date(startD.getTime() - 24 * 60 * 60 * 1000);
-      const prevStartD = new Date(prevEndD.getTime() - (diffDays - 1) * 24 * 60 * 60 * 1000);
-      const prevStart = prevStartD.toISOString().slice(0, 10);
-      const prevEnd = prevEndD.toISOString().slice(0, 10);
+      const { startDate: prevStart, endDate: prevEnd } = computePreviousDateRange(
+        params.start_date,
+        params.end_date
+      );
 
       let prevQ = supabase
         .from('invoices')
@@ -570,23 +567,19 @@ export const salesApi = {
       if (day) byDay.set(day, dEntry);
     }
 
-    // 3. Fast two-step customer names lookup for top 10 customers only (< 15ms)
+    // 3. Fast decoupled batch customer names lookup for top 10 customers only (< 15ms)
     const topCustomerEntries = Array.from(byCust.entries())
       .sort((a, b) => b[1].totalAmount - a[1].totalAmount)
       .slice(0, 10);
-    const topPartyIds = topCustomerEntries.map(([id]) => id);
 
-    if (topPartyIds.length > 0) {
-      const { data: partiesData } = await supabase
-        .from('parties')
-        .select('id, name')
-        .in('id', topPartyIds);
+    const partyMap = await batchLookupParties(
+      topCustomerEntries.map(([id]) => id),
+      supabase
+    );
 
-      const partyMap = new Map((partiesData || []).map(p => [p.id, p.name]));
-      for (const entry of topCustomerEntries) {
-        const foundName = partyMap.get(entry[0]);
-        if (foundName) entry[1].customerName = foundName;
-      }
+    for (const entry of topCustomerEntries) {
+      const found = partyMap.get(entry[0]);
+      if (found) entry[1].customerName = found.name;
     }
 
     // 4. Calculate previous period metrics

@@ -6,6 +6,7 @@ import { toBaseCurrency } from '../../core/utils/currencyUtils';
 import { validatePurchasePayload, assertValid } from '../../core/utils/validationUtils';
 import { logger } from '../../core/utils/logger';
 import { resolveStrictPaymentAccount, type RoutableAccount } from '../../core/utils/accountRouting';
+import { batchLookupParties } from '../../core/utils/dataFetching';
 import { accountsService } from '../accounting/services/accountsService';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -424,22 +425,17 @@ export const purchasesService = {
       }
     }
 
-    // Fast batch lookup for top 8 supplier names
+    // Fast decoupled batch lookup for top 8 supplier names
     const topSupplierEntries = Array.from(supplierMap.entries())
       .sort((a, b) => b[1].value - a[1].value)
       .slice(0, 8);
     const topSupplierIds = topSupplierEntries.map(([id]) => id);
 
     if (topSupplierIds.length > 0) {
-      const { data: partyRows } = await supabase
-        .from('parties')
-        .select('id, name')
-        .in('id', topSupplierIds);
-
-      const partyMap = new Map((partyRows || []).map(p => [p.id, p.name]));
+      const partyMap = await batchLookupParties(topSupplierIds, supabase);
       for (const entry of topSupplierEntries) {
         const found = partyMap.get(entry[0]);
-        if (found) entry[1].name = found;
+        if (found) entry[1].name = found.name;
       }
     }
 

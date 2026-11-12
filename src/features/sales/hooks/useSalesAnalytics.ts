@@ -12,7 +12,10 @@ interface SalesAnalyticsParams {
   companyId: string;
   startDate?: string;
   endDate?: string;
-  period?: 'today' | 'week' | 'month' | 'quarter' | 'year';
+  period?: 'today' | 'yesterday' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
+  branchId?: string | null;
+  currency?: 'ALL' | 'SAR' | 'YER';
+  paymentType?: 'ALL' | 'cash' | 'credit' | 'bank' | 'network';
 }
 
 interface SalesAnalytics {
@@ -24,6 +27,14 @@ interface SalesAnalytics {
   prevTotalSales: number;
   prevTotalReturns: number;
   prevNetSales: number;
+  totalSalesSAR: number;
+  totalSalesYER: number;
+  cashSalesSAR: number;
+  cashSalesYER: number;
+  creditSalesSAR: number;
+  creditSalesYER: number;
+  totalReturnsSAR: number;
+  totalReturnsYER: number;
   topProducts: Array<{
     productId: string;
     productName: string;
@@ -92,6 +103,14 @@ const normalizeAnalytics = (raw: RawRecord | null | undefined): SalesAnalytics |
     prevTotalSales: numberField('prevTotalSales', 'prev_total_sales'),
     prevTotalReturns: numberField('prevTotalReturns', 'prev_total_returns'),
     prevNetSales: numberField('prevNetSales', 'prev_net_sales'),
+    totalSalesSAR: numberField('totalSalesSAR', 'total_sales_sar'),
+    totalSalesYER: numberField('totalSalesYER', 'total_sales_yer'),
+    cashSalesSAR: numberField('cashSalesSAR', 'cash_sales_sar'),
+    cashSalesYER: numberField('cashSalesYER', 'cash_sales_yer'),
+    creditSalesSAR: numberField('creditSalesSAR', 'credit_sales_sar'),
+    creditSalesYER: numberField('creditSalesYER', 'credit_sales_yer'),
+    totalReturnsSAR: numberField('totalReturnsSAR', 'total_returns_sar'),
+    totalReturnsYER: numberField('totalReturnsYER', 'total_returns_yer'),
 
     topProducts: listField('topProducts', 'top_products').map((p: RawRecord, i: number) => ({
       productId: String(p.productId ?? p.product_id ?? p.id ?? `prod-${i}`),
@@ -132,10 +151,24 @@ const normalizeAnalytics = (raw: RawRecord | null | undefined): SalesAnalytics |
 };
 
 export const useSalesAnalytics = (params: SalesAnalyticsParams) => {
-  const { companyId, startDate, endDate, period = 'month' } = params;
-  const { branchId } = useBranchFilter();
+  const {
+    companyId,
+    startDate,
+    endDate,
+    period = 'month',
+    branchId: overrideBranchId,
+    currency = 'ALL',
+    paymentType = 'ALL',
+  } = params;
+  const { branchId: contextBranchId } = useBranchFilter();
+  const effectiveBranchId = overrideBranchId !== undefined ? overrideBranchId : contextBranchId;
 
-  const queryKey = ['sales_analytics', companyId, branchId, { startDate, endDate, period }] as const;
+  const queryKey = [
+    'sales_analytics',
+    companyId,
+    effectiveBranchId,
+    { startDate, endDate, period, currency, paymentType },
+  ] as const;
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey,
@@ -151,9 +184,13 @@ export const useSalesAnalytics = (params: SalesAnalyticsParams) => {
         start_date?: string;
         end_date?: string;
         branch_id?: string | null;
+        currency?: 'ALL' | 'SAR' | 'YER';
+        payment_type?: 'ALL' | 'cash' | 'credit' | 'bank' | 'network';
       } = {
         company_id: companyId,
-        branch_id: branchId,
+        branch_id: effectiveBranchId,
+        currency,
+        payment_type: paymentType,
       };
       if (startDate) payload.start_date = startDate;
       if (endDate) payload.end_date = endDate;
@@ -190,6 +227,14 @@ export const useSalesAnalytics = (params: SalesAnalyticsParams) => {
     prevTotalSales: data?.prevTotalSales ?? 0,
     prevTotalReturns: data?.prevTotalReturns ?? 0,
     prevNetSales: data?.prevNetSales ?? 0,
+    totalSalesSAR: data?.totalSalesSAR ?? 0,
+    totalSalesYER: data?.totalSalesYER ?? 0,
+    cashSalesSAR: data?.cashSalesSAR ?? 0,
+    cashSalesYER: data?.cashSalesYER ?? 0,
+    creditSalesSAR: data?.creditSalesSAR ?? 0,
+    creditSalesYER: data?.creditSalesYER ?? 0,
+    totalReturnsSAR: data?.totalReturnsSAR ?? 0,
+    totalReturnsYER: data?.totalReturnsYER ?? 0,
     topProducts: data?.topProducts ?? [],
     topCustomers: data?.topCustomers ?? [],
     salesByDay: data?.salesByDay ?? [],

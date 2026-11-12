@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import StatCard from '../../../ui/common/StatCard';
+import DualCurrencyStatCard from '../../../ui/common/DualCurrencyStatCard';
+import { AnalyticsUnifiedFilterBar } from '../../../ui/common/AnalyticsUnifiedFilterBar';
+import { useAnalyticsFilterStore } from '../../../core/store/analyticsFilterStore';
 import { cn } from '../../../core/utils';
 import { formatCurrency } from '../../../core/utils/currencyUtils';
 import { useDebtAnalytics } from '../hooks/useDebtQueries';
@@ -158,9 +161,10 @@ const StatsGrid: React.FC<{
   analytics: DebtAnalytics | null;
   isLoading: boolean;
   baseCurrency: string;
+  currencyMode: 'ALL' | 'SAR' | 'YER';
   bucket: DebtQueueBucket;
   onSelectBucket: (bucket: DebtQueueBucket) => void;
-}> = ({ analytics, isLoading, baseCurrency, bucket, onSelectBucket }) => {
+}> = ({ analytics, isLoading, baseCurrency, currencyMode, bucket, onSelectBucket }) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-3 max-md:gap-1.5 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
@@ -171,10 +175,44 @@ const StatsGrid: React.FC<{
     );
   }
   const rows = buildStatRows(analytics ?? ({} as DebtAnalytics), baseCurrency);
+  const sarEntry = analytics?.by_currency?.find(c => c.currency.toUpperCase() === 'SAR');
+  const yerEntry = analytics?.by_currency?.find(c => c.currency.toUpperCase() === 'YER');
+  const amountSAR = sarEntry
+    ? asNumber(sarEntry.balance)
+    : baseCurrency === 'SAR'
+      ? asNumber(analytics?.total_receivables)
+      : 0;
+  const amountYER = yerEntry
+    ? asNumber(yerEntry.balance)
+    : baseCurrency === 'YER'
+      ? asNumber(analytics?.total_receivables)
+      : 0;
+
   return (
     <div className="grid grid-cols-2 gap-3 max-md:gap-1.5 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
       {rows.map(s => {
         const targetBucket = bucketForTitle(s.title);
+
+        if (s.title === 'إجمالي المديونية') {
+          return (
+            <DualCurrencyStatCard
+              key={s.title}
+              title={s.title}
+              amountSAR={amountSAR}
+              amountYER={amountYER}
+              currencyMode={currencyMode}
+              subtext={s.subtext}
+              icon={s.icon}
+              colorClass={s.colorClass}
+              iconBgClass={s.iconBgClass}
+              onClick={() => {
+                onSelectBucket(bucket === 'all' ? 'all' : 'all');
+              }}
+              isActive={bucket === 'all'}
+            />
+          );
+        }
+
         return (
           <StatCard
             key={s.title}
@@ -294,12 +332,18 @@ const AnalyticsPlaceholder: React.FC<{ isError: boolean; onRetry: () => void }> 
 };
 
 const OverviewPage: React.FC = () => {
+  const { currency } = useAnalyticsFilterStore();
   const { data: analytics, isLoading, isError, refetch } = useDebtAnalytics();
   const [bucket, setBucket] = useState<DebtQueueBucket>('all');
   const { data: company } = useCompany();
 
   const companyCurrency = company?.base_currency;
-  const baseCurrency = companyCurrency !== undefined && companyCurrency !== '' ? companyCurrency : 'SAR';
+  const baseCurrency =
+    currency !== 'ALL'
+      ? currency
+      : companyCurrency !== undefined && companyCurrency !== ''
+        ? companyCurrency
+        : 'SAR';
   const a = (analytics ?? {}) as DebtAnalytics;
   const analyticsUnavailable = isAnalyticsUnavailable(isLoading, isError, analytics);
 
@@ -308,7 +352,10 @@ const OverviewPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-5 max-md:space-y-3">
+    <div className="space-y-4 max-md:space-y-3">
+      {/* 1. Unified Filter Bar */}
+      <AnalyticsUnifiedFilterBar onRefresh={handleRetry} isRefreshing={isLoading} />
+
       <AIDebtAdvisor />
       {analyticsUnavailable ? (
         <AnalyticsPlaceholder isError={isError} onRetry={handleRetry} />
@@ -318,6 +365,7 @@ const OverviewPage: React.FC = () => {
             analytics={analytics ?? null}
             isLoading={isLoading}
             baseCurrency={baseCurrency}
+            currencyMode={currency}
             bucket={bucket}
             onSelectBucket={setBucket}
           />

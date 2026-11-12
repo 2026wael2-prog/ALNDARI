@@ -3,6 +3,14 @@ export interface PurchaseStats {
   totalPurchases: number;
   pendingPaymentCount: number;
   totalDebt: number;
+  totalPurchasesSAR?: number;
+  totalPurchasesYER?: number;
+  totalDebtSAR?: number;
+  totalDebtYER?: number;
+  cashPurchasesSAR?: number;
+  cashPurchasesYER?: number;
+  creditPurchasesSAR?: number;
+  creditPurchasesYER?: number;
 }
 
 export interface PurchaseItem {

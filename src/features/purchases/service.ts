@@ -21,52 +21,13 @@ export interface PurchaseTrendRow {
   amount: number;
 }
 
-type PurchaseStatsPayload = PurchaseStats & {
-  topSuppliers?: unknown;
-  chartData?: unknown;
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-const asNumber = (value: unknown): number =>
-  typeof value === 'number' && Number.isFinite(value) ? value : 0;
-
-const asSupplierRows = (value: unknown): SupplierAnalyticsRow[] => {
-  if (!Array.isArray(value)) return [];
-  return value.filter(isRecord).map(row => ({
-    name: typeof row.name === 'string' ? row.name : '',
-    value: asNumber(row.value),
-  }));
-};
-
-const asTrendRows = (value: unknown): PurchaseTrendRow[] => {
-  if (!Array.isArray(value)) return [];
-  return value.filter(isRecord).map(row => ({
-    date: typeof row.date === 'string' ? row.date : '',
-    amount: asNumber(row.amount),
-  }));
-};
-
-const asPurchaseStats = (value: unknown): PurchaseStatsPayload => {
-  if (!isRecord(value)) {
-    return {
-      invoiceCount: 0,
-      totalPurchases: 0,
-      pendingPaymentCount: 0,
-      totalDebt: 0,
-    };
-  }
-
-  return {
-    invoiceCount: asNumber(value.invoiceCount),
-    totalPurchases: asNumber(value.totalPurchases),
-    pendingPaymentCount: asNumber(value.pendingPaymentCount),
-    totalDebt: asNumber(value.totalDebt),
-    topSuppliers: value.topSuppliers,
-    chartData: value.chartData,
-  };
-};
+export interface PurchaseStatsFilters {
+  branchId?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  currency?: 'ALL' | 'SAR' | 'YER';
+  paymentType?: 'ALL' | 'cash' | 'credit' | 'bank' | 'network';
+}
 
 const isPurchaseReturn = (purchase: PurchaseListRow): boolean =>
   purchase.type === 'purchase_return';
@@ -287,44 +248,190 @@ export const purchasesService = {
   processPurchaseReturn: async (data: CreatePurchaseDTO, companyId: string, userId: string) =>
     purchasesApi.createPurchaseReturnRPC(companyId, userId, data),
 
-  getStats: async (companyId: string, branchId?: string | null) => {
-    const { data, error } = await supabase.rpc('get_purchase_stats', {
-      p_company_id: companyId,
-      ...(branchId !== undefined && branchId !== null && branchId !== ''
-        ? { p_branch_id: branchId }
-        : {}),
-    });
+  getStats: async (
+    companyId: string,
+    branchIdOrFilters?: string | null | PurchaseStatsFilters
+  ): Promise<PurchaseStats> => {
+    const filters: PurchaseStatsFilters =
+      typeof branchIdOrFilters === 'string' || branchIdOrFilters === null
+        ? { branchId: branchIdOrFilters }
+        : (branchIdOrFilters ?? {});
+
+    let query = supabase
+      .from('invoices')
+      .select(
+        'id, type, total_amount, paid_amount, issue_date, payment_method, currency_code, exchange_rate, status'
+      )
+      .eq('company_id', companyId)
+      .in('type', ['purchase', 'purchase_return'])
+      .neq('status', 'void')
+      .neq('status', 'cancelled')
+      .is('deleted_at', null);
+
+    if (filters.branchId) {
+      query = query.eq('branch_id', filters.branchId);
+    }
+    if (filters.currency && filters.currency !== 'ALL') {
+      query = query.eq('currency_code', filters.currency);
+    }
+    if (filters.paymentType && filters.paymentType !== 'ALL') {
+      query = query.eq('payment_method', filters.paymentType);
+    }
+    if (filters.startDate) {
+      query = query.gte('issue_date', filters.startDate);
+    }
+    if (filters.endDate) {
+      query = query.lte('issue_date', filters.endDate);
+    }
+
+    const { data: invRows, error } = await query;
     if (error) {
       logger.error('PurchaseService', 'Error fetching purchase stats', { companyId, error });
       throw error;
     }
 
-    const result = asPurchaseStats(data);
+    let invoiceCount = 0;
+    let totalPurchases = 0;
+    let pendingPaymentCount = 0;
+    let totalDebt = 0;
+
+    let totalPurchasesSAR = 0;
+    let totalPurchasesYER = 0;
+    let totalDebtSAR = 0;
+    let totalDebtYER = 0;
+    let cashPurchasesSAR = 0;
+    let cashPurchasesYER = 0;
+    let creditPurchasesSAR = 0;
+    let creditPurchasesYER = 0;
+
+    for (const r of invRows || []) {
+      const amt = r.total_amount ?? 0;
+      const paid = r.paid_amount ?? 0;
+      const debt = Math.max(0, amt - paid);
+      const rate = r.exchange_rate ?? 1;
+      const curr = (r.currency_code || 'SAR').toUpperCase();
+      const method = r.payment_method || 'cash';
+
+      let baseAmt = amt;
+      let baseDebt = debt;
+      try {
+        baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
+        baseDebt = toBaseCurrency({ amount: debt, currency_code: curr, exchange_rate: rate });
+      } catch {
+        baseAmt = amt;
+        baseDebt = debt;
+      }
+
+      if (r.type === 'purchase') {
+        invoiceCount += 1;
+        totalPurchases += baseAmt;
+        totalDebt += baseDebt;
+        if (debt > 0 || r.status !== 'paid') {
+          pendingPaymentCount += 1;
+        }
+
+        if (curr === 'SAR') {
+          totalPurchasesSAR += amt;
+          totalDebtSAR += debt;
+          if (method === 'cash') cashPurchasesSAR += amt;
+          else if (method === 'credit') creditPurchasesSAR += amt;
+        } else if (curr === 'YER') {
+          totalPurchasesYER += amt;
+          totalDebtYER += debt;
+          if (method === 'cash') cashPurchasesYER += amt;
+          else if (method === 'credit') creditPurchasesYER += amt;
+        }
+      } else if (r.type === 'purchase_return') {
+        totalPurchases -= baseAmt;
+        if (curr === 'SAR') totalPurchasesSAR -= amt;
+        else if (curr === 'YER') totalPurchasesYER -= amt;
+      }
+    }
+
     return {
-      invoiceCount: result.invoiceCount,
-      totalPurchases: result.totalPurchases,
-      pendingPaymentCount: result.pendingPaymentCount,
-      totalDebt: result.totalDebt,
+      invoiceCount,
+      totalPurchases,
+      pendingPaymentCount,
+      totalDebt,
+      totalPurchasesSAR,
+      totalPurchasesYER,
+      totalDebtSAR,
+      totalDebtYER,
+      cashPurchasesSAR,
+      cashPurchasesYER,
+      creditPurchasesSAR,
+      creditPurchasesYER,
     };
   },
 
-  getAnalytics: async (companyId: string, branchId?: string | null) => {
-    const { data, error } = await supabase.rpc('get_purchase_stats', {
-      p_company_id: companyId,
-      ...(branchId !== undefined && branchId !== null && branchId !== ''
-        ? { p_branch_id: branchId }
-        : {}),
-    });
+  getAnalytics: async (
+    companyId: string,
+    branchIdOrFilters?: string | null | PurchaseStatsFilters
+  ) => {
+    const filters: PurchaseStatsFilters =
+      typeof branchIdOrFilters === 'string' || branchIdOrFilters === null
+        ? { branchId: branchIdOrFilters }
+        : (branchIdOrFilters ?? {});
+
+    let query = supabase
+      .from('invoices')
+      .select('id, type, total_amount, issue_date, currency_code, exchange_rate, party:party_id(name)')
+      .eq('company_id', companyId)
+      .eq('type', 'purchase')
+      .neq('status', 'void')
+      .neq('status', 'cancelled')
+      .is('deleted_at', null);
+
+    if (filters.branchId) query = query.eq('branch_id', filters.branchId);
+    if (filters.currency && filters.currency !== 'ALL') query = query.eq('currency_code', filters.currency);
+    if (filters.paymentType && filters.paymentType !== 'ALL') query = query.eq('payment_method', filters.paymentType);
+    if (filters.startDate) query = query.gte('issue_date', filters.startDate);
+    if (filters.endDate) query = query.lte('issue_date', filters.endDate);
+
+    const { data: invRows, error } = await query;
     if (error) {
       logger.error('PurchaseService', 'Error fetching purchase analytics', { companyId, error });
       return { topSuppliers: [], chartData: [] };
     }
 
-    const result = asPurchaseStats(data);
-    return {
-      topSuppliers: asSupplierRows(result.topSuppliers),
-      chartData: asTrendRows(result.chartData),
-    };
+    const supplierMap = new Map<string, number>();
+    const trendMap = new Map<string, number>();
+
+    for (const r of invRows || []) {
+      const amt = r.total_amount ?? 0;
+      const rate = r.exchange_rate ?? 1;
+      let baseAmt = amt;
+      try {
+        baseAmt = toBaseCurrency({
+          amount: amt,
+          currency_code: r.currency_code || 'SAR',
+          exchange_rate: rate,
+        });
+      } catch {
+        baseAmt = amt;
+      }
+
+      const rawParty = (r as unknown as { party?: { name?: string } | Array<{ name?: string }> | null }).party;
+      const partyObj = Array.isArray(rawParty) ? rawParty[0] : rawParty;
+      const supplierName = partyObj?.name || 'مورد عام';
+      supplierMap.set(supplierName, (supplierMap.get(supplierName) ?? 0) + baseAmt);
+
+      const day = r.issue_date || '';
+      if (day) {
+        trendMap.set(day, (trendMap.get(day) ?? 0) + baseAmt);
+      }
+    }
+
+    const topSuppliers: SupplierAnalyticsRow[] = Array.from(supplierMap.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+
+    const chartData: PurchaseTrendRow[] = Array.from(trendMap.entries())
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return { topSuppliers, chartData };
   },
 
   getPurchaseReturns: async (companyId: string, branchId?: string | null) => {

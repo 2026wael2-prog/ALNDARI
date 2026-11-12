@@ -5,7 +5,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
-import { purchasesService } from './service';
+import { purchasesService, type PurchaseStatsFilters } from './service';
 import { useAuthStore } from '../auth/store';
 import { useFeedbackStore } from '../feedback/store';
 import type { CreatePurchaseDTO, CreatePaymentDTO, PurchaseStats } from './types';
@@ -15,6 +15,7 @@ import { invalidateByPreset } from '../../lib/invalidation';
 import { useNetworkStatus } from '../../lib/hooks/useNetworkStatus';
 import { syncStore } from '../../core/lib/sync-store';
 import { useBranchFilter } from '../branches/hooks/useBranchFilter';
+import { useAnalyticsFilterStore } from '../../core/store/analyticsFilterStore';
 
 type PurchaseList = Awaited<ReturnType<typeof purchasesService.getPurchases>>;
 type PurchaseAnalytics = Awaited<ReturnType<typeof purchasesService.getAnalytics>>;
@@ -78,20 +79,39 @@ export const usePurchases = (options?: UsePurchasesOptions): UseQueryResult<Purc
 };
 
 // Fix: Added missing usePurchaseStats hook for dashboard summary
-export const usePurchaseStats = (): UseQueryResult<PurchaseStats | null> => {
+export const usePurchaseStats = (
+  customFilters?: PurchaseStatsFilters
+): UseQueryResult<PurchaseStats | null> => {
   const { user } = useAuthStore();
   const companyId = user?.company_id;
-  const { branchId } = useBranchFilter();
+  const { branchId: contextBranchId } = useBranchFilter();
+
+  const globalFilters = useAnalyticsFilterStore();
+  const effectiveBranchId =
+    customFilters?.branchId !== undefined
+      ? customFilters.branchId
+      : globalFilters.branchId !== null
+        ? globalFilters.branchId
+        : contextBranchId;
+
+  const filters: PurchaseStatsFilters = {
+    branchId: effectiveBranchId,
+    startDate: customFilters?.startDate ?? globalFilters.startDate,
+    endDate: customFilters?.endDate ?? globalFilters.endDate,
+    currency: customFilters?.currency ?? globalFilters.currency,
+    paymentType: customFilters?.paymentType ?? globalFilters.paymentType,
+  };
+
   const hasCompany = companyId !== undefined && companyId !== '';
   return useQuery({
-    queryKey: ['purchase_stats', companyId, branchId],
+    queryKey: ['purchase_stats', companyId, filters],
     queryFn: (): Promise<PurchaseStats | null> => {
       if (!hasCompany) return Promise.resolve(null);
-      return purchasesService.getStats(companyId, branchId);
+      return purchasesService.getStats(companyId, filters);
     },
     enabled: hasCompany,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 };
 
@@ -239,17 +259,37 @@ export const useCreatePayment = (): UseMutationResult<
 };
 
 // Fix: Added missing usePurchasesAnalytics hook for charting
-export const usePurchasesAnalytics = (): UseQueryResult<PurchaseAnalytics | null> => {
+export const usePurchasesAnalytics = (
+  customFilters?: PurchaseStatsFilters
+): UseQueryResult<PurchaseAnalytics | null> => {
   const { user } = useAuthStore();
   const companyId = user?.company_id;
-  const { branchId } = useBranchFilter();
+  const { branchId: contextBranchId } = useBranchFilter();
+
+  const globalFilters = useAnalyticsFilterStore();
+  const effectiveBranchId =
+    customFilters?.branchId !== undefined
+      ? customFilters.branchId
+      : globalFilters.branchId !== null
+        ? globalFilters.branchId
+        : contextBranchId;
+
+  const filters: PurchaseStatsFilters = {
+    branchId: effectiveBranchId,
+    startDate: customFilters?.startDate ?? globalFilters.startDate,
+    endDate: customFilters?.endDate ?? globalFilters.endDate,
+    currency: customFilters?.currency ?? globalFilters.currency,
+    paymentType: customFilters?.paymentType ?? globalFilters.paymentType,
+  };
+
   return useQuery({
-    queryKey: ['purchases_analytics', companyId, branchId],
+    queryKey: ['purchases_analytics', companyId, filters],
     queryFn: (): Promise<PurchaseAnalytics | null> =>
       companyId !== undefined && companyId !== ''
-        ? purchasesService.getAnalytics(companyId, branchId)
+        ? purchasesService.getAnalytics(companyId, filters)
         : Promise.resolve(null),
     enabled: companyId !== undefined && companyId !== '',
+    staleTime: 60 * 1000,
   });
 };
 

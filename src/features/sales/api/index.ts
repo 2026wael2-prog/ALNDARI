@@ -424,113 +424,147 @@ export const salesApi = {
     start_date?: string;
     end_date?: string;
     branch_id?: string | null;
+    currency?: 'ALL' | 'SAR' | 'YER';
+    payment_type?: 'ALL' | 'cash' | 'credit' | 'bank' | 'network';
   }) => {
+    let query = supabase
+      .from('invoices')
+      .select('id, type, total_amount, issue_date, payment_method, currency_code, exchange_rate, party:party_id(id, name)')
+      .eq('company_id', params.company_id)
+      .in('type', ['sale', 'sale_return'])
+      .neq('status', 'void')
+      .neq('status', 'cancelled')
+      .is('deleted_at', null);
+
     if (params.branch_id) {
-      let query = supabase
-        .from('invoices')
-        .select('id, type, total_amount, issue_date, payment_method, currency_code, exchange_rate, party:party_id(id, name)')
-        .eq('company_id', params.company_id)
-        .eq('branch_id', params.branch_id)
-        .in('type', ['sale', 'sale_return'])
-        .neq('status', 'void')
-        .neq('status', 'cancelled')
-        .is('deleted_at', null);
+      query = query.eq('branch_id', params.branch_id);
+    }
+    if (params.currency && params.currency !== 'ALL') {
+      query = query.eq('currency_code', params.currency);
+    }
+    if (params.payment_type && params.payment_type !== 'ALL') {
+      query = query.eq('payment_method', params.payment_type);
+    }
+    if (params.start_date) {
+      query = query.gte('issue_date', params.start_date);
+    }
+    if (params.end_date) {
+      query = query.lte('issue_date', params.end_date);
+    }
 
-      if (params.start_date) query = query.gte('issue_date', params.start_date);
-      if (params.end_date) query = query.lte('issue_date', params.end_date);
+    const { data: invRows, error: invErr } = await query;
+    if (invErr) {
+      logger.error('Sales', 'Error fetching sales analytics', invErr);
+      return { data: null, error: invErr };
+    }
 
-      const { data: invRows, error: invErr } = await query;
-      if (invErr) return { data: null, error: invErr };
+    let totalSales = 0;
+    let totalReturns = 0;
+    let totalSalesSAR = 0;
+    let totalSalesYER = 0;
+    let cashSalesSAR = 0;
+    let cashSalesYER = 0;
+    let creditSalesSAR = 0;
+    let creditSalesYER = 0;
+    let totalReturnsSAR = 0;
+    let totalReturnsYER = 0;
+    let invoiceCount = 0;
 
-      let totalSales = 0;
-      let totalReturns = 0;
-      let invoiceCount = 0;
-      const byDay = new Map<string, { sales: number; returns: number }>();
-      const byMethod = new Map<string, number>();
-      const byCust = new Map<string, { customerName: string; totalAmount: number; invoiceCount: number }>();
+    const byDay = new Map<string, { sales: number; returns: number }>();
+    const byMethod = new Map<string, number>();
+    const byCust = new Map<string, { customerName: string; totalAmount: number; invoiceCount: number }>();
 
-      for (const r of invRows || []) {
-        const amt = r.total_amount ?? 0;
-        const rate = r.exchange_rate ?? 1;
-        let baseAmt = amt;
-        try {
-          baseAmt = toBaseCurrency({
-            amount: amt,
-            currency_code: r.currency_code || 'SAR',
-            exchange_rate: rate,
-          });
-        } catch {
-          baseAmt = amt;
+    for (const r of invRows || []) {
+      const amt = r.total_amount ?? 0;
+      const rate = r.exchange_rate ?? 1;
+      const curr = (r.currency_code || 'SAR').toUpperCase();
+      const method = r.payment_method || 'cash';
+
+      let baseAmt = amt;
+      try {
+        baseAmt = toBaseCurrency({
+          amount: amt,
+          currency_code: curr,
+          exchange_rate: rate,
+        });
+      } catch {
+        baseAmt = amt;
+      }
+      const day = r.issue_date || '';
+      const dEntry = byDay.get(day) ?? { sales: 0, returns: 0 };
+
+      if (r.type === 'sale') {
+        totalSales += baseAmt;
+        invoiceCount += 1;
+        dEntry.sales += baseAmt;
+        byMethod.set(method, (byMethod.get(method) ?? 0) + baseAmt);
+
+        if (curr === 'SAR') {
+          totalSalesSAR += amt;
+          if (method === 'cash') cashSalesSAR += amt;
+          else if (method === 'credit') creditSalesSAR += amt;
+        } else if (curr === 'YER') {
+          totalSalesYER += amt;
+          if (method === 'cash') cashSalesYER += amt;
+          else if (method === 'credit') creditSalesYER += amt;
         }
-        const day = r.issue_date || '';
-        const dEntry = byDay.get(day) ?? { sales: 0, returns: 0 };
 
-        if (r.type === 'sale') {
-          totalSales += baseAmt;
-          invoiceCount += 1;
-          dEntry.sales += baseAmt;
-          const m = r.payment_method || 'cash';
-          byMethod.set(m, (byMethod.get(m) ?? 0) + baseAmt);
-          const rawParty = (r as unknown as { party?: { id?: string; name?: string } | Array<{ id?: string; name?: string }> | null }).party;
-          const pObj = Array.isArray(rawParty) ? (rawParty[0] ?? null) : (rawParty ?? null);
-          if (pObj?.id) {
-            const cEntry = byCust.get(pObj.id) ?? {
-              customerName: pObj.name || 'عميل نقدي',
-              totalAmount: 0,
-              invoiceCount: 0,
-            };
-            cEntry.totalAmount += baseAmt;
-            cEntry.invoiceCount += 1;
-            byCust.set(pObj.id, cEntry);
-          }
-        } else if (r.type === 'sale_return') {
-          totalReturns += baseAmt;
-          dEntry.returns += baseAmt;
+        const rawParty = (r as unknown as { party?: { id?: string; name?: string } | Array<{ id?: string; name?: string }> | null }).party;
+        const pObj = Array.isArray(rawParty) ? (rawParty[0] ?? null) : (rawParty ?? null);
+        if (pObj?.id) {
+          const cEntry = byCust.get(pObj.id) ?? {
+            customerName: pObj.name || 'عميل نقدي',
+            totalAmount: 0,
+            invoiceCount: 0,
+          };
+          cEntry.totalAmount += baseAmt;
+          cEntry.invoiceCount += 1;
+          byCust.set(pObj.id, cEntry);
         }
-        if (day) byDay.set(day, dEntry);
+      } else if (r.type === 'sale_return') {
+        totalReturns += baseAmt;
+        dEntry.returns += baseAmt;
+        if (curr === 'SAR') totalReturnsSAR += amt;
+        else if (curr === 'YER') totalReturnsYER += amt;
       }
 
-      const netSales = totalSales - totalReturns;
-      return {
-        data: {
-          totalSales,
-          totalReturns,
-          netSales,
-          invoiceCount,
-          averageInvoiceValue: invoiceCount > 0 ? totalSales / invoiceCount : 0,
-          prevTotalSales: 0,
-          prevTotalReturns: 0,
-          prevNetSales: 0,
-          topProducts: [],
-          topCustomers: Array.from(byCust.entries())
-            .map(([customerId, v]) => ({ customerId, ...v }))
-            .sort((a, b) => b.totalAmount - a.totalAmount)
-            .slice(0, 10),
-          salesByDay: Array.from(byDay.entries())
-            .map(([date, v]) => ({ date, ...v }))
-            .sort((a, b) => a.date.localeCompare(b.date)),
-          salesByPaymentMethod: Array.from(byMethod.entries()).map(([method, amount]) => ({
-            method,
-            amount,
-          })),
-        },
-        error: null,
-      };
+      if (day) byDay.set(day, dEntry);
     }
 
-    const rpcParams = {
-      p_company_id: params.company_id,
-      ...(params.start_date ? { p_start_date: params.start_date } : {}),
-      ...(params.end_date ? { p_end_date: params.end_date } : {}),
+    const netSales = totalSales - totalReturns;
+    return {
+      data: {
+        totalSales,
+        totalReturns,
+        netSales,
+        totalSalesSAR,
+        totalSalesYER,
+        cashSalesSAR,
+        cashSalesYER,
+        creditSalesSAR,
+        creditSalesYER,
+        totalReturnsSAR,
+        totalReturnsYER,
+        invoiceCount,
+        averageInvoiceValue: invoiceCount > 0 ? totalSales / invoiceCount : 0,
+        prevTotalSales: 0,
+        prevTotalReturns: 0,
+        prevNetSales: 0,
+        topProducts: [],
+        topCustomers: Array.from(byCust.entries())
+          .map(([customerId, v]) => ({ customerId, ...v }))
+          .sort((a, b) => b.totalAmount - a.totalAmount)
+          .slice(0, 10),
+        salesByDay: Array.from(byDay.entries())
+          .map(([date, v]) => ({ date, ...v }))
+          .sort((a, b) => a.date.localeCompare(b.date)),
+        salesByPaymentMethod: Array.from(byMethod.entries()).map(([method, amount]) => ({
+          method,
+          amount,
+        })),
+      },
+      error: null,
     };
-    const { data, error } = await supabase.rpc('get_sales_analytics', rpcParams);
-
-    if (error) {
-      logger.error('Sales', 'Error fetching sales analytics', error);
-      return { data: null, error };
-    }
-
-    return { data, error: null };
   },
 
   deleteInvoice: async (id: string) => {

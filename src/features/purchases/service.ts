@@ -375,7 +375,7 @@ export const purchasesService = {
 
     let query = supabase
       .from('invoices')
-      .select('id, type, total_amount, issue_date, currency_code, exchange_rate, party:party_id(name)')
+      .select('id, type, total_amount, issue_date, currency_code, exchange_rate, party_id')
       .eq('company_id', companyId)
       .eq('type', 'purchase')
       .neq('status', 'void')
@@ -394,7 +394,7 @@ export const purchasesService = {
       return { topSuppliers: [], chartData: [] };
     }
 
-    const supplierMap = new Map<string, number>();
+    const supplierMap = new Map<string, { name: string; value: number }>();
     const trendMap = new Map<string, number>();
 
     for (const r of invRows || []) {
@@ -411,10 +411,12 @@ export const purchasesService = {
         baseAmt = amt;
       }
 
-      const rawParty = (r as unknown as { party?: { name?: string } | Array<{ name?: string }> | null }).party;
-      const partyObj = Array.isArray(rawParty) ? rawParty[0] : rawParty;
-      const supplierName = partyObj?.name || 'مورد عام';
-      supplierMap.set(supplierName, (supplierMap.get(supplierName) ?? 0) + baseAmt);
+      const partyId = r.party_id;
+      if (partyId) {
+        const sEntry = supplierMap.get(partyId) ?? { name: 'مورد', value: 0 };
+        sEntry.value += baseAmt;
+        supplierMap.set(partyId, sEntry);
+      }
 
       const day = r.issue_date || '';
       if (day) {
@@ -422,10 +424,29 @@ export const purchasesService = {
       }
     }
 
-    const topSuppliers: SupplierAnalyticsRow[] = Array.from(supplierMap.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
+    // Fast batch lookup for top 8 supplier names
+    const topSupplierEntries = Array.from(supplierMap.entries())
+      .sort((a, b) => b[1].value - a[1].value)
       .slice(0, 8);
+    const topSupplierIds = topSupplierEntries.map(([id]) => id);
+
+    if (topSupplierIds.length > 0) {
+      const { data: partyRows } = await supabase
+        .from('parties')
+        .select('id, name')
+        .in('id', topSupplierIds);
+
+      const partyMap = new Map((partyRows || []).map(p => [p.id, p.name]));
+      for (const entry of topSupplierEntries) {
+        const found = partyMap.get(entry[0]);
+        if (found) entry[1].name = found;
+      }
+    }
+
+    const topSuppliers: SupplierAnalyticsRow[] = topSupplierEntries.map(([, v]) => ({
+      name: v.name,
+      value: v.value,
+    }));
 
     const chartData: PurchaseTrendRow[] = Array.from(trendMap.entries())
       .map(([date, amount]) => ({ date, amount }))

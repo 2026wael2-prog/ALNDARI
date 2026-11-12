@@ -273,6 +273,7 @@ const PurchasesPage: React.FC = () => {
       paymentMethod: paymentMethodFilter !== 'all' ? paymentMethodFilter : undefined,
       type: activeTab === 'returns' ? 'purchase_return' : 'purchase',
       limit,
+      enabled: activeTab === 'list' || activeTab === 'returns',
     }),
     [debouncedSearch, dateFrom, dateTo, statusFilter, paymentMethodFilter, activeTab, limit]
   );

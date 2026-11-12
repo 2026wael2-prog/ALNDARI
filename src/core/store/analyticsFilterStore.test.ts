@@ -64,3 +64,4 @@ describe('analyticsFilterStore', () => {
     expect(state.period).toBe('month');
   });
 });
+

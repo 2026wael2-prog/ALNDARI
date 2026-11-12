@@ -87,6 +87,8 @@ const useDebtQuery = <T>({
       companyId !== undefined && companyId !== '' ? fetcher(companyId) : Promise.resolve(empty),
     enabled: hasCompany && enabled,
     staleTime,
+    refetchOnWindowFocus: false,
+    placeholderData: previousData => previousData,
     ...(refetchInterval !== undefined ? { refetchInterval } : {}),
   });
 };

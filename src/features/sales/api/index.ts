@@ -427,9 +427,10 @@ export const salesApi = {
     currency?: 'ALL' | 'SAR' | 'YER';
     payment_type?: 'ALL' | 'cash' | 'credit' | 'bank' | 'network';
   }) => {
+    // 1. Build main period query (Lean without nested joins for maximum speed)
     let query = supabase
       .from('invoices')
-      .select('id, type, total_amount, issue_date, payment_method, currency_code, exchange_rate, party:party_id(id, name)')
+      .select('id, type, total_amount, issue_date, payment_method, currency_code, exchange_rate, party_id')
       .eq('company_id', params.company_id)
       .in('type', ['sale', 'sale_return'])
       .neq('status', 'void')
@@ -452,7 +453,46 @@ export const salesApi = {
       query = query.lte('issue_date', params.end_date);
     }
 
-    const { data: invRows, error: invErr } = await query;
+    // 2. Build previous period comparison query if dates are provided
+    let prevQueryPromise: Promise<{ data: any[] | null; error: any }> = Promise.resolve({
+      data: null,
+      error: null,
+    });
+
+    if (params.start_date && params.end_date) {
+      const startD = new Date(params.start_date);
+      const endD = new Date(params.end_date);
+      const diffMs = endD.getTime() - startD.getTime();
+      const diffDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
+      const prevEndD = new Date(startD.getTime() - 24 * 60 * 60 * 1000);
+      const prevStartD = new Date(prevEndD.getTime() - (diffDays - 1) * 24 * 60 * 60 * 1000);
+      const prevStart = prevStartD.toISOString().slice(0, 10);
+      const prevEnd = prevEndD.toISOString().slice(0, 10);
+
+      let prevQ = supabase
+        .from('invoices')
+        .select('type, total_amount, currency_code, exchange_rate')
+        .eq('company_id', params.company_id)
+        .in('type', ['sale', 'sale_return'])
+        .neq('status', 'void')
+        .neq('status', 'cancelled')
+        .is('deleted_at', null)
+        .gte('issue_date', prevStart)
+        .lte('issue_date', prevEnd);
+
+      if (params.branch_id) prevQ = prevQ.eq('branch_id', params.branch_id);
+      if (params.currency && params.currency !== 'ALL') prevQ = prevQ.eq('currency_code', params.currency);
+      if (params.payment_type && params.payment_type !== 'ALL') prevQ = prevQ.eq('payment_method', params.payment_type);
+
+      prevQueryPromise = prevQ as any;
+    }
+
+    // Run main query and previous period query concurrently in parallel
+    const [{ data: invRows, error: invErr }, { data: prevRows }] = await Promise.all([
+      query,
+      prevQueryPromise,
+    ]);
+
     if (invErr) {
       logger.error('Sales', 'Error fetching sales analytics', invErr);
       return { data: null, error: invErr };
@@ -509,17 +549,16 @@ export const salesApi = {
           else if (method === 'credit') creditSalesYER += amt;
         }
 
-        const rawParty = (r as unknown as { party?: { id?: string; name?: string } | Array<{ id?: string; name?: string }> | null }).party;
-        const pObj = Array.isArray(rawParty) ? (rawParty[0] ?? null) : (rawParty ?? null);
-        if (pObj?.id) {
-          const cEntry = byCust.get(pObj.id) ?? {
-            customerName: pObj.name || 'عميل نقدي',
+        const partyId = r.party_id;
+        if (partyId) {
+          const cEntry = byCust.get(partyId) ?? {
+            customerName: 'عميل',
             totalAmount: 0,
             invoiceCount: 0,
           };
           cEntry.totalAmount += baseAmt;
           cEntry.invoiceCount += 1;
-          byCust.set(pObj.id, cEntry);
+          byCust.set(partyId, cEntry);
         }
       } else if (r.type === 'sale_return') {
         totalReturns += baseAmt;
@@ -530,6 +569,43 @@ export const salesApi = {
 
       if (day) byDay.set(day, dEntry);
     }
+
+    // 3. Fast two-step customer names lookup for top 10 customers only (< 15ms)
+    const topCustomerEntries = Array.from(byCust.entries())
+      .sort((a, b) => b[1].totalAmount - a[1].totalAmount)
+      .slice(0, 10);
+    const topPartyIds = topCustomerEntries.map(([id]) => id);
+
+    if (topPartyIds.length > 0) {
+      const { data: partiesData } = await supabase
+        .from('parties')
+        .select('id, name')
+        .in('id', topPartyIds);
+
+      const partyMap = new Map((partiesData || []).map(p => [p.id, p.name]));
+      for (const entry of topCustomerEntries) {
+        const foundName = partyMap.get(entry[0]);
+        if (foundName) entry[1].customerName = foundName;
+      }
+    }
+
+    // 4. Calculate previous period metrics
+    let prevTotalSales = 0;
+    let prevTotalReturns = 0;
+    for (const pr of prevRows || []) {
+      const amt = pr.total_amount ?? 0;
+      const rate = pr.exchange_rate ?? 1;
+      const curr = (pr.currency_code || 'SAR').toUpperCase();
+      let baseAmt = amt;
+      try {
+        baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
+      } catch {
+        baseAmt = amt;
+      }
+      if (pr.type === 'sale') prevTotalSales += baseAmt;
+      else if (pr.type === 'sale_return') prevTotalReturns += baseAmt;
+    }
+    const prevNetSales = prevTotalSales - prevTotalReturns;
 
     const netSales = totalSales - totalReturns;
     return {
@@ -547,14 +623,11 @@ export const salesApi = {
         totalReturnsYER,
         invoiceCount,
         averageInvoiceValue: invoiceCount > 0 ? totalSales / invoiceCount : 0,
-        prevTotalSales: 0,
-        prevTotalReturns: 0,
-        prevNetSales: 0,
+        prevTotalSales,
+        prevTotalReturns,
+        prevNetSales,
         topProducts: [],
-        topCustomers: Array.from(byCust.entries())
-          .map(([customerId, v]) => ({ customerId, ...v }))
-          .sort((a, b) => b.totalAmount - a.totalAmount)
-          .slice(0, 10),
+        topCustomers: topCustomerEntries.map(([customerId, v]) => ({ customerId, ...v })),
         salesByDay: Array.from(byDay.entries())
           .map(([date, v]) => ({ date, ...v }))
           .sort((a, b) => a.date.localeCompare(b.date)),

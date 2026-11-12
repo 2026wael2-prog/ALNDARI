@@ -172,8 +172,10 @@ export const useSalesAnalytics = (params: SalesAnalyticsParams) => {
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey,
-    staleTime: 60_000,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: previousData => previousData,
     queryFn: async () => {
       if (!companyId) {
         return null;

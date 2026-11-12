@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SalesAnalyticsView from './SalesAnalyticsView';
 
 // Mock auth store
@@ -85,7 +86,14 @@ vi.mock('../../hooks/useSalesAnalytics', () => ({
 
 describe('SalesAnalyticsView Component', () => {
   it('renders executive AI radar, KPIs, charts, and top rankings without errors', () => {
-    render(<SalesAnalyticsView />);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SalesAnalyticsView />
+      </QueryClientProvider>
+    );
 
     // AI Radar check
     expect(screen.getByText('رادار الذكاء الاصطناعي لتحليل المبيعات')).toBeInTheDocument();

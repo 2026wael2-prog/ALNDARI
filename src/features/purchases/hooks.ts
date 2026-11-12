@@ -34,6 +34,7 @@ export interface UsePurchasesOptions {
   type?: string | undefined;
   page?: number | undefined;
   limit?: number | undefined;
+  enabled?: boolean | undefined;
 }
 
 // Fix: Enhanced usePurchases hook to support server-side historical search across items/products/dates
@@ -71,7 +72,7 @@ export const usePurchases = (options?: UsePurchasesOptions): UseQueryResult<Purc
       }
       return purchasesService.getPurchases(companyId, branchId, effectiveLimit);
     },
-    enabled: hasCompany,
+    enabled: hasCompany && (options?.enabled ?? true),
     staleTime: isSearchMode ? 60 * 1000 : 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     placeholderData: prev => prev,
@@ -110,8 +111,10 @@ export const usePurchaseStats = (
       return purchasesService.getStats(companyId, filters);
     },
     enabled: hasCompany,
-    staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: previousData => previousData,
   });
 };
 
@@ -289,7 +292,10 @@ export const usePurchasesAnalytics = (
         ? purchasesService.getAnalytics(companyId, filters)
         : Promise.resolve(null),
     enabled: companyId !== undefined && companyId !== '',
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: previousData => previousData,
   });
 };
 

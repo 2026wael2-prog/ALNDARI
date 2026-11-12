@@ -137,3 +137,4 @@ export const CustomerCreditAlertCard: React.FC<Props> = ({ customer, invoiceCurr
     </div>
   );
 };
+

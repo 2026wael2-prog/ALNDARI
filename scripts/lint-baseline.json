@@ -873,7 +873,6 @@
   "src/features/vin-intelligence/utils/wmiDecoder.test.ts": 0,
   "src/features/vin-intelligence/utils/wmiDecoder.ts": 0,
   "src/index.tsx": 23,
-  "src/lib/exportUtils.ts": 0,
   "src/lib/hooks/useBreakpoint.ts": 6,
   "src/lib/hooks/useDebounce.ts": 0,
   "src/lib/hooks/useDevice.ts": 3,

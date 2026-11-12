@@ -47,6 +47,9 @@ import_script.sql
 tsc_errors.log
 tsc_output.txt
 sizes.txt
+sales_returns_audit_raw.json
+scripts/cash_movements_all.json
+*.audit.json
 
 # editor
 .vscode/*

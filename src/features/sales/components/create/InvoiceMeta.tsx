@@ -1,31 +1,20 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React from 'react';
 import {
   Calendar,
   Hash,
   CreditCard,
   Banknote,
   Warehouse,
-  Wallet,
   Coins,
   ArrowRightLeft,
   User,
-  ChevronDown,
-  Search,
-  Check,
-  Building2,
 } from 'lucide-react';
 import { useSalesStore } from '../../store';
-import { usePaymentAccounts } from '../../../accounting/hooks/index';
-import { useWarehouses } from '../../../inventory/hooks/useInventoryManagement';
-import { useCurrencies } from '../../../settings/hooks';
-import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
+import { useInvoiceCurrencySync } from '../../hooks';
 import CustomerSelector from './CustomerSelector';
+import { InvoiceTreasurySelector } from './InvoiceTreasurySelector';
 import { cn } from '../../../../core/utils';
 import { formatLocalDate } from '../../../../core/utils/dateUtils';
-import {
-  resolveAutoExchangeRate,
-  getDefaultExchangeOperator,
-} from '../../../../core/utils/currencyUtils';
 
 interface Props {
   invoiceNumber?: string;
@@ -42,170 +31,14 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
     setMetadata,
   } = useSalesStore();
 
-  const { data: paymentAccounts } = usePaymentAccounts();
-  const { data: warehouses } = useWarehouses();
-  const { currencies, rates } = useCurrencies();
-  const { branchId, branchName } = useBranchFilter();
-  const prevCurrency = useRef(currency);
-  const ratesLoaded = useRef(false);
-
-  // Automatic Branch-Aware Currency Initialization:
-  // If the active branch is Wael's branch or has YER saved as preferred currency,
-  // automatically initialize the invoice currency to YER instead of forcing SAR.
-  useEffect(() => {
-    const isWaelBranch =
-      Boolean(
-        branchName &&
-          (branchName.includes('وائل') ||
-            branchName.includes('النظاري') ||
-            branchName.toLowerCase().includes('wael'))
-      ) || (branchId ? localStorage.getItem(`branch_pref_currency_${branchId}`) === 'YER' : false);
-
-    if (isWaelBranch && currency === 'SAR' && rates.data) {
-      const preferred = (branchId && localStorage.getItem(`branch_pref_currency_${branchId}`)) || 'YER';
-      const autoRate = resolveAutoExchangeRate(
-        preferred,
-        rates.data,
-        currencies.data as Array<{ code: string; exchange_operator?: 'multiply' | 'divide' }>
-      );
-      prevCurrency.current = preferred;
-      setMetadata('currency', preferred);
-      setMetadata('exchangeRate', autoRate);
-      setMetadata('exchangeOperator', getDefaultExchangeOperator(preferred));
-    }
-  }, [branchId, branchName, rates.data, currencies.data]);
-
-  // Treasury dropdown state
-  const [isTreasuryOpen, setIsTreasuryOpen] = useState(false);
-  const [treasurySearch, setTreasurySearch] = useState('');
-  const treasuryRef = useRef<HTMLDivElement>(null);
-
-  // Close treasury dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (treasuryRef.current && !treasuryRef.current.contains(event.target as Node)) {
-        setIsTreasuryOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    const currencyChanged = prevCurrency.current !== currency;
-    const ratesJustLoaded = !ratesLoaded.current && Boolean(rates.data);
-
-    if ((currencyChanged || ratesJustLoaded) && rates.data) {
-      if (currency === 'SAR') {
-        setMetadata('exchangeRate', 1);
-        setMetadata('exchangeOperator', 'multiply');
-      } else {
-        const autoRate = resolveAutoExchangeRate(
-          currency,
-          rates.data,
-          currencies.data as Array<{ code: string; exchange_operator?: 'multiply' | 'divide' }>
-        );
-        setMetadata('exchangeRate', autoRate);
-        const currencyConfig = (
-          currencies.data as Array<{ code: string; exchange_operator: string }>
-        )?.find(c => c.code === currency);
-        setMetadata(
-          'exchangeOperator',
-          (currencyConfig?.exchange_operator as 'multiply' | 'divide') ||
-            getDefaultExchangeOperator(currency)
-        );
-      }
-    }
-
-    if (rates.data) {
-      ratesLoaded.current = true;
-    }
-
-    // Auto-Treasury (Cashbox) Selection on currency change
-    // [AUDIT-FIX] كانت المصطلحات تقتصر على SAR/YER، فتُترك خزينة قديمة (غالباً
-    // صندوق سعودي) مع عملة مثل USD/OMR/CNY فيُودَع البيع في الصندوق الخطأ بصمت.
-    // الآن: مطابقة دقيقة بالعملة أولاً ثم بالاسم/الرمز، مع إفراغ الاختيار القديم
-    // عند غياب حساب مطابق حتى لا يمرر المتصل حساباً بعملة مختلفة.
-    const isCashboxValid = Boolean(
-      cashboxId && paymentAccounts?.some(acc => acc.id === cashboxId)
-    );
-    if ((currencyChanged || !isCashboxValid) && paymentAccounts && paymentAccounts.length > 0) {
-      const normalizedCurrency = (currency || 'SAR').toUpperCase();
-      const searchTerms = [
-        normalizedCurrency,
-        ...(normalizedCurrency === 'SAR'
-          ? ['سعودي', 'ريال سعودي']
-          : normalizedCurrency === 'YER'
-            ? ['يمني', 'ريال يمني']
-            : []),
-      ];
-      const matchingAccount = paymentAccounts.find(acc => {
-        const accCurrency = (acc.currency_code ?? '').toUpperCase();
-        const currencyMatches = accCurrency !== '' && accCurrency === normalizedCurrency;
-        const searchableText = `${acc.name_ar} ${acc.code ?? ''}`.toLowerCase();
-        const keywordMatches = searchTerms.some(term =>
-          searchableText.includes(term.toLowerCase())
-        );
-        return currencyMatches || keywordMatches;
-      });
-
-      setMetadata('cashboxId', matchingAccount ? matchingAccount.id : paymentAccounts[0]?.id ?? '');
-    }
-
-    // Default primary warehouse selection (also re-selects when switching branches if stored warehouseId belongs to another branch)
-    const castWarehouses = (warehouses ?? []) as Array<Record<string, unknown>>;
-    const isWarehouseValid = Boolean(
-      warehouseId && warehouseId !== 'wh_main' && castWarehouses.some(w => w.id === warehouseId)
-    );
-    if (castWarehouses.length > 0 && !isWarehouseValid) {
-      const primary = castWarehouses.find(w => w.is_primary);
-      const target = primary || castWarehouses[0];
-      if (target?.id) {
-        setMetadata('warehouseId', target.id as string);
-      }
-    }
-
-    prevCurrency.current = currency;
-  }, [
-    currency,
-    cashboxId,
+  const {
+    currencies,
     paymentAccounts,
-    rates.data,
     warehouses,
-    warehouseId,
-    currencies.data,
-    setMetadata,
-  ]);
+    handleCurrencyChange,
+  } = useInvoiceCurrencySync();
 
   const date = formatLocalDate(); // YYYY-MM-DD local timezone
-
-  // Find currently selected treasury account
-  const selectedAccount = useMemo(() => {
-    return paymentAccounts?.find(a => a.id === cashboxId);
-  }, [paymentAccounts, cashboxId]);
-
-  // Filter treasury accounts: strictly enforce matching currency with current invoice
-  const filteredAccounts = useMemo(() => {
-    if (!paymentAccounts) return [];
-    const normalizedInvoiceCurrency = (currency ?? 'SAR').toUpperCase();
-
-    // 1. Filter by currency matching (or accounts that have no currency specified)
-    const currencyMatched = paymentAccounts.filter(a => {
-      const accCurr = (a.currency_code ?? '').toUpperCase();
-      return accCurr === '' || accCurr === normalizedInvoiceCurrency;
-    });
-
-    // 2. Filter by search term if user is searching
-    const term = treasurySearch.toLowerCase().trim();
-    if (term === '') return currencyMatched;
-    return currencyMatched.filter(
-      a =>
-        a.name_ar.toLowerCase().includes(term) ||
-        (a.code !== '' && a.code.toLowerCase().includes(term))
-    );
-  }, [paymentAccounts, treasurySearch, currency]);
 
   return (
     <div className="relative z-30 border-b border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/60">
@@ -310,64 +143,7 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
               <select
                 value={currency || 'SAR'}
                 onChange={e => {
-                  const newCurr = e.target.value;
-                  prevCurrency.current = newCurr;
-                  setMetadata('currency', newCurr);
-
-                  if (branchId) {
-                    try {
-                      localStorage.setItem(`branch_pref_currency_${branchId}`, newCurr);
-                    } catch {
-                      // ignore quota errors
-                    }
-                  }
-
-                  if (newCurr === 'SAR') {
-                    setMetadata('exchangeRate', 1);
-                    setMetadata('exchangeOperator', 'multiply');
-                  } else {
-                    const autoRate = resolveAutoExchangeRate(
-                      newCurr,
-                      rates.data ?? [],
-                      currencies.data as Array<{
-                        code: string;
-                        exchange_operator?: 'multiply' | 'divide';
-                      }>
-                    );
-                    setMetadata('exchangeRate', autoRate);
-                    const currencyConfig = (
-                      currencies.data as Array<{ code: string; exchange_operator: string }>
-                    )?.find(c => c.code === newCurr);
-                    setMetadata(
-                      'exchangeOperator',
-                      (currencyConfig?.exchange_operator as 'multiply' | 'divide') ||
-                        getDefaultExchangeOperator(newCurr)
-                    );
-                  }
-
-                  if (paymentAccounts && paymentAccounts.length > 0) {
-                    const normalizedCurrency = (newCurr || 'SAR').toUpperCase();
-                    const searchTerms = [
-                      normalizedCurrency,
-                      ...(normalizedCurrency === 'SAR'
-                        ? ['سعودي', 'ريال سعودي']
-                        : normalizedCurrency === 'YER'
-                          ? ['يمني', 'ريال يمني']
-                          : []),
-                    ];
-                    const matchingAccount = paymentAccounts.find(acc => {
-                      const accCurrency = (acc.currency_code ?? '').toUpperCase();
-                      const currencyMatches =
-                        accCurrency !== '' && accCurrency === normalizedCurrency;
-                      const searchableText = `${acc.name_ar} ${acc.code ?? ''}`.toLowerCase();
-                      const keywordMatches = searchTerms.some(term =>
-                        searchableText.includes(term.toLowerCase())
-                      );
-                      return currencyMatches || keywordMatches;
-                    });
-
-                    setMetadata('cashboxId', matchingAccount ? matchingAccount.id : '');
-                  }
+                  handleCurrencyChange(e.target.value);
                 }}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
               >
@@ -411,118 +187,14 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
 
           {/* Row 2: Treasury Account & Warehouse */}
           <div className="grid grid-cols-2 gap-2">
-            {/* Custom High-Z Treasury Account Dropdown */}
-            <div className="relative" ref={treasuryRef}>
-              <div className="mb-1 flex items-center gap-1 text-slate-400">
-                <Wallet size={12} className="text-emerald-500" />
-                <span className="text-[10px] font-bold">حساب الصندوق</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsTreasuryOpen(prev => !prev);
-                }}
-                className="flex w-full items-center justify-between gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none transition-colors hover:border-slate-300 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-              >
-                <span className="truncate">
-                  {selectedAccount ? selectedAccount.name_ar : 'اختر الصندوق...'}
-                </span>
-                <ChevronDown
-                  size={14}
-                  className={cn(
-                    'shrink-0 text-slate-400 transition-transform duration-200',
-                    isTreasuryOpen && 'rotate-180 text-blue-500'
-                  )}
-                />
-              </button>
-
-              {/* Popover Menu with high z-index */}
-              {isTreasuryOpen && (
-                <div className="absolute right-0 top-full z-50 mt-1.5 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-850">
-                  {paymentAccounts && paymentAccounts.length > 5 && (
-                    <div className="relative mb-2">
-                      <Search
-                        size={13}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        type="text"
-                        value={treasurySearch}
-                        onChange={e => {
-                          setTreasurySearch(e.target.value);
-                        }}
-                        placeholder="بحث عن صندوق..."
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1 pl-2 pr-7 text-xs font-bold outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                        autoFocus
-                      />
-                    </div>
-                  )}
-
-                  <div className="custom-scrollbar max-h-56 space-y-1 overflow-y-auto">
-                    {filteredAccounts.length === 0 ? (
-                      <div className="p-3 text-center text-xs font-bold text-slate-400">
-                        لا توجد صناديق متاحة
-                      </div>
-                    ) : (
-                      filteredAccounts.map(account => {
-                        const isSelected = account.id === cashboxId;
-                        const isCash = Boolean(account.cashbox_id);
-                        return (
-                          <button
-                            key={account.id}
-                            type="button"
-                            onClick={() => {
-                              setMetadata('cashboxId', account.id);
-                              setIsTreasuryOpen(false);
-                            }}
-                            className={cn(
-                              'flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-right transition-all',
-                              isSelected
-                                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
-                                : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
-                            )}
-                          >
-                            <div className="flex items-center gap-2 overflow-hidden">
-                              <div
-                                className={cn(
-                                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-                                  isCash
-                                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
-                                    : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400'
-                                )}
-                              >
-                                {isCash ? <Wallet size={14} /> : <Building2 size={14} />}
-                              </div>
-                              <div className="overflow-hidden">
-                                <p className="truncate text-xs font-black">{account.name_ar}</p>
-                                <span className="text-[10px] font-bold text-slate-400">
-                                  {isCash ? 'صندوق نقدي' : 'شركة صرافة'}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex shrink-0 items-center gap-1.5">
-                              <span
-                                className={cn(
-                                  'rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold',
-                                  account.currency_code === 'SAR'
-                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                                )}
-                              >
-                                {account.currency_code}
-                              </span>
-                              {isSelected && <Check size={14} className="text-emerald-600" />}
-                            </div>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <InvoiceTreasurySelector
+              paymentAccounts={paymentAccounts}
+              cashboxId={cashboxId}
+              currency={currency}
+              onSelectCashbox={id => {
+                setMetadata('cashboxId', id);
+              }}
+            />
 
             <div>
               <div className="mb-1 flex items-center gap-1 text-slate-400">

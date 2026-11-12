@@ -15,6 +15,7 @@ export { useInvoicePaymentStatus } from './useInvoicePaymentStatus';
 export { useProductSelectionTable } from './useProductSelectionTable';
 export { useInvoiceNavigation } from './useInvoiceNavigation';
 export { useCustomerCreditAlert } from './useCustomerCreditAlert';
+export { useInvoiceCurrencySync } from './useInvoiceCurrencySync';
 
 // Sales Returns
 export { useSalesReturns, useSalesReturnsStats, useCreateSalesReturn, useSalesInvoicesForReturn } from './useSalesReturns';

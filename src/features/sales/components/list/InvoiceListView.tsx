@@ -7,114 +7,24 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../auth/store';
 import { salesApi } from '../../api';
 
-import { Eye, Trash2, ArrowLeftRight, FileSpreadsheet, Package } from 'lucide-react';
+import { Eye, Trash2, ArrowLeftRight, FileSpreadsheet } from 'lucide-react';
 import EmptyState from '../../../../ui/base/EmptyState';
 import PageLoader from '../../../../ui/base/PageLoader';
 import ErrorDisplay from '../../../../ui/base/ErrorDisplay';
-import type { InvoiceListItem, InvoiceType, MatchedInvoiceItem } from '../../types';
+import type { InvoiceListItem, InvoiceType } from '../../types';
 import { useFeedbackStore } from '../../../feedback/store';
 import { useAccompanyingInfoStore } from '../../../accompanying-info';
 import InvoiceSearchToolbar from '../../../../ui/common/InvoiceSearchToolbar';
 import type { DatePreset } from '@/core/types/invoiceSearch';
+
+import { InvoiceItemsCell } from './InvoiceItemsCell';
+import { getStatusLabel } from './InvoiceStatusBadge';
 
 interface InvoiceListViewProps {
   viewType: InvoiceType;
   searchTerm: string;
   onViewDetails: (id: string) => void;
 }
-
-const statusLabel = (status: string) => {
-  if (status === 'paid')
-    return {
-      label: 'مدفوع',
-      cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    };
-  if (status === 'posted')
-    return {
-      label: 'مرحّل',
-      cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    };
-  if (status === 'partially_paid')
-    return {
-      label: 'مدفوع جزئياً',
-      cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    };
-  if (status === 'pending')
-    return {
-      label: 'قيد الانتظار',
-      cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    };
-  if (status === 'cancelled')
-    return {
-      label: 'ملغاة',
-      cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
-    };
-  if (status === 'confirmed')
-    return {
-      label: 'مؤكد',
-      cls: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-    };
-  return { label: 'مسودة', cls: 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400' };
-};
-
-const InvoiceItemsCell: React.FC<{
-  items?: MatchedInvoiceItem[] | undefined;
-  totalCount?: number | undefined;
-}> = ({ items, totalCount }) => {
-  const [expanded, setExpanded] = useState(false);
-  const list = items || [];
-  if (list.length === 0) {
-    return (
-      <span className="text-[11px] text-gray-400 dark:text-slate-500">
-        {totalCount && totalCount > 0 ? `${totalCount} أصناف` : 'لا توجد أصناف'}
-      </span>
-    );
-  }
-
-  const visibleItems = expanded ? list : list.slice(0, 2);
-  const remainingCount = list.length - visibleItems.length;
-
-  return (
-    <div className="flex flex-col gap-1 py-1">
-      <div className="flex flex-wrap gap-1">
-        {visibleItems.map(item => (
-          <span
-            key={item.id}
-            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium ${
-              item.is_direct_match
-                ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300'
-                : 'bg-slate-100 text-slate-800 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700'
-            }`}
-            title={`السعر: ${item.unit_price} | الكمية: ${item.quantity}${item.part_number ? ` | رقم القطعة: ${item.part_number}` : ''}${item.brand ? ` | الماركة: ${item.brand}` : ''}`}
-          >
-            <Package size={11} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-semibold">{item.product_name}</span>
-            {item.part_number && (
-              <span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
-                [{item.part_number}]
-              </span>
-            )}
-            <span className="font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-              ×{item.quantity}
-            </span>
-          </span>
-        ))}
-      </div>
-      {list.length > 2 && (
-        <button
-          type="button"
-          onClick={e => {
-            e.stopPropagation();
-            setExpanded(!expanded);
-          }}
-          className="cursor-pointer self-start text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
-        >
-          {expanded ? 'عرض أقل ▴' : `+${remainingCount} أصناف أخرى ▾`}
-        </button>
-      )}
-    </div>
-  );
-};
 
 const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   viewType,
@@ -403,7 +313,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
         accessorKey: 'status' as keyof InvoiceListItem,
         sortKey: 'status' as keyof InvoiceListItem,
         accessor: (row: InvoiceListItem) => {
-          const s = statusLabel(row.status || '');
+          const s = getStatusLabel(row.status || '');
           return (
             <span className={`rounded px-2 py-1 text-[10px] font-bold ${s.cls}`}>{s.label}</span>
           );

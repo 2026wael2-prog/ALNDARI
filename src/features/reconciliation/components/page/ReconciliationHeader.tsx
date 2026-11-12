@@ -148,3 +148,4 @@ export const ScopeBanner: React.FC<{ summary: DailyDrawerSummary | undefined }> 
     </div>
   );
 };
+

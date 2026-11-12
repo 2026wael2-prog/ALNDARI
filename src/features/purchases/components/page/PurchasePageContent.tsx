@@ -136,3 +136,4 @@ export const PurchasePageContent: React.FC<PageContentProps> = ({
       return null;
   }
 };
+

@@ -23,6 +23,7 @@ import { usePaymentAccounts } from '../../../accounting/hooks/index';
 import { useWarehouses } from '../../../inventory/hooks/useInventoryManagement';
 import { InvoiceConfirmationModal } from '../../../../ui/common/InvoiceConfirmationModal';
 import { useInvoiceNavigation } from '../../hooks/useInvoiceNavigation';
+import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 import { InvoiceNavigatorBar } from './InvoiceNavigatorBar';
 import { PreviousInvoiceView } from './PreviousInvoiceView';
 import { OpenInvoicesTabs } from './OpenInvoicesTabs';
@@ -62,6 +63,7 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
   const { showToast } = useFeedbackStore();
   const { data: paymentAccounts } = usePaymentAccounts();
   const { data: rawWarehouses } = useWarehouses();
+  const { branchId, branchName } = useBranchFilter();
   const [showConfirmModal, setShowConfirmModal] = React.useState(false);
   const [targetStatus, setTargetStatus] = React.useState<InvoiceStatus>('paid');
 
@@ -209,6 +211,31 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
     if (summary.totalAmount < 0) {
       showToast('الخصم الإجمالي أكبر من قيمة الفاتورة — راجع الخصومات', 'error');
       return;
+    }
+
+    // [CURRENCY-GUARD] حماية صارمة لمنع إدخال مبالغ بالريال اليمني كـ ريال سعودي في فرع وائل
+    const isWaelBranch =
+      Boolean(
+        branchName &&
+          (branchName.includes('وائل') ||
+            branchName.includes('النظاري') ||
+            branchName.toLowerCase().includes('wael'))
+      ) || (branchId ? localStorage.getItem(`branch_pref_currency_${branchId}`) === 'YER' : false);
+
+    const isSuspiciousSAR =
+      isWaelBranch &&
+      currency === 'SAR' &&
+      (summary.totalAmount >= 5000 || validItems.some(i => i.price >= 1000));
+
+    if (isSuspiciousSAR) {
+      const confirmYemeni = window.confirm(
+        `تنبيه تدقيق العملة الصارم:\n\nإجمالي الفاتورة (${summary.totalAmount} ر.س) مرتفع جداً بالنسبة لمعاملات فرع وائل المعتادة بالريال اليمني.\n\nهل هذه الأسعار بالريال اليمني (YER)؟\n\n- اضغط [موافق / OK] للتحويل التلقائي إلى الريال اليمني (YER) وحساب المعادل الصحيح.\n- اضغط [إلغاء / Cancel] فقط إذا كنت متأكداً 100% أن المبلغ بالريال السعودي الحقيقي.`
+      );
+      if (confirmYemeni) {
+        setCurrencyPreservingPrices('YER');
+        showToast('تم تحويل عملة الفاتورة إلى الريال اليمني (YER) وتثبيت سعر الصرف. يرجى مراجعة الصندوق والاعتماد.', 'info');
+        return;
+      }
     }
 
     // تحقق إضافي: الفاتورة النقدية تحتاج صندوقاً مطابقاً لنفس عملة الفاتورة

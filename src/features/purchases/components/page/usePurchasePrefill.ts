@@ -36,3 +36,4 @@ export const usePurchasePrefill = (
     setActiveTab('create');
   }, [bulkLoadItems, consumePrefill, setActiveTab, setMetadata, setSupplier]);
 };
+

@@ -43,3 +43,4 @@ export const InvoiceStatusBadge: React.FC<{ status: string }> = ({ status }) => 
     </span>
   );
 };
+

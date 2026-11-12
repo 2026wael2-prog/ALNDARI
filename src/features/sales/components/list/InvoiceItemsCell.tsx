@@ -62,3 +62,4 @@ export const InvoiceItemsCell: React.FC<Props> = ({ items, totalCount }) => {
     </div>
   );
 };
+

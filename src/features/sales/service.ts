@@ -74,14 +74,29 @@ export const salesService = {
           partyPhone: _inv.party?.phone || null,
           date: formatLocalDate(_inv.issue_date),
           createdAt: _inv.created_at,
-          // [CURRENCY] سجل المبيعات: نعرض المبلغ بعملة الفاتورة، والمعادل بالريال من الحقل الأساسي.
+          // [CURRENCY] سجل المبيعات: نعرض المبلغ بعملة الفاتورة، والمعادل بالريال محسوباً بدقة.
           total: (() => {
             const base = Number(_inv.total_amount) || 0;
             const doc = Number(_inv.total_document_amount) || 0;
             const foreign = (_inv.currency_code || 'SAR') !== 'SAR';
             return foreign && doc > 0 ? doc : base;
           })(),
-          baseTotal: Number(_inv.total_amount) || 0,
+          baseTotal: (() => {
+            const doc = Number(_inv.total_document_amount) || 0;
+            const foreign = (_inv.currency_code || 'SAR') !== 'SAR';
+            if (foreign && doc > 0) {
+              return Number(_inv.total_amount) || 0;
+            }
+            try {
+              return toBaseCurrency({
+                total_amount: Number(_inv.total_amount) || 0,
+                currency_code: _inv.currency_code || 'SAR',
+                exchange_rate: Number(_inv.exchange_rate) || 1,
+              });
+            } catch {
+              return Number(_inv.total_amount) || 0;
+            }
+          })(),
           status: _inv.status,
           type: _inv.type,
           paymentMethod: _inv.payment_method,
@@ -149,14 +164,29 @@ export const salesService = {
         partyPhone: r.party_phone,
         date: formatLocalDate(r.issue_date),
         createdAt: (r as any).created_at || r.issue_date,
-        // [CURRENCY] نفس القاعدة: المبلغ بعملة الفاتورة + المعادل بالريال.
+        // [CURRENCY] نفس القاعدة: المبلغ بعملة الفاتورة + المعادل بالريال المحسوب بدقة.
         total: (() => {
           const base = Number(r.total_amount) || 0;
           const doc = Number((r as { total_document_amount?: number | null }).total_document_amount) || 0;
           const foreign = (r.currency_code || 'SAR') !== 'SAR';
           return foreign && doc > 0 ? doc : base;
         })(),
-        baseTotal: Number(r.total_amount) || 0,
+        baseTotal: (() => {
+          const doc = Number((r as { total_document_amount?: number | null }).total_document_amount) || 0;
+          const foreign = (r.currency_code || 'SAR') !== 'SAR';
+          if (foreign && doc > 0) {
+            return Number(r.total_amount) || 0;
+          }
+          try {
+            return toBaseCurrency({
+              total_amount: Number(r.total_amount) || 0,
+              currency_code: r.currency_code || 'SAR',
+              exchange_rate: Number(r.exchange_rate) || 1,
+            });
+          } catch {
+            return Number(r.total_amount) || 0;
+          }
+        })(),
         status: r.status as any,
         type: r.type as any,
         paymentMethod: r.payment_method,

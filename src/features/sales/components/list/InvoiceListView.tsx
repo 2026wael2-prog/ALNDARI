@@ -298,7 +298,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
               </span>
               {showBaseLine && (
                 <span dir="ltr" className="mt-0.5 text-xs font-bold text-blue-500">
-                  ≈ {formatCurrency(row.baseTotal)}
+                  ≈ {formatCurrency(row.baseTotal, 'SAR')}
                 </span>
               )}
             </div>

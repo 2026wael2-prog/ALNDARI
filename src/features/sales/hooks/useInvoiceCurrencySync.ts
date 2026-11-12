@@ -204,3 +204,4 @@ export const useInvoiceCurrencySync = () => {
     handleCurrencyChange,
   };
 };
+

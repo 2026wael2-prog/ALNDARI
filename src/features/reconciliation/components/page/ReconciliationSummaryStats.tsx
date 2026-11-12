@@ -166,3 +166,4 @@ export const SalesCurrencyCard: React.FC<{ summary: DailyDrawerSummary }> = ({ s
     </Card>
   );
 };
+

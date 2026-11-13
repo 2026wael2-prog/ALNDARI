@@ -157,9 +157,18 @@ const customFetch = async (
       });
       clearTimeout(timeoutId);
 
-      // Notify store of success
-      useConnectionStore.getState().reportSuccess();
-      reportNetworkSuccess();
+      if (response.status >= 500) {
+        if (response.status === 504) {
+          useConnectionStore.getState().reportTimeout();
+        } else {
+          useConnectionStore.getState().reportFailure();
+        }
+        reportNetworkFailure();
+      } else {
+        // Notify store of success only on non-5xx responses
+        useConnectionStore.getState().reportSuccess();
+        reportNetworkSuccess();
+      }
 
       return response;
     } catch (error: unknown) {

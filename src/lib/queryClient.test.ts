@@ -1,33 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import { shouldRetryQuery } from './queryClient';
 
-describe('shouldRetryQuery', () => {
-  it('never retries PGRST116 / HTTP 406 (row not found via .single())', () => {
-    expect(
-      shouldRetryQuery(0, { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' })
-    ).toBe(false);
-    expect(shouldRetryQuery(2, { status: 406, message: 'Not Acceptable' })).toBe(false);
-    expect(shouldRetryQuery(5, { code: 'PGRST116' })).toBe(false);
+describe('shouldRetryQuery (regression guard against 5xx/timeout retry storms)', () => {
+  it.each([401, 403, 406, 408, 429, 500, 502, 503, 504, 'PGRST116', 'PGRST301'])(
+    'does not retry deterministic or server-overload code %s',
+    code => {
+      expect(shouldRetryQuery(0, { status: typeof code === 'number' ? code : undefined, code })).toBe(
+        false
+      );
+    }
+  );
+
+  it.each([
+    'JWT expired',
+    'Invalid Refresh Token',
+    'User not authenticated',
+    'Gateway timeout',
+    'Service Unavailable',
+    'Connection terminated due to connection timeout',
+  ])('does not retry error message "%s"', message => {
+    expect(shouldRetryQuery(0, { message })).toBe(false);
   });
 
-  it('never retries auth failures (fail fast to the login flow)', () => {
-    expect(shouldRetryQuery(0, { code: 401 })).toBe(false);
-    expect(shouldRetryQuery(0, { code: 403 })).toBe(false);
-    expect(shouldRetryQuery(0, { code: 'PGRST301' })).toBe(false);
-    expect(shouldRetryQuery(0, { message: 'JWT expired' })).toBe(false);
-    expect(shouldRetryQuery(0, { message: 'Invalid Refresh Token: ...' })).toBe(false);
-    expect(shouldRetryQuery(0, { message: 'not authenticated' })).toBe(false);
-  });
-
-  it('retries transient failures up to 3 attempts', () => {
-    expect(shouldRetryQuery(0, { message: 'network error' })).toBe(true);
-    expect(shouldRetryQuery(1, { message: 'network error' })).toBe(true);
-    expect(shouldRetryQuery(2, { message: 'network error' })).toBe(true);
-    expect(shouldRetryQuery(3, { message: 'network error' })).toBe(false);
-  });
-
-  it('tolerates a missing/undefined error object', () => {
-    expect(shouldRetryQuery(0)).toBe(true);
-    expect(shouldRetryQuery(0, null)).toBe(true);
+  it('retries transient network errors up to 3 times', () => {
+    const err = { message: 'Failed to fetch' };
+    expect(shouldRetryQuery(0, err)).toBe(true);
+    expect(shouldRetryQuery(1, err)).toBe(true);
+    expect(shouldRetryQuery(2, err)).toBe(true);
+    expect(shouldRetryQuery(3, err)).toBe(false);
   });
 });

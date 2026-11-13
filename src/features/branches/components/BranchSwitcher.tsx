@@ -52,8 +52,9 @@ const BranchSwitcher: React.FC<BranchSwitcherProps> = ({
     };
   }, []);
 
-  // إظهار فقط للمدير العام
-  const isManager = user?.role === 'owner' || user?.role === 'admin';
+  // إظهار للمدير العام / المدير
+  const isManager =
+    user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
   if (!isManager) return null;
 
   const activeBranches = (Array.isArray(branches) ? branches : []).filter(
@@ -179,7 +180,7 @@ const BranchSwitcher: React.FC<BranchSwitcherProps> = ({
           ) : (
             <div className="custom-scrollbar max-h-56 divide-y divide-gray-50 overflow-y-auto py-1 dark:divide-slate-800/40">
               {activeBranches.map((branch: any) => {
-                const isActive = activeBranchId === branch.id;
+                const isActive = effectiveBranchId === branch.id;
                 const isMain = branch.is_main === true;
 
                 return (

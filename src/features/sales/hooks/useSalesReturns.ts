@@ -349,7 +349,7 @@ export const useSalesInvoicesForReturn = (
         query = query.eq('party_id', customerId);
       }
 
-      const { data, error } = await query.order('issue_date', { ascending: false }).limit(1000);
+      const { data, error } = await query.order('issue_date', { ascending: false }).limit(80);
 
       if (error) throw error;
       const typedData = data as unknown as SalesReturnQueryResult[];

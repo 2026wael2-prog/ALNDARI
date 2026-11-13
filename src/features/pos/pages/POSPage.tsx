@@ -58,12 +58,11 @@ const POSPage: React.FC = () => {
       const target = currentBranchId
         ? warehouses.find(
             w => w.branch_id === currentBranchId && (w as { is_primary?: boolean }).is_primary
-          ) ??
-          warehouses.find(w => w.branch_id === currentBranchId) ??
-          warehouses[0]
+          ) ?? warehouses.find(w => w.branch_id === currentBranchId)
         : warehouses.find(w => (w as { is_primary?: boolean }).is_primary) ?? warehouses[0];
-      if (target && target.id !== selectedWarehouseId) {
-        setSelectedWarehouseId(target.id);
+      const nextId = target?.id ?? '';
+      if (nextId !== selectedWarehouseId) {
+        setSelectedWarehouseId(nextId);
       }
     }
   }, [warehouses, currentBranchId, selectedWarehouseId]);

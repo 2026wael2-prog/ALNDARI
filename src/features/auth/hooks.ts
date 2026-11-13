@@ -100,6 +100,7 @@ export const useLogin = () => {
   const navigate = useNavigate();
 
   const login = async (email: string, pass: string) => {
+    if (isLoading) return;
     setIsLoading(true);
     setError(null);
     try {

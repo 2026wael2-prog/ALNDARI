@@ -2,6 +2,7 @@
 import React from 'react';
 import { Warehouse, Check } from 'lucide-react';
 import { useBranchFilterStore } from '../store';
+import { useBranchFilter } from '../hooks/useBranchFilter';
 import { useWarehousesWithBranches } from '../../inventory/hooks/useWarehouseStock';
 import { cn } from '../../../core/utils';
 
@@ -10,17 +11,17 @@ interface BranchWarehouseListProps {
 }
 
 export const BranchWarehouseList: React.FC<BranchWarehouseListProps> = ({ onSelect }) => {
-  const activeBranchId = useBranchFilterStore(s => s.activeBranchId);
+  const { branchId: effectiveBranchId } = useBranchFilter();
   const activeWarehouseId = useBranchFilterStore(s => s.activeWarehouseId);
   const setActiveWarehouse = useBranchFilterStore(s => s.setActiveWarehouse);
 
   const { warehouses: allWarehouses } = useWarehousesWithBranches();
 
-  if (activeBranchId === null || activeBranchId.trim() === '') {
+  if (effectiveBranchId === null || effectiveBranchId.trim() === '') {
     return null;
   }
 
-  const branchWarehouses = allWarehouses.filter(w => w.branch_id === activeBranchId);
+  const branchWarehouses = allWarehouses.filter(w => w.branch_id === effectiveBranchId);
 
   if (branchWarehouses.length === 0) {
     return null;

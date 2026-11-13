@@ -8,7 +8,7 @@ import { logger } from '../../core/utils/logger';
 import { supabase } from '../../lib/supabaseClient';
 
 /** Converts an expense amount to base currency without throwing on bad rates. */
-const safeToBase = (expense: Expense): number => {
+export const safeToBase = (expense: Expense): number => {
   try {
     return toBaseCurrency({
       amount: expense.amount,

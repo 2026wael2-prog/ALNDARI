@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSalesStore } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
-import { formatCurrency, cn } from '../../../../core/utils';
+import { formatCurrency, cn, toBaseCurrency } from '../../../../core/utils';
 import { Wallet, HandCoins, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 import { CustomerCreditAlertCard } from './CustomerCreditAlertCard';
 import { InvoiceProfitMarginCard } from './InvoiceProfitMarginCard';
@@ -82,11 +82,18 @@ const NetTotalDisplay: React.FC<{
   const isForeign = currency !== 'SAR';
   const effectiveRate =
     exchangeOperator === 'divide' && exchangeRate < 1 ? 1 / exchangeRate : exchangeRate || 410;
-  const baseEquivalent = isForeign
-    ? exchangeOperator === 'divide'
-      ? totalAmount / effectiveRate
-      : totalAmount * effectiveRate
-    : totalAmount;
+  let baseEquivalent = totalAmount;
+  if (isForeign) {
+    try {
+      baseEquivalent = toBaseCurrency({
+        amount: totalAmount,
+        currency_code: currency,
+        exchange_rate: effectiveRate,
+      });
+    } catch {
+      baseEquivalent = totalAmount / effectiveRate;
+    }
+  }
 
   return (
     <div className="group relative flex flex-1 flex-col justify-between overflow-hidden bg-slate-950 p-3 text-white sm:p-4">

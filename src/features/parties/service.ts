@@ -251,7 +251,7 @@ export const partiesService = {
     return result;
   },
 
-  calculateStats: (parties: Party[], type: PartyType = 'customer'): PartyStats => {
+  calculateStats: (parties: Party[], _type: PartyType = 'customer'): PartyStats => {
     const activeCount = parties.filter(p => (p.status ?? 'active') === 'active').length;
     const blockedCount = parties.filter(p => p.status === 'blocked').length;
 
@@ -262,22 +262,12 @@ export const partiesService = {
     for (const p of parties) {
       const b = p.balance ?? 0;
       totalBalance += b;
-      if (type === 'supplier') {
-        // للموردين: الرصيد الموجب (حسابات 2100 دائن) يمثل مستحقات للمورد واجبة السداد على المنشأة
-        // والرصيد السالب يمثل دفعات مقدمة أو سلف لصالح المنشأة
-        if (b > 0) {
-          totalPayable += b;
-        } else if (b < 0) {
-          totalReceivable += Math.abs(b);
-        }
-      } else {
-        // للعملاء: الرصيد الموجب (حسابات 1100 مدين) يمثل مبالغ مطلوبة لصالح المنشأة
-        // والرصيد السالب يمثل أمانات ودفعات مقدمة من العميل
-        if (b > 0) {
-          totalReceivable += b;
-        } else if (b < 0) {
-          totalPayable += Math.abs(b);
-        }
+      // get_party_balances_by_company returns (debit - credit) uniformly for all party types:
+      // positive = receivable (party owes company), negative = payable (company owes party)
+      if (b > 0) {
+        totalReceivable += b;
+      } else if (b < 0) {
+        totalPayable += Math.abs(b);
       }
     }
 

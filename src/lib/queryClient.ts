@@ -24,8 +24,15 @@ export const QUERY_PERSIST_BUSTER = 'alz-erp-v3';
  *    previously flooded the console with repeated
  *    `companies?id=eq.<stale-id>&select=*` 406 requests.
  */
-const NO_RETRY_CODES = [401, 403, 'PGRST301', 'PGRST116', 406] as const;
-const NO_RETRY_FRAGMENTS = ['jwt expired', 'refresh token', 'not authenticated'] as const;
+const NO_RETRY_CODES = [401, 403, 406, 408, 429, 500, 502, 503, 504, 'PGRST301', 'PGRST116'] as const;
+const NO_RETRY_FRAGMENTS = [
+  'jwt expired',
+  'refresh token',
+  'not authenticated',
+  'timeout',
+  'gateway',
+  'service unavailable',
+] as const;
 
 export const shouldRetryQuery = (
   failureCount: number,

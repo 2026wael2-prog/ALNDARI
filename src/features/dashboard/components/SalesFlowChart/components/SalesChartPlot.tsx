@@ -6,6 +6,7 @@ import {
 import { BarChart3 } from 'lucide-react';
 import { cn } from '../../../../../core/utils';
 import { useThemeStore } from '../../../../../lib/themeStore';
+import { useContainerReady } from '../../../../../core/hooks/useContainerReady';
 import { formatNumber } from './SalesChartSummary';
 import type { ChartType, SeriesType, ChartDataPoint } from '../hooks/useSalesFlowChart';
 
@@ -65,23 +66,7 @@ export const SalesChartPlot: React.FC<SalesChartPlotProps> = ({
 }) => {
     const { theme, accentColor } = useThemeStore();
     const isDark = theme === 'dark';
-    const [isMounted, setIsMounted] = React.useState(false);
-    const containerRef = React.useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-        let retryTimer: any;
-        const timer = setTimeout(() => {
-            if (containerRef.current && containerRef.current.offsetWidth > 0) {
-                setIsMounted(true);
-            } else {
-                retryTimer = setTimeout(() => { setIsMounted(true); }, 500);
-            }
-        }, 300);
-        return () => {
-            clearTimeout(timer);
-            if (retryTimer) clearTimeout(retryTimer);
-        };
-    }, []);
+    const { containerRef, isMounted } = useContainerReady();
 
     const gradients = (
         <defs>

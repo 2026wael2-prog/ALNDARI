@@ -571,12 +571,17 @@ export const productService = {
     if (error) throw parseError(error);
 
     const rows = data || [];
-    if (branchId && whRows && whRows.length > 0) {
-      const branchWhIds = new Set(whRows.map(w => w.id));
-      const branchWhNames = new Set(whRows.map(w => w.name_ar).filter(Boolean));
+    if (branchId) {
+      const branchWhIds = new Set((whRows || []).map(w => w.id));
+      const branchWhNames = new Set((whRows || []).map(w => w.name_ar).filter(Boolean));
       return rows.filter((r: Record<string, unknown>) => {
-        if (typeof r.warehouse_id === 'string') return branchWhIds.has(r.warehouse_id);
-        if (typeof r.warehouse_name === 'string') return branchWhNames.has(r.warehouse_name);
+        if (typeof r.branch_id === 'string') return r.branch_id === branchId;
+        if (typeof r.warehouse_id === 'string' && branchWhIds.size > 0) {
+          return branchWhIds.has(r.warehouse_id);
+        }
+        if (typeof r.warehouse_name === 'string' && branchWhNames.size > 0) {
+          return branchWhNames.has(r.warehouse_name);
+        }
         return true;
       });
     }

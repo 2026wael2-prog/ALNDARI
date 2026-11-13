@@ -18,17 +18,28 @@ import { cn, formatLocalDate } from '@/core/utils';
 /** صف حركة مخزون كما يعيده `useItemMovement`. */
 interface MovementRow {
   id?: string;
+  date?: string;
   entry_date?: string;
   type?: string;
+  transaction_type?: string;
   reference_type?: string;
   description?: string;
   quantity: number;
-  balance_after: number;
+  raw_quantity?: number | null;
+  balance_after: number | null;
   document_number?: string;
   source_name?: string;
   source_user?: string;
   unit_cost?: number;
 }
+
+const getRowDate = (m: MovementRow): string | undefined => m.date ?? m.entry_date;
+
+const getSignedQty = (m: MovementRow): number => {
+  if (typeof m.raw_quantity === 'number') return m.raw_quantity;
+  if (m.transaction_type === 'out') return -Math.abs(m.quantity);
+  return m.quantity;
+};
 
 /** منتج مصغّر كما يعيده `useMinimalProducts`. */
 interface MinimalProduct {
@@ -67,10 +78,11 @@ const InventoryMovementView: React.FC = () => {
   }, [allProducts, selectedProductId]);
 
   const filteredMovement = useMemo(() => {
-    const movementArr = (movement as MovementRow[]) || [];
+    const movementArr = (movement as unknown as MovementRow[]) || [];
     if (!fromDate && !toDate) return movementArr;
     return movementArr.filter(m => {
-      const d = m.entry_date ? String(m.entry_date).slice(0, 10) : '';
+      const rawDate = getRowDate(m);
+      const d = rawDate ? String(rawDate).slice(0, 10) : '';
       if (!d) return false;
       if (fromDate && d < fromDate) return false;
       if (toDate && d > toDate) return false;
@@ -81,52 +93,65 @@ const InventoryMovementView: React.FC = () => {
   const analysis = useMemo(() => {
     const movementArr = filteredMovement;
     if (!movementArr || movementArr.length === 0) return null;
-    const totalIn = movementArr.reduce((sum, m) => sum + (m.quantity > 0 ? m.quantity : 0), 0);
-    const totalOut = movementArr.reduce(
-      (sum, m) => sum + (m.quantity < 0 ? -m.quantity : 0),
-      0
-    );
-    const startBalance = movementArr[0].balance_after - movementArr[0].quantity;
-    const avgStock = (startBalance + movementArr[movementArr.length - 1].balance_after) / 2;
+    // get_item_movements_with_balance returns rows ordered newest-first (DESC)
+    const latest = movementArr[0];
+    const oldest = movementArr[movementArr.length - 1];
+    const totalIn = movementArr.reduce((sum, m) => {
+      const q = getSignedQty(m);
+      return sum + (q > 0 ? q : 0);
+    }, 0);
+    const totalOut = movementArr.reduce((sum, m) => {
+      const q = getSignedQty(m);
+      return sum + (q < 0 ? -q : 0);
+    }, 0);
+    const currentStock = latest.balance_after ?? 0;
+    const startBalance = (oldest.balance_after ?? 0) - getSignedQty(oldest);
+    const avgStock = (startBalance + currentStock) / 2;
+    const latestDate = getRowDate(latest);
 
     return {
-      currentStock: movementArr[movementArr.length - 1].balance_after,
+      currentStock,
       totalIn,
       totalOut,
       turnover: avgStock > 0 ? (totalOut / avgStock).toFixed(1) : 0,
-      lastMovement: movementArr[movementArr.length - 1].entry_date
-        ? formatLocalDate(movementArr[movementArr.length - 1].entry_date)
-        : '—',
+      lastMovement: latestDate ? formatLocalDate(latestDate) : '—',
     };
   }, [filteredMovement]);
 
   const chartData = useMemo(() => {
     return filteredMovement
-      .map((m: MovementRow) => ({
-        date: m.entry_date ? formatLocalDate(m.entry_date) : '',
-        balance: m.balance_after,
-      }))
+      .map((m: MovementRow) => {
+        const d = getRowDate(m);
+        return {
+          date: d ? formatLocalDate(d) : '',
+          balance: m.balance_after ?? 0,
+        };
+      })
       .reverse();
   }, [filteredMovement]);
 
   const columns = [
     {
       header: 'التاريخ',
-      accessor: (row: MovementRow) => (
-        <span dir="ltr" className="font-mono text-xs font-medium text-slate-500">
-          {row.entry_date ? formatLocalDate(row.entry_date) : '—'}
-        </span>
-      ),
+      accessor: (row: MovementRow) => {
+        const d = getRowDate(row);
+        return (
+          <span dir="ltr" className="font-mono text-xs font-medium text-slate-500">
+            {d ? formatLocalDate(d) : '—'}
+          </span>
+        );
+      },
     },
     {
       header: 'نوع الحركة',
       accessor: (row: MovementRow) => {
+        const signedQty = getSignedQty(row);
         let icon = <CheckCircle2 size={12} />;
         let color = 'text-slate-500';
         let bg = 'bg-slate-100 dark:bg-slate-800';
         let label = '---';
 
-        if (row.quantity > 0) {
+        if (signedQty > 0) {
           icon = <ArrowDownRight size={12} />;
           color = 'text-emerald-600';
           bg = 'bg-emerald-500/10 border border-emerald-500/20';
@@ -140,7 +165,7 @@ const InventoryMovementView: React.FC = () => {
 
         if (row.reference_type === 'stock_transfer') {
           icon = <ArrowLeftRight size={12} />;
-          label = row.quantity > 0 ? 'استلام مناقلة' : 'إرسال مناقلة';
+          label = signedQty > 0 ? 'استلام مناقلة' : 'إرسال مناقلة';
           color = 'text-blue-600';
           bg = 'bg-blue-500/10 border border-blue-500/20';
         } else if (row.reference_type === 'stock_audit') {
@@ -178,20 +203,23 @@ const InventoryMovementView: React.FC = () => {
     },
     {
       header: 'الكمية',
-      accessor: (row: MovementRow) => (
-        <span
-          dir="ltr"
-          className={cn(
-            'rounded-lg px-2.5 py-0.5 font-mono text-xs font-bold',
-            row.quantity > 0
-              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'
-              : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'
-          )}
-        >
-          {row.quantity > 0 ? '+' : ''}
-          {row.quantity}
-        </span>
-      ),
+      accessor: (row: MovementRow) => {
+        const signedQty = getSignedQty(row);
+        return (
+          <span
+            dir="ltr"
+            className={cn(
+              'rounded-lg px-2.5 py-0.5 font-mono text-xs font-bold',
+              signedQty > 0
+                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'
+                : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'
+            )}
+          >
+            {signedQty > 0 ? '+' : ''}
+            {signedQty}
+          </span>
+        );
+      },
       className: 'text-center',
     },
     {

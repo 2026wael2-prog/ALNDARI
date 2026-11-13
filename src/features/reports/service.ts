@@ -1,6 +1,6 @@
 import { logger } from '../../core/utils/logger';
 import { formatLocalDate, getLocalYearStart } from '../../core/utils/dateUtils';
-import { toBaseCurrency } from '../../core/utils/currencyUtils';
+import { getDefaultExchangeOperator, toBaseCurrency } from '../../core/utils/currencyUtils';
 
 import { reportsApi } from './api';
 import type { PartyDebt, ReportsStats } from './types';
@@ -395,6 +395,9 @@ export const reportsService = {
         accounts.map(a => a.id)
       );
 
+    const accountCurrencyMap = new Map(
+      accounts.map((a: any) => [a.id, (a.currency_code as string) || baseCurrency])
+    );
     const accountDataMap = new Map<string, { foreignBalance: number; bookValueBase: number }>();
 
     for (const l of (lines || []) as Array<{
@@ -416,16 +419,19 @@ export const reportsService = {
       const credit = Number(l.credit_amount) || 0;
       const fAmount = Number(l.foreign_amount) || 0;
       const exRate = Number(l.exchange_rate) || 1;
+      const absBaseDiff = Math.abs(debit - credit);
+      const accCurrency = accountCurrencyMap.get(l.account_id) || baseCurrency;
+      const isDivide = getDefaultExchangeOperator(accCurrency) === 'divide';
 
       // Calculate foreign movement
       const fMovement =
         fAmount > 0
           ? fAmount
-          : exRate > 1
-            ? (debit - credit >= 0 ? debit - credit : credit - debit) * exRate
-            : debit - credit >= 0
-              ? debit - credit
-              : credit - debit;
+          : exRate > 0 && exRate !== 1
+            ? isDivide
+              ? absBaseDiff * (exRate < 1 ? 1 / exRate : exRate)
+              : absBaseDiff / exRate
+            : absBaseDiff;
       const sign = debit >= credit ? 1 : -1;
 
       current.foreignBalance += sign * fMovement;
@@ -541,6 +547,9 @@ export const reportsService = {
       )
       .eq('account_id', accountId)
       .eq('journal_entries.company_id', companyId)
+      .eq('journal_entries.status', 'posted')
+      .is('journal_entries.deleted_at', null)
+      .is('deleted_at', null)
       .order('journal_entries(entry_date)', { ascending: false });
 
     if (fromDate) {

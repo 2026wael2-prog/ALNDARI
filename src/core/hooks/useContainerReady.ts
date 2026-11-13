@@ -16,10 +16,12 @@ export function useContainerReady<T extends HTMLElement = HTMLDivElement>(): {
     const el = containerRef.current;
     if (!el) return;
 
-    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
-      setIsMounted(true);
-      return;
-    }
+    const updateReady = (width: number, height: number) => {
+      const ready = width > 0 && height > 0;
+      setIsMounted(prev => (prev === ready ? prev : ready));
+    };
+
+    updateReady(el.offsetWidth, el.offsetHeight);
 
     if (typeof ResizeObserver === 'undefined') {
       setIsMounted(true);
@@ -29,11 +31,7 @@ export function useContainerReady<T extends HTMLElement = HTMLDivElement>(): {
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          setIsMounted(true);
-          observer.disconnect();
-          return;
-        }
+        updateReady(width, height);
       }
     });
 

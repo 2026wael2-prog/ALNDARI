@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useLedger, useAccounts } from '../../hooks';
 import { formatCurrency } from '../../../../core/utils';
+import { getDefaultExchangeOperator } from '../../../../core/utils/currencyUtils';
 import { getLedgerBalanceLabel } from '../../utils/ledgerBalance';
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import StatCard from '../../../../ui/common/StatCard';
@@ -65,15 +66,22 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
 
       const itemDebit = item.debit_amount || 0;
       const itemCredit = item.credit_amount || 0;
+      const itemRate = Number(item.exchange_rate ?? 0);
+      const isDivideCurrency = getDefaultExchangeOperator(currencyCode || 'SAR') === 'divide';
+      const toForeignFallback = (baseAmt: number) => {
+        if (!itemRate || itemRate <= 0) return baseAmt;
+        if (isDivideCurrency) return itemRate < 1 ? baseAmt / itemRate : baseAmt * itemRate;
+        return baseAmt / itemRate;
+      };
       const foreignLineDebit = isForeign
         ? item.foreign_amount && itemDebit > 0
           ? item.foreign_amount
-          : itemDebit * (item.exchange_rate && item.exchange_rate > 1 ? item.exchange_rate : 410)
+          : toForeignFallback(itemDebit)
         : itemDebit;
       const foreignLineCredit = isForeign
         ? item.foreign_amount && itemCredit > 0
           ? item.foreign_amount
-          : itemCredit * (item.exchange_rate && item.exchange_rate > 1 ? item.exchange_rate : 410)
+          : toForeignFallback(itemCredit)
         : itemCredit;
 
       if (isOutflowReversal) {

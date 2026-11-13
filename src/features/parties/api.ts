@@ -174,17 +174,28 @@ export const partiesApi = {
       .eq('id', id);
   },
 
-  search: async (companyId: string, type: PartyType, query: string) => {
+  search: async (
+    companyId: string,
+    type: PartyType,
+    query: string,
+    branchId?: string | null
+  ) => {
     const sanitized = query.replace(/[%_\\*()]/g, '');
     if (!sanitized.trim()) return { data: [], error: null };
     // 'all' → البحث في جميع الأطراف؛ غير ذلك نشمل 'both' أيضاً
     const typeFilter = type === 'all' ? ['customer', 'supplier', 'both'] : [type, 'both'];
-    return await supabase
+    let req = supabase
       .from('parties')
       .select('*')
       .eq('company_id', companyId)
       .in('type', typeFilter)
-      .is('deleted_at', null)
+      .is('deleted_at', null);
+
+    if (branchId) {
+      req = req.eq('branch_id', branchId);
+    }
+
+    return await req
       .textSearch('search_vector', sanitized, {
         config: 'simple',
         type: 'plain',

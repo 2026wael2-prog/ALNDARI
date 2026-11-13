@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store';
 import { reportsApi } from '../api';
 import { formatCurrency, cn, formatLocalDate, toBaseCurrency } from '../../../core/utils';
+import { useContainerReady } from '../../../core/hooks/useContainerReady';
 import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
 import {
   BarChart3,
@@ -132,11 +133,7 @@ const DailySalesReport: React.FC = () => {
   const [days, setDays] = useState(30);
   const [showAllInvoices, setShowAllInvoices] = useState(false);
   const { data, isLoading } = useDailySalesReport(days);
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const { containerRef, isMounted } = useContainerReady();
 
   const columns = useMemo(
     () => [
@@ -338,7 +335,7 @@ const DailySalesReport: React.FC = () => {
           <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:mb-3 sm:text-xs">
             اتجاه المبيعات اليومي
           </h4>
-          <div className="h-[180px] w-full sm:h-[220px]">
+          <div ref={containerRef} className="h-[180px] w-full sm:h-[220px]">
             {isMounted && (
               <ResponsiveContainer
                 key="daily-sales-chart"

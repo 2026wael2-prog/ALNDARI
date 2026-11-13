@@ -13,12 +13,15 @@ import {
 import { MobileCard } from './MobileComponents';
 import { formatCurrency } from '../../../core/utils';
 import { type AgingChartItem, AGING_COLORS } from '../types/debtAging';
+import { useContainerReady } from '@/core/hooks/useContainerReady';
 
 interface DebtAgingChartProps {
   chartData: AgingChartItem[];
 }
 
 export const DebtAgingChart: React.FC<DebtAgingChartProps> = ({ chartData }) => {
+  const { containerRef, isMounted } = useContainerReady();
+
   if (!chartData || !chartData.some(d => d.value > 0)) {
     return null;
   }
@@ -28,8 +31,9 @@ export const DebtAgingChart: React.FC<DebtAgingChartProps> = ({ chartData }) => 
       <h4 className="mb-2 text-xs font-bold text-slate-700 dark:text-slate-300">
         توزيع الديون حسب العمر
       </h4>
-      <div className="h-[180px] w-full sm:h-[200px]">
-        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+      <div ref={containerRef} className="h-[180px] w-full sm:h-[200px]">
+        {isMounted && (
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <BarChart data={chartData} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
@@ -49,6 +53,7 @@ export const DebtAgingChart: React.FC<DebtAgingChartProps> = ({ chartData }) => 
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        )}
       </div>
     </MobileCard>
   );

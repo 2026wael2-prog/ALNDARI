@@ -354,6 +354,7 @@ export function useRespondToTransferBatch() {
       action: 'approve' | 'reject' | 'cancel';
       itemsApproved?: Array<{ requestId: string; approvedQuantity: number }> | undefined;
       reviewNotes?: string | undefined;
+      requesterBranchId?: string | null | undefined;
     }) => {
       if (!user?.company_id || !user?.id) {
         throw new Error('جلسة العمل منتهية، يرجى إعادة تسجيل الدخول');
@@ -395,6 +396,10 @@ export function useRespondToTransferBatch() {
         void qc.invalidateQueries({ queryKey: ['warehouse_distribution'] });
         void qc.invalidateQueries({ queryKey: ['branches'] });
         void qc.invalidateQueries({ queryKey: ['branch_inventory'] });
+        void qc.invalidateQueries({ queryKey: ['inventory_movements_feed'] });
+        void qc.invalidateQueries({ queryKey: ['item_movement'] });
+        void qc.invalidateQueries({ queryKey: ['transfers'] });
+        void qc.invalidateQueries({ queryKey: ['dashboard_summary'] });
       }
 
       if (user?.company_id) {
@@ -403,6 +408,7 @@ export function useRespondToTransferBatch() {
           id: `batch_resp_${Date.now()}`,
           company_id: user.company_id,
           branch_id: user.branch_id ?? null,
+          target_branch_id: vars.requesterBranchId ?? null,
           type: isApprove ? 'transfer_approved' : 'transfer_rejected',
           title: isApprove ? 'اعتماد وشحن مناقلة' : 'رفض طلب مناقلة',
           message: isApprove ? 'تمت الموافقة وشحن الأصناف المطلوبة بنجاح' : 'تم رفض طلب المناقلة',

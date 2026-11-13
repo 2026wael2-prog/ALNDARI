@@ -73,6 +73,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
         action: 'approve',
         itemsApproved,
         reviewNotes: reviewNotes.trim() ? reviewNotes.trim() : undefined,
+        requesterBranchId: firstReq?.requester_branch_id,
       },
       {
         onSuccess: () => {
@@ -91,6 +92,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
         reviewNotes: reviewNotes.trim()
           ? reviewNotes.trim()
           : 'اعتذار عن عدم توفر الكمية المطلوبة حالياً',
+        requesterBranchId: firstReq?.requester_branch_id,
       },
       {
         onSuccess: () => {

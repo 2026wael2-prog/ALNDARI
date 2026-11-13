@@ -44,7 +44,7 @@ const PurchasesPage: React.FC = () => {
   const [currencyFilter, setCurrencyFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'date' | 'total' | 'number'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [limit, setLimit] = useState(500);
+  const [limit, setLimit] = useState(50);
   const { t } = useTranslation();
   const { user } = useAuthStore();
 

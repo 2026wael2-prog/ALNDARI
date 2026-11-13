@@ -29,7 +29,8 @@ export const useBranchFilter = () => {
   const setActiveWarehouse = useBranchFilterStore(s => s.setActiveWarehouse);
   const resetWarehouse = useBranchFilterStore(s => s.resetWarehouse);
 
-  const isManager = user?.role === 'owner' || user?.role === 'admin';
+  const isManager =
+    user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
   const userBranchId = user?.branch_id ?? null;
   const userCompanyId = user?.company_id ?? null;
 
@@ -56,8 +57,8 @@ export const useBranchFilter = () => {
 
   const effectiveBranchId = isManager ? managerEffectiveBranchId : userBranchId;
   const effectiveBranchName = isManager ? managerEffectiveBranchName : (user?.branch_name ?? null);
-  const effectiveWarehouseId = managerWarehouseId;
-  const effectiveWarehouseName = managerWarehouseName;
+  const effectiveWarehouseId = isManager ? managerWarehouseId : null;
+  const effectiveWarehouseName = isManager ? managerWarehouseName : null;
 
   return {
     /** branch_id المُستخدم للفلترة — null يعني "جميع الفروع" */

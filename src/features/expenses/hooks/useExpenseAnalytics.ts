@@ -1,27 +1,7 @@
 import { useMemo } from 'react';
 import type { Expense } from '../types';
-import { toBaseCurrency } from '../../../core/utils/currencyUtils';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
-import { logger } from '../../../core/utils/logger';
-
-/** تحويل آمن للعملة إلى العملة الأساسية — يُعيد 0 عند وجود سعر صرف خاطئ */
-const safeToBase = (expense: Expense): number => {
-  try {
-    return toBaseCurrency({
-      amount: Number(expense.amount),
-      currency_code: expense.currency_code,
-      exchange_rate: expense.exchange_rate,
-    });
-  } catch (err) {
-    logger.warn('useExpenseAnalytics', 'Invalid exchange rate — treated as 0', {
-      id: expense.id,
-      currency_code: expense.currency_code,
-      exchange_rate: expense.exchange_rate,
-      error: err,
-    });
-    return 0;
-  }
-};
+import { safeToBase } from '../service';
 
 export type ExpenseAnalyticsPeriod = 'today' | 'week' | 'month' | 'quarter' | 'year';
 

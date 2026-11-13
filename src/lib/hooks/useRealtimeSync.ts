@@ -59,10 +59,12 @@ const pollNow = async (
   if (state.running) return;
   if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  const conn = useConnectionStore.getState();
+  if (conn.isUnstable && conn.consecutiveFailures >= 3) return;
 
   state.running = true;
   try {
-    await queryClient.refetchQueries({ type: 'active' });
+    await queryClient.refetchQueries({ type: 'active', stale: true });
   } catch {
     // `refetchQueries` resolves even when individual queries fail
   } finally {
@@ -82,7 +84,7 @@ const startFallbackPolling = (channelId: string, queryClient: QueryClient): void
   const intervalSec = String(FALLBACK_POLL_BASE_MS / 1000);
   logger.warn(
     'Realtime',
-    `⚠️ Channel down — starting fallback polling (every ${intervalSec}s, active queries only)`
+    `⚠️ Channel down — starting fallback polling (every ${intervalSec}s, active stale queries only)`
   );
 
   const state: FallbackPollState = {
@@ -92,7 +94,6 @@ const startFallbackPolling = (channelId: string, queryClient: QueryClient): void
   };
 
   fallbackPolls.set(channelId, state);
-  void pollNow(channelId, queryClient, state);
 };
 
 const stopFallbackPolling = (channelId: string): void => {
@@ -119,6 +120,8 @@ const TABLE_PRESET_MAP = new Map<string, InvalidationPreset>([
   ['inventory_transactions', 'inventory'],
   ['stock_transfers', 'inventory'],
   ['stock_transfer_items', 'inventory'],
+  ['stock_transfer_requests', 'inventory'],
+  ['purchase_quotation_shipments', 'purchase'],
   ['audit_sessions', 'inventory'],
   ['audit_items', 'inventory'],
   ['product_cross_references', 'inventory'],
@@ -178,23 +181,36 @@ const bindChannelListeners = (
   channel: RealtimeChannel,
   queryClient: QueryClient
 ): RealtimeChannel => {
-  let lastInvalidated = 0;
-  const THROTTLE_MS = 3000;
+  // Per-preset coalesce timers so bursts on one table coalesce without dropping events on other tables.
+  const pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const COALESCE_MS = 400;
+
+  const schedulePresetInvalidation = (key: string, run: () => void): void => {
+    const existing = pendingTimers.get(key);
+    if (existing !== undefined) {
+      clearTimeout(existing);
+    }
+    const timer = setTimeout(() => {
+      pendingTimers.delete(key);
+      run();
+    }, COALESCE_MS);
+    pendingTimers.set(key, timer);
+  };
 
   const handleChange = (payload: RealtimeChangePayload): void => {
     useConnectionStore.getState().reportRealtimeEvent();
-    const now = Date.now();
-    if (now - lastInvalidated < THROTTLE_MS) return;
 
     const preset = TABLE_PRESET_MAP.get(payload.table);
     if (preset !== undefined) {
-      logger.info('Realtime', `🔄 Sync: [${payload.table}] updated, refreshing...`);
-      if (payload.table === 'invoices') {
-        applyInvoiceInvalidation(queryClient, payload);
-      } else {
-        invalidateByPreset(queryClient, preset, { primaryOnlyRefetch: true });
-      }
-      lastInvalidated = now;
+      const coalesceKey = payload.table === 'invoices' ? `invoices:${invoiceChangeKind(payload)}` : preset;
+      schedulePresetInvalidation(coalesceKey, () => {
+        logger.info('Realtime', `🔄 Sync: [${payload.table}] updated, refreshing...`);
+        if (payload.table === 'invoices') {
+          applyInvoiceInvalidation(queryClient, payload);
+        } else {
+          invalidateByPreset(queryClient, preset, { primaryOnlyRefetch: true });
+        }
+      });
     }
   };
 

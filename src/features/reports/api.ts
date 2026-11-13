@@ -81,19 +81,36 @@ export const reportsApi = {
       accountsQuery = accountsQuery.eq('journal_entry_lines.journal_entries.branch_id', branchId);
     }
 
-    const [{ data: accounts }, { data: balances }] = await Promise.all([
+    const [{ data: accounts }, balancesRes] = await Promise.all([
       accountsQuery,
-      supabase.from('account_balances').select('account_id, balance').eq('company_id', companyId),
+      branchId
+        ? Promise.resolve({ data: null })
+        : supabase.from('account_balances').select('account_id, balance').eq('company_id', companyId),
     ]);
 
     if (!accounts) return { data: null, error: { message: 'Failed to fetch accounts' } };
 
-    const balanceMap = new Map((balances ?? []).map(b => [b.account_id, Number(b.balance)]));
+    const balanceMap = new Map(
+      (balancesRes.data ?? []).map(b => [b.account_id, Number(b.balance)])
+    );
 
-    const merged = accounts.map(a => ({
-      ...a,
-      balance: (balanceMap.get(a.id) ?? 0) !== 0 ? (balanceMap.get(a.id) ?? 0) : 0,
-    }));
+    const merged = accounts.map(a => {
+      if (branchId) {
+        const lines = (a.journal_entry_lines ?? []) as Array<{
+          debit_amount: number | null;
+          credit_amount: number | null;
+        }>;
+        const net = lines.reduce(
+          (sum, l) => sum + Number(l.debit_amount ?? 0) - Number(l.credit_amount ?? 0),
+          0
+        );
+        return { ...a, balance: net };
+      }
+      return {
+        ...a,
+        balance: (balanceMap.get(a.id) ?? 0) !== 0 ? (balanceMap.get(a.id) ?? 0) : 0,
+      };
+    });
 
     return {
       data: merged as AccountWithLines[],
@@ -193,7 +210,6 @@ export const reportsApi = {
       partiesQuery,
       supabase.rpc('get_party_balances_by_company', {
         p_company_id: companyId,
-        ...(branchId ? { p_branch_id: branchId } : {}),
       }),
     ]);
 
@@ -255,6 +271,89 @@ export const reportsApi = {
         exchange_rate: number | null;
       }> | null;
       error: { message: string } | null;
+    };
+  },
+
+  /**
+   * Fetch unpaid credit sales returns and posted customer receipt bonds (with allocations)
+   * so Debt Aging deducts unallocated bonds and credit returns per AGENTS.md Rule 3.
+   */
+  getDebtAgingCredits: async (companyId: string, branchId?: string | null) => {
+    let returnsQuery = supabase
+      .from('invoices')
+      .select('id, party_id, total_amount, paid_amount, currency_code, exchange_rate')
+      .eq('company_id', companyId)
+      .in('type', ['sale_return', 'return_sale'])
+      .neq('payment_method', 'cash')
+      .is('deleted_at', null)
+      .not('invoice_number', 'ilike', '%-INT')
+      .in('status', ['posted', 'confirmed', 'partially_paid']);
+
+    if (branchId) {
+      returnsQuery = returnsQuery.eq('branch_id', branchId);
+    }
+
+    let receiptsQuery = supabase
+      .from('payments')
+      .select('id, party_id, amount, currency_code, exchange_rate, parties!inner(type)')
+      .eq('company_id', companyId)
+      .eq('type', 'receipt')
+      .eq('status', 'posted')
+      .is('deleted_at', null)
+      .in('parties.type', ['customer', 'both']);
+
+    if (branchId) {
+      receiptsQuery = receiptsQuery.eq('branch_id', branchId);
+    }
+
+    const [returnsRes, receiptsRes] = await Promise.all([returnsQuery, receiptsQuery]);
+    if (returnsRes.error) return { creditReturns: [], unallocatedReceipts: [], error: returnsRes.error };
+    if (receiptsRes.error) return { creditReturns: [], unallocatedReceipts: [], error: receiptsRes.error };
+
+    const receiptRows = (receiptsRes.data || []) as Array<{
+      id: string;
+      party_id: string | null;
+      amount: number;
+      currency_code: string | null;
+      exchange_rate: number | null;
+    }>;
+
+    const allocMap = new Map<string, number>();
+    if (receiptRows.length > 0) {
+      const paymentIds = receiptRows.map(r => r.id);
+      const { data: allocRows, error: allocError } = await supabase
+        .from('payment_allocations')
+        .select('payment_id, amount')
+        .eq('company_id', companyId)
+        .in('payment_id', paymentIds);
+
+      if (allocError) return { creditReturns: [], unallocatedReceipts: [], error: allocError };
+
+      for (const a of (allocRows || []) as Array<{ payment_id: string; amount: number }>) {
+        allocMap.set(a.payment_id, (allocMap.get(a.payment_id) ?? 0) + (a.amount ?? 0));
+      }
+    }
+
+    const unallocatedReceipts = receiptRows
+      .map(r => ({
+        party_id: r.party_id,
+        unallocated_amount: Math.max(0, (r.amount || 0) - (allocMap.get(r.id) ?? 0)),
+        currency_code: r.currency_code,
+        exchange_rate: r.exchange_rate,
+      }))
+      .filter(r => r.unallocated_amount > 0.01);
+
+    return {
+      creditReturns: (returnsRes.data || []) as Array<{
+        id: string;
+        party_id: string | null;
+        total_amount: number;
+        paid_amount: number;
+        currency_code: string | null;
+        exchange_rate: number | null;
+      }>,
+      unallocatedReceipts,
+      error: null,
     };
   },
 

@@ -3,6 +3,7 @@ import { salesService } from '../service';
 import { useAuthStore } from '@/features/auth/store';
 import { useFeedbackStore } from '@/features/feedback/store';
 import { invalidateByPreset } from '@/lib/invalidation';
+import { shouldRetryQuery } from '@/lib/queryClient';
 import { syncStore } from '@/core/lib/sync-store';
 import type { CreateInvoiceDTO } from '../types';
 
@@ -61,8 +62,7 @@ export const useInvoices = (options?: UseInvoicesOptions) => {
     staleTime: isSearchMode ? 60 * 1000 : 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     placeholderData: prev => prev,
-    // إعادة المحاولة مرتين بتأخير تصاعدي لمعالجة أخطاء QUIC/الشبكة العابرة
-    retry: 2,
+    retry: (failureCount, error) => shouldRetryQuery(failureCount, error),
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
     // منع إعادة الجلب التلقائية عند التبديل بين نوافذ المتصفح (مكلف للـ RPC)
     refetchOnWindowFocus: false,

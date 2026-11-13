@@ -7,6 +7,7 @@ import { authApi } from './api';
 import { queryClient } from '../../lib/queryClient';
 import { persister } from '../../lib/persister';
 import { logger } from '../../core/utils/logger';
+import { useBranchFilterStore } from '../branches/store';
 
 interface AuthState {
   user: AuthUser | null;
@@ -56,8 +57,9 @@ export const useAuthStore = create<AuthState>()(
         } catch (err) {
           logger.error('Auth', 'Sign out error', err);
         } finally {
-          // Clear all React Query cache + IndexedDB persisted data on logout
+          // Clear all React Query cache + IndexedDB persisted data + branch filter on logout
           queryClient.clear();
+          useBranchFilterStore.getState().ensureCompany(null);
           Promise.resolve(persister.removeClient()).catch(() => undefined);
           set({ user: null, isAuthenticated: false, isLoading: false, isReady: true });
         }

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useContainerReady } from '@/core/hooks/useContainerReady';
 import {
   BarChart,
   Bar,
@@ -24,7 +25,7 @@ const FinancialPerformanceChart: React.FC = () => {
   const { branchId } = useBranchFilter();
   const isDark = theme === 'dark';
 
-  const [isMounted, setIsMounted] = useState(false);
+  const { containerRef, isMounted } = useContainerReady();
 
   const currentYear = new Date().getFullYear();
 
@@ -37,10 +38,6 @@ const FinancialPerformanceChart: React.FC = () => {
     enabled: !!user?.company_id,
     staleTime: 5 * 60 * 1000, // 5 min
   });
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   if (isLoading) {
     return (
@@ -72,7 +69,7 @@ const FinancialPerformanceChart: React.FC = () => {
   }
 
   return (
-    <div className="group relative h-72 w-full p-2 max-md:p-1">
+    <div ref={containerRef} className="group relative h-72 w-full p-2 max-md:p-1">
       <div className="absolute end-0 top-0 z-10 p-4 opacity-0 transition-opacity group-hover:opacity-100 max-md:p-2">
         <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 shadow-xl backdrop-blur-md">
           <TrendingUp size={12} className="text-emerald-500" />

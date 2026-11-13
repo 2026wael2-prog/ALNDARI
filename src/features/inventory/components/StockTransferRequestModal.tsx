@@ -34,13 +34,13 @@ const StockTransferRequestModal: React.FC<Props> = ({
   const availableSources = useMemo(() => {
     const dist = product.warehouse_distribution || [];
     const external = dist.filter(
-      w => w.quantity > 0 && (w.branch_id ? w.branch_id !== requesterBranchId : true)
+      w => w.quantity > 0 && Boolean(w.branch_id) && w.branch_id !== requesterBranchId
     );
     if (external.length === 0) {
       return [{ branchId: sourceBranchId, branchName: sourceBranchName, qty: availableQty }];
     }
     return external.map(w => ({
-      branchId: w.branch_id || w.warehouse_id,
+      branchId: w.branch_id as string,
       branchName: w.branch_name || w.warehouse_name,
       qty: w.quantity,
     }));

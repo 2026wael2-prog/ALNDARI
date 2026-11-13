@@ -32,7 +32,9 @@ export const BranchTransferRequestsTab: React.FC<BranchTransferRequestsTabProps>
   onOpenCreateRequestModal,
 }) => {
   const { branchId } = useBranchFilter();
-  const [filterType, setFilterType] = useState<'all' | 'incoming' | 'outgoing'>('incoming');
+  const [filterType, setFilterType] = useState<'all' | 'incoming' | 'outgoing'>(
+    branchId ? 'incoming' : 'all'
+  );
   const [selectedRequestsForAction, setSelectedRequestsForAction] = useState<StockTransferRequest[] | null>(null);
 
   const { data: requests, isLoading } = useStockTransferRequests('all', branchId);
@@ -43,6 +45,7 @@ export const BranchTransferRequestsTab: React.FC<BranchTransferRequestsTabProps>
 
   const allList = requests ?? [];
   const filteredList = allList.filter(r => {
+    if (!branchId) return true;
     if (filterType === 'incoming') {
       return r.source_branch_id === branchId;
     }
@@ -53,7 +56,7 @@ export const BranchTransferRequestsTab: React.FC<BranchTransferRequestsTabProps>
   });
 
   const pendingIncomingCount = allList.filter(
-    r => r.source_branch_id === branchId && r.status === 'pending'
+    r => (!branchId || r.source_branch_id === branchId) && r.status === 'pending'
   ).length;
 
   const handleOpenAction = (req: StockTransferRequest) => {

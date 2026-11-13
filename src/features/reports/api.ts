@@ -61,22 +61,28 @@ export const reportsApi = {
   /**
    * Fetch accounting data with journal lines
    */
-  getAccountingData: async (companyId: string) => {
-    const [{ data: accounts }, { data: balances }] = await Promise.all([
-      supabase
-        .from('accounts')
-        .select(
-          `
+  getAccountingData: async (companyId: string, branchId?: string | null) => {
+    let accountsQuery = supabase
+      .from('accounts')
+      .select(
+        `
           id, code, name_ar, type,
           journal_entry_lines (
             debit_amount, credit_amount,
-            journal_entries!inner ( entry_date, status )
+            journal_entries!inner ( entry_date, status, branch_id )
           )
         `
-        )
-        .eq('company_id', companyId)
-        .is('deleted_at', null)
-        .eq('journal_entry_lines.journal_entries.status', 'posted'),
+      )
+      .eq('company_id', companyId)
+      .is('deleted_at', null)
+      .eq('journal_entry_lines.journal_entries.status', 'posted');
+
+    if (branchId) {
+      accountsQuery = accountsQuery.eq('journal_entry_lines.journal_entries.branch_id', branchId);
+    }
+
+    const [{ data: accounts }, { data: balances }] = await Promise.all([
+      accountsQuery,
       supabase.from('account_balances').select('account_id, balance').eq('company_id', companyId),
     ]);
 
@@ -144,19 +150,25 @@ export const reportsApi = {
   },
 
   // جلب البيانات الخام للتقارير المخصصة الأخرى عند الحاجة
-  getJournalLinesRaw: async (companyId: string, fromDate?: string, toDate?: string) => {
+  getJournalLinesRaw: async (
+    companyId: string,
+    fromDate?: string,
+    toDate?: string,
+    branchId?: string | null
+  ) => {
     let query = supabase
       .from('journal_entry_lines')
       .select(
         `
         id, debit_amount, credit_amount, description, account_id,
         account:accounts!inner(id, code, name_ar, type),
-        journal:journal_entries!inner(id, entry_date, entry_number, status, company_id)
+        journal:journal_entries!inner(id, entry_date, entry_number, status, company_id, branch_id)
       `
       )
       .eq('journal.company_id', companyId)
       .eq('journal.status', 'posted');
 
+    if (branchId) query = query.eq('journal.branch_id', branchId);
     if (fromDate) query = query.gte('journal.entry_date', fromDate);
     if (toDate) query = query.lte('journal.entry_date', toDate);
 
@@ -166,14 +178,23 @@ export const reportsApi = {
     };
   },
 
-  getPartiesWithBalances: async (companyId: string) => {
+  getPartiesWithBalances: async (companyId: string, branchId?: string | null) => {
+    let partiesQuery = supabase
+      .from('parties')
+      .select('id, name, type')
+      .eq('company_id', companyId)
+      .is('deleted_at', null);
+
+    if (branchId) {
+      partiesQuery = partiesQuery.eq('branch_id', branchId);
+    }
+
     const [{ data: parties }, { data: balances }] = await Promise.all([
-      supabase
-        .from('parties')
-        .select('id, name, type')
-        .eq('company_id', companyId)
-        .is('deleted_at', null),
-      supabase.rpc('get_party_balances_by_company', { p_company_id: companyId }),
+      partiesQuery,
+      supabase.rpc('get_party_balances_by_company', {
+        p_company_id: companyId,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      }),
     ]);
 
     if (!parties) return { data: null, error: { message: 'Failed to fetch parties' } };

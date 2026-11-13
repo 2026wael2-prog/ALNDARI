@@ -66,17 +66,20 @@ const InventoryMovementView: React.FC = () => {
     return allProducts?.find((p: { id: string }) => p.id === selectedProductId);
   }, [allProducts, selectedProductId]);
 
+  const filteredMovement = useMemo(() => {
+    const movementArr = (movement as MovementRow[]) || [];
+    if (!fromDate && !toDate) return movementArr;
+    return movementArr.filter(m => {
+      const d = m.entry_date ? String(m.entry_date).slice(0, 10) : '';
+      if (!d) return false;
+      if (fromDate && d < fromDate) return false;
+      if (toDate && d > toDate) return false;
+      return true;
+    });
+  }, [movement, fromDate, toDate]);
+
   const analysis = useMemo(() => {
-    const movementArr =
-      (movement as Array<{
-        quantity: number;
-        balance_after: number;
-        entry_date?: string;
-        type?: string;
-        description?: string;
-        unit_cost?: number;
-        id?: string;
-      }>) || [];
+    const movementArr = filteredMovement;
     if (!movementArr || movementArr.length === 0) return null;
     const totalIn = movementArr.reduce((sum, m) => sum + (m.quantity > 0 ? m.quantity : 0), 0);
     const totalOut = movementArr.reduce(
@@ -95,17 +98,16 @@ const InventoryMovementView: React.FC = () => {
         ? formatLocalDate(movementArr[movementArr.length - 1].entry_date)
         : '—',
     };
-  }, [movement]);
+  }, [filteredMovement]);
 
   const chartData = useMemo(() => {
-    const movementArr = (movement as MovementRow[]) || [];
-    return movementArr
+    return filteredMovement
       .map((m: MovementRow) => ({
         date: m.entry_date ? formatLocalDate(m.entry_date) : '',
         balance: m.balance_after,
       }))
       .reverse();
-  }, [movement]);
+  }, [filteredMovement]);
 
   const columns = [
     {
@@ -405,7 +407,7 @@ const InventoryMovementView: React.FC = () => {
             <div className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
               <ExcelTable
                 columns={columns}
-                data={(movement as MovementRow[]) || []}
+                data={filteredMovement}
                 colorTheme="blue"
                 title={`سجل حركة الصنف`}
                 subtitle={`النشاط المسجل لـ: ${selectedProduct?.name}`}

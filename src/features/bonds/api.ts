@@ -139,7 +139,9 @@ export const bondsApi = {
       if (commError) {
         const commAppErr = parseError(commError);
         logger.error('bondsApi', 'Failed to create commission bond', commAppErr);
-        // لا نوقف العملية لأن السند الرئيسي نجح — فقط نسجّل الخطأ
+        throw new Error(
+          `تم حفظ السند الرئيسي بنجاح، لكن فشل تسجيل سند الخصم/العمولة: ${commAppErr.message}`
+        );
       }
     }
 

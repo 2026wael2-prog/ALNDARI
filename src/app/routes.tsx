@@ -225,25 +225,31 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.INVENTORY}
           element={
-            <FeatureBoundary name="inventory">
-              <InventoryPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="inventory:read" label="المخزون">
+              <FeatureBoundary name="inventory">
+                <InventoryPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.INVENTORY_AUDIT_SESSION}
           element={
-            <FeatureBoundary name="audit-session">
-              <AuditSessionPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="inventory:update" label="جلسة الجرد">
+              <FeatureBoundary name="audit-session">
+                <AuditSessionPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.INVENTORY_QUICK_AUDIT}
           element={
-            <FeatureBoundary name="quick-audit">
-              <QuickAuditPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="inventory:update" label="الجرد السريع">
+              <FeatureBoundary name="quick-audit">
+                <QuickAuditPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
 
@@ -251,17 +257,21 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.SALES}
           element={
-            <FeatureBoundary name="sales">
-              <SalesPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="sales:read" label="المبيعات">
+              <FeatureBoundary name="sales">
+                <SalesPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.POS}
           element={
-            <FeatureBoundary name="pos">
-              <POSPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="sales:create" label="نقطة البيع">
+              <FeatureBoundary name="pos">
+                <POSPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
@@ -285,25 +295,31 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.PURCHASES}
           element={
-            <FeatureBoundary name="purchases">
-              <PurchasesPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="purchases:read" label="المشتريات">
+              <FeatureBoundary name="purchases">
+                <PurchasesPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.EXPENSES}
           element={
-            <FeatureBoundary name="expenses">
-              <ExpensesPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="expenses:read" label="المصروفات">
+              <FeatureBoundary name="expenses">
+                <ExpensesPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.BONDS}
           element={
-            <FeatureBoundary name="bonds">
-              <BondsPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="bonds:read" label="السندات">
+              <FeatureBoundary name="bonds">
+                <BondsPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
 
@@ -361,17 +377,21 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.COMMISSIONS_PERIODS}
           element={
-            <FeatureBoundary name="commissions-periods">
-              <CommissionPeriodsPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="incentive:manage_plans" label="فترات العمولات">
+              <FeatureBoundary name="commissions-periods">
+                <CommissionPeriodsPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.COMMISSIONS_REPORTS}
           element={
-            <FeatureBoundary name="commissions-reports">
-              <CommissionReportsPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="reports:read" label="تقارير العمولات">
+              <FeatureBoundary name="commissions-reports">
+                <CommissionReportsPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
 
@@ -379,17 +399,21 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.SUPPLIERS}
           element={
-            <FeatureBoundary name="suppliers">
-              <PartiesPage partyType="supplier" />
-            </FeatureBoundary>
+            <PermissionGuard permission="customers:read" label="الموردون">
+              <FeatureBoundary name="suppliers">
+                <PartiesPage partyType="supplier" />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.CLIENTS}
           element={
-            <FeatureBoundary name="clients">
-              <PartiesPage partyType="customer" />
-            </FeatureBoundary>
+            <PermissionGuard permission="customers:read" label="العملاء">
+              <FeatureBoundary name="clients">
+                <PartiesPage partyType="customer" />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
@@ -438,9 +462,11 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.DEBTS}
           element={
-            <FeatureBoundary name="debts">
-              <DebtsLayout />
-            </FeatureBoundary>
+            <PermissionGuard permission="debts:read" label="إدارة الديون والتحصيل">
+              <FeatureBoundary name="debts">
+                <DebtsLayout />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         >
           <Route index element={<DebtOverviewPage />} />

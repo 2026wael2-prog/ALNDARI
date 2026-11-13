@@ -256,7 +256,10 @@ export const salesApi = {
     const { data: result, error } = await supabase.rpc('commit_sales_invoice_v2', rpcParams);
     if (error) throw parseError(error);
 
-    const invResponse = result as unknown as InvoiceResponse;
+    const invResponse: InvoiceResponse =
+      typeof result === 'string'
+        ? ({ id: result, invoice_number: '', total_amount: 0, status: 'posted' } as unknown as InvoiceResponse)
+        : (result as unknown as InvoiceResponse);
     if (invResponse?.id) {
       void broadcastCrossBranchActivity(companyId, {
         id: invResponse.id,

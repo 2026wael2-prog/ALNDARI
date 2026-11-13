@@ -15,7 +15,8 @@ describe('reportsApi.getDebtAgingInvoices', () => {
     const inFilter = vi.fn(() => ({ order }));
     const notFilter = vi.fn(() => ({ in: inFilter }));
     const isFilter = vi.fn(() => ({ not: notFilter }));
-    const eqType = vi.fn(() => ({ is: isFilter }));
+    const neqFilter = vi.fn(() => ({ is: isFilter }));
+    const eqType = vi.fn(() => ({ neq: neqFilter }));
     const eqCompany = vi.fn(() => ({ eq: eqType }));
     const select = vi.fn((_columns: string) => ({ eq: eqCompany }));
     mockFrom.mockReturnValue({ select });
@@ -28,6 +29,7 @@ describe('reportsApi.getDebtAgingInvoices', () => {
     expect(selectArg).toContain('issue_date');
     expect(eqCompany).toHaveBeenCalledWith('company_id', 'c1');
     expect(eqType).toHaveBeenCalledWith('type', 'sale');
+    expect(neqFilter).toHaveBeenCalledWith('payment_method', 'cash');
     expect(isFilter).toHaveBeenCalledWith('deleted_at', null);
     expect(notFilter).toHaveBeenCalledWith('invoice_number', 'ilike', '%-INT');
     // Confirmed and partially paid invoices MUST be included in the aging report.

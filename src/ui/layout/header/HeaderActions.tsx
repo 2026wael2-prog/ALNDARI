@@ -53,14 +53,15 @@ const HeaderActions: React.FC = () => {
     state.channels.reduce((sum, channel) => sum + (channel.unread_count ?? 0), 0)
   );
 
-  // Poll for pending sync count
+  // Poll for pending sync count (skipped when tab is hidden)
   useEffect(() => {
     const checkPending = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
       const pending = await syncStore.getPending();
       setPendingCount(pending.length);
     };
-    checkPending();
-    const interval = setInterval(checkPending, 20000);
+    void checkPending();
+    const interval = setInterval(() => void checkPending(), 60000);
     return () => {
       clearInterval(interval);
     };

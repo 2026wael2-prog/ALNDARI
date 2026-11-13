@@ -331,26 +331,89 @@ export const purchasesService = {
       if (r.type === 'purchase') {
         invoiceCount += 1;
         totalPurchases += baseAmt;
-        totalDebt += baseDebt;
-        if (debt > 0 || r.status !== 'paid') {
-          pendingPaymentCount += 1;
+        // Cash invoices are already paid at purchase; only non-cash invoices carry unpaid debt.
+        if (method !== 'cash') {
+          totalDebt += baseDebt;
+          if (debt > 0 || r.status !== 'paid') {
+            pendingPaymentCount += 1;
+          }
+          if (curr === 'SAR') {
+            totalDebtSAR += debt;
+          } else if (curr === 'YER') {
+            totalDebtYER += debt;
+          }
         }
 
         if (curr === 'SAR') {
           totalPurchasesSAR += amt;
-          totalDebtSAR += debt;
           if (method === 'cash') cashPurchasesSAR += amt;
           else if (method === 'credit') creditPurchasesSAR += amt;
         } else if (curr === 'YER') {
           totalPurchasesYER += amt;
-          totalDebtYER += debt;
           if (method === 'cash') cashPurchasesYER += amt;
           else if (method === 'credit') creditPurchasesYER += amt;
         }
       } else if (r.type === 'purchase_return') {
         totalPurchases -= baseAmt;
+        if (method !== 'cash') {
+          totalDebt -= baseDebt;
+          if (curr === 'SAR') totalDebtSAR -= debt;
+          else if (curr === 'YER') totalDebtYER -= debt;
+        }
         if (curr === 'SAR') totalPurchasesSAR -= amt;
         else if (curr === 'YER') totalPurchasesYER -= amt;
+      }
+    }
+
+    // Subtract unallocated supplier payment/disbursement/discount bonds so they reduce totalDebt
+    if (filters.paymentType !== 'cash') {
+      let payQuery = supabase
+        .from('payments')
+        .select('id, amount, currency_code, exchange_rate, party:parties!inner(type)')
+        .eq('company_id', companyId)
+        .in('type', ['disbursement', 'payment'])
+        .eq('status', 'posted')
+        .is('deleted_at', null)
+        .in('party.type', ['supplier', 'both']);
+
+      if (filters.branchId) payQuery = payQuery.eq('branch_id', filters.branchId);
+      if (filters.currency && filters.currency !== 'ALL') {
+        payQuery = payQuery.eq('currency_code', filters.currency);
+      }
+      if (filters.startDate) payQuery = payQuery.gte('payment_date', filters.startDate);
+      if (filters.endDate) payQuery = payQuery.lte('payment_date', filters.endDate);
+
+      const { data: payRows } = await payQuery;
+      if (payRows && payRows.length > 0) {
+        const paymentIds = payRows.map(p => p.id);
+        const { data: allocRows } = await supabase
+          .from('payment_allocations')
+          .select('payment_id, amount')
+          .eq('company_id', companyId)
+          .in('payment_id', paymentIds);
+
+        const allocMap = new Map<string, number>();
+        for (const a of allocRows || []) {
+          allocMap.set(a.payment_id, (allocMap.get(a.payment_id) ?? 0) + (a.amount ?? 0));
+        }
+
+        for (const p of payRows) {
+          const unalloc = Math.max(0, (p.amount ?? 0) - (allocMap.get(p.id) ?? 0));
+          if (unalloc <= 0) continue;
+          const pCurr = (p.currency_code || 'SAR').toUpperCase();
+          const pRate = p.exchange_rate ?? 1;
+          let baseUnalloc = unalloc;
+          if (!filters.currency || filters.currency === 'ALL') {
+            try {
+              baseUnalloc = toBaseCurrency({ amount: unalloc, currency_code: pCurr, exchange_rate: pRate });
+            } catch {
+              baseUnalloc = unalloc;
+            }
+          }
+          totalDebt -= baseUnalloc;
+          if (pCurr === 'SAR') totalDebtSAR -= unalloc;
+          else if (pCurr === 'YER') totalDebtYER -= unalloc;
+        }
       }
     }
 
@@ -358,11 +421,11 @@ export const purchasesService = {
       invoiceCount,
       totalPurchases,
       pendingPaymentCount,
-      totalDebt,
+      totalDebt: Math.max(0, totalDebt),
       totalPurchasesSAR,
       totalPurchasesYER,
-      totalDebtSAR,
-      totalDebtYER,
+      totalDebtSAR: Math.max(0, totalDebtSAR),
+      totalDebtYER: Math.max(0, totalDebtYER),
       cashPurchasesSAR,
       cashPurchasesYER,
       creditPurchasesSAR,

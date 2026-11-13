@@ -25,7 +25,7 @@ import { cn } from '../../../core/utils';
  * never a dirty one — and re-activating an evicted tab simply mounts it again
  * (its data is still in the React Query cache).
  */
-const MAX_MOUNTED_TABS = 8;
+const MAX_MOUNTED_TABS = 3;
 
 /**
  * A tab is only evicted after being inactive for this long. No page currently
@@ -33,7 +33,7 @@ const MAX_MOUNTED_TABS = 8;
  * time window is the practical safeguard against discarding in-progress input:
  * a tab the user was just working in is never the first to go.
  */
-const EVICTION_IDLE_MS = 3 * 60 * 1000;
+const EVICTION_IDLE_MS = 60 * 1000;
 
 interface CacheEntry {
   view: React.ReactNode;
@@ -147,9 +147,16 @@ function useViewsCache(
   const viewsCacheRef = useRef<Map<string, CacheEntry>>(new Map());
   const [, forceUpdate] = useState({});
 
-  // Synchronous cache update during render so the active view is immediately available
+  // Synchronous cache update during render so the active view is immediately available.
+  // Keep the existing `view` reference when the tab is already cached so TabPanel's
+  // shallow children check stays true across parent re-renders.
   if (activeTabId !== '' && outlet !== null && outlet !== undefined) {
-    viewsCacheRef.current.set(activeTabId, { view: outlet, lastUsed: Date.now() });
+    const existing = viewsCacheRef.current.get(activeTabId);
+    if (existing) {
+      existing.lastUsed = Date.now();
+    } else {
+      viewsCacheRef.current.set(activeTabId, { view: outlet, lastUsed: Date.now() });
+    }
   }
 
   useEffect(() => {

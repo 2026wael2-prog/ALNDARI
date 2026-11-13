@@ -14,7 +14,6 @@ import {
 import type { Bond } from '../types';
 import { formatCurrency, formatLocalDate, cn } from '../../../core/utils';
 import { tafqeet } from '../../../core/utils/tafqeet';
-import { exportSingleBondToExcel } from '../../../core/utils/bondExcelExporter';
 import { useCompany } from '../../settings/hooks';
 import { useInvoiceSettings, useDocumentHeaderSettings } from '../../settings/settingsStore';
 import { UniversalDocumentHeader } from '@/ui/common/UniversalDocumentHeader';
@@ -69,6 +68,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
 
   const handleExportExcel = async () => {
     try {
+      const { exportSingleBondToExcel } = await import('../../../core/utils/bondExcelExporter');
       await exportSingleBondToExcel(company, bond);
     } catch (err) {
       logger.error('BondVoucherModal', 'Excel export failed', err);
@@ -77,7 +77,9 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
 
   const handleWhatsApp = async () => {
     try {
-      const { generateSingleBondExcelBlob } = await import('../../../core/utils/bondExcelExporter');
+      const { generateSingleBondExcelBlob, exportSingleBondToExcel } = await import(
+        '../../../core/utils/bondExcelExporter'
+      );
       const blob = await generateSingleBondExcelBlob(company, bond);
       const file = new File(
         [blob],

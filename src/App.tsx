@@ -5,18 +5,12 @@ import FeedbackToast from './ui/base/FeedbackToast';
 import { ErrorBoundary } from './core/components/ErrorBoundary';
 import CommandPalette from './ui/base/CommandPalette';
 import { useSystemInitialization } from './core/hooks/useSystemInitialization';
-import { prefetchCriticalRoutes } from './core/utils/routePrefetcher';
 import { DebtAlertsRunner } from './features/debts/components/DebtAlertsRunner';
 import { BranchTransferAlertRunner } from './features/inventory/components/transfers/BranchTransferAlertRunner';
 
 const App: React.FC = () => {
   // Centralized system bootstrapping (Auth, I18n, Sync, Shortcuts)
   useSystemInitialization();
-
-  React.useEffect(() => {
-    // Start prefetching chunks when app becomes idle
-    prefetchCriticalRoutes();
-  }, []);
 
   // جسر تنقّل من Service Worker: عند النقر على تنبيه دفع والتطبيق مفتوح،
   // العامل يرسل رسالة بدل إعادة تحميل الصفحة — نطبّقها على HashRouter.

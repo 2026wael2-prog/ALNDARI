@@ -1,6 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Sector } from 'recharts';
 import { useThemeStore } from '../../lib/themeStore';
+import { useContainerReady } from '../../core/hooks/useContainerReady';
 
 interface CategoriesChartProps {
   data: Array<{ name: string; value: number }>;
@@ -41,32 +42,7 @@ const renderActiveShape = (props: any) => {
 const CategoriesChart: React.FC<CategoriesChartProps> = ({ data }) => {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkDimensions = () => {
-      if (
-        containerRef.current &&
-        containerRef.current.offsetWidth > 0 &&
-        containerRef.current.offsetHeight > 0
-      ) {
-        setIsMounted(true);
-        return true;
-      }
-      return false;
-    };
-
-    if (checkDimensions()) return;
-
-    const interval = setInterval(() => {
-      if (checkDimensions()) clearInterval(interval);
-    }, 500);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+  const { containerRef, isMounted } = useContainerReady();
 
   const onPieEnter = (_: any, _index: number) => {
     // setActiveIndex(index);

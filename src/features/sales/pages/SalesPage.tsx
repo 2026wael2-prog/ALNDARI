@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import {
   ShoppingBag,
   Plus,
@@ -9,13 +9,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import MicroHeader from '@/ui/base/MicroHeader';
-import CreateInvoiceView from '@/features/sales/components/create/CreateInvoiceView';
-import InvoiceListView from '@/features/sales/components/list/InvoiceListView';
-import SalesReturnsView from '@/features/sales/components/Returns/SalesReturnsView';
-import SalesAnalyticsView from '@/features/sales/components/Analytics/SalesAnalyticsView';
-import QuotationsTab from '@/features/sales/components/quotations/QuotationsTab';
-import InvoiceDetailsModal from '@/features/sales/components/details/InvoiceDetailsModal';
-import { SalesRequisitionsView } from '@/features/sales/components/requisitions/SalesRequisitionsView';
+import PageLoader from '@/ui/base/PageLoader';
 import { useCreateSalesReturn } from '@/features/sales/hooks/index';
 import { useTranslation } from '@/lib/hooks/useTranslation';
 import { logger } from '@/core/utils/logger';
@@ -23,6 +17,22 @@ import { formatLocalDate } from '@/core/utils/dateUtils';
 import { getDisplayItemName } from '@/core/utils';
 import { useAIPrefillStore } from '@/features/ai/store';
 import { useSalesStore } from '@/features/sales/store';
+
+const CreateInvoiceView = lazy(() => import('@/features/sales/components/create/CreateInvoiceView'));
+const InvoiceListView = lazy(() => import('@/features/sales/components/list/InvoiceListView'));
+const SalesReturnsView = lazy(() => import('@/features/sales/components/Returns/SalesReturnsView'));
+const SalesAnalyticsView = lazy(
+  () => import('@/features/sales/components/Analytics/SalesAnalyticsView')
+);
+const QuotationsTab = lazy(() => import('@/features/sales/components/quotations/QuotationsTab'));
+const InvoiceDetailsModal = lazy(
+  () => import('@/features/sales/components/details/InvoiceDetailsModal')
+);
+const SalesRequisitionsView = lazy(() =>
+  import('@/features/sales/components/requisitions/SalesRequisitionsView').then(m => ({
+    default: m.SalesRequisitionsView,
+  }))
+);
 
 type SalesViewTab = 'create' | 'list' | 'returns' | 'analytics' | 'quotations' | 'requisitions';
 
@@ -197,15 +207,21 @@ const SalesPage: React.FC = () => {
         }}
       />
       <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-16 pt-2">
-        <div className="mx-auto max-w-none">{renderContent()}</div>
+        <div className="mx-auto max-w-none">
+          <Suspense fallback={<PageLoader />}>{renderContent()}</Suspense>
+        </div>
       </div>
-      <InvoiceDetailsModal
-        invoiceId={viewInvoiceId}
-        onClose={() => {
-          setViewInvoiceId(null);
-        }}
-        onReturn={handleReturnAction}
-      />
+      {viewInvoiceId && (
+        <Suspense fallback={null}>
+          <InvoiceDetailsModal
+            invoiceId={viewInvoiceId}
+            onClose={() => {
+              setViewInvoiceId(null);
+            }}
+            onReturn={handleReturnAction}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

@@ -14,7 +14,6 @@ import {
 import type { Bond } from '../types';
 import { cn, formatCurrency } from '../../../core/utils';
 import { useDeleteBond } from '../hooks';
-import { exportSingleBondToExcel } from '../../../core/utils/bondExcelExporter';
 import { useCompany } from '../../settings/hooks';
 import { useInvoiceSettings } from '../../settings/settingsStore';
 import { logger } from '../../../core/utils/logger';
@@ -123,6 +122,7 @@ const BondsList: React.FC<Props> = ({
       phone: invoiceSettings?.company_phone || settingsCompany?.phone || '',
       tax_number: settingsCompany?.tax_number || '---',
     };
+    const { exportSingleBondToExcel } = await import('../../../core/utils/bondExcelExporter');
     await exportSingleBondToExcel(company, bond);
   };
 

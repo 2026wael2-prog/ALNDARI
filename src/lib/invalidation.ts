@@ -229,13 +229,64 @@ const INVALIDATION_PRESETS = {
 // Infer the type of preset names
 export type InvalidationPreset = keyof typeof INVALIDATION_PRESETS;
 
+export interface InvalidatePresetOptions {
+  /**
+   * When true (used by background Realtime sync), only refetch active queries
+   * belonging to the preset's primary domain; secondary cascading domains are
+   * marked stale (`refetchType: 'none'`) so they refresh lazily when visited.
+   */
+  primaryOnlyRefetch?: boolean;
+}
+
+const PRESET_PRIMARY_DOMAIN: Partial<Record<InvalidationPreset, keyof typeof DOMAIN_KEYS>> = {
+  sale: 'sales',
+  saleReturn: 'sales',
+  purchase: 'purchases',
+  bond: 'bonds',
+  expense: 'expenses',
+  journal: 'accounting',
+  inventory: 'inventory',
+  party: 'parties',
+  account: 'accounting',
+  commission: 'commissions',
+  debts: 'debts',
+};
+
 /**
  * Invalidate all queries related to a mutation preset in a single cache traversal pass.
  */
-export function invalidateByPreset(queryClient: QueryClient, preset: InvalidationPreset): void {
+export function invalidateByPreset(
+  queryClient: QueryClient,
+  preset: InvalidationPreset,
+  options?: InvalidatePresetOptions
+): void {
   const keys = INVALIDATION_PRESETS[preset];
   if (!keys) return;
   const uniqueKeys = new Set<string>(keys);
+
+  if (options?.primaryOnlyRefetch) {
+    const primaryDomain = PRESET_PRIMARY_DOMAIN[preset];
+    const primaryKeys = primaryDomain ? new Set<string>(DOMAIN_KEYS[primaryDomain]) : uniqueKeys;
+
+    void queryClient.invalidateQueries({
+      predicate: query => {
+        const firstKey = query.queryKey[0];
+        return typeof firstKey === 'string' && primaryKeys.has(firstKey);
+      },
+      refetchType: 'active',
+    });
+
+    void queryClient.invalidateQueries({
+      predicate: query => {
+        const firstKey = query.queryKey[0];
+        return (
+          typeof firstKey === 'string' && uniqueKeys.has(firstKey) && !primaryKeys.has(firstKey)
+        );
+      },
+      refetchType: 'none',
+    });
+    return;
+  }
 
   // Single-pass predicate invalidation: traverses the cache once instead of sequential iterations
   void queryClient.invalidateQueries({

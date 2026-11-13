@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'rea
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import ClassicChrome from './classic/ClassicChrome';
 import { useLayoutVariant } from './useLayoutVariant';
+
+const ClassicChrome = lazy(() => import('./classic/ClassicChrome'));
 import { WorkspaceTabBar, MultiViewContainer } from './tabs';
 import {
   LayoutDashboard,
@@ -221,7 +222,9 @@ const MainLayout: React.FC = () => {
       >
         <div className="no-print">
           {isClassicShell ? (
-            <ClassicChrome />
+            <Suspense fallback={null}>
+              <ClassicChrome />
+            </Suspense>
           ) : (
             <Header
               onMenuClick={() => {

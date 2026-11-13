@@ -2,12 +2,15 @@
 // InteractivePurchaseTable — جدول أصناف فاتورة الشراء
 // تم الاستفادة من useColumnResize المشتركة لإزالة الكود المكرر
 // ============================================
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { usePurchaseStore } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import { Plus } from 'lucide-react';
-import ProductSelectionModal from '../../../sales/components/create/ProductSelectionModal';
 import { useColumnResize } from '../../../../ui/common/hooks/useColumnResize';
+
+const ProductSelectionModal = lazy(
+  () => import('../../../sales/components/create/ProductSelectionModal')
+);
 import {
   PurchaseTableHeader,
   PurchaseTableBody,
@@ -102,16 +105,20 @@ const InteractivePurchaseTable: React.FC = () => {
         </button>
       </div>
 
-      <ProductSelectionModal
-        isOpen={modalState.isOpen}
-        onClose={() => {
-          setModalState(current => ({ ...current, isOpen: false }));
-        }}
-        onSelect={handleProductSelect}
-        initialQuery={modalState.query}
-        mode="purchase"
-        warehouseId={warehouseId}
-      />
+      {modalState.isOpen && (
+        <Suspense fallback={null}>
+          <ProductSelectionModal
+            isOpen={modalState.isOpen}
+            onClose={() => {
+              setModalState(current => ({ ...current, isOpen: false }));
+            }}
+            onSelect={handleProductSelect}
+            initialQuery={modalState.query}
+            mode="purchase"
+            warehouseId={warehouseId}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

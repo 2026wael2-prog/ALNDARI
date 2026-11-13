@@ -79,7 +79,7 @@ export interface InvoiceNavSummary {
 }
 
 export const salesApi = {
-  getInvoices: async (companyId: string, page = 0, limit = 150, branchId?: string | null) => {
+  getInvoices: async (companyId: string, page = 0, limit = 50, branchId?: string | null) => {
     const from = page * limit;
     const to = from + limit - 1;
 

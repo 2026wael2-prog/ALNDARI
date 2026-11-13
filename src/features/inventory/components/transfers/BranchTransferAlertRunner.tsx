@@ -1,12 +1,20 @@
 /* eslint-disable max-lines-per-function, complexity, @typescript-eslint/strict-boolean-expressions */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useAuthStore } from '@/features/auth/store';
 import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 import { useStockTransferRequests, type StockTransferRequest } from '../../hooks/useStockTransferRequests';
 import { useBranchTransferSubscription } from '../../hooks/useBranchTransferSubscription';
 import { useSoundStore } from '@/features/notifications/store';
-import { IncomingTransferApprovalModal } from './IncomingTransferApprovalModal';
-import { TransferDispatchedNotificationModal } from './TransferDispatchedNotificationModal';
+import { useConnectionStore } from '@/core/store/connectionStore';
+
+const IncomingTransferApprovalModal = lazy(() =>
+  import('./IncomingTransferApprovalModal').then(m => ({ default: m.IncomingTransferApprovalModal }))
+);
+const TransferDispatchedNotificationModal = lazy(() =>
+  import('./TransferDispatchedNotificationModal').then(m => ({
+    default: m.TransferDispatchedNotificationModal,
+  }))
+);
 
 export const BranchTransferAlertRunner: React.FC = () => {
   const { user } = useAuthStore();
@@ -97,41 +105,54 @@ export const BranchTransferAlertRunner: React.FC = () => {
     }
   }, [requests, branchId, activeIncomingRequests, activeDispatchedRequests]);
 
-  // 2. مؤقت فحص دوري كل 25 ثانية (Smart Fallback Polling) لضمان عدم تفويت أي طلب
+  // 2. مؤقت فحص احتياطي كل 60 ثانية فقط عند انقطاع Realtime وظهور التبويب
   useEffect(() => {
     if (!companyId || !branchId) return;
 
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (useConnectionStore.getState().realtimeStatus === 'connected') return;
       void refetch();
-    }, 25000);
+    }, 60000);
 
     return () => {
       clearInterval(timer);
     };
   }, [companyId, branchId, refetch]);
 
+  const hasIncoming = Boolean(activeIncomingRequests && activeIncomingRequests.length > 0);
+  const hasDispatched = Boolean(activeDispatchedRequests && activeDispatchedRequests.length > 0);
+
   return (
     <>
       {/* النافذة المنبثقة للفرع المطلوب منه: مراجعة والموافقة وتحديد الكميات لكافة الأصناف */}
-      <IncomingTransferApprovalModal
-        requests={activeIncomingRequests}
-        isOpen={Boolean(activeIncomingRequests && activeIncomingRequests.length > 0)}
-        onClose={() => {
-          setActiveIncomingRequests(null);
-        }}
-      />
+      {hasIncoming && (
+        <Suspense fallback={null}>
+          <IncomingTransferApprovalModal
+            requests={activeIncomingRequests}
+            isOpen={hasIncoming}
+            onClose={() => {
+              setActiveIncomingRequests(null);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* النافذة المنبثقة للفرع الطالب: إشعار بأن الأصناف تم شحنها واعتمادها بنجاح */}
-      <TransferDispatchedNotificationModal
-        requests={activeDispatchedRequests}
-        isOpen={Boolean(activeDispatchedRequests && activeDispatchedRequests.length > 0)}
-        onClose={() => {
-          setActiveDispatchedRequests(null);
-        }}
-        onViewTransfers={() => {
-          window.location.hash = '#/inventory';
-        }}
-      />
+      {hasDispatched && (
+        <Suspense fallback={null}>
+          <TransferDispatchedNotificationModal
+            requests={activeDispatchedRequests}
+            isOpen={hasDispatched}
+            onClose={() => {
+              setActiveDispatchedRequests(null);
+            }}
+            onViewTransfers={() => {
+              window.location.hash = '#/inventory';
+            }}
+          />
+        </Suspense>
+      )}
     </>
   );
 };

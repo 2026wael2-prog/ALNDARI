@@ -193,6 +193,24 @@ export const ReactQueryProvider: React.FC<ReactQueryProviderProps> = ({ children
   // Initialize sync queue
   useSyncQueue(activeClient);
 
+  // Skip persisting heavy paginated/analytical/report queries to IndexedDB so
+  // JSON.stringify on every 1s throttle tick does not freeze the main thread.
+  const NON_PERSISTED_PREFIXES = new Set([
+    'products_paginated',
+    'product_search',
+    'sales_analytics',
+    'purchases_analytics',
+    'audit_journals',
+    'ledger',
+    'trial_balance',
+    'balance_sheet',
+    'income_statement',
+    'vat_return_report',
+    'profit_loss',
+    'debt_report',
+    'stock_movements',
+  ]);
+
   return (
     <PersistQueryClientProvider
       client={activeClient}
@@ -200,6 +218,16 @@ export const ReactQueryProvider: React.FC<ReactQueryProviderProps> = ({ children
         persister,
         maxAge: QUERY_PERSIST_MAX_AGE_MS,
         buster: QUERY_PERSIST_BUSTER,
+        dehydrateOptions: {
+          shouldDehydrateQuery: query => {
+            if (query.state.status !== 'success') return false;
+            const rootKey = query.queryKey[0];
+            if (typeof rootKey === 'string' && NON_PERSISTED_PREFIXES.has(rootKey)) {
+              return false;
+            }
+            return true;
+          },
+        },
       }}
     >
       {children}

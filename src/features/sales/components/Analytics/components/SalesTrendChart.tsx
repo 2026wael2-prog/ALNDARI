@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useI18nStore } from '@/lib/i18nStore';
 import { cn } from '@/core/utils';
+import { useContainerReady } from '@/core/hooks/useContainerReady';
 
 interface SalesByDayPoint {
   date: string;
@@ -107,31 +108,7 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({
   const { dictionary: t } = useI18nStore();
   const [activeChart, setActiveChart] = useState<ChartMode>('area');
   const [showMovingAvg, setShowMovingAvg] = useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [isMounted, setIsMounted] = useState(false);
-
-  React.useEffect(() => {
-    const checkDimensions = () => {
-      if (
-        containerRef.current &&
-        containerRef.current.offsetWidth > 0 &&
-        containerRef.current.offsetHeight > 0
-      ) {
-        setIsMounted(true);
-        return true;
-      }
-      return false;
-    };
-
-    if (checkDimensions()) return;
-    const interval = setInterval(() => {
-      if (checkDimensions()) clearInterval(interval);
-    }, 400);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+  const { containerRef, isMounted } = useContainerReady();
 
   // Compute enriched data with cumulative and 7-point moving average
   const enrichedData = useMemo(() => {

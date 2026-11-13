@@ -167,11 +167,11 @@ const applyInvoiceInvalidation = (
 ): void => {
   const kind = invoiceChangeKind(payload);
   if (kind !== 'both') {
-    invalidateByPreset(queryClient, kind);
+    invalidateByPreset(queryClient, kind, { primaryOnlyRefetch: true });
     return;
   }
-  invalidateByPreset(queryClient, 'sale');
-  invalidateByPreset(queryClient, 'purchase');
+  invalidateByPreset(queryClient, 'sale', { primaryOnlyRefetch: true });
+  invalidateByPreset(queryClient, 'purchase', { primaryOnlyRefetch: true });
 };
 
 const bindChannelListeners = (
@@ -192,7 +192,7 @@ const bindChannelListeners = (
       if (payload.table === 'invoices') {
         applyInvoiceInvalidation(queryClient, payload);
       } else {
-        invalidateByPreset(queryClient, preset);
+        invalidateByPreset(queryClient, preset, { primaryOnlyRefetch: true });
       }
       lastInvalidated = now;
     }

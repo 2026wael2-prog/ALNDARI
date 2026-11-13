@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Sector } from 'recha
 import { Wallet, CreditCard, Banknote, Landmark, HelpCircle } from 'lucide-react';
 import { useI18nStore } from '@/lib/i18nStore';
 import { cn } from '@/core/utils';
+import { useContainerReady } from '@/core/hooks/useContainerReady';
 
 const GRADIENTS = [
   { start: '#3b82f6', end: '#1d4ed8' },
@@ -30,31 +31,7 @@ export const PaymentMethodsChart: React.FC<PaymentMethodsChartProps> = ({
 }) => {
   const { dictionary: t } = useI18nStore();
   const total = salesByPaymentMethod.reduce((sum, p) => sum + p.amount, 0);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkDimensions = () => {
-      if (
-        containerRef.current &&
-        containerRef.current.offsetWidth > 0 &&
-        containerRef.current.offsetHeight > 0
-      ) {
-        setIsMounted(true);
-        return true;
-      }
-      return false;
-    };
-
-    if (checkDimensions()) return;
-    const interval = setInterval(() => {
-      if (checkDimensions()) clearInterval(interval);
-    }, 400);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+  const { containerRef, isMounted } = useContainerReady();
 
   const getMethodInfo = (method: string) => {
     switch (method) {

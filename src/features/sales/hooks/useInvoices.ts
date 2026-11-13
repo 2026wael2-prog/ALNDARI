@@ -36,7 +36,7 @@ export const useInvoices = (options?: UseInvoicesOptions) => {
     queryKey: ['invoices', companyId, branchId, options],
     queryFn: () => {
       if (!companyId) return Promise.resolve([]);
-      const effectiveLimit = options?.limit ?? 100;
+      const effectiveLimit = options?.limit ?? 50;
       if (isSearchMode) {
         return salesService.searchSalesInvoices(companyId, {
           query: options?.searchTerm,

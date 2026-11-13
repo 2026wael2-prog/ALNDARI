@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Target, Award, Star } from 'lucide-react';
 import { cn } from '../../../core/utils';
 import { useThemeStore } from '../../../lib/themeStore';
+import { useContainerReady } from '../../../core/hooks/useContainerReady';
 
 interface PerformanceGaugeProps {
   value: number;
@@ -25,38 +26,13 @@ const PerformanceGauge: React.FC<PerformanceGaugeProps> = ({
 }) => {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
-  const [isMounted, setIsMounted] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const { containerRef, isMounted } = useContainerReady();
 
   const displayValue = formatValue ? formatValue(value) : value.toLocaleString('en-US');
   const displayTarget = formatValue ? formatValue(target) : target.toLocaleString('en-US');
   const displayRemaining = formatValue
     ? formatValue(target - value)
     : (target - value).toLocaleString('en-US');
-
-  React.useEffect(() => {
-    const checkDimensions = () => {
-      if (
-        containerRef.current &&
-        containerRef.current.offsetWidth > 0 &&
-        containerRef.current.offsetHeight > 0
-      ) {
-        setIsMounted(true);
-        return true;
-      }
-      return false;
-    };
-
-    if (checkDimensions()) return;
-
-    const interval = setInterval(() => {
-      if (checkDimensions()) clearInterval(interval);
-    }, 500);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
 
   const percentage = target > 0 ? Math.min(100, (value / target) * 100) : 0;
   const remaining = 100 - percentage;

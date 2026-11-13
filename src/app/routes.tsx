@@ -12,8 +12,8 @@ import LandingPage from '../features/auth/LandingPage';
 import ForgotPasswordPage from '../features/auth/ForgotPasswordPage';
 import UpdatePasswordPage from '../features/auth/UpdatePasswordPage';
 
-// Critical Dashboard Page (eager — first thing user sees)
-import DashboardPage from '../features/dashboard/DashboardPage';
+// Critical Dashboard Page (lazy-loaded so Auth/Landing pages don't download dashboard + charts)
+const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'));
 
 // Lazy Loaded Features — each isolated by FeatureBoundary
 const InventoryPage = lazy(() => import('../features/inventory/InventoryPage'));

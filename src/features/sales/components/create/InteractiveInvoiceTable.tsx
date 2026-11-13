@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
 import { useSalesStore, type SalesCartItem } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import type { Product } from '../../../inventory/types';
@@ -6,8 +6,9 @@ import { Plus, Settings } from 'lucide-react';
 import { cn } from '../../../../core/utils';
 import { logger } from '../../../../core/utils/logger';
 import { STORAGE_KEYS } from '../../../../core/constants';
-import ProductSelectionModal from './ProductSelectionModal';
 import InvoiceRow from './InvoiceRow';
+
+const ProductSelectionModal = lazy(() => import('./ProductSelectionModal'));
 
 const InteractiveInvoiceTable: React.FC = () => {
   const {
@@ -389,15 +390,19 @@ const InteractiveInvoiceTable: React.FC = () => {
         <Plus size={14} strokeWidth={3} /> إضافة سطر
       </button>
 
-      <ProductSelectionModal
-        isOpen={modalState.isOpen}
-        onClose={() => {
-          setModalState(prev => ({ ...prev, isOpen: false }));
-        }}
-        onSelect={handleProductSelect}
-        initialQuery={modalState.query}
-        warehouseId={warehouseId}
-      />
+      {modalState.isOpen && (
+        <Suspense fallback={null}>
+          <ProductSelectionModal
+            isOpen={modalState.isOpen}
+            onClose={() => {
+              setModalState(prev => ({ ...prev, isOpen: false }));
+            }}
+            onSelect={handleProductSelect}
+            initialQuery={modalState.query}
+            warehouseId={warehouseId}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

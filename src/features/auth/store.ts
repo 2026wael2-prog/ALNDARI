@@ -153,17 +153,25 @@ export const useAuthStore = create<AuthState>()(
             }
 
             if (profile && typeof profile === 'object' && profile.id) {
+              const nextUser = profile as unknown as AuthUser;
+              const identityChanged =
+                !persistedUser ||
+                persistedUser.id !== nextUser.id ||
+                persistedUser.company_id !== nextUser.company_id ||
+                persistedUser.role !== nextUser.role ||
+                persistedUser.branch_id !== nextUser.branch_id;
+
               set({
-                user: profile as unknown as AuthUser,
+                user: nextUser,
                 isAuthenticated: true,
                 isLoading: false,
                 isReady: true,
               });
-              // ⚡ Targeted invalidation instead of a blanket invalidateQueries():
-              // a global invalidation refires EVERY mounted query (products×10000,
-              // dashboard 6×RPC, quotations, parties, ...) at once — a request
-              // storm on a flaky connection.
-              queryClient.invalidateQueries({ type: 'active' });
+              // Only invalidate active queries if the user identity/company/role/branch
+              // actually changed — avoids firing a duplicate request storm on every boot.
+              if (identityChanged) {
+                queryClient.invalidateQueries({ type: 'active' });
+              }
             } else if (!persistedUser) {
               // ⚡ Profile RPC failed — try direct query to get company_id before giving up
               let recoveredCompanyId: string | undefined;

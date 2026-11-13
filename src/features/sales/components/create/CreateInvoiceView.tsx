@@ -39,7 +39,6 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
   const {
     data: nextInvoiceNumber,
     isLoading: numberLoading,
-    error: numberError,
   } = useNextInvoiceNumber();
   const {
     items,
@@ -350,9 +349,9 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
     currency_code: currency || 'SAR',
   };
 
-  if (companyLoading || numberLoading) return <PageLoader />;
-  if (companyError || numberError)
-    return <ErrorDisplay error={(companyError || numberError)?.message || null} variant="full" />;
+  if (companyLoading && !comp) return <PageLoader />;
+  if (companyError && !comp)
+    return <ErrorDisplay error={companyError?.message || null} variant="full" />;
 
   const enteredItemsCount = items.filter(i => Boolean(i.productId)).length;
 
@@ -386,7 +385,7 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
                   <InvoiceHeader company={comp} />
                 </div>
               )}
-              <InvoiceMeta invoiceNumber={nextInvoiceNumber ?? ''} />
+              <InvoiceMeta invoiceNumber={nextInvoiceNumber ?? (numberLoading ? '...' : '---')} />
               <InteractiveInvoiceTable />
               <InvoiceTotals
                 notes={notes}

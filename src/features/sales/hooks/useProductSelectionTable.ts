@@ -88,7 +88,7 @@ export function useProductSelectionTable({
         const { data, error } = await supabase.rpc('search_inventory_paginated', {
           p_company_id: companyId,
           p_term: submittedQuery.trim(),
-          p_limit: 250,
+          p_limit: 80,
           p_offset: 0,
           p_sort_key: sqlSortKey,
           p_sort_dir: sqlSortDir,
@@ -100,7 +100,7 @@ export function useProductSelectionTable({
           const fallbackProds = await productService.getProducts(
             companyId,
             1,
-            250,
+            80,
             warehouseId,
             undefined,
             effectiveBranchId

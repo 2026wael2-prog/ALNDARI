@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Search, Box, ChevronDown, GitBranch, Globe, PackageCheck, Plus } from 'lucide-react';
 import { useProductMutations } from '../../../inventory/hooks/index';
 import type { Product, ProductFormData } from '../../../inventory/types';
@@ -6,9 +6,10 @@ import Modal from '../../../../ui/base/Modal';
 import { PaginationBar } from '../../../../ui/common/PaginationBar';
 import { useProductTableConfig } from '../../hooks/useProductTableConfig';
 import { useProductSelectionTable } from '../../hooks/useProductSelectionTable';
-import ProductDetailModal from '../../../inventory/components/ProductDetailModal';
-import AddProductModal from '../../../inventory/components/AddProductModal';
 import { productService } from '../../../inventory/service';
+
+const ProductDetailModal = lazy(() => import('../../../inventory/components/ProductDetailModal'));
+const AddProductModal = lazy(() => import('../../../inventory/components/AddProductModal'));
 import { useBranchFilter } from '../../../branches/hooks/useBranchFilter';
 import { useBranches } from '../../../settings/hooks';
 import { useAuthStore } from '../../../auth/store';
@@ -144,12 +145,14 @@ const ProductSelectionModal: React.FC<Props> = ({
   return (
     <>
       {viewProduct && (
-        <ProductDetailModal
-          product={viewProduct}
-          onClose={() => {
-            setViewProduct(null);
-          }}
-        />
+        <Suspense fallback={null}>
+          <ProductDetailModal
+            product={viewProduct}
+            onClose={() => {
+              setViewProduct(null);
+            }}
+          />
+        </Suspense>
       )}
 
       <Modal
@@ -413,15 +416,19 @@ const ProductSelectionModal: React.FC<Props> = ({
       </Modal>
 
       {/* Add New Product Modal */}
-      <AddProductModal
-        isOpen={showAddProduct}
-        onClose={() => {
-          setShowAddProduct(false);
-        }}
-        onSubmit={handleAddProduct}
-        isSubmitting={isSaving}
-        zIndex="z-[10000]"
-      />
+      {showAddProduct && (
+        <Suspense fallback={null}>
+          <AddProductModal
+            isOpen={showAddProduct}
+            onClose={() => {
+              setShowAddProduct(false);
+            }}
+            onSubmit={handleAddProduct}
+            isSubmitting={isSaving}
+            zIndex="z-[10000]"
+          />
+        </Suspense>
+      )}
     </>
   );
 };

@@ -12,6 +12,7 @@ import {
 import { useThemeStore } from '../../../lib/themeStore';
 import { TrendingUp, TrendingDown, Scale } from 'lucide-react';
 import { cn } from '../../../core/utils';
+import { useContainerReady } from '../../../core/hooks/useContainerReady';
 
 interface RevenueExpensesChartProps {
   data: Array<{ name: string; revenue: number; expenses: number }>;
@@ -163,32 +164,7 @@ const ChartFooter = React.memo(
 const RevenueExpensesChart: React.FC<RevenueExpensesChartProps> = ({ data, className }) => {
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
-  const [isMounted, setIsMounted] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const checkDimensions = () => {
-      if (
-        containerRef.current &&
-        containerRef.current.offsetWidth > 0 &&
-        containerRef.current.offsetHeight > 0
-      ) {
-        setIsMounted(true);
-        return true;
-      }
-      return false;
-    };
-
-    if (checkDimensions()) return;
-
-    const interval = setInterval(() => {
-      if (checkDimensions()) clearInterval(interval);
-    }, 500);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+  const { containerRef, isMounted } = useContainerReady();
 
   const metrics = React.useMemo(() => {
     const totalRevenue = data.reduce((sum, d) => sum + d.revenue, 0);

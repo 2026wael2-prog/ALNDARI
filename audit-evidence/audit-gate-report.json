@@ -1,0 +1,756 @@
+{
+  "gate": {
+    "posted_invoices_without_je": 0,
+    "pitr_enabled": false,
+    "applied_migrations": 264,
+    "party_balance_mismatches": 1899,
+    "local_migrations": 267,
+    "walg_enabled": true,
+    "exposed_secdef_without_auth": 0,
+    "disabled_triggers": 0,
+    "unbalanced_journal_entries": 0,
+    "corrupted_encoding_functions": 0
+  },
+  "project_ref": "dagfjncoullstrhbjssr",
+  "m1_payments_vs_je": [
+    {
+      "yr": 2026,
+      "type": "disbursement",
+      "status": "posted",
+      "doc_count": 414,
+      "with_je": 355,
+      "without_je": 59
+    },
+    {
+      "yr": 2026,
+      "type": "receipt",
+      "status": "posted",
+      "doc_count": 2295,
+      "with_je": 972,
+      "without_je": 1323
+    },
+    {
+      "yr": 2025,
+      "type": "disbursement",
+      "status": "posted",
+      "doc_count": 719,
+      "with_je": 719,
+      "without_je": 0
+    },
+    {
+      "yr": 2025,
+      "type": "receipt",
+      "status": "posted",
+      "doc_count": 1425,
+      "with_je": 1425,
+      "without_je": 0
+    },
+    {
+      "yr": 2024,
+      "type": "disbursement",
+      "status": "posted",
+      "doc_count": 602,
+      "with_je": 602,
+      "without_je": 0
+    },
+    {
+      "yr": 2024,
+      "type": "receipt",
+      "status": "posted",
+      "doc_count": 1517,
+      "with_je": 1517,
+      "without_je": 0
+    },
+    {
+      "yr": 2023,
+      "type": "disbursement",
+      "status": "posted",
+      "doc_count": 513,
+      "with_je": 513,
+      "without_je": 0
+    },
+    {
+      "yr": 2023,
+      "type": "receipt",
+      "status": "posted",
+      "doc_count": 1412,
+      "with_je": 1412,
+      "without_je": 0
+    },
+    {
+      "yr": 2022,
+      "type": "disbursement",
+      "status": "posted",
+      "doc_count": 397,
+      "with_je": 397,
+      "without_je": 0
+    },
+    {
+      "yr": 2022,
+      "type": "receipt",
+      "status": "posted",
+      "doc_count": 843,
+      "with_je": 843,
+      "without_je": 0
+    },
+    {
+      "yr": 2022,
+      "type": "transfer",
+      "status": "posted",
+      "doc_count": 1,
+      "with_je": 1,
+      "without_je": 0
+    },
+    {
+      "yr": 2021,
+      "type": "disbursement",
+      "status": "posted",
+      "doc_count": 383,
+      "with_je": 383,
+      "without_je": 0
+    },
+    {
+      "yr": 2021,
+      "type": "receipt",
+      "status": "posted",
+      "doc_count": 748,
+      "with_je": 748,
+      "without_je": 0
+    },
+    {
+      "yr": 2020,
+      "type": "disbursement",
+      "status": "posted",
+      "doc_count": 378,
+      "with_je": 378,
+      "without_je": 0
+    },
+    {
+      "yr": 2020,
+      "type": "receipt",
+      "status": "posted",
+      "doc_count": 506,
+      "with_je": 506,
+      "without_je": 0
+    },
+    {
+      "yr": 2020,
+      "type": "transfer",
+      "status": "posted",
+      "doc_count": 1,
+      "with_je": 1,
+      "without_je": 0
+    }
+  ],
+  "p1_connections": {
+    "applied_migrations": 264,
+    "max_connections": 60,
+    "current_connections": 24
+  },
+  "s2_mojibake_functions": [],
+  "m5_rate_test": "{\"message\":\"Failed to run sql query: ERROR:  P0001: M5_RESULT|المقابل بالريال السعودي لا يساوي مبلغ المستند × سعر الصرف (invoice __AUDIT_INV_RATE_410__)\\nCONTEXT:  PL/pgSQL function inline_code_block line 11 at RAISE\\n\"}",
+  "timestamp": "2026-11-13T20:58:12.0757570+03:00",
+  "s3_rls_test": "{\"message\":\"Failed to run sql query: ERROR:  P0001: RLS_RESULT|A=(71793,2239,2237,12154)|B=(0,0,0,0)\\nCONTEXT:  PL/pgSQL function inline_code_block line 21 at RAISE\\n\"}",
+  "m1_invoices_by_year": [
+    {
+      "yr": 2026,
+      "type": "purchase",
+      "status": "paid",
+      "doc_count": 104
+    },
+    {
+      "yr": 2026,
+      "type": "purchase",
+      "status": "posted",
+      "doc_count": 1099
+    },
+    {
+      "yr": 2026,
+      "type": "purchase",
+      "status": "void",
+      "doc_count": 2
+    },
+    {
+      "yr": 2026,
+      "type": "purchase_return",
+      "status": "paid",
+      "doc_count": 2
+    },
+    {
+      "yr": 2026,
+      "type": "purchase_return",
+      "status": "posted",
+      "doc_count": 14
+    },
+    {
+      "yr": 2026,
+      "type": "sale",
+      "status": "paid",
+      "doc_count": 3231
+    },
+    {
+      "yr": 2026,
+      "type": "sale",
+      "status": "posted",
+      "doc_count": 9438
+    },
+    {
+      "yr": 2026,
+      "type": "sale",
+      "status": "void",
+      "doc_count": 14
+    },
+    {
+      "yr": 2026,
+      "type": "sale_return",
+      "status": "paid",
+      "doc_count": 3
+    },
+    {
+      "yr": 2026,
+      "type": "sale_return",
+      "status": "posted",
+      "doc_count": 67
+    },
+    {
+      "yr": 2025,
+      "type": "purchase",
+      "status": "paid",
+      "doc_count": 37
+    },
+    {
+      "yr": 2025,
+      "type": "purchase",
+      "status": "posted",
+      "doc_count": 773
+    },
+    {
+      "yr": 2025,
+      "type": "purchase_return",
+      "status": "posted",
+      "doc_count": 25
+    },
+    {
+      "yr": 2025,
+      "type": "sale",
+      "status": "paid",
+      "doc_count": 3842
+    },
+    {
+      "yr": 2025,
+      "type": "sale",
+      "status": "posted",
+      "doc_count": 5908
+    },
+    {
+      "yr": 2025,
+      "type": "sale",
+      "status": "void",
+      "doc_count": 1
+    },
+    {
+      "yr": 2025,
+      "type": "sale_return",
+      "status": "paid",
+      "doc_count": 2
+    },
+    {
+      "yr": 2025,
+      "type": "sale_return",
+      "status": "posted",
+      "doc_count": 92
+    },
+    {
+      "yr": 2024,
+      "type": "purchase",
+      "status": "paid",
+      "doc_count": 22
+    },
+    {
+      "yr": 2024,
+      "type": "purchase",
+      "status": "posted",
+      "doc_count": 626
+    },
+    {
+      "yr": 2024,
+      "type": "purchase_return",
+      "status": "posted",
+      "doc_count": 25
+    },
+    {
+      "yr": 2024,
+      "type": "sale",
+      "status": "paid",
+      "doc_count": 3860
+    },
+    {
+      "yr": 2024,
+      "type": "sale",
+      "status": "posted",
+      "doc_count": 5031
+    },
+    {
+      "yr": 2024,
+      "type": "sale_return",
+      "status": "paid",
+      "doc_count": 7
+    },
+    {
+      "yr": 2024,
+      "type": "sale_return",
+      "status": "posted",
+      "doc_count": 52
+    },
+    {
+      "yr": 2023,
+      "type": "purchase",
+      "status": "paid",
+      "doc_count": 13
+    },
+    {
+      "yr": 2023,
+      "type": "purchase",
+      "status": "posted",
+      "doc_count": 602
+    },
+    {
+      "yr": 2023,
+      "type": "purchase_return",
+      "status": "paid",
+      "doc_count": 1
+    },
+    {
+      "yr": 2023,
+      "type": "purchase_return",
+      "status": "posted",
+      "doc_count": 29
+    },
+    {
+      "yr": 2023,
+      "type": "sale",
+      "status": "paid",
+      "doc_count": 5122
+    },
+    {
+      "yr": 2023,
+      "type": "sale",
+      "status": "posted",
+      "doc_count": 5320
+    },
+    {
+      "yr": 2023,
+      "type": "sale_return",
+      "status": "paid",
+      "doc_count": 1
+    },
+    {
+      "yr": 2023,
+      "type": "sale_return",
+      "status": "posted",
+      "doc_count": 28
+    },
+    {
+      "yr": 2022,
+      "type": "purchase",
+      "status": "paid",
+      "doc_count": 35
+    },
+    {
+      "yr": 2022,
+      "type": "purchase",
+      "status": "posted",
+      "doc_count": 677
+    },
+    {
+      "yr": 2022,
+      "type": "purchase",
+      "status": "void",
+      "doc_count": 1
+    },
+    {
+      "yr": 2022,
+      "type": "purchase_return",
+      "status": "posted",
+      "doc_count": 26
+    },
+    {
+      "yr": 2022,
+      "type": "sale",
+      "status": "paid",
+      "doc_count": 6124
+    },
+    {
+      "yr": 2022,
+      "type": "sale",
+      "status": "posted",
+      "doc_count": 4572
+    },
+    {
+      "yr": 2022,
+      "type": "sale_return",
+      "status": "paid",
+      "doc_count": 6
+    },
+    {
+      "yr": 2022,
+      "type": "sale_return",
+      "status": "posted",
+      "doc_count": 18
+    },
+    {
+      "yr": 2021,
+      "type": "purchase",
+      "status": "paid",
+      "doc_count": 39
+    },
+    {
+      "yr": 2021,
+      "type": "purchase",
+      "status": "posted",
+      "doc_count": 615
+    },
+    {
+      "yr": 2021,
+      "type": "purchase_return",
+      "status": "posted",
+      "doc_count": 27
+    },
+    {
+      "yr": 2021,
+      "type": "sale",
+      "status": "paid",
+      "doc_count": 4473
+    },
+    {
+      "yr": 2021,
+      "type": "sale",
+      "status": "posted",
+      "doc_count": 3617
+    },
+    {
+      "yr": 2021,
+      "type": "sale_return",
+      "status": "paid",
+      "doc_count": 4
+    },
+    {
+      "yr": 2021,
+      "type": "sale_return",
+      "status": "posted",
+      "doc_count": 20
+    },
+    {
+      "yr": 2020,
+      "type": "purchase",
+      "status": "paid",
+      "doc_count": 35
+    },
+    {
+      "yr": 2020,
+      "type": "purchase",
+      "status": "posted",
+      "doc_count": 445
+    },
+    {
+      "yr": 2020,
+      "type": "purchase_return",
+      "status": "paid",
+      "doc_count": 2
+    },
+    {
+      "yr": 2020,
+      "type": "purchase_return",
+      "status": "posted",
+      "doc_count": 33
+    },
+    {
+      "yr": 2020,
+      "type": "sale",
+      "status": "paid",
+      "doc_count": 2929
+    },
+    {
+      "yr": 2020,
+      "type": "sale",
+      "status": "posted",
+      "doc_count": 2667
+    },
+    {
+      "yr": 2020,
+      "type": "sale_return",
+      "status": "paid",
+      "doc_count": 18
+    },
+    {
+      "yr": 2020,
+      "type": "sale_return",
+      "status": "posted",
+      "doc_count": 17
+    }
+  ],
+  "p1_reltuples_drift": [
+    {
+      "relname": "invoice_items",
+      "pg_class_est": 226281,
+      "n_live_tup": 226281,
+      "est_drift_pct": "0.00"
+    },
+    {
+      "relname": "journal_entry_lines",
+      "pg_class_est": 218400,
+      "n_live_tup": 218404,
+      "est_drift_pct": "0.00"
+    },
+    {
+      "relname": "journal_entries",
+      "pg_class_est": 84682,
+      "n_live_tup": 84684,
+      "est_drift_pct": "0.00"
+    },
+    {
+      "relname": "invoices",
+      "pg_class_est": 71793,
+      "n_live_tup": 71793,
+      "est_drift_pct": "0.00"
+    },
+    {
+      "relname": "products",
+      "pg_class_est": 37648,
+      "n_live_tup": 37648,
+      "est_drift_pct": "0.00"
+    },
+    {
+      "relname": "payments",
+      "pg_class_est": 12154,
+      "n_live_tup": 12154,
+      "est_drift_pct": "0.00"
+    },
+    {
+      "relname": "parties",
+      "pg_class_est": 2241,
+      "n_live_tup": 2241,
+      "est_drift_pct": "0.00"
+    },
+    {
+      "relname": "expenses",
+      "pg_class_est": 0,
+      "n_live_tup": 0,
+      "est_drift_pct": "0"
+    }
+  ],
+  "p1_top5_slow_queries": [
+    {
+      "query_sample": "select $1 || count(*) filter (where abs(t - items) > $2) || $3 || count(*) as v from (select i.total_amount as t, coalesce(sum(ii.total),$4)",
+      "calls": 1,
+      "mean_ms": "97699.20",
+      "total_ms": "97699.20"
+    },
+    {
+      "query_sample": "select payment_method as pm, count(*) as n, round(sum(total_amount),$1) as total, round(sum(paid_amount),$2) as paid, round(sum(total_amount",
+      "calls": 1,
+      "mean_ms": "96889.69",
+      "total_ms": "96889.69"
+    },
+    {
+      "query_sample": "select id,invoice_number,currency_code,total_document_amount,total_amount,exchange_rate,type,issue_date,idempotency_key from invoices where ",
+      "calls": 2,
+      "mean_ms": "93285.84",
+      "total_ms": "186571.68"
+    },
+    {
+      "query_sample": "with u as (\n  update public.invoices i\n  set total_amount = s.total_amount,\n      total_document_amount = s.total_document_amount,\n      sub",
+      "calls": 1,
+      "mean_ms": "90959.39",
+      "total_ms": "90959.39"
+    },
+    {
+      "query_sample": "SELECT jel.account_id, a.code, a.name_ar, a.type, \n       jel.debit_amount, jel.credit_amount\nFROM public.journal_entry_lines jel\nJOIN publi",
+      "calls": 1,
+      "mean_ms": "82856.09",
+      "total_ms": "82856.09"
+    }
+  ],
+  "m1_journal_entries_by_year": [
+    {
+      "yr": 2026,
+      "ref_type": "invoice",
+      "status": "posted",
+      "je_count": 13960
+    },
+    {
+      "yr": 2026,
+      "ref_type": "opening",
+      "status": "posted",
+      "je_count": 2
+    },
+    {
+      "yr": 2026,
+      "ref_type": "opening_close",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2026,
+      "ref_type": "opening_parties",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2026,
+      "ref_type": "other",
+      "status": "posted",
+      "je_count": 797
+    },
+    {
+      "yr": 2026,
+      "ref_type": "stock_adjust",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2026,
+      "ref_type": "voucher",
+      "status": "posted",
+      "je_count": 2578
+    },
+    {
+      "yr": 2025,
+      "ref_type": "invoice",
+      "status": "posted",
+      "je_count": 10681
+    },
+    {
+      "yr": 2025,
+      "ref_type": "opening",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2025,
+      "ref_type": "other",
+      "status": "posted",
+      "je_count": 8
+    },
+    {
+      "yr": 2025,
+      "ref_type": "voucher",
+      "status": "posted",
+      "je_count": 2145
+    },
+    {
+      "yr": 2024,
+      "ref_type": "invoice",
+      "status": "posted",
+      "je_count": 9623
+    },
+    {
+      "yr": 2024,
+      "ref_type": "opening",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2024,
+      "ref_type": "other",
+      "status": "posted",
+      "je_count": 17
+    },
+    {
+      "yr": 2024,
+      "ref_type": "voucher",
+      "status": "posted",
+      "je_count": 2119
+    },
+    {
+      "yr": 2023,
+      "ref_type": "invoice",
+      "status": "posted",
+      "je_count": 11116
+    },
+    {
+      "yr": 2023,
+      "ref_type": "opening",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2023,
+      "ref_type": "other",
+      "status": "posted",
+      "je_count": 3
+    },
+    {
+      "yr": 2023,
+      "ref_type": "voucher",
+      "status": "posted",
+      "je_count": 1925
+    },
+    {
+      "yr": 2022,
+      "ref_type": "invoice",
+      "status": "posted",
+      "je_count": 11458
+    },
+    {
+      "yr": 2022,
+      "ref_type": "opening",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2022,
+      "ref_type": "other",
+      "status": "posted",
+      "je_count": 11
+    },
+    {
+      "yr": 2022,
+      "ref_type": "voucher",
+      "status": "posted",
+      "je_count": 1242
+    },
+    {
+      "yr": 2021,
+      "ref_type": "invoice",
+      "status": "posted",
+      "je_count": 8795
+    },
+    {
+      "yr": 2021,
+      "ref_type": "opening",
+      "status": "posted",
+      "je_count": 1
+    },
+    {
+      "yr": 2021,
+      "ref_type": "other",
+      "status": "posted",
+      "je_count": 17
+    },
+    {
+      "yr": 2021,
+      "ref_type": "voucher",
+      "status": "posted",
+      "je_count": 1131
+    },
+    {
+      "yr": 2020,
+      "ref_type": "invoice",
+      "status": "posted",
+      "je_count": 6146
+    },
+    {
+      "yr": 2020,
+      "ref_type": "other",
+      "status": "posted",
+      "je_count": 17
+    },
+    {
+      "yr": 2020,
+      "ref_type": "voucher",
+      "status": "posted",
+      "je_count": 885
+    }
+  ]
+}

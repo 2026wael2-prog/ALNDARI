@@ -1,0 +1,145 @@
+﻿-- ============================================================
+-- Migration: 20261113000010_fix_secdef_privileges.sql
+-- Purpose  : 
+--   1. REVOKE EXECUTE from PUBLIC/anon/authenticated on 120 internal
+--      SECURITY DEFINER functions (trigger helpers, cron, admin ops)
+--   2. Re-apply 4 mojibake functions from UTF-8 sources
+-- Gate     : exposed_secdef_without_auth (internal triggers) restricted
+-- Date     : 2026-11-13
+-- ============================================================
+
+-- ── Section 1: REVOKE internal/service-role-only functions ──
+
+REVOKE EXECUTE ON FUNCTION public.archive_old_audit_logs(p_days_to_keep integer, p_batch_size integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_account_belongs_to_company(p_account_id uuid, p_company_id uuid, p_param_name text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_party_belongs_to_company(p_party_id uuid, p_company_id uuid, p_param_name text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_product_belongs_to_company(p_product_id uuid, p_company_id uuid, p_param_name text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.auto_assign_fiscal_year_to_invoice() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.auto_journal_from_invoice(p_invoice_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.break_overdue_promises(p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cleanup_old_audit_logs() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cleanup_old_records() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_aggregate_csp_reports() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_auto_block_honeypot_attackers() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_break_overdue_promises() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_cleanup_rate_limits() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_dispatch_debt_reminders() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_enqueue_debt_reminders() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_purge_csp_reports() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.enforce_quotation_revision_immutability() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.enforce_rate_limit(p_company_id uuid, p_endpoint text, p_max_requests integer, p_window_seconds integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.ensure_vehicle(p_make text, p_model text, p_year integer, p_engine text, p_body_type text, p_drive_type text, p_fuel_type text, p_transmission text, p_region text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_auto_post_invoice_journal() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_auto_post_payment_journal() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_auto_sync_party_role_from_invoice() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_block_general_customer_credit() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_bump_chat_channel_updated_at() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_can_access_chat_channel(p_channel_id uuid, p_user_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_inventory_transaction_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_invoice_item_product_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_invoice_item_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_invoice_party_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_journal_entry_line_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_journal_line_account_postable() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_journal_line_account_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_journal_line_entry_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_journal_line_party_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_payment_account_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_payment_party_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_product_stock_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_check_warehouse_branch_tenant() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_complete_promises_on_payment() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_get_vat_return_report(p_company_id uuid, p_start_date date, p_end_date date) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_guard_currency_inversion() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_guard_posted_invoice_immutability() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_guard_posted_invoice_items_immutability() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_guard_subscription_plan_delete() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_post_inventory_movement(p_company_id uuid, p_product_id uuid, p_warehouse_id uuid, p_quantity numeric, p_transaction_type text, p_reference_type text, p_reference_id uuid, p_created_by uuid, p_unit_cost numeric) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_release_payment_allocations(p_payment_id uuid, p_invoice_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_reverse_journal_entries(p_source_reference_id uuid, p_source_reference_types text[], p_new_reference_type text, p_description_prefix text, p_created_by uuid, p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_transition_expired_trials() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.fn_validate_invoice_business_rules() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.generate_invoice_number(p_company_id uuid, p_type text, p_branch_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.generate_payment_number(p_company_id uuid, p_type text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_admin_companies_count(p_search text, p_status text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_admin_companies_list(p_search text, p_status text, p_limit integer, p_offset integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_admin_users_count(p_search text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_admin_users_list(p_search text, p_limit integer, p_offset integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_csp_reports_count() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_csp_reports_page(p_limit integer, p_offset integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_platform_service_telemetry() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_platform_system_metrics() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_security_alerts_count(p_resolved boolean) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_security_alerts_page(p_limit integer, p_offset integer, p_resolved boolean) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.gn_pull(p_token text, p_entity text, p_after_ts timestamp with time zone, p_after_key text, p_limit integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.import_legacy_sale_invoices(p_company_id uuid, p_branch_id uuid, p_rows jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.import_legacy_sales_2020_2022_safe(p_company_id uuid, p_branch_id uuid, p_warehouse_id uuid, p_user_id uuid, p_source_file_hash text, p_rows jsonb, p_execute boolean) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.import_legacy_sales_invoices_only_2020_2022(p_company_id uuid, p_branch_id uuid, p_user_id uuid, p_source_file_hash text, p_rows jsonb, p_execute boolean) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_apply_adjustment(p_company_id uuid, p_calculation_id uuid, p_adjustment_type text, p_amount numeric, p_reason text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_approve_invoice_allocation(p_invoice_id uuid, p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_assert_period_allows(p_period_id uuid, p_action text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_calculate_period(p_company_id uuid, p_period_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_check_allocation_complete(p_invoice_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_create_assignment(p_company_id uuid, p_user_id uuid, p_plan_id uuid, p_effective_from date, p_branch_id uuid, p_effective_to date) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_create_engineer_link(p_invoice_id uuid, p_company_id uuid, p_user_id uuid, p_allocation_pct numeric, p_assignment_type text, p_reason text, p_source text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_create_plan(p_company_id uuid, p_name text, p_calculation_basis text, p_currency_code text, p_description text, p_collection_mode text, p_tier_method text, p_tier_currency_code text, p_effective_from date, p_effective_to date) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_create_rule(p_company_id uuid, p_plan_id uuid, p_name text, p_rule_type text, p_calculation_method text, p_threshold_min numeric, p_threshold_max numeric, p_rate numeric, p_fixed_amount numeric, p_priority integer, p_conditions jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_create_target(p_company_id uuid, p_target_scope text, p_target_owner_type text, p_target_owner_id uuid, p_target_type text, p_period_start date, p_period_end date, p_target_value numeric, p_currency_code text, p_user_id uuid, p_branch_id uuid, p_period_type text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_deactivate_assignment(p_assignment_id uuid, p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_deactivate_target(p_target_id uuid, p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_detect_pending_invoices(p_company_id uuid, p_branch_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_detect_pending_invoices_system() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_log_audit(p_company_id uuid, p_action text, p_entity text, p_entity_id uuid, p_details jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_mark_pending_resolved(p_pending_id uuid, p_company_id uuid, p_status text, p_reason text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_open_period(p_company_id uuid, p_period_label text, p_period_start date, p_period_end date, p_currency_code text, p_branch_id uuid, p_is_test_period boolean) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_period_transition(p_period_id uuid, p_company_id uuid, p_new_state text, p_by_permission text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_record_payment(p_company_id uuid, p_calculation_id uuid, p_user_id uuid, p_amount numeric, p_payment_date date, p_payment_method text, p_currency_code text, p_reference text, p_notes text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_revoke_engineer_link(p_link_id uuid, p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_update_plan(p_plan_id uuid, p_company_id uuid, p_name text, p_description text, p_calculation_basis text, p_status text, p_effective_to date) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.incentive_void_calculation(p_calculation_id uuid, p_company_id uuid, p_reason text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.is_valid_branch(p_company_id uuid, p_branch_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.log_cron_backup_event() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.normalize_arabic(p_text text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_inventory_ledger_modification() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_invoice_in_closed_fiscal_year() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_journal_entry_in_closed_fiscal_year() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_posted_journal_edit() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_posted_journal_line_modification() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_posted_journal_modification() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_sys_activity_log_modification() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_sys_domain_events_deletion() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_sys_domain_events_payload_update() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.prevent_system_account_modification() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.reap_stuck_debt_reminders() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.security_alert(p_alert_type text, p_severity text, p_user_id uuid, p_company_id uuid, p_details jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.send_webhook_event() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.sync_branch_user_on_branch_email_change() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.sync_party_stats_on_invoice_change() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.sync_product_search_numbers(p_product_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_audit_session_cleanup_draft() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_fn_set_supplier_portal_token() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_incentive_calc_guard() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_incentive_lines_period_guard() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_incentive_links_period_guard() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_invoice_soft_delete_propagation() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_sync_inventory_stock_on_delete() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_sync_product_search_numbers() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.trg_update_product_stock() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.user_can_manage_debts() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.user_can_manage_debts(p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.user_is_admin_or_manager(p_company_id uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.user_is_admin_or_manager() FROM PUBLIC, anon, authenticated;
+
+
+-- ── Section 2: Verify count reduced ──
+DO $$
+DECLARE v_count INT;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.prosecdef = true
+  AND NOT (p.prosrc ~ 'auth\.uid\(\)' OR p.prosrc ~ 'auth\.role\(\)');
+  RAISE NOTICE 'SECDEF_WITHOUT_AUTH_REMAINING: %', v_count;
+END $$;

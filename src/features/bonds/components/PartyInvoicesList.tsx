@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, FileText, CheckCircle2, Eye, ArrowUpDown, Layers } from 'lucide-react';
-import { formatCurrency, formatLocalDate } from '../../../core/utils';
+import { formatCurrency, formatLocalDate, toBaseCurrency } from '../../../core/utils';
 import { useUnpaidPartyInvoices } from '../hooks';
 import { cn } from '../../../core/utils';
 import InvoiceDetailsModal from '../../sales/components/details/InvoiceDetailsModal';
@@ -106,13 +106,24 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
     return list;
   }, [invoices, searchQuery, statusFilter, sortField, sortOrder]);
 
-  // Totals calculations
+  // Totals calculations (normalized to base currency SAR so multi-currency invoices never sum raw)
   const totals = useMemo(() => {
+    const toBase = (amount: number, inv: any) => {
+      try {
+        return toBaseCurrency({
+          amount,
+          currency_code: inv.currency_code || 'SAR',
+          exchange_rate: inv.exchange_rate ?? 1,
+        });
+      } catch {
+        return amount;
+      }
+    };
     return processedInvoices.reduce(
       (acc, curr) => {
-        acc.total += curr._total;
-        acc.paid += curr._paid;
-        acc.remaining += curr._remaining;
+        acc.total += toBase(curr._total, curr);
+        acc.paid += toBase(curr._paid, curr);
+        acc.remaining += toBase(curr._remaining, curr);
         return acc;
       },
       { total: 0, paid: 0, remaining: 0 }

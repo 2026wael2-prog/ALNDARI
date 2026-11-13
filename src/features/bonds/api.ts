@@ -166,6 +166,7 @@ export const bondsApi = {
       .eq('company_id', companyId)
       .eq('party_id', partyId)
       .eq('type', partyType === 'customer' ? 'sale' : 'purchase')
+      .neq('payment_method', 'cash')
       .in('status', ['posted', 'partially_paid'])
       .is('deleted_at', null)
       .order('issue_date', { ascending: false });

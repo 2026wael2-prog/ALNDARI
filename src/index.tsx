@@ -86,6 +86,13 @@ if ('serviceWorker' in navigator) {
       .getRegistrations()
       .then(registrations => {
         for (const registration of registrations) {
+          const scriptUrl =
+            registration.active?.scriptURL ||
+            registration.installing?.scriptURL ||
+            registration.waiting?.scriptURL ||
+            '';
+          // Preserve the Web Push service worker (/sw.js); only tear down legacy PWA/Workbox workers.
+          if (scriptUrl.endsWith('/sw.js')) continue;
           registration.unregister().catch((err: unknown) => {
             logger.warn('SW', 'unregister failed', err);
           });

@@ -2,6 +2,20 @@
 import { useMemo } from 'react';
 import type { Bond } from '../types';
 import type { BondsQuickAnalytics, BondsQuickTotals } from '../components/BondsQuickKpiBar';
+import { toBaseCurrency } from '../../../core/utils';
+
+const toBondBaseAmount = (b: Bond): number => {
+  if (b.base_amount !== undefined && b.base_amount !== null) return b.base_amount;
+  try {
+    return toBaseCurrency({
+      amount: b.amount || 0,
+      currency_code: b.currency_code || 'SAR',
+      exchange_rate: b.exchange_rate ?? 1,
+    });
+  } catch {
+    return b.amount || 0;
+  }
+};
 
 export function useBondsTotals(
   serverAnalytics: unknown,
@@ -14,7 +28,7 @@ export function useBondsTotals(
 
     // Local computation from ALL loaded bonds as fallback
     const allBonds = allBondsData || [];
-    const localTotal = allBonds.reduce((sum, b) => sum + (b.base_amount || b.amount || 0), 0);
+    const localTotal = allBonds.reduce((sum, b) => sum + toBondBaseAmount(b), 0);
     const localCount = allBonds.length;
 
     const resolvedTotal = serverTotal > 0 ? serverTotal : localTotal;
@@ -48,8 +62,8 @@ export function useBondsTotals(
     const allBonds = allBondsData || [];
     const receiptBonds = allBonds.filter(b => b.type === 'receipt');
     const paymentBonds = allBonds.filter(b => b.type === 'payment');
-    const receiptAmount = receiptBonds.reduce((s, b) => s + (b.base_amount || b.amount || 0), 0);
-    const paymentAmount = paymentBonds.reduce((s, b) => s + (b.base_amount || b.amount || 0), 0);
+    const receiptAmount = receiptBonds.reduce((s, b) => s + toBondBaseAmount(b), 0);
+    const paymentAmount = paymentBonds.reduce((s, b) => s + toBondBaseAmount(b), 0);
     return {
       receiptCount: receiptBonds.length,
       receiptAmount,

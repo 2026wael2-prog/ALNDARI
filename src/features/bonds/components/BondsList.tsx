@@ -12,7 +12,7 @@ import {
   Eye,
 } from 'lucide-react';
 import type { Bond } from '../types';
-import { cn, formatCurrency } from '../../../core/utils';
+import { cn, formatCurrency, toBaseCurrency } from '../../../core/utils';
 import { useDeleteBond } from '../hooks';
 import { useCompany } from '../../settings/hooks';
 import { useInvoiceSettings } from '../../settings/settingsStore';
@@ -55,7 +55,18 @@ const BondsList: React.FC<Props> = ({
     let payments = 0;
     let transfers = 0;
     filteredBonds.forEach(b => {
-      const amt = b.base_amount !== undefined ? b.base_amount : b.amount;
+      let amt = b.base_amount;
+      if (amt === undefined || amt === null) {
+        try {
+          amt = toBaseCurrency({
+            amount: b.amount || 0,
+            currency_code: b.currency_code || 'SAR',
+            exchange_rate: b.exchange_rate ?? 1,
+          });
+        } catch {
+          amt = b.amount || 0;
+        }
+      }
       if (b.type === 'receipt') {
         receipts += amt;
       } else if (b.type === 'payment') {

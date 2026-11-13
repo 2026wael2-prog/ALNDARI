@@ -69,12 +69,14 @@ export const useCustomerCreditAlert = (
         balance: Number(b.balance || 0),
       }));
 
-      // Base balance fallback
+      // Base currency balance from party_balances (already converted to SAR in SQL; never sum raw multi-currency rows)
       const directBalance = balancesRes.data?.balance ? Number(balancesRes.data.balance) : 0;
       const computedBalance =
-        balancesByCurrency.length > 0
-          ? balancesByCurrency.reduce((sum: number, b: { balance: number }) => sum + b.balance, 0)
-          : directBalance;
+        balancesRes.data !== null && balancesRes.data !== undefined
+          ? directBalance
+          : balancesByCurrency
+              .filter(b => (b.currency_code || 'SAR').toUpperCase() === 'SAR')
+              .reduce((sum: number, b: { balance: number }) => sum + b.balance, 0);
 
       return {
         partyId: partyData.id,

@@ -70,6 +70,7 @@ const ChatHubPage = lazy(() => import('../features/chat').then(m => ({ default: 
 const AdminHubPage = lazy(() => import('../features/admin/pages/AdminHubPage'));
 const ChatwootWidgetPage = lazy(() => import('../features/integrations/chatwoot/ChatwootWidgetPage'));
 import { SuperAdminGuard } from '../features/admin/components/SuperAdminGuard';
+import { PermissionGuard } from '../features/auth/PermissionGuard';
 import { MaintenanceGuard } from '../features/admin/components/MaintenanceGuard';
 import { FeatureFlagGate } from '../core/components/FeatureFlagGate';
 
@@ -310,41 +311,51 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.ACCOUNTING}
           element={
-            <FeatureBoundary name="accounting">
-              <AccountingPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="accounting:read" label="المحاسبة">
+              <FeatureBoundary name="accounting">
+                <AccountingPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.REPORTS}
           element={
-            <FeatureBoundary name="reports">
-              <ReportsPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="reports:read" label="التقارير">
+              <FeatureBoundary name="reports">
+                <ReportsPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.COMMISSIONS}
           element={
-            <FeatureBoundary name="commissions">
-              <CommissionDashboardPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="incentive:manage_plans" label="العمولات">
+              <FeatureBoundary name="commissions">
+                <CommissionDashboardPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.COMMISSIONS_CONFIG}
           element={
-            <FeatureBoundary name="commissions-config">
-              <CommissionConfigurationPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="incentive:manage_plans" label="إعدادات العمولات">
+              <FeatureBoundary name="commissions-config">
+                <CommissionConfigurationPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.COMMISSIONS_ASSIGNMENTS}
           element={
-            <FeatureBoundary name="commissions-assignments">
-              <CommissionAssignmentsPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="incentive:manage_plans" label="تعيينات العمولات">
+              <FeatureBoundary name="commissions-assignments">
+                <CommissionAssignmentsPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
@@ -407,9 +418,11 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.SETTINGS}
           element={
-            <FeatureBoundary name="settings">
-              <SettingsPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="settings:manage" label="الإعدادات">
+              <FeatureBoundary name="settings">
+                <SettingsPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route

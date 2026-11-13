@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useConnectionStore } from '../../core/store/connectionStore';
 import { useOfflineQueueStatus } from '../../core/sync/offlineMutationQueue';
+import { syncStore, SYNC_STORE_CHANGED_EVENT } from '../../core/lib/sync-store';
 import { cn } from '../../core/utils';
 
 /**
@@ -17,7 +18,37 @@ import { cn } from '../../core/utils';
  */
 const RealtimeStatusIndicator: React.FC = () => {
   const realtimeStatus = useConnectionStore(s => s.realtimeStatus);
-  const { pendingCount, isSyncing } = useOfflineQueueStatus();
+  const { pendingCount: queuePendingCount, isSyncing } = useOfflineQueueStatus();
+  const [syncStorePending, setSyncStorePending] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      syncStore
+        .getPending()
+        .then(items => {
+          if (active) setSyncStorePending(items.length);
+        })
+        .catch(() => {});
+    };
+
+    refresh();
+    window.addEventListener(SYNC_STORE_CHANGED_EVENT, refresh);
+    window.addEventListener('online', refresh);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      active = false;
+      window.removeEventListener(SYNC_STORE_CHANGED_EVENT, refresh);
+      window.removeEventListener('online', refresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
+  const pendingCount = queuePendingCount + syncStorePending;
 
   const config = {
     connected: {

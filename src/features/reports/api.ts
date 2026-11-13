@@ -209,6 +209,7 @@ export const reportsApi = {
       )
       .eq('company_id', companyId)
       .eq('type', 'sale')
+      .neq('payment_method', 'cash')
       .is('deleted_at', null)
       .not('invoice_number', 'ilike', '%-INT')
       .in('status', ['posted', 'confirmed', 'partially_paid']);

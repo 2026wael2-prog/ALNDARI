@@ -14,6 +14,13 @@ export interface PendingMutation {
 }
 
 const STORAGE_KEY = 'alzhra-pending-sync';
+export const SYNC_STORE_CHANGED_EVENT = 'alzhra-sync-store-changed';
+
+function notifySyncStoreChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(SYNC_STORE_CHANGED_EVENT));
+  }
+}
 
 export const syncStore = {
   /**
@@ -49,6 +56,7 @@ export const syncStore = {
       return [...list, newEntry];
     });
 
+    notifySyncStoreChanged();
     logger.info('SyncStore', `Enqueued mutation: ${id}`, { key: mutation.mutationKey });
     return id;
   },
@@ -68,6 +76,7 @@ export const syncStore = {
       if (!val) return [];
       return val.filter(m => m.id !== id);
     });
+    notifySyncStoreChanged();
     logger.info('SyncStore', `Dequeued mutation: ${id}`);
   },
 
@@ -79,6 +88,7 @@ export const syncStore = {
       if (!val) return [];
       return val.map(m => (m.id === id ? { ...m, retryCount: m.retryCount + 1 } : m));
     });
+    notifySyncStoreChanged();
   },
 
   /**
@@ -86,5 +96,6 @@ export const syncStore = {
    */
   async clear() {
     await del(STORAGE_KEY);
+    notifySyncStoreChanged();
   },
 };

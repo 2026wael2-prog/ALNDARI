@@ -438,7 +438,7 @@ export const salesApi = {
     // 1. Build main period query (Lean without nested joins for maximum speed)
     let query = supabase
       .from('invoices')
-      .select('id, type, total_amount, issue_date, payment_method, currency_code, exchange_rate, party_id')
+      .select('id, type, total_amount, total_document_amount, issue_date, payment_method, currency_code, exchange_rate, party_id')
       .eq('company_id', params.company_id)
       .in('type', ['sale', 'sale_return'])
       .neq('status', 'void')
@@ -475,7 +475,7 @@ export const salesApi = {
 
       let prevQ = supabase
         .from('invoices')
-        .select('type, total_amount, currency_code, exchange_rate')
+        .select('type, total_amount, total_document_amount, currency_code, exchange_rate')
         .eq('company_id', params.company_id)
         .in('type', ['sale', 'sale_return'])
         .neq('status', 'void')
@@ -519,8 +519,9 @@ export const salesApi = {
     const byCust = new Map<string, { customerName: string; totalAmount: number; invoiceCount: number }>();
 
     for (const r of invRows || []) {
-      const amt = r.total_amount ?? 0;
-      const rate = r.exchange_rate ?? 1;
+      const amt = Number(r.total_amount) || 0;
+      const docAmt = Number(r.total_document_amount) || 0;
+      const rate = Number(r.exchange_rate) || 1;
       const curr = (r.currency_code || 'SAR').toUpperCase();
       const method = r.payment_method || 'cash';
 
@@ -528,17 +529,11 @@ export const salesApi = {
       if (params.currency && params.currency !== 'ALL') {
         // When filtered specifically by a single currency (e.g. YER or SAR),
         // use nominal currency amounts directly to preserve accurate values
-        baseAmt = amt;
+        baseAmt = curr !== 'SAR' && docAmt > 0 ? docAmt : amt;
       } else {
-        try {
-          baseAmt = toBaseCurrency({
-            amount: amt,
-            currency_code: curr,
-            exchange_rate: rate,
-          });
-        } catch {
-          baseAmt = amt;
-        }
+        // [FIX] In our database, total_amount is ALREADY converted to base SAR by the backend triggers.
+        // Re-converting total_amount through toBaseCurrency was dividing SAR by 410 again, distorting sales by ~43%!
+        baseAmt = amt;
       }
       const day = r.issue_date || '';
       const dEntry = byDay.get(day) ?? { sales: 0, returns: 0 };

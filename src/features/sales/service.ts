@@ -359,10 +359,12 @@ export const salesService = {
       const { data: prevWindowData, error: prevWindowError } = await queryPrevWindow;
       if (prevWindowError) throw prevWindowError;
 
-      // Calculate totals, converting to base currency if necessary
+      // Calculate totals in base SAR.
+      // [FIX] total_amount in DB is ALREADY in SAR base currency.
+      // Do NOT re-divide via toBaseCurrency({ total_amount }).
       const calcTotal = (data: SalesStatsRow[]) =>
         data.reduce((sum, inv) => {
-          return sum + toBaseCurrency(inv);
+          return sum + (Number(inv.total_amount) || 0);
         }, 0);
 
       const totalSales = calcTotal(thisWindowData || []);

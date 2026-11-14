@@ -70,7 +70,8 @@ export const partiesApi = {
       .eq('company_id', companyId)
       .in('type', typeFilter)
       .is('deleted_at', null)
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .limit(5000);
 
     if (branchId) {
       // فرز عميق حسب الفرع: يُعرض أطراف الفرع النشط فقط.

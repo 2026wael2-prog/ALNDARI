@@ -28,6 +28,16 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
 }) => {
   const isCustomer = partyType === 'customer';
 
+  const getEffectiveDebt = React.useCallback(
+    (p: Party): number => {
+      const raw = Number(p.balance) || 0;
+      if (isCustomer) return raw;
+      if (partyType === 'supplier') return -raw;
+      return Math.abs(raw);
+    },
+    [isCustomer, partyType]
+  );
+
   // Segmentation stats
   const segmentation = useMemo(() => {
     let vip = 0;
@@ -37,7 +47,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
     let highRisk = 0;
 
     parties.forEach(p => {
-      const bal = p.balance ?? 0;
+      const bal = getEffectiveDebt(p);
       if (bal > 20000) highRisk++;
       if (bal > 10000) vip++;
       else if (bal > 0) activeInDebt++;
@@ -53,15 +63,15 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
       highRisk,
       total: parties.length,
     };
-  }, [parties]);
+  }, [parties, getEffectiveDebt]);
 
   // Top 5 Debtors
   const topDebtors = useMemo(() => {
     return [...parties]
-      .filter(p => (p.balance ?? 0) > 0)
-      .sort((a, b) => (b.balance ?? 0) - (a.balance ?? 0))
+      .filter(p => getEffectiveDebt(p) > 0)
+      .sort((a, b) => getEffectiveDebt(b) - getEffectiveDebt(a))
       .slice(0, 5);
-  }, [parties]);
+  }, [parties, getEffectiveDebt]);
 
   // Balance Brackets
   const brackets = useMemo(() => {
@@ -76,7 +86,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
     let over20kSum = 0;
 
     parties.forEach(p => {
-      const bal = p.balance ?? 0;
+      const bal = getEffectiveDebt(p);
       if (bal <= 0) return;
       if (bal < 1000) {
         under1k++;
@@ -99,7 +109,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
       { label: '5,000 - 20,000', count: from5kTo20k, sum: from5kTo20kSum, color: 'bg-amber-500' },
       { label: 'أكثر من 20,000 (حرجة)', count: over20k, sum: over20kSum, color: 'bg-rose-500' },
     ];
-  }, [parties]);
+  }, [parties, getEffectiveDebt]);
 
   if (isLoading) {
     return (
@@ -196,7 +206,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
               </div>
               <div>
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  {isCustomer ? 'أعلى 5 عملاء مديونية للمطالبة' : 'أعلى 5 موردين بأرصدة مدينة'}
+                  {isCustomer ? 'أعلى 5 عملاء مديونية للمطالبة' : 'أعلى 5 موردين مستحق لهم السداد'}
                 </h4>
                 <p className="text-[10px] text-slate-500">
                   المراسلة والمطالبة المباشرة عبر واتساب بنقرة واحدة
@@ -222,7 +232,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {topDebtors.map(party => {
-                    const bal = Number(party.balance) || 0;
+                    const bal = getEffectiveDebt(party);
                     return (
                       <tr
                         key={party.id}

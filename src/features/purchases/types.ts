@@ -3,6 +3,14 @@ export interface PurchaseStats {
   totalPurchases: number;
   pendingPaymentCount: number;
   totalDebt: number;
+  grossPurchases?: number;
+  netPurchases?: number;
+  totalReturns?: number;
+  returnCount?: number;
+  totalPaid?: number;
+  supplierBondsPaid?: number;
+  cashPurchases?: number;
+  creditPurchases?: number;
   totalPurchasesSAR?: number;
   totalPurchasesYER?: number;
   totalDebtSAR?: number;

@@ -1,9 +1,9 @@
 import React from 'react';
-import { FileText, TrendingDown, AlertCircle, CreditCard } from 'lucide-react';
+import { TrendingDown, Wallet, RefreshCw, CreditCard } from 'lucide-react';
 import StatCard from '../../../ui/common/StatCard';
 import DualCurrencyStatCard from '../../../ui/common/DualCurrencyStatCard';
 import { usePurchaseStats } from '../hooks';
-import { formatNumberDisplay } from '../../../core/utils';
+import { formatCurrency, formatNumberDisplay } from '../../../core/utils';
 import { useAnalyticsFilterStore } from '../../../core/store/analyticsFilterStore';
 
 export const PurchaseStats: React.FC = () => {
@@ -21,7 +21,9 @@ export const PurchaseStats: React.FC = () => {
             ? 'الربع الحالي'
             : period === 'year'
               ? 'السنة الحالية'
-              : `${startDate} ◄ ${endDate}`;
+              : startDate && endDate
+                ? `${startDate} ◄ ${endDate}`
+                : 'كل الفترات';
 
   if (isLoading) {
     return (
@@ -38,45 +40,47 @@ export const PurchaseStats: React.FC = () => {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-      {/* 1. Invoices Count */}
-      <StatCard
-        title="فواتير الفترة"
-        value={formatNumberDisplay(stats?.invoiceCount ?? 0)}
-        subtext={periodSubtext}
-        icon={FileText}
-        colorClass="text-slate-600 dark:text-slate-300"
-        iconBgClass="bg-slate-500"
-      />
-
-      {/* 2. Total Purchases (Dual Currency Aware) */}
+      {/* 1. Net Purchases (Dual Currency Aware, after Returns) */}
       <DualCurrencyStatCard
-        title="إجمالي المشتريات"
+        title="صافي المشتريات"
         amountSAR={stats?.totalPurchasesSAR ?? 0}
         amountYER={stats?.totalPurchasesYER ?? 0}
         currencyMode={currency}
-        subtext={`حسب ${periodSubtext}`}
+        countText={`${formatNumberDisplay(stats?.invoiceCount ?? 0)} فاتورة`}
+        subtext={`بعد خصم المرتجعات (${periodSubtext})`}
         icon={TrendingDown}
         colorClass="text-blue-600 dark:text-blue-400"
         iconBgClass="bg-blue-500"
       />
 
-      {/* 3. Pending/Credit Invoices Count */}
+      {/* 2. Total Paid to Suppliers (Cash + Inline Paid + Payment/Disbursement Bonds) */}
       <StatCard
-        title="فواتير غير مسددة"
-        value={formatNumberDisplay(stats?.pendingPaymentCount ?? 0)}
-        subtext="تحتاج سداد / آجلة"
-        icon={AlertCircle}
+        title="المسدد للموردين (نقد + سندات)"
+        value={formatCurrency(stats?.totalPaid ?? 0, 'SAR')}
+        subtext="شامل النقدي وسندات الصرف"
+        icon={Wallet}
+        colorClass="text-emerald-600 dark:text-emerald-400"
+        iconBgClass="bg-emerald-500"
+      />
+
+      {/* 3. Purchase Returns */}
+      <StatCard
+        title="مرتجعات المشتريات"
+        value={formatCurrency(stats?.totalReturns ?? 0, 'SAR')}
+        subtext={`${formatNumberDisplay(stats?.returnCount ?? 0)} فاتورة مرتجع`}
+        icon={RefreshCw}
         colorClass="text-amber-600 dark:text-amber-400"
         iconBgClass="bg-amber-500"
       />
 
-      {/* 4. Total Supplier Debt (Dual Currency Aware) */}
+      {/* 4. Net Remaining Supplier Debt (Dual Currency Aware, after Bonds & Returns) */}
       <DualCurrencyStatCard
-        title="إجمالي المديونية"
+        title="صافي المتبقي للموردين"
         amountSAR={stats?.totalDebtSAR ?? 0}
         amountYER={stats?.totalDebtYER ?? 0}
         currencyMode={currency}
-        subtext="مستحقات الموردين"
+        countText={`${formatNumberDisplay(stats?.pendingPaymentCount ?? 0)} فاتورة آجلة`}
+        subtext="بعد خصم السندات والمرتجعات"
         icon={CreditCard}
         colorClass="text-rose-600 dark:text-rose-400"
         iconBgClass="bg-rose-500"

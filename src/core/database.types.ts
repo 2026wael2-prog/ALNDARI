@@ -14974,6 +14974,17 @@ export type Database = {
         Args: { p_branch_id?: string; p_company_id: string }
         Returns: Json
       }
+      get_purchases_stats_summary: {
+        Args: {
+          p_branch_id?: string | null
+          p_company_id: string
+          p_currency?: string | null
+          p_date_from?: string | null
+          p_date_to?: string | null
+          p_payment_method?: string | null
+        }
+        Returns: Json
+      }
       get_sales_analytics: {
         Args: {
           p_company_id: string
@@ -15000,6 +15011,15 @@ export type Database = {
         }[]
       }
       get_sales_stats: { Args: { p_company_id: string }; Returns: Json }
+      get_sales_stats_summary: {
+        Args: {
+          p_branch_id?: string | null
+          p_company_id: string
+          p_date_from?: string | null
+          p_date_to?: string | null
+        }
+        Returns: Json
+      }
       get_security_alerts_count: {
         Args: { p_resolved?: boolean }
         Returns: number

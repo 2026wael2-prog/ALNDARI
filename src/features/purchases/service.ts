@@ -258,178 +258,48 @@ export const purchasesService = {
         ? { branchId: branchIdOrFilters }
         : (branchIdOrFilters ?? {});
 
-    let query = supabase
-      .from('invoices')
-      .select(
-        'id, type, total_amount, paid_amount, issue_date, payment_method, currency_code, exchange_rate, status'
-      )
-      .eq('company_id', companyId)
-      .in('type', ['purchase', 'purchase_return'])
-      .neq('status', 'void')
-      .neq('status', 'cancelled')
-      .is('deleted_at', null);
+    const { data, error } = await supabase.rpc('get_purchases_stats_summary', {
+      p_company_id: companyId,
+      p_branch_id: filters.branchId ?? null,
+      p_date_from: filters.startDate ?? null,
+      p_date_to: filters.endDate ?? null,
+      p_currency: filters.currency && filters.currency !== 'ALL' ? filters.currency : null,
+      p_payment_method:
+        filters.paymentType && filters.paymentType !== 'ALL' ? filters.paymentType : null,
+    });
 
-    if (filters.branchId) {
-      query = query.eq('branch_id', filters.branchId);
-    }
-    if (filters.currency && filters.currency !== 'ALL') {
-      query = query.eq('currency_code', filters.currency);
-    }
-    if (filters.paymentType && filters.paymentType !== 'ALL') {
-      query = query.eq('payment_method', filters.paymentType);
-    }
-    if (filters.startDate) {
-      query = query.gte('issue_date', filters.startDate);
-    }
-    if (filters.endDate) {
-      query = query.lte('issue_date', filters.endDate);
-    }
-
-    const { data: invRows, error } = await query;
     if (error) {
-      logger.error('PurchaseService', 'Error fetching purchase stats', { companyId, error });
+      logger.error('PurchaseService', 'Error fetching purchase stats summary RPC', {
+        companyId,
+        error,
+      });
       throw error;
     }
 
-    let invoiceCount = 0;
-    let totalPurchases = 0;
-    let pendingPaymentCount = 0;
-    let totalDebt = 0;
-
-    let totalPurchasesSAR = 0;
-    let totalPurchasesYER = 0;
-    let totalDebtSAR = 0;
-    let totalDebtYER = 0;
-    let cashPurchasesSAR = 0;
-    let cashPurchasesYER = 0;
-    let creditPurchasesSAR = 0;
-    let creditPurchasesYER = 0;
-
-    for (const r of invRows || []) {
-      const amt = r.total_amount ?? 0;
-      const paid = r.paid_amount ?? 0;
-      const debt = Math.max(0, amt - paid);
-      const rate = r.exchange_rate ?? 1;
-      const curr = (r.currency_code || 'SAR').toUpperCase();
-      const method = r.payment_method || 'cash';
-
-      let baseAmt = amt;
-      let baseDebt = debt;
-      if (filters.currency && filters.currency !== 'ALL') {
-        baseAmt = amt;
-        baseDebt = debt;
-      } else {
-        try {
-          baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
-          baseDebt = toBaseCurrency({ amount: debt, currency_code: curr, exchange_rate: rate });
-        } catch {
-          baseAmt = amt;
-          baseDebt = debt;
-        }
-      }
-
-      if (r.type === 'purchase') {
-        invoiceCount += 1;
-        totalPurchases += baseAmt;
-        // Cash invoices are already paid at purchase; only non-cash invoices carry unpaid debt.
-        if (method !== 'cash') {
-          totalDebt += baseDebt;
-          if (debt > 0 || r.status !== 'paid') {
-            pendingPaymentCount += 1;
-          }
-          if (curr === 'SAR') {
-            totalDebtSAR += debt;
-          } else if (curr === 'YER') {
-            totalDebtYER += debt;
-          }
-        }
-
-        if (curr === 'SAR') {
-          totalPurchasesSAR += amt;
-          if (method === 'cash') cashPurchasesSAR += amt;
-          else if (method === 'credit') creditPurchasesSAR += amt;
-        } else if (curr === 'YER') {
-          totalPurchasesYER += amt;
-          if (method === 'cash') cashPurchasesYER += amt;
-          else if (method === 'credit') creditPurchasesYER += amt;
-        }
-      } else if (r.type === 'purchase_return') {
-        totalPurchases -= baseAmt;
-        if (method !== 'cash') {
-          totalDebt -= baseDebt;
-          if (curr === 'SAR') totalDebtSAR -= debt;
-          else if (curr === 'YER') totalDebtYER -= debt;
-        }
-        if (curr === 'SAR') totalPurchasesSAR -= amt;
-        else if (curr === 'YER') totalPurchasesYER -= amt;
-      }
-    }
-
-    // Subtract unallocated supplier payment/disbursement/discount bonds so they reduce totalDebt
-    if (filters.paymentType !== 'cash') {
-      let payQuery = supabase
-        .from('payments')
-        .select('id, amount, currency_code, exchange_rate, party:parties!inner(type)')
-        .eq('company_id', companyId)
-        .in('type', ['disbursement', 'payment'])
-        .eq('status', 'posted')
-        .is('deleted_at', null)
-        .in('party.type', ['supplier', 'both']);
-
-      if (filters.branchId) payQuery = payQuery.eq('branch_id', filters.branchId);
-      if (filters.currency && filters.currency !== 'ALL') {
-        payQuery = payQuery.eq('currency_code', filters.currency);
-      }
-      if (filters.startDate) payQuery = payQuery.gte('payment_date', filters.startDate);
-      if (filters.endDate) payQuery = payQuery.lte('payment_date', filters.endDate);
-
-      const { data: payRows } = await payQuery;
-      if (payRows && payRows.length > 0) {
-        const paymentIds = payRows.map(p => p.id);
-        const { data: allocRows } = await supabase
-          .from('payment_allocations')
-          .select('payment_id, amount')
-          .eq('company_id', companyId)
-          .in('payment_id', paymentIds);
-
-        const allocMap = new Map<string, number>();
-        for (const a of allocRows || []) {
-          allocMap.set(a.payment_id, (allocMap.get(a.payment_id) ?? 0) + (a.amount ?? 0));
-        }
-
-        for (const p of payRows) {
-          const unalloc = Math.max(0, (p.amount ?? 0) - (allocMap.get(p.id) ?? 0));
-          if (unalloc <= 0) continue;
-          const pCurr = (p.currency_code || 'SAR').toUpperCase();
-          const pRate = p.exchange_rate ?? 1;
-          let baseUnalloc = unalloc;
-          if (!filters.currency || filters.currency === 'ALL') {
-            try {
-              baseUnalloc = toBaseCurrency({ amount: unalloc, currency_code: pCurr, exchange_rate: pRate });
-            } catch {
-              baseUnalloc = unalloc;
-            }
-          }
-          totalDebt -= baseUnalloc;
-          if (pCurr === 'SAR') totalDebtSAR -= unalloc;
-          else if (pCurr === 'YER') totalDebtYER -= unalloc;
-        }
-      }
-    }
+    const row = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+    const num = (k: string): number => Number(row[k]) || 0;
 
     return {
-      invoiceCount,
-      totalPurchases,
-      pendingPaymentCount,
-      totalDebt: Math.max(0, totalDebt),
-      totalPurchasesSAR,
-      totalPurchasesYER,
-      totalDebtSAR: Math.max(0, totalDebtSAR),
-      totalDebtYER: Math.max(0, totalDebtYER),
-      cashPurchasesSAR,
-      cashPurchasesYER,
-      creditPurchasesSAR,
-      creditPurchasesYER,
+      invoiceCount: num('invoice_count'),
+      returnCount: num('return_count'),
+      pendingPaymentCount: num('pending_payment_count'),
+      grossPurchases: num('gross_purchases'),
+      netPurchases: num('net_purchases'),
+      totalPurchases: num('net_purchases'),
+      totalReturns: num('total_returns'),
+      supplierBondsPaid: num('supplier_bonds_paid'),
+      totalPaid: num('total_paid'),
+      cashPurchases: num('cash_purchases'),
+      creditPurchases: num('credit_purchases'),
+      totalDebt: Math.max(0, num('total_debt')),
+      totalPurchasesSAR: num('total_purchases_sar'),
+      totalPurchasesYER: num('total_purchases_yer'),
+      totalDebtSAR: Math.max(0, num('total_debt_sar')),
+      totalDebtYER: Math.max(0, num('total_debt_yer')),
+      cashPurchasesSAR: num('cash_purchases_sar'),
+      cashPurchasesYER: num('cash_purchases_yer'),
+      creditPurchasesSAR: num('credit_purchases_sar'),
+      creditPurchasesYER: num('credit_purchases_yer'),
     };
   },
 

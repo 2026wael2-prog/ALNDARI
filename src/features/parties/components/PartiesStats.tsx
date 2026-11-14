@@ -80,8 +80,8 @@ const PartiesStats: React.FC<Props> = ({ stats, type }) => {
         <div className="mt-2 flex items-center gap-1 border-t border-emerald-100/80 pt-2 text-[10px] text-emerald-700/80 dark:border-emerald-900/40 dark:text-emerald-400">
           <span>
             {type === 'supplier'
-              ? 'مبالغ دفعناها مقدماً للموردين'
-              : 'مبالغ مطلوبة لصالح المنشأة'}
+              ? 'صافي دفعات مقدمة دفعناها للموردين'
+              : 'صافي ذمم مستحقة لنا بعد السندات والمرتجعات'}
           </span>
         </div>
       </div>
@@ -111,8 +111,8 @@ const PartiesStats: React.FC<Props> = ({ stats, type }) => {
         <div className="mt-2 flex items-center gap-1 border-t border-amber-100/80 pt-2 text-[10px] text-amber-700/80 dark:border-amber-900/40 dark:text-amber-400">
           <span>
             {type === 'supplier'
-              ? 'مبالغ مستحقة السداد للموردين'
-              : 'التزامات أو أرصدة دائنة'}
+              ? 'صافي المستحق سداده للموردين بعد السندات والمرتجعات'
+              : 'صافي التزامات أو أرصدة دائنة بعد السندات والمرتجعات'}
           </span>
         </div>
       </div>

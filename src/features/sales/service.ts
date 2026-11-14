@@ -53,14 +53,6 @@ interface RawInvoice {
   reference_invoice_id: string | null;
 }
 
-/** Row shape returned by getStats() window queries (invoices). */
-interface SalesStatsRow {
-  total_amount: number | null;
-  total_document_amount?: number | null;
-  currency_code: string | null;
-  exchange_rate: number | null;
-}
-
 export const salesService = {
   fetchSalesLog: async (companyId: string, page = 0, branchId?: string | null, limit = 80) => {
     try {
@@ -308,85 +300,56 @@ export const salesService = {
   // [FIX] Uses rolling 30-day window instead of current calendar month to prevent
   // stats showing all-zero when the month just started. Also filters voided invoices.
   getStats: async (companyId: string, branchId?: string | null) => {
-    const today = new Date();
-    const MS_PER_DAY = 24 * 60 * 60 * 1000;
-    const isoDate = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    // Current 30-day window: [today - 30d, today]
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * MS_PER_DAY);
-    const startOfThisWindow = isoDate(thirtyDaysAgo);
-
-    // Previous 30-day window: [today - 60d, today - 31d]
-    const sixtyDaysAgo = new Date(today.getTime() - 60 * MS_PER_DAY);
-    const thirtyOneDaysAgo = new Date(today.getTime() - 31 * MS_PER_DAY);
-    const startOfPrevWindow = isoDate(sixtyDaysAgo);
-    const endOfPrevWindow = isoDate(thirtyOneDaysAgo);
-
     try {
-      // Query this period's invoices (last 30 days) — exclude voided and deleted
-      let queryThisWindow = supabase
-        .from('invoices')
-        .select('total_amount, currency_code, exchange_rate')
-        .eq('company_id', companyId)
-        .eq('type', 'sale')
-        .neq('status', 'void')
-        .is('deleted_at', null)
-        .gte('issue_date', startOfThisWindow);
+      const { data, error } = await supabase.rpc('get_sales_stats_summary', {
+        p_company_id: companyId,
+        p_branch_id: branchId ?? null,
+      });
+      if (error) throw error;
 
-      if (branchId) {
-        queryThisWindow = queryThisWindow.eq('branch_id', branchId);
-      }
-
-      const { data: thisWindowData, error: thisWindowError } = await queryThisWindow;
-      if (thisWindowError) throw thisWindowError;
-
-      // Query previous 30-day period for growth comparison — also exclude voided
-      let queryPrevWindow = supabase
-        .from('invoices')
-        .select('total_amount, currency_code, exchange_rate')
-        .eq('company_id', companyId)
-        .eq('type', 'sale')
-        .neq('status', 'void')
-        .is('deleted_at', null)
-        .gte('issue_date', startOfPrevWindow)
-        .lte('issue_date', endOfPrevWindow);
-
-      if (branchId) {
-        queryPrevWindow = queryPrevWindow.eq('branch_id', branchId);
-      }
-
-      const { data: prevWindowData, error: prevWindowError } = await queryPrevWindow;
-      if (prevWindowError) throw prevWindowError;
-
-      // Calculate totals in base SAR.
-      // [FIX] total_amount in DB is ALREADY in SAR base currency.
-      // Do NOT re-divide via toBaseCurrency({ total_amount }).
-      const calcTotal = (data: SalesStatsRow[]) =>
-        data.reduce((sum, inv) => {
-          return sum + (Number(inv.total_amount) || 0);
-        }, 0);
-
-      const totalSales = calcTotal(thisWindowData || []);
-      const invoiceCount = (thisWindowData || []).length;
-      const avgSale = invoiceCount > 0 ? totalSales / invoiceCount : 0;
-
-      const prevWindowSales = calcTotal(prevWindowData || []);
-
-      let monthlyGrowth: number | null = null;
-      if (prevWindowSales > 0) {
-        monthlyGrowth = ((totalSales - prevWindowSales) / prevWindowSales) * 100;
-      }
+      const row = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      const num = (k: string): number => Number(row[k]) || 0;
+      const netSales = num('net_sales');
+      const rawGrowth = row.monthly_growth;
+      const monthlyGrowth =
+        rawGrowth === null || rawGrowth === undefined || Number.isNaN(Number(rawGrowth))
+          ? null
+          : Number(rawGrowth);
 
       return {
-        totalSales,
-        invoiceCount,
-        avgSale,
+        totalSales: netSales,
+        grossSales: num('gross_sales'),
+        netSales,
+        invoiceCount: num('invoice_count'),
+        returnCount: num('return_count'),
+        totalReturns: num('total_returns'),
+        totalDiscount: num('total_discount'),
+        cashSales: num('cash_sales'),
+        creditSales: num('credit_sales'),
+        receiptBondsCollected: num('receipt_bonds_collected'),
+        totalCollected: num('total_collected'),
+        totalRemainingCredit: Math.max(0, num('total_remaining_credit')),
+        avgSale: num('avg_sale'),
         monthlyGrowth,
       };
     } catch (error) {
       logger.error('SalesService', 'Failed to calculate stats', error);
-      return { totalSales: 0, invoiceCount: 0, avgSale: 0, monthlyGrowth: null };
+      return {
+        totalSales: 0,
+        grossSales: 0,
+        netSales: 0,
+        invoiceCount: 0,
+        returnCount: 0,
+        totalReturns: 0,
+        totalDiscount: 0,
+        cashSales: 0,
+        creditSales: 0,
+        receiptBondsCollected: 0,
+        totalCollected: 0,
+        totalRemainingCredit: 0,
+        avgSale: 0,
+        monthlyGrowth: null as number | null,
+      };
     }
   },
 };

@@ -32,6 +32,9 @@ scripts/verify-fixes.mjs
 
 # backup
 src_backup/
+*.DBBackup
+*.bak
+الميزان/
 
 # AI tooling cache
 .kilo/

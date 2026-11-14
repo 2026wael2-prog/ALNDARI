@@ -155,11 +155,6 @@ interface RawLowStockProduct {
   min_quantity: number | string;
 }
 
-interface RawCategoryDatum {
-  category_name: string;
-  total_amount: number | string;
-}
-
 interface RawRecentInvoice {
   id: string;
   invoice_number?: string | null;
@@ -208,8 +203,6 @@ interface RawProductCategory {
   name: string;
 }
 
-const CATEGORY_COLORS = ['#f43f5e', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa'] as const;
-
 interface RawTopPayload {
   top_products?: RawTopProduct[] | null;
   top_customers?: RawTopCustomer[] | null;
@@ -243,9 +236,21 @@ export const dashboardApi = {
     const activeSignal: AbortSignal =
       signal && 'addEventListener' in signal ? signal : new AbortController().signal;
 
-    // Execute in staggered batches to protect against concurrent pool exhaustion:
-    // Batch 1a: Core KPIs and financial totals
-    const [summaryRes, plRes, debtFollowupRes] = await Promise.allSettled([
+    // ⚡ تنفيذ جميع استعلامات لوحة التحكم بالتوازي في دفعة واحدة (HTTP/2 multiplexing)
+    // بدلاً من 3 دفعات متتالية كانت تضاعف زمن الانتظار (3× RTT) قبل ظهور المؤشرات،
+    // مع إزالة استعلام get_expense_categories_summary غير المستخدم.
+    const [
+      summaryRes,
+      plRes,
+      debtFollowupRes,
+      lowStockRes,
+      recentInvoicesRes,
+      recentExpensesRes,
+      chartRes,
+      topRes,
+      topSellingRes,
+      productCategoriesRes,
+    ] = await Promise.allSettled([
       // 1. Dashboard Summary (Sales, Purchases, Expenses, Bonds, Debts)
       dashboardRpc(
         'get_dashboard_summary',
@@ -263,8 +268,6 @@ export const dashboardApi = {
         'report_profit_loss',
         {
           p_company_id: companyId,
-          // report_profit_loss تُعرّف p_from DEFAULT NULL، فحذف المعامل عند
-          // «جميع الأوقات» هو التعبير الصحيح — لا استبداله ببداية السنة.
           ...(effectiveDateFrom ? { p_from: effectiveDateFrom } : {}),
           p_to: effectiveDateTo,
           ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
@@ -285,10 +288,7 @@ export const dashboardApi = {
         },
         activeSignal
       ),
-    ]);
 
-    // Batch 1b: Low stock & recent activity feeds
-    const [lowStockRes, recentInvoicesRes, recentExpensesRes] = await Promise.allSettled([
       // 4. Low Stock Products
       dashboardRpc(
         'get_low_stock_products',
@@ -329,68 +329,52 @@ export const dashboardApi = {
         }
         return q.order('created_at', { ascending: false }).limit(10).abortSignal(activeSignal);
       })(),
+
+      // 7. Sales Chart Data
+      dashboardRpc(
+        'get_sales_chart_data',
+        {
+          p_company_id: companyId,
+          ...(effectiveDateFrom ? { p_date_from: effectiveDateFrom } : {}),
+          ...(effectiveDateTo ? { p_date_to: effectiveDateTo } : {}),
+          ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
+        },
+        activeSignal
+      ),
+
+      // 8. Top Products & Customers (Respects the dashboard date filter & fetches 15 items)
+      dashboardRpc(
+        'get_top_products_and_customers',
+        {
+          p_company_id: companyId,
+          p_limit: 15,
+          ...(effectiveDateFrom ? { p_date_from: effectiveDateFrom } : {}),
+          ...(effectiveDateTo ? { p_date_to: effectiveDateTo } : {}),
+          ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
+        },
+        activeSignal
+      ),
+
+      // 9. Top-selling products
+      dashboardRpc(
+        'get_top_selling_products',
+        {
+          p_company_id: companyId,
+          p_days: 30,
+          p_limit: 20,
+          ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
+        },
+        activeSignal
+      ),
+
+      // 10. Product categories
+      supabase
+        .from('product_categories')
+        .select('id, name')
+        .eq('company_id', companyId)
+        .is('deleted_at', null)
+        .abortSignal(activeSignal),
     ]);
-
-    // Batch 2: Charts and visual aggregations
-    const [chartRes, topRes, topSellingRes, productCategoriesRes, categoryRes] =
-      await Promise.allSettled([
-        // 7. Sales Chart Data
-        dashboardRpc(
-          'get_sales_chart_data',
-          {
-            p_company_id: companyId,
-            ...(effectiveDateFrom ? { p_date_from: effectiveDateFrom } : {}),
-            ...(effectiveDateTo ? { p_date_to: effectiveDateTo } : {}),
-            ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
-          },
-          activeSignal
-        ),
-
-        // 8. Top Products & Customers (Respects the dashboard date filter & fetches 15 items)
-        dashboardRpc(
-          'get_top_products_and_customers',
-          {
-            p_company_id: companyId,
-            p_limit: 15,
-            ...(effectiveDateFrom ? { p_date_from: effectiveDateFrom } : {}),
-            ...(effectiveDateTo ? { p_date_to: effectiveDateTo } : {}),
-            ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
-          },
-          activeSignal
-        ),
-
-        // 9. Top-selling products
-        dashboardRpc(
-          'get_top_selling_products',
-          {
-            p_company_id: companyId,
-            p_days: 30,
-            p_limit: 20,
-            ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
-          },
-          activeSignal
-        ),
-
-        // 10. Product categories
-        supabase
-          .from('product_categories')
-          .select('id, name')
-          .eq('company_id', companyId)
-          .is('deleted_at', null)
-          .abortSignal(activeSignal),
-
-        // 11. Expense Categories Summary
-        dashboardRpc(
-          'get_expense_categories_summary',
-          {
-            p_company_id: companyId,
-            ...(effectiveDateFrom ? { p_date_from: effectiveDateFrom } : {}),
-            ...(effectiveDateTo ? { p_date_to: effectiveDateTo } : {}),
-            ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
-          },
-          activeSignal
-        ),
-      ]);
 
     // Optional Trial Balance fallback: only called if report_profit_loss completely failed
     let trialBalanceRows: unknown[] = [];
@@ -449,7 +433,6 @@ export const dashboardApi = {
           : {};
 
       const lowStockProducts = safeData(lowStockRes, [], 'get_low_stock_products');
-      const categoryData = safeData(categoryRes, [], 'get_expense_categories_summary');
       const profitLossRows = safeData(plRes, [], 'report_profit_loss');
       const topSellingProducts = safeData<RawTopSellingProduct[]>(
         topSellingRes,
@@ -523,14 +506,6 @@ export const dashboardApi = {
           }))
         : [];
 
-      const safeCategoryData = Array.isArray(categoryData)
-        ? (categoryData as RawCategoryDatum[]).map((c, i) => ({
-            name: c?.category_name ?? 'غير مصنف',
-            value: Number(c?.total_amount) || 0,
-            color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-          }))
-        : [];
-
       return {
         summary,
         salesChart: Array.isArray(salesChart) ? salesChart : [],
@@ -539,7 +514,7 @@ export const dashboardApi = {
           top_customers: safeTopCustomers,
         },
         lowStockProducts: safeLowStock,
-        categoryData: safeCategoryData,
+        categoryData: [],
         trialBalanceRows: Array.isArray(trialBalanceRows) ? trialBalanceRows : [],
         profitLossRows: Array.isArray(profitLossRows) ? profitLossRows : [],
         topSellingProducts: Array.isArray(topSellingProducts) ? topSellingProducts : [],

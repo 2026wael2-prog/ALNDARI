@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   FileText,
@@ -9,10 +9,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 import PurchaseStats from '../components/PurchaseStats';
-import PurchaseDetailsModal from '../components/PurchaseDetailsModal';
-import CreatePaymentModal from '../components/CreatePaymentModal';
-import { AuditModal } from '../../accounting/components/AuditModal';
 import { usePurchases } from '../hooks';
+
+const PurchaseDetailsModal = lazy(() => import('../components/PurchaseDetailsModal'));
+const CreatePaymentModal = lazy(() => import('../components/CreatePaymentModal'));
+const AuditModal = lazy(() =>
+  import('../../accounting/components/AuditModal').then(m => ({ default: m.AuditModal }))
+);
 import MicroHeader from '../../../ui/base/MicroHeader';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import type { ExtractedItem } from '../../smart-import/components/SmartImportView';
@@ -234,25 +237,31 @@ const PurchasesPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <PurchaseDetailsModal
-        invoiceId={viewInvoiceId}
-        onClose={() => {
-          setViewInvoiceId(null);
-        }}
-      />
-      <CreatePaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => {
-          setIsPaymentModalOpen(false);
-        }}
-      />
-      {isAuditOpen && (
-        <AuditModal
-          onClose={() => {
-            setIsAuditOpen(false);
-          }}
-        />
-      )}
+      <Suspense fallback={null}>
+        {viewInvoiceId && (
+          <PurchaseDetailsModal
+            invoiceId={viewInvoiceId}
+            onClose={() => {
+              setViewInvoiceId(null);
+            }}
+          />
+        )}
+        {isPaymentModalOpen && (
+          <CreatePaymentModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => {
+              setIsPaymentModalOpen(false);
+            }}
+          />
+        )}
+        {isAuditOpen && (
+          <AuditModal
+            onClose={() => {
+              setIsAuditOpen(false);
+            }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

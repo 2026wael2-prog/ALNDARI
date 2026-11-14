@@ -290,7 +290,7 @@ export const useGoogleLogin = () => {
  * useIsSuperAdmin — Server-authoritative check for Super Admin privileges
  * Cached for 5 minutes via React Query.
  */
-export const useIsSuperAdmin = () => {
+export const useIsSuperAdmin = (enabledOverride = true) => {
   const { user, isAuthenticated } = useAuthStore();
 
   return useQuery({
@@ -309,12 +309,9 @@ export const useIsSuperAdmin = () => {
         return false;
       }
     },
-    enabled: !!isAuthenticated && !!user?.id,
-    // فترة قصيرة حتى تنعكس أي تغييرات على صلاحية السوبر أدمن (ترقية/سحب)
-    // بأسرع وقت دون ترك نافذة وصول قديمة لمستخدم سُحبت صلاحيته.
-    staleTime: 30_000,
-    gcTime: 2 * 60 * 1000,
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    enabled: enabledOverride && !!isAuthenticated && !!user?.id,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
   });
 };

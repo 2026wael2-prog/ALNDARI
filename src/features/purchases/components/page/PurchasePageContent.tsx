@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import PurchasesTable from '../PurchasesTable';
-import CreatePurchaseModal from '../CreatePurchaseModal';
-import PurchasesAnalytics from '../Analytics/PurchasesAnalytics';
-import PurchaseReturnsView from '../Returns/PurchaseReturnsView';
-import PurchaseQuotationsTab from '../quotations/PurchaseQuotationsTab';
-import SmartImportView, { type ExtractedItem } from '../../../smart-import/components/SmartImportView';
+import type { ExtractedItem } from '../../../smart-import/components/SmartImportView';
 import InvoiceSearchToolbar from '../../../../ui/common/InvoiceSearchToolbar';
 import type { DatePreset } from '@/core/types/invoiceSearch';
 import type { PurchaseTab } from './usePurchasePrefill';
+
+const CreatePurchaseModal = lazy(() => import('../CreatePurchaseModal'));
+const PurchasesAnalytics = lazy(() => import('../Analytics/PurchasesAnalytics'));
+const PurchaseReturnsView = lazy(() => import('../Returns/PurchaseReturnsView'));
+const PurchaseQuotationsTab = lazy(() => import('../quotations/PurchaseQuotationsTab'));
+const SmartImportView = lazy(() => import('../../../smart-import/components/SmartImportView'));
 
 type PurchaseRows = React.ComponentProps<typeof PurchasesTable>['data'];
 
@@ -79,14 +81,20 @@ export const PurchasePageContent: React.FC<PageContentProps> = ({
   switch (activeTab) {
     case 'create':
       return (
-        <CreatePurchaseModal
-          onSuccess={() => {
-            setActiveTab('list');
-          }}
-        />
+        <Suspense fallback={null}>
+          <CreatePurchaseModal
+            onSuccess={() => {
+              setActiveTab('list');
+            }}
+          />
+        </Suspense>
       );
     case 'smart_import':
-      return <SmartImportView mode="invoice" onConfirm={handleSmartImportConfirm} />;
+      return (
+        <Suspense fallback={null}>
+          <SmartImportView mode="invoice" onConfirm={handleSmartImportConfirm} />
+        </Suspense>
+      );
     case 'list':
       return (
         <div className="flex min-h-0 flex-1 flex-col space-y-3">
@@ -121,17 +129,27 @@ export const PurchasePageContent: React.FC<PageContentProps> = ({
       );
 
     case 'returns':
-      return <PurchaseReturnsView searchTerm={searchTerm} onViewDetails={setViewInvoiceId} />;
+      return (
+        <Suspense fallback={null}>
+          <PurchaseReturnsView searchTerm={searchTerm} onViewDetails={setViewInvoiceId} />
+        </Suspense>
+      );
     case 'quotations':
       return (
-        <PurchaseQuotationsTab
-          onConvertToPurchase={() => {
-            setActiveTab('create');
-          }}
-        />
+        <Suspense fallback={null}>
+          <PurchaseQuotationsTab
+            onConvertToPurchase={() => {
+              setActiveTab('create');
+            }}
+          />
+        </Suspense>
       );
     case 'analytics':
-      return <PurchasesAnalytics />;
+      return (
+        <Suspense fallback={null}>
+          <PurchasesAnalytics />
+        </Suspense>
+      );
     default:
       return null;
   }

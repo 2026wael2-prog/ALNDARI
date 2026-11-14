@@ -243,14 +243,14 @@ export const useDashboardData = (period: DashboardPeriod = 'today'): UseDashboar
               if (matchesBranch) {
                 showToast(`مبيعات جديدة بقيمة ${payload.new.total_amount} ر.س`, 'success');
               }
-              invalidateByPreset(queryClient, 'sale');
+              invalidateByPreset(queryClient, 'sale', { primaryOnlyRefetch: true });
             } else if (
               payload.new?.type === 'purchase' ||
               payload.new?.type === 'purchase_return'
             ) {
-              invalidateByPreset(queryClient, 'purchase');
+              invalidateByPreset(queryClient, 'purchase', { primaryOnlyRefetch: true });
             } else {
-              invalidateByPreset(queryClient, 'sale');
+              invalidateByPreset(queryClient, 'sale', { primaryOnlyRefetch: true });
             }
           }
         )
@@ -263,7 +263,7 @@ export const useDashboardData = (period: DashboardPeriod = 'today'): UseDashboar
             filter: `company_id=eq.${companyId}`,
           },
           () => {
-            invalidateByPreset(queryClient, 'expense');
+            invalidateByPreset(queryClient, 'expense', { primaryOnlyRefetch: true });
           }
         )
         .subscribe();
@@ -308,6 +308,7 @@ export const useDashboardData = (period: DashboardPeriod = 'today'): UseDashboar
       }
     },
     enabled: !!companyId,
+    placeholderData: prev => prev,
     staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes
     gcTime: 10 * 60 * 1000,
     retry: 1, // ⚡ Single retry — avoid long waits on persistent failures

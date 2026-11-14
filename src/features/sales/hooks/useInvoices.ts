@@ -78,6 +78,8 @@ export const useSalesStats = () => {
     queryFn: () => (companyId ? salesService.getStats(companyId, branchId) : Promise.resolve(null)),
     enabled: !!companyId,
     staleTime: 5 * 60 * 1000,
+    placeholderData: prev => prev,
+    refetchOnWindowFocus: false,
   });
 };
 

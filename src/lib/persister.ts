@@ -17,5 +17,5 @@ const idbStorage = {
 export const persister = createAsyncStoragePersister({
   storage: idbStorage,
   key: 'AL_ZAHRA_OFFLINE_CACHE',
-  throttleTime: 1000,
+  throttleTime: 3000,
 });

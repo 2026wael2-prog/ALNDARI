@@ -194,7 +194,7 @@ export const ReactQueryProvider: React.FC<ReactQueryProviderProps> = ({ children
   useSyncQueue(activeClient);
 
   // Skip persisting heavy paginated/analytical/report queries to IndexedDB so
-  // JSON.stringify on every 1s throttle tick does not freeze the main thread.
+  // JSON.stringify on every throttle tick does not freeze the main thread.
   const NON_PERSISTED_PREFIXES = new Set([
     'products_paginated',
     'product_search',
@@ -209,6 +209,11 @@ export const ReactQueryProvider: React.FC<ReactQueryProviderProps> = ({ children
     'profit_loss',
     'debt_report',
     'stock_movements',
+    'dashboard_raw_data',
+    'parties',
+    'invoices',
+    'purchases',
+    'bonds',
   ]);
 
   return (

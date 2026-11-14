@@ -1,15 +1,16 @@
 /* eslint-disable */
-import React, { useState, useMemo } from 'react';
+import React, { Suspense, lazy, useState, useMemo } from 'react';
 import { useProductsPaginated } from './hooks/useProductsPaginated';
 import { useProductMutations } from './hooks/useProducts';
 import { useInventoryView } from './hooks/useInventoryView';
 import { useProductImport } from './hooks/useProductImport';
 import type { Product } from './types';
-import ProductDetailModal from './components/ProductDetailModal';
 import ProductDetailPane from './components/ProductDetailPane';
-import AddProductModal from './components/AddProductModal';
-import SmartImportView from '../smart-import/components/SmartImportView';
 import MicroHeader from '../../ui/base/MicroHeader';
+
+const ProductDetailModal = lazy(() => import('./components/ProductDetailModal'));
+const AddProductModal = lazy(() => import('./components/AddProductModal'));
+const SmartImportView = lazy(() => import('../smart-import/components/SmartImportView'));
 import {
   Database,
   Plus,
@@ -224,7 +225,9 @@ const InventoryPage: React.FC = () => {
                   </button>
                 </div>
                 <div className="flex-1 overflow-auto">
-                  <SmartImportView mode="inventory" onConfirm={handleSmartImportConfirm} />
+                  <Suspense fallback={null}>
+                    <SmartImportView mode="inventory" onConfirm={handleSmartImportConfirm} />
+                  </Suspense>
                 </div>
               </div>
             ) : showSplitDetail ? (
@@ -325,45 +328,53 @@ const InventoryPage: React.FC = () => {
         </div>
 
         {/* Show modal on mobile/non-wide desktop, or when explicitly maximized */}
-        {selectedProduct && !isWideDesktop && (!isDesktop || isDetailsMaximized) && (
-          <ProductDetailModal
-            product={selectedProduct}
-            onClose={() => {
-              setSelectedProduct(null);
-              setIsDetailsMaximized(false);
-            }}
-            onEdit={handleEdit}
-          />
-        )}
+        <Suspense fallback={null}>
+          {selectedProduct && !isWideDesktop && (!isDesktop || isDetailsMaximized) && (
+            <ProductDetailModal
+              product={selectedProduct}
+              onClose={() => {
+                setSelectedProduct(null);
+                setIsDetailsMaximized(false);
+              }}
+              onEdit={handleEdit}
+            />
+          )}
 
-        <AddProductModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSubmit={async data => {
-            try {
-              await saveProduct(editingProduct?.id ? { data, id: editingProduct.id } : { data });
-              if (selectedProduct && editingProduct && selectedProduct.id === editingProduct.id) {
-                const updated: Product = {
-                  ...selectedProduct,
-                  ...data,
-                  name_ar: data.name,
-                  name: data.name,
-                  cost_price: Number(data.cost_price) || 0,
-                  sale_price: Number(data.selling_price) || 0,
-                  selling_price: Number(data.selling_price) || 0,
-                  purchase_price: Number(data.cost_price) || 0,
-                  min_stock_level: Number(data.min_stock_level) || 0,
-                } as unknown as Product;
-                setSelectedProduct(updated);
-              }
-              handleCloseModal();
-            } catch (err) {
-              logger.error('InventoryPage', 'Validation or API error:', err);
-            }
-          }}
-          isSubmitting={isSaving}
-          initialData={editingProduct}
-        />
+          {isModalOpen && (
+            <AddProductModal
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              onSubmit={async data => {
+                try {
+                  await saveProduct(editingProduct?.id ? { data, id: editingProduct.id } : { data });
+                  if (
+                    selectedProduct &&
+                    editingProduct &&
+                    selectedProduct.id === editingProduct.id
+                  ) {
+                    const updated: Product = {
+                      ...selectedProduct,
+                      ...data,
+                      name_ar: data.name,
+                      name: data.name,
+                      cost_price: Number(data.cost_price) || 0,
+                      sale_price: Number(data.selling_price) || 0,
+                      selling_price: Number(data.selling_price) || 0,
+                      purchase_price: Number(data.cost_price) || 0,
+                      min_stock_level: Number(data.min_stock_level) || 0,
+                    } as unknown as Product;
+                    setSelectedProduct(updated);
+                  }
+                  handleCloseModal();
+                } catch (err) {
+                  logger.error('InventoryPage', 'Validation or API error:', err);
+                }
+              }}
+              isSubmitting={isSaving}
+              initialData={editingProduct}
+            />
+          )}
+        </Suspense>
       </div>
     </FullscreenContainer>
   );

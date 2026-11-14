@@ -12,8 +12,10 @@ type PrefetchFn = () => Promise<unknown>;
 // Map each route path to its dynamic import
 // Must match the lazy() imports in routes.tsx exactly
 const ROUTE_PREFETCH_MAP: Record<string, PrefetchFn> = {
+  '/': () => import('../../features/dashboard/DashboardPage'),
   '/inventory': () => import('../../features/inventory/InventoryPage'),
   '/inventory/quick-audit': () => import('../../features/inventory/pages/QuickAuditPage'),
+  '/inventory/audit-session': () => import('../../features/inventory/pages/AuditSessionPage'),
   '/pos': () => import('../../features/pos/pages/POSPage'),
   '/sales': () => import('../../features/sales/pages/SalesPage'),
   '/accounting': () => import('../../features/accounting/AccountingPage'),
@@ -23,6 +25,7 @@ const ROUTE_PREFETCH_MAP: Record<string, PrefetchFn> = {
   '/bonds': () => import('../../features/bonds/BondsPage'),
   '/clients': () => import('../../features/parties/PartiesPage'),
   '/suppliers': () => import('../../features/parties/PartiesPage'),
+  '/employees': () => import('../../features/parties/PartiesPage'),
   '/reports': () => import('../../features/reports/ReportsPage'),
   '/debts': async () => {
     await Promise.all([
@@ -32,16 +35,25 @@ const ROUTE_PREFETCH_MAP: Record<string, PrefetchFn> = {
   },
   '/appearance': () => import('../../features/appearance/AppearancePage'),
   '/commissions': () => import('../../features/commissions/pages/CommissionDashboardPage'),
+  '/commissions/config': () =>
+    import('../../features/commissions/pages/CommissionConfigurationPage'),
+  '/commissions/assignments': () =>
+    import('../../features/commissions/pages/CommissionAssignmentsPage'),
+  '/commissions/periods': () => import('../../features/commissions/pages/CommissionPeriodsPage'),
+  '/commissions/reports': () => import('../../features/commissions/pages/CommissionReportsPage'),
   '/daily-reconciliation': () =>
     import('../../features/reconciliation/pages/DailyReconciliationPage'),
   '/vin': () => import('../../features/vin-intelligence/pages/VINPage'),
+  '/supplier-portal': () => import('../../features/supplier-portal/pages/SupplierPortalPage'),
+  '/customer-service': () => import('../../features/integrations/chatwoot/ChatwootWidgetPage'),
+  '/chat': () => import('../../features/chat'),
 };
 
 // Track which routes have already been prefetched to avoid duplicate fetches
 const prefetched = new Set<string>();
 
 /**
- * Prefetch a route's JS chunk immediately.
+ * Prefetch a route's JS chunk immediately when the user hovers/focuses a nav item.
  * Safe to call multiple times — deduplicates automatically.
  */
 export function prefetchRoute(path: string): void {
@@ -52,23 +64,10 @@ export function prefetchRoute(path: string): void {
 
   prefetched.add(path);
 
-  // Use requestIdleCallback to avoid competing with user interactions
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(
-      () => {
-        prefetchFn().catch(() => {
-          // If prefetch fails, remove from set so it can be retried
-          prefetched.delete(path);
-        });
-      },
-      { timeout: 2000 }
-    );
-  } else {
-    // Fallback for browsers without requestIdleCallback
-    setTimeout(() => {
-      prefetchFn().catch(() => prefetched.delete(path));
-    }, 100);
-  }
+  // ⚡ تنفيذ الجلب المسبق فوراً عند تمرير المؤشر (Hover/Focus) لضمان تحميل الـ Chunk قبل النقر الفعلي
+  prefetchFn().catch(() => {
+    prefetched.delete(path);
+  });
 }
 
 /**

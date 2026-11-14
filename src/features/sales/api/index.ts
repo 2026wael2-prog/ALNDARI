@@ -492,7 +492,7 @@ export const salesApi = {
     }
 
     // Run main query and previous period query concurrently in parallel
-    const [{ data: invRows, error: invErr }, { data: prevRows }] = await Promise.all([
+    const [{ data: rawInvRows, error: invErr }, { data: prevRows }] = await Promise.all([
       query,
       prevQueryPromise,
     ]);
@@ -501,6 +501,18 @@ export const salesApi = {
       logger.error('Sales', 'Error fetching sales analytics', invErr);
       return { data: null, error: invErr };
     }
+
+    const invRows = (rawInvRows ?? []) as unknown as Array<{
+      id: string;
+      type?: string | null;
+      total_amount?: number | string | null;
+      total_document_amount?: number | string | null;
+      exchange_rate?: number | string | null;
+      currency_code?: string | null;
+      payment_method?: string | null;
+      issue_date?: string | null;
+      party_id?: string | null;
+    }>;
 
     let totalSales = 0;
     let totalReturns = 0;
@@ -518,10 +530,9 @@ export const salesApi = {
     const byMethod = new Map<string, number>();
     const byCust = new Map<string, { customerName: string; totalAmount: number; invoiceCount: number }>();
 
-    for (const r of invRows || []) {
+    for (const r of invRows) {
       const amt = Number(r.total_amount) || 0;
       const docAmt = Number(r.total_document_amount) || 0;
-      const rate = Number(r.exchange_rate) || 1;
       const curr = (r.currency_code || 'SAR').toUpperCase();
       const method = r.payment_method || 'cash';
 

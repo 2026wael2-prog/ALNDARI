@@ -257,15 +257,12 @@ export const useAuthStore = create<AuthState>()(
                 }
 
                 const currentUser = get().user;
-                // ⚡ TOKEN_REFRESHED فقط هو ما يُتخطّى: إعادة جلب البروفايل كل ساعة بلا
-                // داعٍ. أما INITIAL_SESSION فيجب أن يُعيد التحقق من البروفايل دائماً —
-                // المستخدم المحفوظ (localStorage) قد يحمل company_id قديماً (شركة
-                // محذوفة / عضوية ملغاة) وإعادة جلب get_user_profile عند كل تحميل
-                // تطبيق تصحّحه بدلاً من إطلاق عاصفة 406 من استعلامات companies.
+                // ⚡ تخطّي TOKEN_REFRESHED و INITIAL_SESSION إذا تم التحقق من نفس المستخدم للتو
+                // خلال initialize() لمنع جلب البروفايل مرتين متتاليتين وإبطال الكاش الشامل عند الإقلاع.
                 if (
                   currentUser &&
                   currentUser.id === session.user.id &&
-                  event === 'TOKEN_REFRESHED'
+                  (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')
                 ) {
                   return;
                 }
@@ -287,14 +284,25 @@ export const useAuthStore = create<AuthState>()(
                     ) as Record<string, unknown>;
 
                     if (profile && typeof profile === 'object' && profile.id) {
+                      const nextUser = profile as unknown as AuthUser;
+                      const prevUser = get().user;
+                      const identityChanged =
+                        !prevUser ||
+                        prevUser.id !== nextUser.id ||
+                        prevUser.company_id !== nextUser.company_id ||
+                        prevUser.role !== nextUser.role ||
+                        prevUser.branch_id !== nextUser.branch_id;
+
                       set({
-                        user: profile as unknown as AuthUser,
+                        user: nextUser,
                         isAuthenticated: true,
                         isLoading: false,
                         isReady: true,
                       });
-                      // ⚡ Targeted invalidation (active-only) — see initialize().
-                      queryClient.invalidateQueries({ type: 'active' });
+                      // ⚡ لا نبطل الاستعلامات النشطة إلا إذا تغيرت هوية المستخدم أو الشركة أو الفرع
+                      if (identityChanged) {
+                        queryClient.invalidateQueries({ type: 'active' });
+                      }
                     }
                   } catch {
                     logger.warn('Auth', `Profile fetch after ${event} failed`);

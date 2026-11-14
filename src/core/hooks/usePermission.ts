@@ -10,7 +10,7 @@
  * const { canDelete, isLoading } = usePermission('sales:delete');
  * if (canDelete) { ... }
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuthStore } from '../../features/auth/store';
 import { logger } from '../utils/logger';
@@ -115,6 +115,7 @@ function legacyRoleHasPermission(role: string | undefined, permission: string): 
 
 export function usePermission(permission: string) {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['permission', permission, user?.id, user?.company_id, user?.role],
@@ -122,6 +123,18 @@ export function usePermission(permission: string) {
       if (!user?.id) return false;
       // Owner bypass — mirrors assertPermission and legacy permission logic
       if (user.role === 'owner') return true;
+
+      // ⚡ إذا كانت قائمة جميع الصلاحيات محمّلة مسبقاً في الكاش (عبر SidebarNav)، نستخدمها فوراً بدون طلب شبكة إضافي
+      const cachedAll = queryClient.getQueryData<string[]>([
+        'permissions',
+        'all',
+        user.id,
+        user.company_id,
+        user.role,
+      ]);
+      if (Array.isArray(cachedAll) && cachedAll.length > 0) {
+        return cachedAll.includes(permission);
+      }
 
       try {
         // Company-scoped check — see assertPermission for why.
@@ -153,8 +166,24 @@ export function usePermission(permission: string) {
         return offlineHasPermission(user.role, permission);
       }
     },
+    placeholderData: () => {
+      if (!user?.id) return false;
+      if (user.role === 'owner') return true;
+      const cachedAll = queryClient.getQueryData<string[]>([
+        'permissions',
+        'all',
+        user.id,
+        user.company_id,
+        user.role,
+      ]);
+      if (Array.isArray(cachedAll) && cachedAll.length > 0) {
+        return cachedAll.includes(permission);
+      }
+      return offlineHasPermission(user.role, permission);
+    },
     enabled: !!user?.id,
     staleTime: PERMISSION_STALE_TIME,
+    refetchOnWindowFocus: false,
   });
 
   return {
@@ -205,8 +234,14 @@ export function useAllPermissions() {
         return OFFLINE_ROLE_PERMISSIONS[normalized] || [];
       }
     },
+    placeholderData: () => {
+      if (!user?.id) return [];
+      const normalized = (user.role?.toLowerCase() === 'owner' ? 'admin' : user.role) as Role;
+      return OFFLINE_ROLE_PERMISSIONS[normalized] || [];
+    },
     enabled: !!user?.id,
     staleTime: PERMISSION_STALE_TIME,
+    refetchOnWindowFocus: false,
   });
 
   return {

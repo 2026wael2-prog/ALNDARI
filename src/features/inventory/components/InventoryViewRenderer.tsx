@@ -1,14 +1,15 @@
-import React from 'react';
-import TransfersView from './TransfersView';
-import StockAuditView from './StockAuditView';
-import WarehousesView from './WarehousesView';
-import AuditLogView from './AuditLogView';
-import CategoriesManagementView from './CategoriesManagementView';
-import CoreProductsView from './CoreProductsView';
+import React, { Suspense, lazy } from 'react';
 import ProductExcelGrid from './ProductExcelGrid';
 import ProductMicroCard from './ProductMicroCard';
 import ProductDetailPane from './ProductDetailPane';
 import type { Product } from '../types';
+
+const TransfersView = lazy(() => import('./TransfersView'));
+const StockAuditView = lazy(() => import('./StockAuditView'));
+const WarehousesView = lazy(() => import('./WarehousesView'));
+const AuditLogView = lazy(() => import('./AuditLogView'));
+const CategoriesManagementView = lazy(() => import('./CategoriesManagementView'));
+const CoreProductsView = lazy(() => import('./CoreProductsView'));
 
 interface InventoryViewRendererProps {
   activeView: string;
@@ -43,36 +44,56 @@ const InventoryViewRenderer: React.FC<InventoryViewRendererProps> = ({
 }) => {
   switch (activeView) {
     case 'transfers':
-      return <TransfersView />;
+      return (
+        <Suspense fallback={null}>
+          <TransfersView />
+        </Suspense>
+      );
     case 'audit':
-      return <StockAuditView />;
+      return (
+        <Suspense fallback={null}>
+          <StockAuditView />
+        </Suspense>
+      );
     case 'warehouses':
-      return <WarehousesView />;
+      return (
+        <Suspense fallback={null}>
+          <WarehousesView />
+        </Suspense>
+      );
 
     case 'history':
-      return <AuditLogView />;
+      return (
+        <Suspense fallback={null}>
+          <AuditLogView />
+        </Suspense>
+      );
     case 'categories':
       return (
-        <CategoriesManagementView
-          onFilterProduct={catName => {
-            setActiveView('products');
-            setSearchTerm(catName);
-          }}
-        />
+        <Suspense fallback={null}>
+          <CategoriesManagementView
+            onFilterProduct={catName => {
+              setActiveView('products');
+              setSearchTerm(catName);
+            }}
+          />
+        </Suspense>
       );
 
     case 'core_products':
       return (
-        <CoreProductsView
-          isDesktop={isDesktop}
-          selectedProduct={selectedProduct}
-          setSelectedProduct={setSelectedProduct}
-          handleEdit={handleEdit}
-          deleteProduct={deleteProduct}
-          onMaximizeProduct={onMaximizeProduct}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-        />
+        <Suspense fallback={null}>
+          <CoreProductsView
+            isDesktop={isDesktop}
+            selectedProduct={selectedProduct}
+            setSelectedProduct={setSelectedProduct}
+            handleEdit={handleEdit}
+            deleteProduct={deleteProduct}
+            onMaximizeProduct={onMaximizeProduct}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
+        </Suspense>
       );
 
     default: // Products View

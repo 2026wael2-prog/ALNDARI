@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Receipt, Plus, BarChart3, FileText } from 'lucide-react';
 
-import CreateExpenseModal from '../components/CreateExpenseModal';
 import { useExpensesData, useExpenseActions, useExpenseCategories } from '../hooks';
 import MicroHeader from '../../../ui/base/MicroHeader';
 import Button from '../../../ui/base/Button';
-import ExpensesAnalyticsView from './ExpensesAnalyticsView';
 import ExpensesListView from './ExpensesListView';
-import ExpenseLedgerView from '../components/ExpenseLedgerView';
 import { useAIPrefillStore } from '../../ai/store';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
+
+const CreateExpenseModal = lazy(() => import('../components/CreateExpenseModal'));
+const ExpensesAnalyticsView = lazy(() => import('./ExpensesAnalyticsView'));
+const ExpenseLedgerView = lazy(() => import('../components/ExpenseLedgerView'));
 
 type PeriodType = 'today' | 'week' | 'month' | 'quarter' | 'year';
 type ViewType = 'list' | 'analytics' | 'ledger';
@@ -141,12 +142,14 @@ const ExpensesPage: React.FC = () => {
 
       <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-28 pt-4">
         {viewType === 'ledger' && (
-          <ExpenseLedgerView
-            initialAccountId={selectedLedgerAccountId}
-            onBackToList={() => {
-              setViewType('list');
-            }}
-          />
+          <Suspense fallback={null}>
+            <ExpenseLedgerView
+              initialAccountId={selectedLedgerAccountId}
+              onBackToList={() => {
+                setViewType('list');
+              }}
+            />
+          </Suspense>
         )}
 
         {viewType === 'analytics' && (
@@ -176,7 +179,9 @@ const ExpensesPage: React.FC = () => {
               </div>
             </div>
 
-            <ExpensesAnalyticsView expenses={expenses || []} period={period} />
+            <Suspense fallback={null}>
+              <ExpensesAnalyticsView expenses={expenses || []} period={period} />
+            </Suspense>
           </div>
         )}
 
@@ -191,20 +196,24 @@ const ExpensesPage: React.FC = () => {
         )}
       </div>
 
-      <CreateExpenseModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-        }}
-        onSubmit={data => {
-          createExpense(data, {
-            onSuccess: () => {
+      <Suspense fallback={null}>
+        {isModalOpen && (
+          <CreateExpenseModal
+            isOpen={isModalOpen}
+            onClose={() => {
               setIsModalOpen(false);
-            },
-          });
-        }}
-        isSubmitting={isCreating}
-      />
+            }}
+            onSubmit={data => {
+              createExpense(data, {
+                onSuccess: () => {
+                  setIsModalOpen(false);
+                },
+              });
+            }}
+            isSubmitting={isCreating}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

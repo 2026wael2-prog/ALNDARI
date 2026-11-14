@@ -1,5 +1,5 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-misused-promises */
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Users, UserPlus, FileText, LayoutGrid, BarChart3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,12 +7,6 @@ import { useParties, usePartyMutations, usePartiesView } from './hooks';
 import type { Party, PartyView, PartyType, PartyFormData } from './types';
 import { useAIPrefillStore } from '../ai/store';
 import MicroHeader from '../../ui/base/MicroHeader';
-import PartyModal from './components/PartyModal';
-import StatementView from './components/StatementView';
-import CategoriesView from './components/CategoriesView';
-import PartyAnalyticsView from './components/PartyAnalyticsView';
-import CustomerTimelineModal from './components/customers/CustomerTimelineModal';
-import SupplierPortalShareModal from './components/SupplierPortalShareModal';
 import PartyTypeSwitcher from './components/PartyTypeSwitcher';
 import PartiesListView from './components/PartiesListView';
 import { usePartiesColumns } from './hooks/usePartiesColumns';
@@ -21,6 +15,13 @@ import { cn } from '../../core/utils';
 import { ROUTES } from '../../core/routes/paths';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import FullscreenContainer from '../../ui/base/FullscreenContainer';
+
+const PartyModal = lazy(() => import('./components/PartyModal'));
+const StatementView = lazy(() => import('./components/StatementView'));
+const CategoriesView = lazy(() => import('./components/CategoriesView'));
+const PartyAnalyticsView = lazy(() => import('./components/PartyAnalyticsView'));
+const CustomerTimelineModal = lazy(() => import('./components/customers/CustomerTimelineModal'));
+const SupplierPortalShareModal = lazy(() => import('./components/SupplierPortalShareModal'));
 
 interface PartiesPageProps {
   partyType: PartyType;
@@ -144,21 +145,31 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
           />
         );
       case 'statements':
-        return <StatementView partyType={partyType} initialPartyId={selectedPartyForStatementId} />;
+        return (
+          <Suspense fallback={null}>
+            <StatementView partyType={partyType} initialPartyId={selectedPartyForStatementId} />
+          </Suspense>
+        );
       case 'analytics':
         return (
-          <PartyAnalyticsView
-            partyType={partyType}
-            parties={parties}
-            isLoading={isLoading}
-            onViewStatement={party => {
-              setSelectedPartyForStatementId(party.id);
-              setActiveView('statements');
-            }}
-          />
+          <Suspense fallback={null}>
+            <PartyAnalyticsView
+              partyType={partyType}
+              parties={parties}
+              isLoading={isLoading}
+              onViewStatement={party => {
+                setSelectedPartyForStatementId(party.id);
+                setActiveView('statements');
+              }}
+            />
+          </Suspense>
         );
       case 'categories':
-        return <CategoriesView partyType={partyType} />;
+        return (
+          <Suspense fallback={null}>
+            <CategoriesView partyType={partyType} />
+          </Suspense>
+        );
     }
   };
 
@@ -235,49 +246,57 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
           </div>
         </div>
 
-        <PartyModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSubmit={data => {
-            const payload: { data: PartyFormData; id?: string } = { data };
-            if (editingParty?.id) {
-              payload.id = editingParty.id;
-            }
-            saveParty(payload, {
-              onSuccess: () => {
-                handleCloseModal();
-                setPrefillData(null);
-              },
-            });
-          }}
-          isSubmitting={isSaving}
-          initialData={editingParty}
-          prefillData={prefillData}
-          partyType={partyType}
-        />
+        <Suspense fallback={null}>
+          {isModalOpen && (
+            <PartyModal
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              onSubmit={data => {
+                const payload: { data: PartyFormData; id?: string } = { data };
+                if (editingParty?.id) {
+                  payload.id = editingParty.id;
+                }
+                saveParty(payload, {
+                  onSuccess: () => {
+                    handleCloseModal();
+                    setPrefillData(null);
+                  },
+                });
+              }}
+              isSubmitting={isSaving}
+              initialData={editingParty}
+              prefillData={prefillData}
+              partyType={partyType}
+            />
+          )}
 
-        {/* Customer Timeline Modal */}
-        <CustomerTimelineModal
-          isOpen={isTimelineOpen}
-          onClose={() => {
-            setIsTimelineOpen(false);
-            setSelectedCustomer(null);
-          }}
-          customer={selectedCustomer}
-        />
+          {/* Customer Timeline Modal */}
+          {isTimelineOpen && (
+            <CustomerTimelineModal
+              isOpen={isTimelineOpen}
+              onClose={() => {
+                setIsTimelineOpen(false);
+                setSelectedCustomer(null);
+              }}
+              customer={selectedCustomer}
+            />
+          )}
 
-        {/* Supplier Portal Share Modal */}
-        <SupplierPortalShareModal
-          isOpen={isPortalModalOpen}
-          onClose={() => {
-            setIsPortalModalOpen(false);
-            setSelectedSupplierForPortal(null);
-          }}
-          party={selectedSupplierForPortal}
-          onTokenUpdated={updated => {
-            setSelectedSupplierForPortal(updated);
-          }}
-        />
+          {/* Supplier Portal Share Modal */}
+          {isPortalModalOpen && (
+            <SupplierPortalShareModal
+              isOpen={isPortalModalOpen}
+              onClose={() => {
+                setIsPortalModalOpen(false);
+                setSelectedSupplierForPortal(null);
+              }}
+              party={selectedSupplierForPortal}
+              onTokenUpdated={updated => {
+                setSelectedSupplierForPortal(updated);
+              }}
+            />
+          )}
+        </Suspense>
       </div>
     </FullscreenContainer>
   );

@@ -1,5 +1,5 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/explicit-function-return-type, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/no-explicit-any */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -16,10 +16,7 @@ import { useBonds, useBondMutation, useBondsAnalytics } from './hooks';
 import type { Bond, BondType } from './types';
 import MicroHeader from '../../ui/base/MicroHeader';
 import Button from '../../ui/base/Button';
-import CreateBondModal from './components/CreateBondModal';
 import BondsList from './components/BondsList';
-import BondsAnalyticsView from './components/BondsAnalyticsView';
-import BondVoucherModal from './components/BondVoucherModal';
 import { BondsQuickKpiBar } from './components/BondsQuickKpiBar';
 import { BondsToolbar } from './components/BondsToolbar';
 import { useBondsFilter } from './hooks/useBondsFilter';
@@ -27,6 +24,10 @@ import { useBondsTotals } from './hooks/useBondsTotals';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import { useAIPrefillStore } from '../ai/store';
 import { cn } from '../../core/utils';
+
+const CreateBondModal = lazy(() => import('./components/CreateBondModal'));
+const BondsAnalyticsView = lazy(() => import('./components/BondsAnalyticsView'));
+const BondVoucherModal = lazy(() => import('./components/BondVoucherModal'));
 
 type ViewType = 'list' | 'analytics';
 
@@ -43,7 +44,6 @@ const BondsPage: React.FC = () => {
   const { t } = useTranslation();
 
   const { data: bonds, isLoading } = useBonds(activeTab);
-  const { data: allBondsData } = useBonds();
   const { mutate: createBond, isPending: isCreating } = useBondMutation();
   const { data: serverAnalytics } = useBondsAnalytics();
 
@@ -70,8 +70,8 @@ const BondsPage: React.FC = () => {
     handleResetFilters,
   } = useBondsFilter(bonds);
 
-  // Totals & KPI metrics
-  const { totals, analytics } = useBondsTotals(serverAnalytics, allBondsData);
+  // Totals & KPI metrics (serverAnalytics via get_bonds_stats RPC is authoritative; bonds is fallback)
+  const { totals, analytics } = useBondsTotals(serverAnalytics, bonds);
 
   // AI Prefill: consume pending bond intent
   const consumePrefill = useAIPrefillStore((s: any) => s.consumePrefill);
@@ -121,11 +121,13 @@ const BondsPage: React.FC = () => {
   // Analytics View
   if (viewType === 'analytics') {
     return (
-      <BondsAnalyticsView
-        onSwitchToList={() => {
-          setViewType('list');
-        }}
-      />
+      <Suspense fallback={null}>
+        <BondsAnalyticsView
+          onSwitchToList={() => {
+            setViewType('list');
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -318,25 +320,31 @@ const BondsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Fullscreen Create / Edit Bond Modal */}
-      <CreateBondModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        type={modalType}
-        onSubmit={data => {
-          createBond(data, {
-            onSuccess: () => setIsModalOpen(false),
-          });
-        }}
-        isSubmitting={isCreating}
-      />
+      <Suspense fallback={null}>
+        {/* Fullscreen Create / Edit Bond Modal */}
+        {isModalOpen && (
+          <CreateBondModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            type={modalType}
+            onSubmit={data => {
+              createBond(data, {
+                onSuccess: () => setIsModalOpen(false),
+              });
+            }}
+            isSubmitting={isCreating}
+          />
+        )}
 
-      {/* Official Voucher Preview & Print Modal */}
-      <BondVoucherModal
-        isOpen={!!previewBond}
-        onClose={() => setPreviewBond(null)}
-        bond={previewBond}
-      />
+        {/* Official Voucher Preview & Print Modal */}
+        {previewBond && (
+          <BondVoucherModal
+            isOpen={!!previewBond}
+            onClose={() => setPreviewBond(null)}
+            bond={previewBond}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

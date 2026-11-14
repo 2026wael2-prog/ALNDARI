@@ -29,8 +29,16 @@ export const useParties = (type: PartyType, searchTerm = '') => {
       return data;
     },
     enabled: !!companyId,
-    initialData: () => (companyId ? partyCache.get(companyId, type, branchId) : []),
+    // ⚡ استخدام placeholderData مع إرجاع undefined عند خلو الكاش بدلاً من initialData: []
+    // لأن initialData: [] مع staleTime تجعل React Query يظن أن المصفوفة الفارغة بيانات حديثة لمدة 5 دقائق فلا يجلب من الخادم!
+    placeholderData: prev => {
+      if (prev && prev.length > 0) return prev;
+      if (!companyId) return undefined;
+      const cached = partyCache.get(companyId, type, branchId);
+      return cached.length > 0 ? cached : undefined;
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const filteredData = useMemo(() => {

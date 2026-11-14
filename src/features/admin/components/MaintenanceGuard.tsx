@@ -22,9 +22,10 @@ const useMaintenanceMode = (): UseQueryResult<MaintenanceModeConfig> => {
   return useQuery({
     queryKey: ['platform_maintenance_mode'],
     queryFn: () => adminService.getMaintenanceConfig(),
-    staleTime: 30_000, // 30 ثانية — فحص سريع ومتكرر
-    gcTime: 60_000,
-    refetchInterval: 60_000, // إعادة فحص كل دقيقة
+    staleTime: 5 * 60_000, // 5 دقائق — تقليل الضغط على الشبكة أثناء الإقلاع والتنقل
+    gcTime: 10 * 60_000,
+    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -107,17 +108,24 @@ const MaintenanceScreen: React.FC<MaintenanceScreenProps> = ({ config }) => {
 
 export const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
   const { isAuthenticated, isReady } = useAuth();
-  const { data: maintenanceConfig, isLoading: isMaintenanceLoading } = useMaintenanceMode();
-  const { data: isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin();
+  const { data: maintenanceConfig } = useMaintenanceMode();
+  const isMaintenanceActive = maintenanceConfig?.enabled === true;
+  const { data: isSuperAdmin, isLoading: isSuperAdminLoading } = useIsSuperAdmin(isMaintenanceActive);
 
-  // لا نحجب شيئاً حتى تكتمل عملية الجلب وفحص صلاحيات السوبر أدمن
-  if (!isReady || isMaintenanceLoading || (isAuthenticated && isSuperAdminLoading)) {
-    return null; // AuthGuard سيعرض الـ PageLoader بدلاً من ذلك
+  // ⚡ Fail-open: لا نحجب رندر الواجهة أثناء التحقق من وضع الصيانة في الخلفية
+  // لتجنب تأخير فتح التطبيق بانتظار طلبي شبكة متتاليين.
+  if (!isReady) {
+    return null;
   }
 
-  // إذا لم يكن وضع الصيانة مفعلاً، اسمح بالمرور
-  if (maintenanceConfig?.enabled !== true) {
+  // إذا لم يكن وضع الصيانة مفعلاً، اسمح بالمرور فوراً
+  if (!isMaintenanceActive) {
     return <>{children}</>;
+  }
+
+  // أثناء تفعيل الصيانة فقط: انتظر التحقق من صلاحية السوبر أدمن
+  if (isAuthenticated && isSuperAdminLoading) {
+    return null;
   }
 
   // إذا كان المستخدم سوبر أدمن، اسمح له بالدخول حتى في وضع الصيانة

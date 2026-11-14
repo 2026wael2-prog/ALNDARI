@@ -8,6 +8,7 @@ import { logger } from '../../../core/utils/logger';
 import type { Party, PartyType } from '../types';
 
 const CACHE_KEY_PREFIX = 'alzahra_party_cache_';
+const memoryCache = new Map<string, { data: Party[]; timestamp: number }>();
 
 export const partyCache = {
   /**
@@ -17,6 +18,16 @@ export const partyCache = {
     try {
       const branchKey = branchId ?? 'all';
       const key = `${CACHE_KEY_PREFIX}${companyId}_${branchKey}_${type}`;
+
+      // ⚡ فحص الذاكرة أولاً لتجنب JSON.parse المتزامن على الـ Main Thread عند كل تبديل تبويب
+      const memEntry = memoryCache.get(key);
+      if (memEntry) {
+        if (Date.now() - memEntry.timestamp <= 3600000) {
+          return memEntry.data;
+        }
+        memoryCache.delete(key);
+      }
+
       const stored = localStorage.getItem(key);
       if (!stored) return [];
 
@@ -36,7 +47,9 @@ export const partyCache = {
         return [];
       }
 
-      return data as Party[];
+      const typedData = data as Party[];
+      memoryCache.set(key, { data: typedData, timestamp });
+      return typedData;
     } catch (e) {
       logger.error('party-cache', 'Failed to read party cache:', e);
       return [];
@@ -47,39 +60,39 @@ export const partyCache = {
    * Set cached parties
    */
   set: (companyId: string, type: PartyType, data: Party[], branchId?: string | null) => {
-    try {
-      const branchKey = branchId ?? 'all';
-      const key = `${CACHE_KEY_PREFIX}${companyId}_${branchKey}_${type}`;
+    const branchKey = branchId ?? 'all';
+    const key = `${CACHE_KEY_PREFIX}${companyId}_${branchKey}_${type}`;
+    const timestamp = Date.now();
+    memoryCache.set(key, { data, timestamp });
+
+    // ⚡ تأجيل الكتابة المتزامنة في localStorage (JSON.stringify لآلاف السجلات) إلى وقت خمول المتصفح
+    const persistToStorage = () => {
       try {
-        localStorage.setItem(
-          key,
-          JSON.stringify({
-            data,
-            timestamp: Date.now(),
-          })
-        );
-      } catch (quotaError) {
-        // Storage quota exceeded: clear older party caches and retry once
-        partyCache.clearAll();
+        const serialized = JSON.stringify({ data, timestamp });
         try {
-          localStorage.setItem(
-            key,
-            JSON.stringify({
-              data,
-              timestamp: Date.now(),
-            })
-          );
+          localStorage.setItem(key, serialized);
         } catch {
-          // If payload is still too large for localStorage, degrade gracefully
-          logger.warn(
-            'party-cache',
-            'Party cache payload exceeded storage quota, skipped caching for',
-            key
-          );
+          partyCache.clearAll();
+          memoryCache.set(key, { data, timestamp });
+          try {
+            localStorage.setItem(key, serialized);
+          } catch {
+            logger.warn(
+              'party-cache',
+              'Party cache payload exceeded storage quota, skipped caching for',
+              key
+            );
+          }
         }
+      } catch (e) {
+        logger.warn('party-cache', 'Failed to update party cache:', e);
       }
-    } catch (e) {
-      logger.warn('party-cache', 'Failed to update party cache:', e);
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(persistToStorage, { timeout: 2000 });
+    } else {
+      setTimeout(persistToStorage, 0);
     }
   },
 
@@ -90,6 +103,7 @@ export const partyCache = {
     try {
       const branchKey = branchId ?? 'all';
       const key = `${CACHE_KEY_PREFIX}${companyId}_${branchKey}_${type}`;
+      memoryCache.delete(key);
       localStorage.removeItem(key);
     } catch (e) {
       logger.error('party-cache', 'Failed to clear party cache:', e);
@@ -101,6 +115,7 @@ export const partyCache = {
    */
   clearAll: () => {
     try {
+      memoryCache.clear();
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);

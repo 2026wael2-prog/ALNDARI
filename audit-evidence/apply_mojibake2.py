@@ -3,7 +3,7 @@ import json
 import re
 import os
 
-ACCESS_TOKEN = ""
+ACCESS_TOKEN = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
 BASE_URL = "https://api.supabase.com/v1/projects/dagfjncoullstrhbjssr/database/query"
 
 def run_sql(sql):

@@ -175,8 +175,15 @@ const StatsGrid: React.FC<{
     );
   }
   const rows = buildStatRows(analytics ?? ({} as DebtAnalytics), baseCurrency);
-  const sarEntry = analytics?.by_currency?.find(c => c.currency.toUpperCase() === 'SAR');
-  const yerEntry = analytics?.by_currency?.find(c => c.currency.toUpperCase() === 'YER');
+  const byCurrList = (analytics as unknown as { by_currency?: Array<{ currency?: string; currency_code?: string; balance?: number; count?: number }> })?.by_currency ?? [];
+  const sarEntry = byCurrList.find(c => {
+    const code = c.currency ?? c.currency_code ?? '';
+    return typeof code === 'string' && code.toUpperCase() === 'SAR';
+  });
+  const yerEntry = byCurrList.find(c => {
+    const code = c.currency ?? c.currency_code ?? '';
+    return typeof code === 'string' && code.toUpperCase() === 'YER';
+  });
   const amountSAR = sarEntry
     ? asNumber(sarEntry.balance)
     : baseCurrency === 'SAR'
@@ -248,19 +255,22 @@ const CurrencyBreakdown: React.FC<{ byCurrency: DebtAnalytics['by_currency'] }> 
         التوزيع حسب العملة
       </h3>
       <div className="flex flex-wrap gap-3 max-md:gap-1.5">
-        {list.map(c => (
-          <div
-            key={c.currency}
-            className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-4 py-3 max-md:px-2.5 max-md:py-2"
-          >
-            <span className="block text-[10px] font-bold text-[var(--app-text-secondary)]">
-              {c.currency}
-            </span>
-            <span className="block font-mono text-lg font-bold text-blue-600 max-md:text-base">
-              {formatCurrency(asNumber(c.balance), c.currency)}
-            </span>
-          </div>
-        ))}
+        {list.map((c, idx) => {
+          const code = (c as unknown as { currency?: string; currency_code?: string }).currency ?? (c as unknown as { currency_code?: string }).currency_code ?? '---';
+          return (
+            <div
+              key={`${code}-${idx}`}
+              className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-4 py-3 max-md:px-2.5 max-md:py-2"
+            >
+              <span className="block text-[10px] font-bold text-[var(--app-text-secondary)]">
+                {code}
+              </span>
+              <span className="block font-mono text-lg font-bold text-blue-600 max-md:text-base">
+                {formatCurrency(asNumber(c.balance), code)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

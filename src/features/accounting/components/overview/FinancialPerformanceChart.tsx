@@ -19,7 +19,11 @@ import { cn, formatCurrency } from '@/core/utils';
 import { useBranchFilter } from '../../../branches/hooks/useBranchFilter';
 import { logger } from '../../../../core/utils/logger';
 
-const FinancialPerformanceChart: React.FC = () => {
+interface FinancialPerformanceChartProps {
+  year?: number;
+}
+
+const FinancialPerformanceChart: React.FC<FinancialPerformanceChartProps> = ({ year }) => {
   const { theme } = useThemeStore();
   const { user } = useAuthStore();
   const { branchId } = useBranchFilter();
@@ -27,13 +31,13 @@ const FinancialPerformanceChart: React.FC = () => {
 
   const { containerRef, isMounted } = useContainerReady();
 
-  const currentYear = new Date().getFullYear();
+  const selectedYear = year || new Date().getFullYear();
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['monthly_performance', user?.company_id, branchId, currentYear],
+    queryKey: ['monthly_performance', user?.company_id, branchId, selectedYear],
     queryFn: () =>
       user?.company_id
-        ? reportService.getMonthlyPerformance(user.company_id, currentYear, branchId)
+        ? reportService.getMonthlyPerformance(user.company_id, selectedYear, branchId)
         : Promise.resolve([]),
     enabled: !!user?.company_id,
     staleTime: 5 * 60 * 1000, // 5 min

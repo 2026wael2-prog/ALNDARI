@@ -24,64 +24,85 @@ const KeyAccountBalances: React.FC = () => {
     );
   }
 
-  /**
-   * إيجاد الحساب الأب لمجموعة "أرصدة رئيسية" بشكل مرن:
-   * 1) مطابقة دقيقة بالكود (مخطط حسابات افتراضي)،
-   * 2) ثم مطابقة بادئة الكود (مثال: كل حسابات 10xx تعتبر أصولاً متفرعة عن الصناديق/البنوك)،
-   * 3) ثم مطابقة النوع المحاسبي + كلمة مفتاحية من الاسم لخطط الحسابات المختلفة.
-   * يعيد null عندما لا يوجد حساب مطابق — ويُعرض "—" بدل صفر مضلل.
-   */
-  const findRootAccount = (ka: { code: string; label: string }): Account | null => {
-    if (!accounts || accounts.length === 0) return null;
+  const computeCategorySummary = (
+    key: 'cashbox' | 'bank' | 'receivable' | 'payable'
+  ): { hasAccount: boolean; totalBalance: number } => {
+    if (!accounts || accounts.length === 0) return { hasAccount: false, totalBalance: 0 };
 
-    const exact = accounts.find(a => a.code === ka.code);
-    if (exact) return exact;
+    const hasAnyKeyword = (text: string, keywords: string[]) =>
+      keywords.some(k => text.includes(k));
 
-    const prefix = ka.code.slice(0, 2);
-    const byPrefix = accounts.find(
-      a => a.code.startsWith(prefix) && (a.parent_id === null || a.parent_id === undefined)
-    );
-    if (byPrefix) return byPrefix;
+    const isBankAccount = (a: Account): boolean => {
+      if (a.type !== 'asset') return false;
+      const code = a.code.trim().toUpperCase();
+      const nameLower = `${a.name || ''} ${a.name_ar || ''}`.toLowerCase();
+      return (
+        code.startsWith('102') ||
+        code.startsWith('103') ||
+        hasAnyKeyword(nameLower, ['بنك', 'مصرف', 'الكريمي', 'bank'])
+      );
+    };
 
-    const keywords =
-      {
-        الصناديق: ['صندوق', 'نقد', 'cash'],
-        البنوك: ['بنك', 'bank'],
-        'ذمم العملاء': ['عميل', 'ذمم', 'customer', 'receivable'],
-        'ذمم الموردين': ['مورد', 'ذمم', 'supplier', 'payable'],
-      }[ka.label] || [];
+    const isReceivableAccount = (a: Account): boolean => {
+      if (a.type !== 'asset') return false;
+      const code = a.code.trim().toUpperCase();
+      const nameLower = `${a.name || ''} ${a.name_ar || ''}`.toLowerCase();
+      return (
+        code.startsWith('1100') ||
+        code.startsWith('121') ||
+        code.startsWith('MZ-121') ||
+        hasAnyKeyword(nameLower, ['عملاء', 'عميل', 'مدينون', 'ذمم مدين', 'customer', 'receivable'])
+      );
+    };
 
-    const byType = accounts.find(a => {
-      if (!a.name && !a.name_ar) return false;
-      const haystack = `${a.name || ''} ${a.name_ar || ''}`.toLowerCase();
-      return keywords.some(k => haystack.includes(k.toLowerCase()));
+    const matched = accounts.filter(a => {
+      const code = a.code.trim().toUpperCase();
+      const nameLower = `${a.name || ''} ${a.name_ar || ''}`.toLowerCase();
+
+      switch (key) {
+        case 'cashbox':
+          return (
+            a.type === 'asset' &&
+            !isBankAccount(a) &&
+            !isReceivableAccount(a) &&
+            (code.startsWith('101') ||
+              code.startsWith('111') ||
+              code.startsWith('MZ-13') ||
+              code.startsWith('MZ-14') ||
+              hasAnyKeyword(nameLower, ['صندوق', 'خزنة', 'خزينة', 'نقد', 'cash']))
+          );
+        case 'bank':
+          return isBankAccount(a);
+        case 'receivable':
+          return isReceivableAccount(a);
+        case 'payable':
+          return (
+            a.type === 'liability' &&
+            (code.startsWith('2100') ||
+              code.startsWith('231') ||
+              code.startsWith('MZ-231') ||
+              code.startsWith('221') ||
+              code.startsWith('MZ-221') ||
+              hasAnyKeyword(nameLower, ['مورد', 'دائنون', 'ذمم دائن', 'supplier', 'payable']))
+          );
+      }
     });
-    return byType || null;
+
+    if (matched.length === 0) return { hasAccount: false, totalBalance: 0 };
+
+    const parentIds = new Set(accounts.map(a => a.parent_id).filter(Boolean));
+    const leafMatches = matched.filter(a => !parentIds.has(a.id));
+    const targetAccounts = leafMatches.length > 0 ? leafMatches : matched;
+
+    const totalBalance = targetAccounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+    return { hasAccount: true, totalBalance };
   };
 
-  /** حساب الرصيد المجمّع (الحساب الأب + فروعه المباشرة والشجرية) - الأرصدة في الخدمة محسوبة سلفاً بالعملة الأساسية (SAR). */
-  const computeBalance = (root: Account): number => {
-    if (!accounts || accounts.length === 0) return root.balance || 0;
-
-    const prefix = root.code.replace(/[^0-9]/g, '');
-    const matchedAccountIds = new Set<string>([root.id]);
-
-    for (const a of accounts) {
-      if (a.id === root.id) continue;
-      if (a.parent_id === root.id) {
-        matchedAccountIds.add(a.id);
-        continue;
-      }
-      // Also match by code prefix (e.g. 101001, 1010-01 under 1010)
-      const aCodeClean = a.code.replace(/[^0-9]/g, '');
-      if (prefix.length >= 3 && aCodeClean.startsWith(prefix)) {
-        matchedAccountIds.add(a.id);
-      }
-    }
-
-    return accounts
-      .filter(a => matchedAccountIds.has(a.id))
-      .reduce((sum, a) => sum + (a.balance || 0), 0);
+  const categoryByCode: Record<string, 'cashbox' | 'bank' | 'receivable' | 'payable'> = {
+    '1010': 'cashbox',
+    '1020': 'bank',
+    '1100': 'receivable',
+    '2100': 'payable',
   };
 
   return (
@@ -91,9 +112,8 @@ const KeyAccountBalances: React.FC = () => {
       </h3>
       <div className="space-y-1">
         {keyAccounts.map(ka => {
-          const root = findRootAccount(ka);
-          const hasAccount = root !== null;
-          const totalBalance = hasAccount ? computeBalance(root) : null;
+          const summary = computeCategorySummary(categoryByCode[ka.code] ?? 'cashbox');
+          const { hasAccount, totalBalance } = summary;
           return (
             <div
               key={ka.code}

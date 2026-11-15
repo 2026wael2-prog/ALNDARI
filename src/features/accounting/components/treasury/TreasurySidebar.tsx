@@ -1,5 +1,11 @@
 import React, { useMemo, useState, Fragment } from 'react';
-import { useAccounts, useAccountMutations } from '../../hooks/index';
+import {
+  useAccounts,
+  useAccountMutations,
+  useCashboxes,
+  useExchangeCompanies,
+} from '../../hooks/index';
+import { isTreasuryAccount } from '../../services/reportService';
 import { formatCurrency } from '../../../../core/utils';
 import { Wallet, Landmark, Loader2, Globe, ChevronRight, Building2 } from 'lucide-react';
 import { cn } from '../../../../core/utils';
@@ -34,7 +40,14 @@ const SidebarItem: React.FC<{
 
   const getIcon = () => {
     if (hasChildren) return <Globe size={14} />;
-    if (node.code.startsWith('101')) return <Wallet size={14} />;
+    const upperCode = node.code.trim().toUpperCase();
+    if (
+      upperCode.startsWith('101') ||
+      upperCode.startsWith('111') ||
+      upperCode.startsWith('MZ-13')
+    ) {
+      return <Wallet size={14} />;
+    }
     return <Landmark size={14} />;
   };
 
@@ -149,11 +162,24 @@ const SidebarItem: React.FC<{
 
 const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }) => {
   const { data: accounts, isLoading } = useAccounts();
+  const { data: cashboxes } = useCashboxes();
+  const { data: exchanges } = useExchangeCompanies();
   const { createAccount, isCreating, migrateCashboxBalances, isMigratingCashbox } =
     useAccountMutations();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [treasuryModalType, setTreasuryModalType] = useState<'cashbox' | 'exchange' | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const linkedAccountIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const c of cashboxes || []) {
+      if (c.account_id) ids.add(c.account_id);
+    }
+    for (const e of exchanges || []) {
+      if (e.account_id) ids.add(e.account_id);
+    }
+    return ids;
+  }, [cashboxes, exchanges]);
 
   // Auto-expand all parent categories by default
   React.useEffect(() => {
@@ -168,12 +194,31 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
     }
   }, [accounts]);
 
-  const treasuryTree = useMemo(() => {
-    // We only want Asset accounts starting with 10 for treasury, BUT exclude the root '1000' (Assets)
-    const treasuryAccounts = (
-      accounts?.filter(acc => acc.code.startsWith('10') && acc.code !== '1000') || []
-    ).sort((a, b) => a.code.localeCompare(b.code));
+  const treasuryAccounts = useMemo(() => {
+    if (!accounts || accounts.length === 0) return [];
+    const byId = new Map(accounts.map(acc => [acc.id, acc]));
+    const matchedIds = new Set<string>();
+    const EXCLUDED_ROOTS = new Set(['1', '1000', 'MZ-1']);
 
+    for (const acc of accounts) {
+      if (isTreasuryAccount(acc, linkedAccountIds, acc.id)) {
+        matchedIds.add(acc.id);
+        let parentId = acc.parent_id;
+        while (parentId) {
+          const parent = byId.get(parentId);
+          if (!parent || EXCLUDED_ROOTS.has(parent.code.trim().toUpperCase())) break;
+          matchedIds.add(parent.id);
+          parentId = parent.parent_id;
+        }
+      }
+    }
+
+    return accounts
+      .filter(acc => matchedIds.has(acc.id))
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  }, [accounts, linkedAccountIds]);
+
+  const treasuryTree = useMemo(() => {
     // Build Map
     const map = new Map<string, AccountNode>();
     treasuryAccounts.forEach(acc => map.set(acc.id, { ...acc, children: [] }));
@@ -203,9 +248,9 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
       return Number(node.balance) || 0;
     };
 
-    // Sort
+    // Sort deterministically across numeric and Mizan alphanumeric codes (e.g. MZ-1301)
     const sortNodes = (nodes: AccountNode[]) => {
-      nodes.sort((a, b) => parseInt(a.code, 10) - parseInt(b.code, 10));
+      nodes.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
       nodes.forEach(n => {
         if (n.children.length > 0) sortNodes(n.children);
       });
@@ -214,7 +259,7 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
     roots.forEach(calculateTotal);
     sortNodes(roots);
     return roots;
-  }, [accounts]);
+  }, [treasuryAccounts]);
 
   const hasSubCashboxes = useMemo(() => {
     // Check if sub cashbox (101001) exists
@@ -228,34 +273,26 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
   }, [accounts, hasSubCashboxes]);
 
   const totalLiquidity = useMemo(() => {
-    // Sum of all Leaf nodes starting with 10
-    const treasuryAccounts =
-      accounts?.filter(acc => acc.type === 'asset' && acc.code.startsWith('10')) || [];
-
-    // Helper to find leaves
-    const parentIds = new Set(treasuryAccounts.map(a => a.parent_id).filter(Boolean));
-    const leaves = treasuryAccounts.filter(a => !parentIds.has(a.id));
-    return leaves.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
-  }, [accounts]);
+    return treasuryTree.reduce((sum, node) => sum + (Number(node.balance) || 0), 0);
+  }, [treasuryTree]);
 
   const currencyBreakdown = useMemo(() => {
-    if (!accounts || accounts.length === 0) return { sar: 0, yer: 0 };
-    const treasuryAccounts = accounts.filter(
-      acc => acc.type === 'asset' && acc.code.startsWith('10')
-    );
-    const parentIds = new Set(treasuryAccounts.map(a => a.parent_id).filter(Boolean));
+    if (!accounts || accounts.length === 0 || treasuryAccounts.length === 0) {
+      return { sar: 0, yer: 0 };
+    }
+    const parentIds = new Set(accounts.map(a => a.parent_id).filter(Boolean));
     const leaves = treasuryAccounts.filter(a => !parentIds.has(a.id));
 
     const sar = leaves
       .filter(a => (a.currency_code ?? 'SAR') === 'SAR')
-      .reduce((s, a) => s + (a.balance || 0), 0);
+      .reduce((s, a) => s + (Number(a.balance) || 0), 0);
 
     const yer = leaves
       .filter(a => a.currency_code === 'YER')
       .reduce((s, a) => s + (a.foreign_balance ?? a.balance ?? 0), 0);
 
     return { sar, yer };
-  }, [accounts]);
+  }, [accounts, treasuryAccounts]);
 
   const toggleExpand = (id: string): void => {
     setExpandedIds(prev => {

@@ -8,8 +8,9 @@ import { Wallet, Info, ArrowLeft } from 'lucide-react';
 import CreateBondModal from '../../../bonds/components/CreateBondModal';
 import FxRevaluationModal from './FxRevaluationModal';
 import { useBondMutation } from '../../../bonds/hooks';
-import { useAccounts } from '../../hooks/index';
+import { useAccounts, useCashboxes, useExchangeCompanies } from '../../hooks/index';
 import { useTreasuryMutations } from '../../hooks/useTreasury';
+import { isTreasuryAccount } from '../../services/reportService';
 import type { BondType } from '../../../bonds/types';
 
 interface Props {
@@ -23,23 +24,44 @@ const TreasuryView: React.FC<Props> = ({ dateRange }) => {
   const [activeAction, setActiveAction] = useState<BondType>('receipt');
 
   const { data: accounts } = useAccounts();
+  const { data: cashboxes } = useCashboxes();
+  const { data: exchanges } = useExchangeCompanies();
   const bondMutation = useBondMutation();
   const { revalueCurrency, isRevaluing } = useTreasuryMutations();
 
-  // Auto-select the first operational leaf cashbox (e.g. 101001) by default
+  const linkedAccountIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const c of cashboxes || []) {
+      if (c.account_id) ids.add(c.account_id);
+    }
+    for (const e of exchanges || []) {
+      if (e.account_id) ids.add(e.account_id);
+    }
+    return ids;
+  }, [cashboxes, exchanges]);
+
+  // اختيار أول صندوق/بنك تشغيلي برصيد فعلي (أو 101001/أول حساب خزنة متاح)
   useEffect(() => {
     if (!selectedAccountId && accounts && accounts.length > 0) {
+      const parentIds = new Set(accounts.map(c => c.parent_id).filter(Boolean));
+      const leafTreasuryAccounts = accounts.filter(
+        a => !parentIds.has(a.id) && isTreasuryAccount(a, linkedAccountIds, a.id)
+      );
+      const activeNonZero = [...leafTreasuryAccounts]
+        .filter(a => Math.abs(Number(a.balance) || 0) > 0.01)
+        .sort((a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0))[0];
+
       const defaultCashbox =
+        activeNonZero ||
         accounts.find(a => a.code === '101001') ||
-        accounts.find(
-          a =>
-            a.code.startsWith('10') && a.allow_posting && !accounts.some(c => c.parent_id === a.id)
-        );
+        leafTreasuryAccounts.find(a => a.allow_posting) ||
+        leafTreasuryAccounts[0];
+
       if (defaultCashbox) {
         setSelectedAccountId(defaultCashbox.id);
       }
     }
-  }, [accounts, selectedAccountId]);
+  }, [accounts, linkedAccountIds, selectedAccountId]);
 
   const selectedAccount = useMemo(
     () => accounts?.find(a => a.id === selectedAccountId),

@@ -53,15 +53,25 @@ export const accountsService = {
 
     const balanceMap = new Map<string, number>();
     const foreignBalanceMap = new Map<string, number>();
+    const totalDebitMap = new Map<string, number>();
+    const totalCreditMap = new Map<string, number>();
     if (options?.includeBalances && balancesRes.data) {
       for (const row of balancesRes.data) {
         const r = row as {
           account_id: string;
           balance?: number | null;
           foreign_balance?: number | null;
+          total_debit?: number | null;
+          total_credit?: number | null;
         };
         balanceMap.set(r.account_id, Number(r.balance) || 0);
         foreignBalanceMap.set(r.account_id, Number(r.foreign_balance) || 0);
+        if (r.total_debit !== undefined && r.total_debit !== null) {
+          totalDebitMap.set(r.account_id, Number(r.total_debit) || 0);
+        }
+        if (r.total_credit !== undefined && r.total_credit !== null) {
+          totalCreditMap.set(r.account_id, Number(r.total_credit) || 0);
+        }
       }
     }
 
@@ -73,6 +83,8 @@ export const accountsService = {
       // (standard accounting presentation) instead of negative numbers.
       const rawBalance = balanceMap.get(acc.id) ?? 0;
       const rawForeignBalance = foreignBalanceMap.get(acc.id) ?? 0;
+      const totalDebit = totalDebitMap.get(acc.id);
+      const totalCredit = totalCreditMap.get(acc.id);
       const isCreditNormal =
         acc.type === 'liability' || acc.type === 'equity' || acc.type === 'revenue';
       return {
@@ -83,6 +95,8 @@ export const accountsService = {
         type: acc.type as Account['type'],
         balance: isCreditNormal ? -rawBalance : rawBalance,
         foreign_balance: isCreditNormal ? -rawForeignBalance : rawForeignBalance,
+        ...(totalDebit !== undefined ? { total_debit: totalDebit } : {}),
+        ...(totalCredit !== undefined ? { total_credit: totalCredit } : {}),
         currency_code: acc.currency_code || 'SAR',
         is_system: acc.is_system,
         parent_id: acc.parent_id ?? undefined,

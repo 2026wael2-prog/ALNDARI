@@ -22,7 +22,7 @@ import { useTranslation } from '../../lib/hooks/useTranslation';
 import FullscreenContainer from '../../ui/base/FullscreenContainer';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '../../core/utils';
+import { cn, formatLocalDate, getLocalYearStart } from '../../core/utils';
 import type { LucideIcon } from 'lucide-react';
 import { DOMAIN_KEYS } from '../../lib/invalidation';
 import type { JournalEntryFormData } from './types/models';
@@ -132,17 +132,62 @@ const AccountingPage: React.FC = () => {
   );
 
   const dateFilterRow = useMemo(() => {
-    const showDateFilter = ['ledger', 'income', 'balance_sheet', 'treasury', 'vat_return'].includes(
-      activeView
-    );
+    const showDateFilter = [
+      'overview',
+      'ledger',
+      'income',
+      'balance_sheet',
+      'treasury',
+      'vat_return',
+    ].includes(activeView);
     if (!showDateFilter) return undefined;
 
+    const currentYear = new Date().getFullYear();
+    const today = formatLocalDate();
+    const yearStart = getLocalYearStart();
+    const presets = [
+      { key: 'current', label: `السنة الجارية (${currentYear})`, from: yearStart, to: today },
+      {
+        key: `y-${currentYear - 1}`,
+        label: `${currentYear - 1}`,
+        from: `${currentYear - 1}-01-01`,
+        to: `${currentYear - 1}-12-31`,
+      },
+      {
+        key: `y-${currentYear - 2}`,
+        label: `${currentYear - 2}`,
+        from: `${currentYear - 2}-01-01`,
+        to: `${currentYear - 2}-12-31`,
+      },
+      { key: 'all', label: 'كل السنوات', from: '2000-01-01', to: today },
+    ];
+
     return (
-      <div className="animate-in slide-in-from-top-1 flex w-full items-center gap-2 rounded-[var(--radius)] border border-blue-100 bg-blue-50 px-2 py-1.5 duration-300 dark:border-blue-900/20 dark:bg-blue-900/10 max-md:gap-1 max-md:px-1.5 max-md:py-1 md:w-fit">
+      <div className="animate-in slide-in-from-top-1 flex w-full flex-wrap items-center gap-2 rounded-[var(--radius)] border border-blue-100 bg-blue-50 px-2 py-1.5 duration-300 dark:border-blue-900/20 dark:bg-blue-900/10 max-md:gap-1 max-md:px-1.5 max-md:py-1 md:w-fit">
         <div className="rounded-md bg-blue-600 p-1.5 text-white">
           <Calendar size={14} />
         </div>
-        <div className="flex items-center gap-1 whitespace-nowrap text-[10px] font-bold uppercase tracking-tight text-blue-900 dark:text-blue-300 max-md:gap-0.5 max-md:text-[10px]">
+        <div className="flex flex-wrap items-center gap-1 whitespace-nowrap text-[10px] font-bold uppercase tracking-tight text-blue-900 dark:text-blue-300 max-md:gap-0.5 max-md:text-[10px]">
+          <div className="flex items-center gap-1 border-l border-blue-200 pl-2 dark:border-blue-800/50">
+            {presets.map(preset => {
+              const isSelected = dateRange.from === preset.from && dateRange.to === preset.to;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => setDateRange({ from: preset.from, to: preset.to })}
+                  className={cn(
+                    'rounded px-1.5 py-0.5 font-mono text-[10px] font-bold transition-colors',
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-[var(--app-surface)] text-blue-700 hover:bg-blue-100 dark:text-blue-300 dark:hover:bg-blue-900/30'
+                  )}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex items-center gap-1.5">
             <span>{t('from_date')}:</span>
             <input
@@ -182,7 +227,13 @@ const AccountingPage: React.FC = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'overview':
-        return <AccountingOverview onNewJournal={openJournalModal} />;
+        return (
+          <AccountingOverview
+            onNewJournal={openJournalModal}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
+        );
       case 'journal':
         return <JournalTable />;
       case 'accounts':
@@ -200,7 +251,7 @@ const AccountingPage: React.FC = () => {
       case 'vat_return':
         return <VatReturnView dateRange={dateRange} />;
       default:
-        return <AccountingOverview />;
+        return <AccountingOverview dateRange={dateRange} onDateRangeChange={setDateRange} />;
     }
   };
 

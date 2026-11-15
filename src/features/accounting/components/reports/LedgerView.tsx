@@ -49,7 +49,64 @@ const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector
   const selectedAccountName = selectedAccount?.name ?? '';
   const selectedAccountCode = selectedAccount?.code ?? '';
   const selectedAccountCurrency = selectedAccount?.currency_code ?? '';
-  const lastLedgerEntry = ledger?.[ledger.length - 1];
+
+  const effectiveAccountBalance = React.useMemo(() => {
+    if (!accounts || !effectiveAccountId) return { balance: 0, foreignBalance: 0 };
+    const byId = new Map(accounts.map(a => [a.id, a]));
+    const childrenMap = new Map<string, typeof accounts>();
+    for (const acc of accounts) {
+      if (acc.parent_id) {
+        const list = childrenMap.get(acc.parent_id) || [];
+        list.push(acc);
+        childrenMap.set(acc.parent_id, list);
+      }
+    }
+    const collectSubtree = (id: string): typeof accounts => {
+      const node = byId.get(id);
+      const children = childrenMap.get(id) || [];
+      if (children.length === 0) return node ? [node] : [];
+      return [...(node ? [node] : []), ...children.flatMap(c => collectSubtree(c.id))];
+    };
+    const subtree = collectSubtree(effectiveAccountId);
+    let balance = 0;
+    let foreignBalance = 0;
+    for (const node of subtree) {
+      balance += Number(node.balance) || 0;
+      foreignBalance += Number(node.foreign_balance ?? node.balance) || 0;
+    }
+    return { balance, foreignBalance };
+  }, [accounts, effectiveAccountId]);
+
+  const tableData: LedgerEntry[] = React.useMemo(() => {
+    const rows = ledger ?? [];
+    if (
+      rows.length === 0 &&
+      selectedAccount &&
+      (Math.abs(effectiveAccountBalance.balance) > 0.001 ||
+        Math.abs(effectiveAccountBalance.foreignBalance) > 0.001)
+    ) {
+      return [
+        {
+          date: dateRange.from,
+          journal_id: '',
+          journal_entry_id: '',
+          entry_number: 0,
+          description: 'رصيد الحساب الحالي (مرحل)',
+          debit_amount: 0,
+          credit_amount: 0,
+          balance: effectiveAccountBalance.balance,
+          foreign_balance: effectiveAccountBalance.foreignBalance,
+          accountType: selectedAccount.type,
+          currency_code: selectedAccount.currency_code || 'SAR',
+          exchange_rate: 1,
+          foreign_amount: 0,
+        },
+      ];
+    }
+    return rows;
+  }, [ledger, selectedAccount, effectiveAccountBalance, dateRange.from]);
+
+  const lastLedgerEntry = tableData[tableData.length - 1];
 
   const columns = [
     {
@@ -88,6 +145,11 @@ const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector
         return (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-semibold">{row.description}</span>
+            {row.entry_number === 0 && (
+              <span className="inline-flex items-center rounded border border-blue-200/60 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300">
+                رصيد مرحل
+              </span>
+            )}
             {isReversal && (
               <span className="inline-flex items-center rounded border border-amber-200/60 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-300">
                 قيد عكسي
@@ -237,7 +299,7 @@ const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector
           <div className="flex min-h-[480px] flex-1 flex-col overflow-hidden border border-[var(--app-border)] shadow-sm">
             <ExcelTable
               columns={columns}
-              data={ledger ?? []}
+              data={tableData}
               resizeStorageKey="ledger_account_statement"
               title={`كشف حساب: ${selectedAccountName} (${selectedAccountCode})`}
               colorTheme="blue"

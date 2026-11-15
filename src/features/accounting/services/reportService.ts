@@ -42,6 +42,119 @@ interface TrialBalanceRpcRow {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
+const COGS_NAME_KEYWORDS = [
+  'تكلفة المبيعات',
+  'تكلفة البضاعة',
+  'تكلفة القطع',
+  'مشتريات بضاعة',
+  'إجمالي المشتريات',
+  'صافي المشتريات',
+  'بضاعة أول المدة',
+  'بضاعة اول المدة',
+  'بضاعة آخر المدة',
+  'بضاعة اخر المدة',
+  'حساب المتاجرة',
+];
+
+const TREASURY_NAME_KEYWORDS = [
+  'صندوق',
+  'خزينة',
+  'خزنة',
+  'بنك',
+  'مصرف',
+  'صراف',
+  'الكريمي',
+  'أموال جاهزة',
+];
+
+/**
+ * تصنيف حساب تكلفة المبيعات (COGS) بشكل موحّد يشمل:
+ * - علامة `is_cogs` القادمة من قاعدة البيانات
+ * - الأكواد القياسية (5100 / 51xx) وأكواد الميزان (MZ-5xxx / 312xxx / MZ-312xxx)
+ * - الأسماء العربية الصريحة لتكلفة المبيعات والمشتريات وبضاعة أول/آخر المدة
+ */
+export const isCogsAccount = (code: string, name?: string, isCogsFlag?: boolean): boolean => {
+  if (isCogsFlag === true) return true;
+  const normalizedCode = (code || '').trim().toUpperCase();
+  if (
+    normalizedCode === '5100' ||
+    normalizedCode.startsWith('51') ||
+    normalizedCode.startsWith('MZ-5') ||
+    normalizedCode.startsWith('312') ||
+    normalizedCode.startsWith('MZ-312')
+  ) {
+    return true;
+  }
+
+  const normalizedName = (name || '').trim();
+  if (!normalizedName) return false;
+  if (COGS_NAME_KEYWORDS.some(keyword => normalizedName.includes(keyword))) {
+    return true;
+  }
+
+  return (
+    normalizedName.includes('مشتريات') &&
+    !normalizedName.includes('أصول') &&
+    !normalizedName.includes('قرطاسية') &&
+    !normalizedName.includes('مهمات')
+  );
+};
+
+/**
+ * تحديد ما إذا كان الحساب يتبع للخزنة/النقدية والبنوك والصرافة:
+ * - الحسابات المرتبطة مباشرة في جدولي cashboxes / exchange_companies
+ * - الأكواد 101xx / 102xx / 103xx / 111xx / MZ-13xx / MZ-14xx (و 10xx عدا 1000)
+ * - حسابات الأصول التي يحتوي اسمها على صندوق / خزنة / بنك / مصرف / صراف
+ * مع استبعاد الحساب الرئيسي للأصول (1000) والذمم (1100 / 121 / MZ-121) والمخزون (1200).
+ */
+export const isTreasuryAccount = (
+  acc: {
+    id?: string | undefined;
+    code: string;
+    name?: string | undefined;
+    name_ar?: string | undefined;
+    type?: string | undefined;
+  },
+  linkedAccountIds?: Set<string>,
+  id?: string
+): boolean => {
+  const effectiveId = id ?? acc.id;
+  if (effectiveId && linkedAccountIds?.has(effectiveId)) {
+    return true;
+  }
+
+  const normalizedCode = (acc.code || '').trim().toUpperCase();
+  if (
+    normalizedCode === '1000' ||
+    normalizedCode === '1100' ||
+    normalizedCode === '1200' ||
+    normalizedCode.startsWith('121') ||
+    normalizedCode.startsWith('MZ-121')
+  ) {
+    return false;
+  }
+
+  if (acc.type && acc.type !== 'asset') {
+    return false;
+  }
+
+  if (
+    normalizedCode.startsWith('101') ||
+    normalizedCode.startsWith('102') ||
+    normalizedCode.startsWith('103') ||
+    normalizedCode.startsWith('111') ||
+    normalizedCode.startsWith('MZ-13') ||
+    normalizedCode.startsWith('MZ-14') ||
+    (normalizedCode.startsWith('10') && normalizedCode !== '1000')
+  ) {
+    return true;
+  }
+
+  const accountName = `${acc.name_ar ?? ''} ${acc.name ?? ''}`.trim();
+  if (!accountName) return false;
+  return TREASURY_NAME_KEYWORDS.some(keyword => accountName.includes(keyword));
+};
+
 const toLedgerResult = (value: unknown): LedgerRpcResult => {
   if (!isRecord(value) || !Array.isArray(value.entries)) return { entries: [] };
   return {
@@ -241,8 +354,7 @@ export const reportService = {
       // [FIX] لا ABS() — sign convention: expense=debit-credit، revenue=credit-debit
       // سالب = قيد عكسي يُطرح لا يُجمع
       net_balance: row.balance,
-      // exactOptionalPropertyTypes: نُدرج is_cogs فقط عند وجود قيمة صريحة
-      ...(typeof row.is_cogs === 'boolean' ? { is_cogs: row.is_cogs } : {}),
+      is_cogs: isCogsAccount(row.account_code, row.account_name, row.is_cogs),
     });
 
     let revenueTBI: TrialBalanceItem[];
@@ -343,8 +455,8 @@ export const reportService = {
     const retainedRow = bsData.find(r => r.type === 'retained_earnings');
 
     const equityFromServer = Number(equityRow?.amount) || 0;
-    const totalAssets = Number(assetRow?.amount) || 0;
-    const totalLiabilities = Number(liabilityRow?.amount) || 0;
+    let totalAssets = Number(assetRow?.amount) || 0;
+    let totalLiabilities = Number(liabilityRow?.amount) || 0;
     const totalRetainedToDate = Number(retainedRow?.amount) || 0;
     // إذا كان الخادم يرجع بند retained_earnings فإن equityRow يشمل أرباح الفترة سلفاً
     const totalEquity = retainedRow ? equityFromServer : equityFromServer + netIncome;
@@ -354,14 +466,20 @@ export const reportService = {
     let liabilityTBI: TrialBalanceItem[] = [];
     let equityTBI: TrialBalanceItem[] = [];
 
-    const { data: detailBsData, error: detailBsError } = await supabase.rpc(
-      'report_balance_sheet_detailed',
-      {
-        p_company_id: companyId,
-        p_as_of_date: to,
-        ...(branchId ? { p_branch_id: branchId } : {}),
-      }
-    );
+    const [{ data: detailBsData, error: detailBsError }, { data: tbData, error: tbError }] =
+      await Promise.all([
+        supabase.rpc('report_balance_sheet_detailed', {
+          p_company_id: companyId,
+          p_as_of_date: to,
+          ...(branchId ? { p_branch_id: branchId } : {}),
+        }),
+        supabase.rpc('report_trial_balance', {
+          p_company_id: companyId,
+          p_from: '1970-01-01',
+          p_to: to,
+          ...(branchId ? { p_branch_id: branchId } : {}),
+        }),
+      ]);
 
     if (detailBsError === null && Array.isArray(detailBsData)) {
       const rows = toTrialBalanceRows(detailBsData);
@@ -398,6 +516,74 @@ export const reportService = {
           total_credit: r.total_credit,
           net_balance: r.balance,
         }));
+
+      // دمج أي حسابات أصول/خصوم/حقوق ملكية (مثل حسابات ميزان MZ-1% أو MZ-2% أو MZ-3%) لم تظهر في التقرير التفصيلي
+      if (tbError === null && Array.isArray(tbData)) {
+        const detailAssetsSum = assetTBI.reduce((sum, item) => sum + item.net_balance, 0);
+        const detailLiabilitiesSum = liabilityTBI.reduce((sum, item) => sum + item.net_balance, 0);
+        const existingIds = new Set(
+          [...assetTBI, ...liabilityTBI, ...equityTBI].map(item => item.account_id)
+        );
+        let missingAssetTotal = 0;
+        let missingLiabilityTotal = 0;
+
+        for (const r of toTrialBalanceRows(tbData)) {
+          if (existingIds.has(r.account_id)) continue;
+          if (r.account_type === 'asset') {
+            const net = r.total_debit - r.total_credit;
+            if (Math.abs(net) > 0.001) {
+              assetTBI.push({
+                account_id: r.account_id,
+                code: r.account_code,
+                name: r.account_name,
+                type: r.account_type,
+                total_debit: r.total_debit,
+                total_credit: r.total_credit,
+                net_balance: net,
+              });
+              missingAssetTotal += net;
+            }
+          } else if (r.account_type === 'liability') {
+            const net = r.total_credit - r.total_debit;
+            if (Math.abs(net) > 0.001) {
+              liabilityTBI.push({
+                account_id: r.account_id,
+                code: r.account_code,
+                name: r.account_name,
+                type: r.account_type,
+                total_debit: r.total_debit,
+                total_credit: r.total_credit,
+                net_balance: net,
+              });
+              missingLiabilityTotal += net;
+            }
+          } else if (r.account_type === 'equity') {
+            const net = r.total_credit - r.total_debit;
+            if (Math.abs(net) > 0.001) {
+              equityTBI.push({
+                account_id: r.account_id,
+                code: r.account_code,
+                name: r.account_name,
+                type: r.account_type,
+                total_debit: r.total_debit,
+                total_credit: r.total_credit,
+                net_balance: net,
+              });
+            }
+          }
+        }
+
+        // عدم المضاعفة إذا كان الخادم (report_balance_sheet) قد حسبها بالفعل
+        if (Math.abs(missingAssetTotal) > 0.01 && Math.abs(detailAssetsSum - totalAssets) < 1) {
+          totalAssets += missingAssetTotal;
+        }
+        if (
+          Math.abs(missingLiabilityTotal) > 0.01 &&
+          Math.abs(detailLiabilitiesSum - totalLiabilities) < 1
+        ) {
+          totalLiabilities += missingLiabilityTotal;
+        }
+      }
 
       // Calculate unclosed prior period retained earnings (e.g. earlier years not yet closed to account 3200)
       const existingRetainedAcc = equityTBI.find(e => e.code === '3200');
@@ -461,8 +647,8 @@ export const reportService = {
     const balanceSheetDiff = totalAssets - (totalLiabilities + totalEquity);
     const isBalanced = balanceSheetDiff > -1 && balanceSheetDiff < 1;
 
-    const cogsItems = expenseTBI.filter(
-      item => item.is_cogs || item.code === '5100' || item.code.startsWith('51')
+    const cogsItems = expenseTBI.filter(item =>
+      isCogsAccount(item.code, item.name, item.is_cogs)
     );
     const totalCogs = cogsItems.reduce((sum, item) => sum + item.net_balance, 0);
     const operatingExpenses = totalExpense - totalCogs;

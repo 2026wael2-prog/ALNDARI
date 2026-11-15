@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { reportService } from './reportService';
+import { reportService, isCogsAccount, isTreasuryAccount } from './reportService';
 
 const { supabaseMock } = vi.hoisted(() => ({ supabaseMock: { rpc: vi.fn() } }));
 
@@ -180,6 +180,69 @@ describe('reportService.getFinancials — detailed P&L with safe fallback', () =
     const calls = supabaseMock.rpc.mock.calls.map((c: unknown[]) => c[0]);
     expect(calls).not.toContain('report_profit_loss');
   });
+
+  it('separates Mizan COGS accounts (MZ-5xxx / 312xxx / purchases) from operating expenses', async () => {
+    const mizanPnlRows = [
+      { account_id: 'r1', account_code: 'MZ-4001', account_name: 'مبيعات قطع الغيار', account_type: 'revenue', total_debit: 0, total_credit: 10000, balance: 10000, is_cogs: false },
+      { account_id: 'e1', account_code: 'MZ-5001', account_name: 'تكلفة المبيعات', account_type: 'expense', total_debit: 6000, total_credit: 0, balance: 6000, is_cogs: false },
+      { account_id: 'e2', account_code: '31201', account_name: 'مشتريات بضاعة', account_type: 'expense', total_debit: 1000, total_credit: 0, balance: 1000, is_cogs: false },
+      { account_id: 'e3', account_code: 'MZ-3110', account_name: 'رواتب وإيجارات', account_type: 'expense', total_debit: 1500, total_credit: 0, balance: 1500, is_cogs: false },
+    ];
+
+    supabaseMock.rpc.mockImplementation((fnName: string) => {
+      if (fnName === 'report_profit_loss_detailed') {
+        return Promise.resolve({ data: mizanPnlRows, error: null });
+      }
+      if (fnName === 'report_balance_sheet') {
+        return Promise.resolve({ data: BALANCE_SHEET_ROWS, error: null });
+      }
+      return Promise.resolve({ data: null, error: { message: `unexpected rpc ${fnName}` } });
+    });
+
+    const result = await reportService.getFinancials('c1', null, '2026-01-01', '2026-12-31');
+    expect(result.incomeStatement.totalRevenue).toBe(10000);
+    expect(result.incomeStatement.totalCogs).toBe(7000);
+    expect(result.incomeStatement.grossProfit).toBe(3000);
+    expect(result.incomeStatement.operatingExpenses).toBe(1500);
+    expect(result.incomeStatement.netIncome).toBe(1500);
+  });
 });
+
+describe('accounting classification helpers (isCogsAccount / isTreasuryAccount)', () => {
+  it('classifies standard, Mizan COGS, and Arabic purchase accounts without catching operating expenses', () => {
+    expect(isCogsAccount('5100', 'تكلفة المبيعات')).toBe(true);
+    expect(isCogsAccount('5102', 'تكلفة بضاعة')).toBe(true);
+    expect(isCogsAccount('MZ-5001', 'مشتريات')).toBe(true);
+    expect(isCogsAccount('31201', 'المشتريات')).toBe(true);
+    expect(isCogsAccount('MZ-3120', 'صافي المشتريات')).toBe(true);
+    expect(isCogsAccount('5999', 'تكلفة البضاعة المباعة')).toBe(true);
+
+    expect(isCogsAccount('5001', 'رواتب')).toBe(false);
+    expect(isCogsAccount('5200', 'إيجار')).toBe(false);
+    expect(isCogsAccount('MZ-3110', 'مصاريف عمومية')).toBe(false);
+    expect(isCogsAccount('1501', 'مشتريات أصول ثابتة')).toBe(false);
+    expect(isCogsAccount('5210', 'مشتريات قرطاسية')).toBe(false);
+  });
+
+  it('identifies treasury, cashbox, bank, Mizan (MZ-13/MZ-14), and linked accounts accurately', () => {
+    const linked = new Set(['linked-acc-1']);
+
+    expect(isTreasuryAccount({ id: 'linked-acc-1', code: '9999', name: 'حساب مخصص' }, linked)).toBe(true);
+    expect(isTreasuryAccount({ code: '101001', name: 'الصندوق الرئيسي', type: 'asset' })).toBe(true);
+    expect(isTreasuryAccount({ code: '102001', name: 'بنك الراجحي', type: 'asset' })).toBe(true);
+    expect(isTreasuryAccount({ code: '11101', name: 'نقدية', type: 'asset' })).toBe(true);
+    expect(isTreasuryAccount({ code: 'MZ-1301', name: 'صندوق الفرع', type: 'asset' })).toBe(true);
+    expect(isTreasuryAccount({ code: 'MZ-1402', name: 'مصرف الكريمي', type: 'asset' })).toBe(true);
+    expect(isTreasuryAccount({ code: '1500', name: 'خزينة المكتب', type: 'asset' })).toBe(true);
+
+    expect(isTreasuryAccount({ code: '1000', name: 'الأصول', type: 'asset' })).toBe(false);
+    expect(isTreasuryAccount({ code: '1100', name: 'ذمم العملاء', type: 'asset' })).toBe(false);
+    expect(isTreasuryAccount({ code: '1200', name: 'المخزون', type: 'asset' })).toBe(false);
+    expect(isTreasuryAccount({ code: 'MZ-1210', name: 'عملاء آجل', type: 'asset' })).toBe(false);
+    expect(isTreasuryAccount({ code: '2100', name: 'ذمم الموردين', type: 'liability' })).toBe(false);
+    expect(isTreasuryAccount({ code: '5205', name: 'رسوم بنك', type: 'expense' })).toBe(false);
+  });
+});
+
 
 

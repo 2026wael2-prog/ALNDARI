@@ -22,15 +22,57 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
 
   const isForeign = Boolean(currencyCode && currencyCode !== 'SAR');
 
+  const accountAggregate = useMemo(() => {
+    if (!accounts || !accountId) {
+      return { balance: 0, foreignBalance: 0, totalDebit: 0, totalCredit: 0 };
+    }
+    const byId = new Map(accounts.map(a => [a.id, a]));
+    const target = byId.get(accountId);
+    if (!target) {
+      return { balance: 0, foreignBalance: 0, totalDebit: 0, totalCredit: 0 };
+    }
+
+    const childrenMap = new Map<string, typeof accounts>();
+    for (const acc of accounts) {
+      if (acc.parent_id) {
+        const list = childrenMap.get(acc.parent_id) || [];
+        list.push(acc);
+        childrenMap.set(acc.parent_id, list);
+      }
+    }
+
+    const collectSubtree = (id: string): typeof accounts => {
+      const node = byId.get(id);
+      const children = childrenMap.get(id) || [];
+      if (children.length === 0) return node ? [node] : [];
+      return [...(node ? [node] : []), ...children.flatMap(c => collectSubtree(c.id))];
+    };
+
+    const subtree = collectSubtree(accountId);
+    let balance = 0;
+    let foreignBalance = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+    for (const node of subtree) {
+      balance += Number(node.balance) || 0;
+      foreignBalance += Number(node.foreign_balance ?? node.balance) || 0;
+      totalDebit += Number(node.total_debit) || 0;
+      totalCredit += Number(node.total_credit) || 0;
+    }
+    return { balance, foreignBalance, totalDebit, totalCredit };
+  }, [accounts, accountId]);
+
   const stats = useMemo(() => {
-    if (!ledger) {
+    if (!ledger || ledger.length === 0) {
       return {
-        balance: 0,
-        foreignBalance: 0,
-        totalDebit: 0,
-        totalCredit: 0,
-        foreignTotalDebit: 0,
-        foreignTotalCredit: 0,
+        balance: accountAggregate.balance,
+        foreignBalance: accountAggregate.foreignBalance,
+        totalDebit: Math.max(0, accountAggregate.totalDebit),
+        totalCredit: Math.max(0, accountAggregate.totalCredit),
+        foreignTotalDebit: Math.max(0, accountAggregate.totalDebit),
+        foreignTotalCredit: Math.max(0, accountAggregate.totalCredit),
+        isCumulativeFallback:
+          accountAggregate.totalDebit > 0 || accountAggregate.totalCredit > 0,
       };
     }
 
@@ -38,10 +80,12 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
     let totalCredit = 0;
     let foreignTotalDebit = 0;
     let foreignTotalCredit = 0;
+    let hasPeriodMovements = false;
 
     for (const item of ledger) {
       // Ignore virtual opening balance line in inflow/outflow gross sums
       if (item.entry_number === 0) continue;
+      hasPeriodMovements = true;
 
       const desc = item.description || '';
       const ref = item.reference_type || '';
@@ -103,18 +147,38 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
     }
 
     const lastEntry = ledger[ledger.length - 1];
-    const currentBalance = lastEntry ? lastEntry.balance : 0;
-    const currentForeignBalance = lastEntry ? (lastEntry.foreign_balance ?? lastEntry.balance) : 0;
+    const useAggregateBalance =
+      !lastEntry ||
+      (!hasPeriodMovements &&
+        Math.abs(lastEntry.balance) <= 0.001 &&
+        Math.abs(accountAggregate.balance) > 0.001);
+    const currentBalance = useAggregateBalance ? accountAggregate.balance : lastEntry.balance;
+    const currentForeignBalance = useAggregateBalance
+      ? accountAggregate.foreignBalance
+      : (lastEntry.foreign_balance ?? lastEntry.balance);
+
+    const useAggregateTotals =
+      !hasPeriodMovements &&
+      totalDebit === 0 &&
+      totalCredit === 0 &&
+      (accountAggregate.totalDebit > 0 || accountAggregate.totalCredit > 0);
 
     return {
       balance: currentBalance,
       foreignBalance: currentForeignBalance,
-      totalDebit: Math.max(0, totalDebit),
-      totalCredit: Math.max(0, totalCredit),
-      foreignTotalDebit: Math.max(0, foreignTotalDebit),
-      foreignTotalCredit: Math.max(0, foreignTotalCredit),
+      totalDebit: Math.max(0, useAggregateTotals ? accountAggregate.totalDebit : totalDebit),
+      totalCredit: Math.max(0, useAggregateTotals ? accountAggregate.totalCredit : totalCredit),
+      foreignTotalDebit: Math.max(
+        0,
+        useAggregateTotals ? accountAggregate.totalDebit : foreignTotalDebit
+      ),
+      foreignTotalCredit: Math.max(
+        0,
+        useAggregateTotals ? accountAggregate.totalCredit : foreignTotalCredit
+      ),
+      isCumulativeFallback: useAggregateTotals,
     };
-  }, [ledger, isForeign]);
+  }, [ledger, isForeign, currencyCode, accountAggregate]);
 
   if (isLoading) {
     return (
@@ -133,7 +197,7 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
   const lastLedgerRow = ledger && ledger.length > 0 ? ledger[ledger.length - 1] : undefined;
   const { isCredit: isCreditBalance } = getLedgerBalanceLabel(
     stats.balance,
-    lastLedgerRow?.accountType
+    lastLedgerRow?.accountType ?? account?.type
   );
 
   return (
@@ -165,8 +229,10 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
         }
         subtext={
           isForeign
-            ? `حركات الإيداع والقبض • يعادل ${formatCurrency(stats.totalDebit, 'SAR')}`
-            : 'حركات الإيداع والقبض'
+            ? `${stats.isCumulativeFallback ? 'إجمالي تراكمي • ' : 'حركات الإيداع والقبض • '}يعادل ${formatCurrency(stats.totalDebit, 'SAR')}`
+            : stats.isCumulativeFallback
+              ? 'حركات الإيداع والقبض (إجمالي تراكمي)'
+              : 'حركات الإيداع والقبض'
         }
         icon={TrendingUp}
         colorClass="text-emerald-600"
@@ -181,8 +247,10 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
         }
         subtext={
           isForeign
-            ? `حركات الصرف والتحويل • يعادل ${formatCurrency(stats.totalCredit, 'SAR')}`
-            : 'حركات الصرف والتحويل'
+            ? `${stats.isCumulativeFallback ? 'إجمالي تراكمي • ' : 'حركات الصرف والتحويل • '}يعادل ${formatCurrency(stats.totalCredit, 'SAR')}`
+            : stats.isCumulativeFallback
+              ? 'حركات الصرف والتحويل (إجمالي تراكمي)'
+              : 'حركات الصرف والتحويل'
         }
         icon={TrendingDown}
         colorClass="text-red-600"

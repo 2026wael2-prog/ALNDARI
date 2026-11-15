@@ -22,6 +22,8 @@ export interface Account {
   type: AccountType;
   balance: number;
   foreign_balance?: number | undefined;
+  total_debit?: number | undefined;
+  total_credit?: number | undefined;
   currency_code: string;
   is_system: boolean;
   parent_id?: string | null | undefined;

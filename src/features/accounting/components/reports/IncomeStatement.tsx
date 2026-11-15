@@ -14,6 +14,7 @@ import {
 import type { TrialBalanceItem } from '../../types';
 import { cn } from '../../../../core/utils';
 import ShareButton from '../../../../ui/common/ShareButton';
+import { isCogsAccount as checkIsCogsAccount } from '../../services/reportService';
 
 interface Props {
   dateRange: { from: string; to: string };
@@ -32,7 +33,7 @@ const toAmount = (value: number | null | undefined): number =>
  * (نفس المنطق المستخدم في reportService — يُمنع خلط COGS بالمصاريف التشغيلية.)
  */
 const isCogsAccount = (account: TrialBalanceItem): boolean =>
-  account.is_cogs === true || account.code === '5100' || account.code.startsWith('51');
+  checkIsCogsAccount(account.code, account.name, account.is_cogs);
 
 const FinancialReportBlock: React.FC<{
   title: string;

@@ -19,17 +19,26 @@ const toBondBaseAmount = (b: Bond): number => {
 
 export function useBondsTotals(
   serverAnalytics: unknown,
-  allBondsData: Bond[] | undefined
+  allBondsData: Bond[] | undefined,
+  isFiltered = false
 ): { totals: BondsQuickTotals; analytics: BondsQuickAnalytics } {
   const analytics = useMemo(() => {
-    const safeAnalytics = serverAnalytics as Record<string, unknown> | null;
-    const serverCount = (safeAnalytics?.count as number) || 0;
-    const serverTotal = (safeAnalytics?.totalAmount as number) || 0;
-
-    // Local computation from ALL loaded bonds as fallback
+    // If active filter is applied, calculate dynamically from filtered bonds data
     const allBonds = allBondsData || [];
     const localTotal = allBonds.reduce((sum, b) => sum + toBondBaseAmount(b), 0);
     const localCount = allBonds.length;
+
+    if (isFiltered) {
+      const avg = localCount > 0 ? localTotal / localCount : 0;
+      return {
+        avgAmount: Math.round(avg * 100) / 100,
+        count: localCount,
+      };
+    }
+
+    const safeAnalytics = serverAnalytics as Record<string, unknown> | null;
+    const serverCount = (safeAnalytics?.count as number) || 0;
+    const serverTotal = (safeAnalytics?.totalAmount as number) || 0;
 
     const resolvedTotal = serverTotal > 0 ? serverTotal : localTotal;
     const resolvedCount = serverCount > 0 ? serverCount : localCount;
@@ -41,9 +50,25 @@ export function useBondsTotals(
       avgAmount: Math.round(resolvedAvg * 100) / 100,
       count: resolvedCount,
     };
-  }, [serverAnalytics, allBondsData]);
+  }, [serverAnalytics, allBondsData, isFiltered]);
 
   const totals = useMemo(() => {
+    // If active filter is applied, compute totals strictly from filtered bonds
+    if (isFiltered) {
+      const allBonds = allBondsData || [];
+      const receiptBonds = allBonds.filter(b => b.type === 'receipt');
+      const paymentBonds = allBonds.filter(b => b.type === 'payment');
+      const receiptAmount = receiptBonds.reduce((s, b) => s + toBondBaseAmount(b), 0);
+      const paymentAmount = paymentBonds.reduce((s, b) => s + toBondBaseAmount(b), 0);
+      return {
+        receiptCount: receiptBonds.length,
+        receiptAmount,
+        paymentCount: paymentBonds.length,
+        paymentAmount,
+        netAmount: receiptAmount - paymentAmount,
+      };
+    }
+
     const safeAnalytics = serverAnalytics as Record<string, unknown> | null;
     const safeTotals = (safeAnalytics?.totals as Record<string, number>) || {};
 
@@ -71,7 +96,7 @@ export function useBondsTotals(
       paymentAmount,
       netAmount: receiptAmount - paymentAmount,
     };
-  }, [serverAnalytics, allBondsData]);
+  }, [serverAnalytics, allBondsData, isFiltered]);
 
   return { totals, analytics };
 }

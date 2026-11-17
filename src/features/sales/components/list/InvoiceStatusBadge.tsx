@@ -22,6 +22,11 @@ export const getStatusLabel = (status: string) => {
       label: 'قيد الانتظار',
       cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
     };
+  if (status === 'void')
+    return {
+      label: 'ملغي (عكسي)',
+      cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+    };
   if (status === 'cancelled')
     return {
       label: 'ملغاة',

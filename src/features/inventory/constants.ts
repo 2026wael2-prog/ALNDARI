@@ -9,6 +9,8 @@ import {
   FileText,
   Settings,
   Star,
+  BarChart3,
+  TrendingUp,
 } from 'lucide-react';
 
 export interface TabItem {
@@ -69,4 +71,6 @@ export const getInventoryTabs = (t: (key: string, params?: any) => string) => [
   { id: 'warehouses', label: t('warehouses'), icon: Warehouse },
   { id: 'transfers', label: t('transfers'), icon: ArrowLeftRight },
   { id: 'audit', label: t('audit'), icon: History },
+  { id: 'bi_inventory', label: 'تحليلات المخزون والفروع', icon: BarChart3 },
+  { id: 'bi_products', label: 'ربحية وركود الأصناف', icon: TrendingUp },
 ];

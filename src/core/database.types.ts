@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -3595,6 +3595,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "incentive_calculation_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_currency_audit"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "incentive_calculation_lines_invoice_line_id_fkey"
             columns: ["invoice_line_id"]
             isOneToOne: false
@@ -3868,6 +3875,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "incentive_engineer_links_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_currency_audit"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "incentive_engineer_links_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -4106,6 +4120,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incentive_pending_invoices_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_currency_audit"
             referencedColumns: ["id"]
           },
           {
@@ -5142,6 +5163,7 @@ export type Database = {
         Row: {
           company_id: string
           cost_price: number
+          created_at: string
           description: string | null
           discount_amount: number
           id: string
@@ -5158,6 +5180,7 @@ export type Database = {
         Insert: {
           company_id: string
           cost_price?: number
+          created_at?: string
           description?: string | null
           discount_amount?: number
           id?: string
@@ -5174,6 +5197,7 @@ export type Database = {
         Update: {
           company_id?: string
           cost_price?: number
+          created_at?: string
           description?: string | null
           discount_amount?: number
           id?: string
@@ -5265,8 +5289,10 @@ export type Database = {
           return_reason: string | null
           status: string
           subtotal: number
+          subtotal_document_amount: number | null
           tax_amount: number
           total_amount: number
+          total_document_amount: number | null
           type: string
           updated_at: string | null
           updated_by: string | null
@@ -5296,8 +5322,10 @@ export type Database = {
           return_reason?: string | null
           status?: string
           subtotal?: number
+          subtotal_document_amount?: number | null
           tax_amount?: number
           total_amount?: number
+          total_document_amount?: number | null
           type: string
           updated_at?: string | null
           updated_by?: string | null
@@ -5327,8 +5355,10 @@ export type Database = {
           return_reason?: string | null
           status?: string
           subtotal?: number
+          subtotal_document_amount?: number | null
           tax_amount?: number
           total_amount?: number
+          total_document_amount?: number | null
           type?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -5437,6 +5467,13 @@ export type Database = {
             columns: ["reference_invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_reference_invoice_id_fkey"
+            columns: ["reference_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_currency_audit"
             referencedColumns: ["id"]
           },
         ]
@@ -5988,6 +6025,7 @@ export type Database = {
           email: string | null
           id: string
           is_active_supplier: boolean | null
+          is_collectible: boolean
           last_contact_date: string | null
           last_invoice_date: string | null
           last_purchase_date: string | null
@@ -5997,6 +6035,7 @@ export type Database = {
           name: string
           payment_terms_days: number | null
           phone: string | null
+          phone_secondary: string | null
           portal_token: string | null
           preferred_contact_method: string | null
           satisfaction_score: number | null
@@ -6029,6 +6068,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active_supplier?: boolean | null
+          is_collectible?: boolean
           last_contact_date?: string | null
           last_invoice_date?: string | null
           last_purchase_date?: string | null
@@ -6038,6 +6078,7 @@ export type Database = {
           name: string
           payment_terms_days?: number | null
           phone?: string | null
+          phone_secondary?: string | null
           portal_token?: string | null
           preferred_contact_method?: string | null
           satisfaction_score?: number | null
@@ -6070,6 +6111,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active_supplier?: boolean | null
+          is_collectible?: boolean
           last_contact_date?: string | null
           last_invoice_date?: string | null
           last_purchase_date?: string | null
@@ -6079,6 +6121,7 @@ export type Database = {
           name?: string
           payment_terms_days?: number | null
           phone?: string | null
+          phone_secondary?: string | null
           portal_token?: string | null
           preferred_contact_method?: string | null
           satisfaction_score?: number | null
@@ -9523,6 +9566,7 @@ export type Database = {
           image_url: string | null
           is_core: boolean
           is_kit: boolean | null
+          item_type: string
           location: string | null
           min_stock_level: number
           name_ar: string
@@ -9556,6 +9600,7 @@ export type Database = {
           image_url?: string | null
           is_core?: boolean
           is_kit?: boolean | null
+          item_type?: string
           location?: string | null
           min_stock_level?: number
           name_ar: string
@@ -9589,6 +9634,7 @@ export type Database = {
           image_url?: string | null
           is_core?: boolean
           is_kit?: boolean | null
+          item_type?: string
           location?: string | null
           min_stock_level?: number
           name_ar?: string
@@ -9645,6 +9691,159 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      purchase_quotation_shipments: {
+        Row: {
+          actual_arrival_date: string | null
+          cargo_description: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          destination_branch_id: string | null
+          destination_city: string
+          destination_hub: string | null
+          destination_warehouse_id: string | null
+          driver_name: string | null
+          driver_phone: string | null
+          expected_arrival_date: string | null
+          id: string
+          notes: string | null
+          origin_city: string
+          origin_hub: string | null
+          parcel_count: number
+          payment_method: string
+          quotation_id: string
+          received_by: string | null
+          received_date: string | null
+          requesting_branch_id: string | null
+          route_code: string | null
+          shipping_company_name: string
+          shipping_cost: number
+          shipping_currency: string
+          shipping_date: string | null
+          shipping_office_address: string | null
+          shipping_office_phone: string | null
+          timeline: Json
+          tracking_status: string
+          updated_at: string
+          vehicle_plate_number: string | null
+          vehicle_type: string | null
+          waybill_number: string
+          weight_kg: number | null
+        }
+        Insert: {
+          actual_arrival_date?: string | null
+          cargo_description?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          destination_branch_id?: string | null
+          destination_city?: string
+          destination_hub?: string | null
+          destination_warehouse_id?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          expected_arrival_date?: string | null
+          id?: string
+          notes?: string | null
+          origin_city?: string
+          origin_hub?: string | null
+          parcel_count?: number
+          payment_method?: string
+          quotation_id: string
+          received_by?: string | null
+          received_date?: string | null
+          requesting_branch_id?: string | null
+          route_code?: string | null
+          shipping_company_name: string
+          shipping_cost?: number
+          shipping_currency?: string
+          shipping_date?: string | null
+          shipping_office_address?: string | null
+          shipping_office_phone?: string | null
+          timeline?: Json
+          tracking_status?: string
+          updated_at?: string
+          vehicle_plate_number?: string | null
+          vehicle_type?: string | null
+          waybill_number: string
+          weight_kg?: number | null
+        }
+        Update: {
+          actual_arrival_date?: string | null
+          cargo_description?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          destination_branch_id?: string | null
+          destination_city?: string
+          destination_hub?: string | null
+          destination_warehouse_id?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          expected_arrival_date?: string | null
+          id?: string
+          notes?: string | null
+          origin_city?: string
+          origin_hub?: string | null
+          parcel_count?: number
+          payment_method?: string
+          quotation_id?: string
+          received_by?: string | null
+          received_date?: string | null
+          requesting_branch_id?: string | null
+          route_code?: string | null
+          shipping_company_name?: string
+          shipping_cost?: number
+          shipping_currency?: string
+          shipping_date?: string | null
+          shipping_office_address?: string | null
+          shipping_office_phone?: string | null
+          timeline?: Json
+          tracking_status?: string
+          updated_at?: string
+          vehicle_plate_number?: string | null
+          vehicle_type?: string | null
+          waybill_number?: string
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_quotation_shipments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_quotation_shipments_destination_branch_id_fkey"
+            columns: ["destination_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_quotation_shipments_destination_warehouse_id_fkey"
+            columns: ["destination_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_quotation_shipments_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_quotation_shipments_requesting_branch_id_fkey"
+            columns: ["requesting_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quotation_items: {
         Row: {
@@ -9876,215 +10075,15 @@ export type Database = {
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      purchase_quotation_shipments: {
-        Row: {
-          actual_arrival_date: string | null
-          cargo_description: string | null
-          company_id: string
-          created_at: string
-          created_by: string | null
-          destination_branch_id: string | null
-          destination_city: string
-          destination_hub: string | null
-          destination_warehouse_id: string | null
-          driver_name: string | null
-          driver_phone: string | null
-          expected_arrival_date: string | null
-          id: string
-          notes: string | null
-          origin_city: string
-          origin_hub: string | null
-          parcel_count: number
-          payment_method: string
-          quotation_id: string
-          received_by: string | null
-          received_date: string | null
-          requesting_branch_id: string | null
-          route_code: string | null
-          shipping_company_name: string
-          shipping_cost: number
-          shipping_currency: string
-          shipping_date: string | null
-          shipping_office_address: string | null
-          shipping_office_phone: string | null
-          timeline: Json
-          tracking_status: string
-          updated_at: string
-          vehicle_plate_number: string | null
-          vehicle_type: string | null
-          waybill_number: string
-          weight_kg: number | null
-        }
-        Insert: {
-          actual_arrival_date?: string | null
-          cargo_description?: string | null
-          company_id: string
-          created_at?: string
-          created_by?: string | null
-          destination_branch_id?: string | null
-          destination_city?: string
-          destination_hub?: string | null
-          destination_warehouse_id?: string | null
-          driver_name?: string | null
-          driver_phone?: string | null
-          expected_arrival_date?: string | null
-          id?: string
-          notes?: string | null
-          origin_city?: string
-          origin_hub?: string | null
-          parcel_count?: number
-          payment_method?: string
-          quotation_id: string
-          received_by?: string | null
-          received_date?: string | null
-          requesting_branch_id?: string | null
-          route_code?: string | null
-          shipping_company_name: string
-          shipping_cost?: number
-          shipping_currency?: string
-          shipping_date?: string | null
-          shipping_office_address?: string | null
-          shipping_office_phone?: string | null
-          timeline?: Json
-          tracking_status?: string
-          updated_at?: string
-          vehicle_plate_number?: string | null
-          vehicle_type?: string | null
-          waybill_number: string
-          weight_kg?: number | null
-        }
-        Update: {
-          actual_arrival_date?: string | null
-          cargo_description?: string | null
-          company_id?: string
-          created_at?: string
-          created_by?: string | null
-          destination_branch_id?: string | null
-          destination_city?: string
-          destination_hub?: string | null
-          destination_warehouse_id?: string | null
-          driver_name?: string | null
-          driver_phone?: string | null
-          expected_arrival_date?: string | null
-          id?: string
-          notes?: string | null
-          origin_city?: string
-          origin_hub?: string | null
-          parcel_count?: number
-          payment_method?: string
-          quotation_id?: string
-          received_by?: string | null
-          received_date?: string | null
-          requesting_branch_id?: string | null
-          route_code?: string | null
-          shipping_company_name?: string
-          shipping_cost?: number
-          shipping_currency?: string
-          shipping_date?: string | null
-          shipping_office_address?: string | null
-          shipping_office_phone?: string | null
-          timeline?: Json
-          tracking_status?: string
-          updated_at?: string
-          vehicle_plate_number?: string | null
-          vehicle_type?: string | null
-          waybill_number?: string
-          weight_kg?: number | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "purchase_quotation_shipments_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "quotations_converted_invoice_id_fkey"
+            columns: ["converted_invoice_id"]
             isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "purchase_quotation_shipments_destination_branch_id_fkey"
-            columns: ["destination_branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "purchase_quotation_shipments_requesting_branch_id_fkey"
-            columns: ["requesting_branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "purchase_quotation_shipments_destination_warehouse_id_fkey"
-            columns: ["destination_warehouse_id"]
-            isOneToOne: false
-            referencedRelation: "warehouses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "purchase_quotation_shipments_quotation_id_fkey"
-            columns: ["quotation_id"]
-            isOneToOne: false
-            referencedRelation: "quotations"
+            referencedRelation: "v_invoice_currency_audit"
             referencedColumns: ["id"]
           },
         ]
       }
-      shipping_companies: {
-        Row: {
-          address: string | null
-          company_id: string
-          created_at: string | null
-          destination_city: string | null
-          destination_hub: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          origin_city: string | null
-          origin_hub: string | null
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          address?: string | null
-          company_id: string
-          created_at?: string | null
-          destination_city?: string | null
-          destination_hub?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          origin_city?: string | null
-          origin_hub?: string | null
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          address?: string | null
-          company_id?: string
-          created_at?: string | null
-          destination_city?: string | null
-          destination_hub?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          origin_city?: string | null
-          origin_hub?: string | null
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shipping_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-
       role_permissions: {
         Row: {
           created_at: string | null
@@ -10177,6 +10176,59 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_companies: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string | null
+          destination_city: string | null
+          destination_hub: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          origin_city: string | null
+          origin_hub: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string | null
+          destination_city?: string | null
+          destination_hub?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          origin_city?: string | null
+          origin_hub?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string | null
+          destination_city?: string | null
+          destination_hub?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          origin_city?: string | null
+          origin_hub?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_transfer_items: {
         Row: {
           company_id: string
@@ -10244,10 +10296,46 @@ export type Database = {
             referencedRelation: "stock_transfers"
             referencedColumns: ["company_id", "id"]
           },
+          {
+            foreignKeyName: "stock_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "active_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_inventory_summary"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vw_inventory_valuation"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_transfer_items_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_transfers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stock_transfer_requests: {
         Row: {
+          batch_id: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -10263,6 +10351,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          batch_id?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -10278,6 +10367,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          batch_id?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -10401,6 +10491,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_from_warehouse_id_fkey"
+            columns: ["from_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_to_warehouse_id_fkey"
+            columns: ["to_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
@@ -10757,6 +10861,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sync_outbox: {
+        Row: {
+          attempts: number
+          branch_id: string | null
+          created_at: string
+          entity: string
+          entity_id: string
+          id: string
+          last_error: string | null
+          operation: string
+          payload: Json | null
+          state: string
+          target_db: string | null
+          target_ref: string | null
+          updated_at: string
+          verified: boolean
+        }
+        Insert: {
+          attempts?: number
+          branch_id?: string | null
+          created_at?: string
+          entity: string
+          entity_id: string
+          id?: string
+          last_error?: string | null
+          operation?: string
+          payload?: Json | null
+          state?: string
+          target_db?: string | null
+          target_ref?: string | null
+          updated_at?: string
+          verified?: boolean
+        }
+        Update: {
+          attempts?: number
+          branch_id?: string | null
+          created_at?: string
+          entity?: string
+          entity_id?: string
+          id?: string
+          last_error?: string | null
+          operation?: string
+          payload?: Json | null
+          state?: string
+          target_db?: string | null
+          target_ref?: string | null
+          updated_at?: string
+          verified?: boolean
+        }
+        Relationships: []
       }
       sys_activity_log: {
         Row: {
@@ -12520,6 +12675,13 @@ export type Database = {
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_reference_invoice_id_fkey"
+            columns: ["reference_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_currency_audit"
+            referencedColumns: ["id"]
+          },
         ]
       }
       active_journal_entries: {
@@ -13091,6 +13253,53 @@ export type Database = {
         }
         Relationships: []
       }
+      v_invoice_currency_audit: {
+        Row: {
+          audit_flag: string | null
+          base_amount_sar: number | null
+          currency_code: string | null
+          derived_document_amount: number | null
+          document_amount: number | null
+          exchange_rate: number | null
+          id: string | null
+          invoice_number: string | null
+          issue_date: string | null
+          type: string | null
+        }
+        Insert: {
+          audit_flag?: never
+          base_amount_sar?: number | null
+          currency_code?: string | null
+          derived_document_amount?: never
+          document_amount?: number | null
+          exchange_rate?: number | null
+          id?: string | null
+          invoice_number?: string | null
+          issue_date?: string | null
+          type?: string | null
+        }
+        Update: {
+          audit_flag?: never
+          base_amount_sar?: number | null
+          currency_code?: string | null
+          derived_document_amount?: never
+          document_amount?: number | null
+          exchange_rate?: number | null
+          id?: string | null
+          invoice_number?: string | null
+          issue_date?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "supported_currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       v_rpcs_missing_audit: {
         Row: {
           args: string | null
@@ -13332,7 +13541,7 @@ export type Database = {
         Returns: boolean
       }
       admin_recalculate_all_stock: {
-        Args: { p_company_id: string }
+        Args: { p_company_id: string; p_force?: boolean }
         Returns: Json
       }
       admin_resolve_security_alert: {
@@ -13342,415 +13551,6 @@ export type Database = {
       admin_update_system_config: {
         Args: { p_key: string; p_value: Json }
         Returns: boolean
-      }
-      api_v1_fin_generate_grn_je: {
-        Args: { p_company_id: string; p_created_by: string; p_grn_id: string }
-        Returns: Json
-      }
-      api_v1_fin_post_journal_entry: {
-        Args: {
-          p_company_id: string
-          p_created_by?: string
-          p_description: string
-          p_force_post?: boolean
-          p_journal_date: string
-          p_lines: Json
-          p_reference_id: string
-          p_reference_type: string
-        }
-        Returns: Json
-      }
-      api_v1_inv_create_warehouse: {
-        Args: {
-          p_branch_id?: string
-          p_code: string
-          p_company_id: string
-          p_location?: string
-          p_name_ar: string
-          p_name_en?: string
-        }
-        Returns: Json
-      }
-      api_v1_inv_record_movement: {
-        Args: {
-          p_company_id: string
-          p_created_by?: string
-          p_items: Json
-          p_movement_type: Database["public"]["Enums"]["inv_movement_type"]
-          p_notes?: string
-          p_reference_id: string
-          p_reference_type: string
-          p_warehouse_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_accept_grn: {
-        Args: { p_accepted_by: string; p_company_id: string; p_grn_id: string }
-        Returns: Json
-      }
-      api_v1_prc_act_on_pr: {
-        Args: {
-          p_action: string
-          p_actor_id: string
-          p_company_id: string
-          p_notes?: string
-          p_pr_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_add_supplier_product: {
-        Args: {
-          p_company_id: string
-          p_lead_time_days?: number
-          p_moq?: number
-          p_order_multiple?: number
-          p_preferred_supplier?: boolean
-          p_priority?: number
-          p_product_id: string
-          p_supplier_id: string
-          p_supplier_sku?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_approve_supplier: {
-        Args: {
-          p_approved: boolean
-          p_approved_by: string
-          p_company_id: string
-          p_rejection_reason?: string
-          p_supplier_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_approve_variance: {
-        Args: {
-          p_approved_by: string
-          p_company_id: string
-          p_invoice_id: string
-          p_match_id: string
-          p_resolution_notes: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_award_rfq: {
-        Args: {
-          p_awarded_by: string
-          p_company_id: string
-          p_evaluation_id: string
-          p_justification?: string
-          p_selected_quotation_id?: string
-          p_split_awards?: Json
-        }
-        Returns: Json
-      }
-      api_v1_prc_block_supplier: {
-        Args: {
-          p_action: string
-          p_blocked_by: string
-          p_company_id: string
-          p_reason: string
-          p_supplier_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_calculate_ranking: {
-        Args: {
-          p_company_id: string
-          p_delivery_weight?: number
-          p_evaluation_id: string
-          p_price_weight?: number
-          p_technical_weight?: number
-        }
-        Returns: Json
-      }
-      api_v1_prc_calculate_supplier_metrics: {
-        Args: {
-          p_company_id: string
-          p_period_end: string
-          p_period_start: string
-          p_supplier_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_cancel_po: {
-        Args: {
-          p_cancelled_by: string
-          p_company_id: string
-          p_po_id: string
-          p_reason?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_cancel_pr: {
-        Args: {
-          p_cancelled_by: string
-          p_company_id: string
-          p_pr_id: string
-          p_reason?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_close_rfq: {
-        Args: { p_closed_by?: string; p_company_id: string; p_rfq_id: string }
-        Returns: Json
-      }
-      api_v1_prc_create_grn: {
-        Args: {
-          p_company_id: string
-          p_delivery_note_number?: string
-          p_items?: Json
-          p_notes?: string
-          p_po_id: string
-          p_received_by: string
-          p_warehouse_id?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_create_po_from_quotation: {
-        Args: {
-          p_buyer_id: string
-          p_company_id: string
-          p_expected_delivery_date?: string
-          p_notes?: string
-          p_quotation_id: string
-          p_shipping_terms?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_create_pr: {
-        Args: {
-          p_company_id: string
-          p_currency?: string
-          p_department_id?: string
-          p_items?: Json
-          p_justification?: string
-          p_priority?: string
-          p_requester_id: string
-          p_required_date?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_create_rfq: {
-        Args: {
-          p_buyer_id: string
-          p_company_id: string
-          p_delivery_date?: string
-          p_items?: Json
-          p_pr_id?: string
-          p_submission_deadline: string
-          p_terms_and_conditions?: string
-          p_title: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_create_supplier: {
-        Args: {
-          p_category_id?: string
-          p_city?: string
-          p_commercial_registration?: string
-          p_company_id: string
-          p_country?: string
-          p_currency?: string
-          p_initial_rating?: number
-          p_legal_name: string
-          p_supplier_type?: string
-          p_tax_number?: string
-          p_trade_name?: string
-          p_vat_number?: string
-          p_website?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_instantiate_pr_workflow: {
-        Args: { p_company_id: string }
-        Returns: string
-      }
-      api_v1_prc_invite_supplier_to_rfq: {
-        Args: {
-          p_company_id: string
-          p_invited_by: string
-          p_rfq_id: string
-          p_supplier_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_issue_po: {
-        Args: { p_company_id: string; p_issued_by: string; p_po_id: string }
-        Returns: Json
-      }
-      api_v1_prc_publish_rfq: {
-        Args: {
-          p_company_id: string
-          p_published_by: string
-          p_rfq_id: string
-          p_supplier_ids?: string[]
-        }
-        Returns: Json
-      }
-      api_v1_prc_record_supplier_document: {
-        Args: {
-          p_company_id: string
-          p_document_type: string
-          p_expiry_date?: string
-          p_file_url: string
-          p_issue_date?: string
-          p_reminder_days?: number[]
-          p_supplier_id: string
-          p_title: string
-          p_uploaded_by?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_run_three_way_match: {
-        Args: {
-          p_company_id: string
-          p_invoice_id: string
-          p_matched_by: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_schedule_analytics_job: {
-        Args: { p_company_id: string; p_scheduled_by?: string }
-        Returns: Json
-      }
-      api_v1_prc_score_quotation: {
-        Args: {
-          p_company_id: string
-          p_delivery_score: number
-          p_evaluation_id: string
-          p_price_score: number
-          p_quotation_id: string
-          p_technical_score: number
-        }
-        Returns: Json
-      }
-      api_v1_prc_start_evaluation: {
-        Args: { p_company_id: string; p_evaluator_id: string; p_rfq_id: string }
-        Returns: Json
-      }
-      api_v1_prc_submit_pr: {
-        Args: { p_company_id: string; p_pr_id: string; p_submitted_by: string }
-        Returns: Json
-      }
-      api_v1_prc_submit_quotation: {
-        Args: {
-          p_company_id: string
-          p_currency?: string
-          p_delivery_lead_time_days?: number
-          p_items?: Json
-          p_notes?: string
-          p_payment_terms?: string
-          p_rfq_id: string
-          p_supplier_id: string
-          p_valid_until?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_submit_supplier_approval: {
-        Args: {
-          p_company_id: string
-          p_submitted_by: string
-          p_supplier_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_update_supplier_scores: {
-        Args: {
-          p_company_id: string
-          p_period_end: string
-          p_period_start: string
-          p_supplier_id: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_update_supplier_terms: {
-        Args: {
-          p_company_id: string
-          p_credit_days?: number
-          p_credit_limit?: number
-          p_delivery_method?: string
-          p_incoterm?: string
-          p_payment_terms: string
-          p_penalty_rules?: string
-          p_return_policy?: string
-          p_shipping_terms?: string
-          p_supplier_id: string
-          p_warranty_terms?: string
-        }
-        Returns: Json
-      }
-      api_v1_prc_upsert_supplier_price: {
-        Args: {
-          p_company_id: string
-          p_currency?: string
-          p_discount?: number
-          p_effective_from?: string
-          p_effective_to?: string
-          p_minimum_quantity?: number
-          p_supplier_product_id: string
-          p_tax_percentage?: number
-          p_unit_price: number
-        }
-        Returns: Json
-      }
-      api_v1_sys_claim_job: {
-        Args: { p_lease_seconds?: number; p_worker_id: string }
-        Returns: {
-          company_id: string
-          correlation_id: string
-          job_id: string
-          job_type: string
-          payload: Json
-        }[]
-      }
-      api_v1_sys_complete_job: {
-        Args: { p_job_id: string; p_worker_id?: string }
-        Returns: boolean
-      }
-      api_v1_sys_enqueue_job: {
-        Args: {
-          p_company_id: string
-          p_correlation_id?: string
-          p_job_type: string
-          p_payload: Json
-          p_run_after?: string
-        }
-        Returns: string
-      }
-      api_v1_sys_fail_job: {
-        Args: {
-          p_error: string
-          p_job_id: string
-          p_retry_delay_seconds?: number
-          p_worker_id?: string
-        }
-        Returns: boolean
-      }
-      api_v1_sys_is_feature_enabled: {
-        Args: {
-          p_company_id?: string
-          p_flag_name: string
-          p_role?: string
-          p_user_id?: string
-        }
-        Returns: boolean
-      }
-      api_v1_sys_publish_event: {
-        Args: {
-          p_actor_id?: string
-          p_actor_type?: string
-          p_aggregate_id: string
-          p_aggregate_type: string
-          p_company_id: string
-          p_correlation_id?: string
-          p_event_type: string
-          p_payload: Json
-        }
-        Returns: string
-      }
-      api_v1_sys_worker_heartbeat: {
-        Args: { p_worker_id: string }
-        Returns: undefined
       }
       archive_old_audit_logs: {
         Args: { p_batch_size?: number; p_days_to_keep?: number }
@@ -13989,10 +13789,6 @@ export type Database = {
         }
         Returns: string
       }
-      commit_sales_requisition: {
-        Args: { p_company_id: string; p_data: Json; p_user_id: string }
-        Returns: Json
-      }
       complete_debt_task: {
         Args: {
           p_activity_id: string
@@ -14094,6 +13890,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_stock_transfer_requests_batch: {
+        Args: {
+          p_company_id: string
+          p_items: Json
+          p_notes?: string
+          p_requester_branch_id: string
+          p_source_branch_id: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
       cron_aggregate_csp_reports: { Args: never; Returns: number }
       cron_auto_block_honeypot_attackers: { Args: never; Returns: number }
       cron_break_overdue_promises: { Args: never; Returns: number }
@@ -14180,6 +13987,22 @@ export type Database = {
         Returns: undefined
       }
       fn_audit_erp_integrity: { Args: { p_company_id: string }; Returns: Json }
+      fn_audit_invoice_paid_drift: {
+        Args: { p_apply?: boolean; p_company_id: string }
+        Returns: {
+          out_action: string
+          out_advance: number
+          out_allocations: number
+          out_drift: number
+          out_expected: number
+          out_invoice_id: string
+          out_invoice_number: string
+          out_paid: number
+          out_party: string
+          out_status: string
+          out_total: number
+        }[]
+      }
       fn_backfill_missing_invoice_journals: {
         Args: { p_company_id?: string }
         Returns: {
@@ -14207,6 +14030,14 @@ export type Database = {
       fn_get_vat_return_report: {
         Args: { p_company_id: string; p_end_date: string; p_start_date: string }
         Returns: Json
+      }
+      fn_invoice_to_base_amount: {
+        Args: {
+          p_amount: number
+          p_currency_code: string
+          p_exchange_rate?: number
+        }
+        Returns: number
       }
       fn_post_asset_depreciation: {
         Args: {
@@ -14284,14 +14115,24 @@ export type Database = {
         }
         Returns: Json
       }
-      fn_to_base_amount: {
-        Args: {
-          p_amount: number
-          p_currency_code: string
-          p_exchange_rate?: number
-        }
-        Returns: number
-      }
+      fn_to_base_amount:
+        | {
+            Args: {
+              p_amount: number
+              p_currency_code: string
+              p_exchange_rate?: number
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_base_currency: string
+              p_currency_code: string
+              p_exchange_rate: number
+            }
+            Returns: number
+          }
       fn_transition_expired_trials: { Args: never; Returns: number }
       generate_invoice_number: {
         Args: { p_branch_id?: string; p_company_id: string; p_type: string }
@@ -14584,6 +14425,38 @@ export type Database = {
           total_outstanding: number
         }[]
       }
+      get_debt_priority_queue: {
+        Args: {
+          p_branch_id?: string
+          p_bucket?: string
+          p_collector_id?: string
+          p_company_id: string
+          p_limit?: number
+        }
+        Returns: {
+          amount: number
+          amount_base: number
+          assigned_name: string
+          assigned_to: string
+          currency_code: string
+          days_late: number
+          days_since_contact: number
+          due_at: string
+          escalation_stage: string
+          is_overdue: boolean
+          next_action: string
+          party_id: string
+          party_name: string
+          party_phone: string
+          priority: string
+          priority_score: number
+          reference_info: string
+          score_drivers: string[]
+          task_id: string
+          task_type: string
+          urgency: string
+        }[]
+      }
       get_debt_reminder_queue: {
         Args: { p_company_id: string; p_limit?: number; p_status?: string }
         Returns: {
@@ -14654,12 +14527,47 @@ export type Database = {
         }[]
       }
       get_expense_stats: { Args: { p_company_id: string }; Returns: Json }
+      get_inventory_movements_feed: {
+        Args: {
+          p_branch_id?: string
+          p_company_id: string
+          p_doc_type?: string
+          p_end_date?: string
+          p_limit?: number
+          p_movement_type?: string
+          p_offset?: number
+          p_product_id?: string
+          p_search?: string
+          p_start_date?: string
+        }
+        Returns: {
+          current_stock: number
+          date: string
+          doc_number: string
+          doc_type: string
+          id: string
+          movement_type: string
+          notes: string
+          party_name: string
+          product_brand: string
+          product_id: string
+          product_name: string
+          product_part_number: string
+          product_sku: string
+          quantity: number
+          reference_id: string
+          unit_cost: number
+          unit_price: number
+          user_name: string
+        }[]
+      }
       get_inventory_valuation: { Args: { p_company_id: string }; Returns: Json }
       get_invoice_with_items: { Args: { p_invoice_id: string }; Returns: Json }
       get_item_movements_with_balance: {
         Args: { p_company_id: string; p_product_id: string }
         Returns: {
           balance_after: number
+          branch_id: string
           date: string
           document_number: string
           id: string
@@ -14671,6 +14579,7 @@ export type Database = {
           source_name: string
           source_user: string
           transaction_type: string
+          warehouse_id: string
         }[]
       }
       get_low_stock_products: {
@@ -14711,10 +14620,6 @@ export type Database = {
       get_next_journal_entry_number: {
         Args: { p_company_id: string }
         Returns: number
-      }
-      get_next_requisition_number: {
-        Args: { p_company_id: string }
-        Returns: string
       }
       get_next_sequence: {
         Args: { p_company_id: string; p_sequence_name: string }
@@ -14976,12 +14881,12 @@ export type Database = {
       }
       get_purchases_stats_summary: {
         Args: {
-          p_branch_id?: string | null
+          p_branch_id?: string | null | undefined
           p_company_id: string
-          p_currency?: string | null
-          p_date_from?: string | null
-          p_date_to?: string | null
-          p_payment_method?: string | null
+          p_currency?: string | null | undefined
+          p_date_from?: string | null | undefined
+          p_date_to?: string | null | undefined
+          p_payment_method?: string | null | undefined
         }
         Returns: Json
       }
@@ -15013,10 +14918,29 @@ export type Database = {
       get_sales_stats: { Args: { p_company_id: string }; Returns: Json }
       get_sales_stats_summary: {
         Args: {
-          p_branch_id?: string | null
+          p_branch_id?: string | null | undefined
           p_company_id: string
-          p_date_from?: string | null
-          p_date_to?: string | null
+          p_date_from?: string | null | undefined
+          p_date_to?: string | null | undefined
+        }
+        Returns: Json
+      }
+      commit_sales_requisition: {
+        Args: {
+          p_company_id: string
+          p_data: Json
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      get_next_requisition_number: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
+      set_sales_requisition_status: {
+        Args: {
+          p_pr_id: string
+          p_status: string
         }
         Returns: Json
       }
@@ -15082,19 +15006,38 @@ export type Database = {
           top_products: Json
         }[]
       }
-      get_top_selling_products: {
-        Args: { p_company_id: string; p_days?: number; p_limit?: number }
-        Returns: {
-          category_id: string
-          gross_profit: number
-          id: string
-          name_ar: string
-          sku: string
-          total_cost: number
-          total_revenue: number
-          total_sold: number
-        }[]
-      }
+      get_top_selling_products:
+        | {
+            Args: { p_company_id: string; p_days?: number; p_limit?: number }
+            Returns: {
+              category_id: string
+              gross_profit: number
+              id: string
+              name_ar: string
+              sku: string
+              total_cost: number
+              total_revenue: number
+              total_sold: number
+            }[]
+          }
+        | {
+            Args: {
+              p_branch_id?: string
+              p_company_id: string
+              p_days?: number
+              p_limit?: number
+            }
+            Returns: {
+              category_id: string
+              gross_profit: number
+              id: string
+              name_ar: string
+              sku: string
+              total_cost: number
+              total_revenue: number
+              total_sold: number
+            }[]
+          }
       get_user_branch_id: { Args: { p_company_id: string }; Returns: string }
       get_user_company_id: { Args: never; Returns: string }
       get_user_permissions:
@@ -15138,6 +15081,16 @@ export type Database = {
           stockValue: number
           totalStock: number
         }[]
+      }
+      gn_pull: {
+        Args: {
+          p_after_key?: string
+          p_after_ts?: string
+          p_entity: string
+          p_limit?: number
+          p_token: string
+        }
+        Returns: Json
       }
       has_permission:
         | { Args: { p_permission: string }; Returns: boolean }
@@ -15436,18 +15389,18 @@ export type Database = {
       }
       process_sales_return: {
         Args: {
-          p_company_id: string
-          p_currency_code: string
-          p_exchange_rate: number
+          p_company_id?: string
+          p_currency_code?: string
+          p_exchange_rate?: number
           p_invoice_id: string
-          p_issue_date: string
-          p_items: Json
-          p_notes: string
-          p_party_id: string
-          p_payment_method: string
-          p_return_reason: string
-          p_status: string
-          p_user_id: string
+          p_issue_date?: string
+          p_items?: Json
+          p_notes?: string
+          p_party_id?: string
+          p_payment_method?: string
+          p_return_reason?: string
+          p_status?: string
+          p_user_id?: string
         }
         Returns: Json
       }
@@ -15567,19 +15520,28 @@ export type Database = {
           total_debit: number
         }[]
       }
-      report_cash_flow: {
-        Args: {
-          p_branch_id?: string
-          p_company_id: string
-          p_from: string
-          p_to: string
-        }
-        Returns: {
-          category: string
-          inflow: number
-          outflow: number
-        }[]
-      }
+      report_cash_flow:
+        | {
+            Args: { p_company_id: string; p_from: string; p_to: string }
+            Returns: {
+              category: string
+              inflow: number
+              outflow: number
+            }[]
+          }
+        | {
+            Args: {
+              p_branch_id?: string
+              p_company_id: string
+              p_from: string
+              p_to: string
+            }
+            Returns: {
+              category: string
+              inflow: number
+              outflow: number
+            }[]
+          }
       report_debt_aging: {
         Args: { p_company_id: string }
         Returns: {
@@ -15591,7 +15553,12 @@ export type Database = {
           total: number
         }[]
       }
-      report_debts: { Args: { p_company_id: string }; Returns: Json }
+      report_debts:
+        | { Args: { p_company_id: string }; Returns: Json }
+        | {
+            Args: { p_branch_id?: string; p_company_id: string }
+            Returns: Json
+          }
       report_operational_expenses_detailed: {
         Args: {
           p_branch_id?: string
@@ -15661,7 +15628,18 @@ export type Database = {
       respond_stock_transfer_request: {
         Args: {
           p_action: string
+          p_approved_quantity?: number
           p_request_id: string
+          p_review_notes?: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
+      respond_stock_transfer_requests_batch: {
+        Args: {
+          p_action: string
+          p_batch_id: string
+          p_items_approved?: Json
           p_review_notes?: string
           p_user_id?: string
         }
@@ -15933,10 +15911,6 @@ export type Database = {
           p_revoked_permissions?: string[]
           p_target_user_id: string
         }
-        Returns: Json
-      }
-      set_sales_requisition_status: {
-        Args: { p_pr_id: string; p_status: string }
         Returns: Json
       }
       soft_delete_account_guarded: {

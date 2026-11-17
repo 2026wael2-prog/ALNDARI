@@ -10,6 +10,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import Button from '../../../../ui/base/Button';
+import { ConfirmModal } from '../../../../ui/base/ConfirmModal';
 import { formatCurrency } from '../../../../core/utils';
 import { useFixedAssets, useFixedAssetMutations } from '../../hooks/useFixedAssets';
 import AddAssetModal from './AddAssetModal';
@@ -59,14 +60,10 @@ const FixedAssetsView: React.FC = () => {
     };
   }, [assets]);
 
-  const handleRunAll = async () => {
-    if (
-      window.confirm(
-        'هل تريد تشغيل الإهلاك الدوري لكافة الأصول النشطة للشهر الحالي؟ سيقوم النظام بتوليد القيود المحاسبية آلياً.'
-      )
-    ) {
-      await runAllDepreciation();
-    }
+  const [isRunAllConfirmOpen, setIsRunAllConfirmOpen] = useState(false);
+
+  const handleRunAll = () => {
+    setIsRunAllConfirmOpen(true);
   };
 
   const handleSingleDepreciate = async (assetId: string) => {
@@ -285,6 +282,21 @@ const FixedAssetsView: React.FC = () => {
           await createAsset(input);
         }}
         isLoading={isCreating}
+      />
+
+      <ConfirmModal
+        isOpen={isRunAllConfirmOpen}
+        onClose={() => {
+          setIsRunAllConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          setIsRunAllConfirmOpen(false);
+          void runAllDepreciation();
+        }}
+        title="تشغيل الإهلاك الدوري"
+        message="هل تريد تشغيل الإهلاك الدوري لكافة الأصول النشطة للشهر الحالي؟ سيقوم النظام بتوليد القيود المحاسبية آلياً."
+        confirmLabel="تشغيل الإهلاك"
+        variant="info"
       />
     </div>
   );

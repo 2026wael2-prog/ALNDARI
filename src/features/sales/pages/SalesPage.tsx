@@ -1,4 +1,5 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag,
   Plus,
@@ -7,6 +8,7 @@ import {
   BarChart3,
   FileText,
   ClipboardList,
+  Users,
 } from 'lucide-react';
 import MicroHeader from '@/ui/base/MicroHeader';
 import PageLoader from '@/ui/base/PageLoader';
@@ -21,9 +23,6 @@ import { useSalesStore } from '@/features/sales/store';
 const CreateInvoiceView = lazy(() => import('@/features/sales/components/create/CreateInvoiceView'));
 const InvoiceListView = lazy(() => import('@/features/sales/components/list/InvoiceListView'));
 const SalesReturnsView = lazy(() => import('@/features/sales/components/Returns/SalesReturnsView'));
-const SalesAnalyticsView = lazy(
-  () => import('@/features/sales/components/Analytics/SalesAnalyticsView')
-);
 const QuotationsTab = lazy(() => import('@/features/sales/components/quotations/QuotationsTab'));
 const InvoiceDetailsModal = lazy(
   () => import('@/features/sales/components/details/InvoiceDetailsModal')
@@ -33,11 +32,69 @@ const SalesRequisitionsView = lazy(() =>
     default: m.SalesRequisitionsView,
   }))
 );
+const SalesBiView = lazy(() =>
+  import('@/features/reports/components/bi/SalesBiView').then(m => ({
+    default: m.SalesBiView,
+  }))
+);
+const CustomerBiView = lazy(() =>
+  import('@/features/reports/components/bi/CustomerBiView').then(m => ({
+    default: m.CustomerBiView,
+  }))
+);
 
-type SalesViewTab = 'create' | 'list' | 'returns' | 'analytics' | 'quotations' | 'requisitions';
+type SalesViewTab =
+  | 'create'
+  | 'list'
+  | 'returns'
+  | 'quotations'
+  | 'requisitions'
+  | 'bi_sales'
+  | 'bi_customers';
+
+const isSalesViewTab = (value: string): value is SalesViewTab =>
+  [
+    'create',
+    'list',
+    'returns',
+    'quotations',
+    'requisitions',
+    'bi_sales',
+    'bi_customers',
+  ].includes(value);
 
 const SalesPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SalesViewTab>('list');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState<SalesViewTab>(() => {
+    const initialTab = searchParams.get('tab');
+    return initialTab && isSalesViewTab(initialTab) ? initialTab : 'list';
+  });
+
+  const setActiveTab = useCallback(
+    (nextTab: SalesViewTab) => {
+      setActiveTabState(nextTab);
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (nextTab === 'list') {
+            next.delete('tab');
+          } else {
+            next.set('tab', nextTab);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && isSalesViewTab(tabParam)) {
+      setActiveTabState(tabParam);
+    }
+  }, [searchParams]);
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { t } = useTranslation();
@@ -49,7 +106,8 @@ const SalesPage: React.FC = () => {
     { id: 'requisitions' as const, label: 'المطلوبات', icon: ClipboardList },
     { id: 'returns' as const, label: t('returns'), icon: RefreshCw },
     { id: 'quotations' as const, label: t('quotations'), icon: FileText },
-    { id: 'analytics' as const, label: t('analytics'), icon: BarChart3 },
+    { id: 'bi_sales' as const, label: 'تقارير المبيعات BI', icon: BarChart3 },
+    { id: 'bi_customers' as const, label: 'تحليلات العملاء والولاء', icon: Users },
   ];
 
   // AI Prefill: consume pending sales invoice intent
@@ -156,8 +214,10 @@ const SalesPage: React.FC = () => {
         );
       case 'requisitions':
         return <SalesRequisitionsView />;
-      case 'analytics':
-        return <SalesAnalyticsView />;
+      case 'bi_sales':
+        return <SalesBiView />;
+      case 'bi_customers':
+        return <CustomerBiView />;
       default:
         return null;
     }

@@ -29,10 +29,20 @@ export function useConvertQuotationToPurchase({
     if (quotation === undefined) return;
     setActionLoading(quotationId);
     try {
-      const { resetCart, setSupplier, bulkLoadItems } = usePurchaseStore.getState();
+      const { resetCart, setSupplier, setMetadata, bulkLoadItems } = usePurchaseStore.getState();
       resetCart();
       if (quotation.party !== null) {
-        setSupplier({ id: quotation.party.id ?? 'temp', name: quotation.party.name });
+        setSupplier({ id: quotation.party.id ?? '', name: quotation.party.name });
+      }
+      const qMeta = quotation as typeof quotation & {
+        currency_code?: string | null;
+        exchange_rate?: number | null;
+      };
+      if (qMeta.currency_code) {
+        setMetadata('currency', qMeta.currency_code);
+      }
+      if (qMeta.exchange_rate && qMeta.exchange_rate > 0) {
+        setMetadata('exchangeRate', qMeta.exchange_rate);
       }
       if (quotation.quotation_items.length > 0) {
         bulkLoadItems(

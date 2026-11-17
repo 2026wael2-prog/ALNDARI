@@ -2,6 +2,7 @@ import { logger } from '../../../core/utils/logger';
 
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { journalService } from '../services/journalService';
+import type { JournalQueryFilters } from '../api/journalsApi';
 import { useAuthStore } from '../../auth/store';
 import { useFeedbackStore } from '../../feedback/store';
 import type { JournalEntryFormData } from '../types/models';
@@ -10,17 +11,22 @@ import { assertPermission } from '../../../core/hooks/usePermission';
 import { invalidateByPreset } from '../../../lib/invalidation';
 import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
 
-export const useJournals = () => {
+export const useJournals = (filters?: JournalQueryFilters) => {
   const { user } = useAuthStore();
   const companyId = user?.company_id;
   const { branchId } = useBranchFilter();
 
   return useInfiniteQuery({
-    queryKey: ['journals', companyId, branchId],
+    queryKey: ['journals', companyId, branchId, filters],
     queryFn: async ({ pageParam }) => {
       if (!companyId) return [];
       try {
-        const result = await journalService.formatJournalsForUI(companyId, branchId, pageParam);
+        const result = await journalService.formatJournalsForUI(
+          companyId,
+          branchId,
+          pageParam,
+          filters
+        );
         return Array.isArray(result) ? result : [];
       } catch (error) {
         logger.error('useJournals', 'useJournals fetch error:', error);

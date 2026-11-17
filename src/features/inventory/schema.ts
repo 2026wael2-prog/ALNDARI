@@ -25,6 +25,7 @@ export const productFormSchema = z.object({
   alternative_numbers: z.string().optional().nullable(),
   image_url: z.string().optional().nullable(),
   barcode: z.string().optional().nullable(),
+  item_type: z.enum(['stock', 'service']).optional(),
   cost_price: numericStringOrNumber.refine(val => val >= 0, {
     message: 'سعر التكلفة يجب أن يكون 0 أو أكثر',
   }),

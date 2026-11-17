@@ -36,7 +36,7 @@ const DhikrTicker: React.FC = () => {
   // Collapsed Quick-Restore Pill
   if (!enabled) {
     return (
-      <div className="no-print flex w-full items-center justify-between border-b border-emerald-500/20 bg-emerald-500/10 px-3 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+      <div className="no-print flex h-4 w-full items-center justify-between border-b border-emerald-500/20 bg-emerald-500/10 px-2 py-0 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
         <button
           type="button"
           onClick={() => {
@@ -82,7 +82,7 @@ const DhikrTicker: React.FC = () => {
           setPaused(false);
         }}
         className={cn(
-          'no-print relative flex h-5 flex-shrink-0 select-none items-center justify-between overflow-hidden border-b px-2 text-xs font-bold transition-colors',
+          'no-print relative flex h-4 flex-shrink-0 select-none items-center justify-between overflow-hidden border-b px-2 text-xs font-bold transition-colors',
           item.isPrayerUrgent
             ? 'border-amber-500/40 bg-gradient-to-r from-emerald-600/25 via-amber-500/20 to-emerald-600/25 text-emerald-950 shadow-xs dark:text-emerald-100'
             : 'border-emerald-500/25 bg-gradient-to-r from-emerald-900/10 via-emerald-600/10 to-teal-900/10 text-slate-800 dark:from-emerald-950/60 dark:via-slate-900/60 dark:to-teal-950/60 dark:text-slate-100'
@@ -99,7 +99,7 @@ const DhikrTicker: React.FC = () => {
                 setIsModalOpen(true);
               }}
               className={cn(
-                'flex cursor-pointer items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black shadow-xs transition-all',
+                'flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0 text-[10px] font-black leading-none shadow-xs transition-all',
                 item.isPrayerUrgent
                   ? 'animate-pulse bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950'
                   : 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -118,7 +118,7 @@ const DhikrTicker: React.FC = () => {
             onClick={() => {
               setIsModalOpen(true);
             }}
-            className="hidden items-center gap-1 rounded-lg border border-emerald-500/20 bg-white/70 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shadow-xs transition-colors hover:bg-white dark:bg-slate-800/80 dark:text-emerald-300 md:flex"
+            className="hidden items-center gap-1 rounded-md border border-emerald-500/20 bg-white/70 px-1.5 py-0 text-[10px] font-bold leading-none text-emerald-800 shadow-xs transition-colors hover:bg-white dark:bg-slate-800/80 dark:text-emerald-300 md:flex"
           >
             <BookOpen size={11} className="text-emerald-600" />
             <span>الأدعية والمواقيت</span>

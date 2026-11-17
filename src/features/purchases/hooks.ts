@@ -97,8 +97,8 @@ export const usePurchaseStats = (
 
   const filters: PurchaseStatsFilters = {
     branchId: effectiveBranchId,
-    startDate: customFilters?.startDate ?? globalFilters.startDate,
-    endDate: customFilters?.endDate ?? globalFilters.endDate,
+    startDate: customFilters !== undefined ? (customFilters.startDate ?? null) : globalFilters.startDate,
+    endDate: customFilters !== undefined ? (customFilters.endDate ?? null) : globalFilters.endDate,
     currency: customFilters?.currency ?? globalFilters.currency,
     paymentType: customFilters?.paymentType ?? globalFilters.paymentType,
   };
@@ -279,8 +279,8 @@ export const usePurchasesAnalytics = (
 
   const filters: PurchaseStatsFilters = {
     branchId: effectiveBranchId,
-    startDate: customFilters?.startDate ?? globalFilters.startDate,
-    endDate: customFilters?.endDate ?? globalFilters.endDate,
+    startDate: customFilters !== undefined ? (customFilters.startDate ?? null) : globalFilters.startDate,
+    endDate: customFilters !== undefined ? (customFilters.endDate ?? null) : globalFilters.endDate,
     currency: customFilters?.currency ?? globalFilters.currency,
     paymentType: customFilters?.paymentType ?? globalFilters.paymentType,
   };

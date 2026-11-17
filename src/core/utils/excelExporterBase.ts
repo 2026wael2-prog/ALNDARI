@@ -81,8 +81,20 @@ let xlsxPromise: Promise<XlsxLike> | null = null;
 export const loadXLSX = (): Promise<XlsxLike> => {
   xlsxPromise ??= import('xlsx-js-style')
     .then((m: unknown) => {
-      const mod = m as { default?: XlsxLike };
-      return mod.default ?? (m as XlsxLike);
+      const mod = m as XlsxLike & {
+        default?: XlsxLike & { default?: XlsxLike };
+      };
+      const resolved =
+        (mod?.utils ? mod : null) ??
+        (mod?.default?.utils ? mod.default : null) ??
+        (mod?.default?.default?.utils ? mod.default.default : null) ??
+        ((globalThis as unknown as { XLSX?: XlsxLike }).XLSX?.utils
+          ? (globalThis as unknown as { XLSX: XlsxLike }).XLSX
+          : null);
+      if (!resolved) {
+        throw new Error('XLSX library loaded without utils');
+      }
+      return resolved;
     })
     .catch((err: unknown) => {
       xlsxPromise = null;

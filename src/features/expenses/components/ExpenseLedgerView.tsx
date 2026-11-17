@@ -29,42 +29,40 @@ export const ExpenseLedgerView: React.FC<Props> = ({ initialAccountId, onBackToL
   const [dateTo, setDateTo] = useState<string | undefined>();
   const [accountFilterType, setAccountFilterType] = useState<AccountFilterType>('all');
 
-  // Sync and resolve initial account ID if prop changes or on initial load
+  // Sync initial account ID only when prop or reference lists change
   React.useEffect(() => {
-    if (initialAccountId && accounts.length > 0) {
-      // 1. Direct match with account ID
-      const directAcc = accounts.find(a => a.id === initialAccountId);
-      if (directAcc) {
-        setSelectedAccountId(directAcc.id);
-        return;
-      }
-      // 2. Match via expense category
-      const matchedCat = categories.find((c: any) => c.id === initialAccountId);
-      if (matchedCat && matchedCat.account_id) {
-        const catAcc = accounts.find(a => a.id === matchedCat.account_id);
-        if (catAcc) {
-          setSelectedAccountId(catAcc.id);
-          return;
-        }
-      }
+    if (!initialAccountId || accounts.length === 0) return;
+
+    const directAcc = accounts.find(a => a.id === initialAccountId);
+    if (directAcc) {
+      setSelectedAccountId(directAcc.id);
+      return;
     }
 
-    // If no valid account is selected, auto-select the best operational expense account
-    if (
-      accounts.length > 0 &&
-      (!selectedAccountId || !accounts.some(a => a.id === selectedAccountId))
-    ) {
-      const defaultExp =
-        accounts.find(a => a.code === '5600') ||
-        accounts.find(a => a.code === '5300') ||
-        accounts.find(a => a.code === '5400') ||
-        accounts.find(a => a.code.startsWith('5') && !a.code.startsWith('51')) ||
-        accounts[0];
-      if (defaultExp) {
-        setSelectedAccountId(defaultExp.id);
+    const matchedCat = categories.find((c: any) => c.id === initialAccountId);
+    if (matchedCat?.account_id) {
+      const catAcc = accounts.find(a => a.id === matchedCat.account_id);
+      if (catAcc) {
+        setSelectedAccountId(catAcc.id);
       }
     }
-  }, [initialAccountId, accounts, categories, selectedAccountId]);
+  }, [initialAccountId, accounts, categories]);
+
+  // Auto-select default operational expense account when none is selected
+  React.useEffect(() => {
+    if (accounts.length === 0) return;
+    if (selectedAccountId && accounts.some(a => a.id === selectedAccountId)) return;
+
+    const defaultExp =
+      accounts.find(a => a.code === '5600') ||
+      accounts.find(a => a.code === '5300') ||
+      accounts.find(a => a.code === '5400') ||
+      accounts.find(a => a.code.startsWith('5') && !a.code.startsWith('51')) ||
+      accounts[0];
+    if (defaultExp) {
+      setSelectedAccountId(defaultExp.id);
+    }
+  }, [accounts, selectedAccountId]);
 
   const { data: ledger = [], isLoading: isLoadingLedger } = useLedger(
     selectedAccountId || null,

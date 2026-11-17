@@ -1,6 +1,6 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/explicit-function-return-type, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/no-explicit-any */
-import React, { Suspense, lazy, useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { Suspense, lazy, useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FileText,
   Plus,
@@ -31,12 +31,53 @@ const BondVoucherModal = lazy(() => import('./components/BondVoucherModal'));
 
 type ViewType = 'list' | 'analytics';
 
+const isBondType = (value: string): value is BondType =>
+  ['receipt', 'payment', 'transfer'].includes(value);
+
 const BondsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<BondType>('receipt');
+  const [activeTab, setActiveTabState] = useState<BondType>(() => {
+    const tabParam = searchParams.get('tab');
+    return tabParam && isBondType(tabParam) ? tabParam : 'receipt';
+  });
   const [modalType, setModalType] = useState<BondType>('receipt');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const setActiveTab = useCallback(
+    (nextTab: BondType) => {
+      setActiveTabState(nextTab);
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (nextTab === 'receipt') {
+            next.delete('tab');
+          } else {
+            next.set('tab', nextTab);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    const resolvedTab = tabParam && isBondType(tabParam) ? tabParam : undefined;
+    if (resolvedTab) {
+      setActiveTabState(resolvedTab);
+    }
+    if (searchParams.get('action') === 'new') {
+      setModalType(resolvedTab ?? activeTab);
+      setIsModalOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('action');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, activeTab, setSearchParams]);
   const [viewType, setViewType] = useState<ViewType>('list');
   const [displayMode, setDisplayMode] = useState<'table' | 'cards'>('table');
   const [previewBond, setPreviewBond] = useState<Bond | null>(null);
@@ -70,8 +111,12 @@ const BondsPage: React.FC = () => {
     handleResetFilters,
   } = useBondsFilter(bonds);
 
-  // Totals & KPI metrics (serverAnalytics via get_bonds_stats RPC is authoritative; bonds is fallback)
-  const { totals, analytics } = useBondsTotals(serverAnalytics, bonds);
+  // Totals & KPI metrics (serverAnalytics via get_bonds_stats RPC is authoritative; bonds is fallback; displayedBonds when filtered)
+  const { totals, analytics } = useBondsTotals(
+    serverAnalytics,
+    hasActiveFilters ? displayedBonds : bonds,
+    hasActiveFilters
+  );
 
   // AI Prefill: consume pending bond intent
   const consumePrefill = useAIPrefillStore((s: any) => s.consumePrefill);
@@ -286,8 +331,13 @@ const BondsPage: React.FC = () => {
         onSearchChange={setSearchTerm}
       />
 
-      {/* Desktop Quick KPI Summary Bar */}
-      <BondsQuickKpiBar totals={totals} analytics={analytics} />
+      {/* Desktop Quick KPI Summary Bar with Active Filtering */}
+      <BondsQuickKpiBar
+        totals={totals}
+        analytics={analytics}
+        isFiltered={hasActiveFilters}
+        onResetFilters={handleResetFilters}
+      />
 
       <div className="relative z-20 flex flex-1 flex-col overflow-hidden">
         <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-24 pt-3 md:px-5 md:pt-4">

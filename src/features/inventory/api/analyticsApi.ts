@@ -43,39 +43,66 @@ export const analyticsApi = {
         `
                 quantity,
                 total,
-                invoices!inner(issue_date, type, status)
+                cost_price,
+                invoices!inner(issue_date, type, status, currency_code, exchange_rate)
             `
       )
       .eq('product_id', productId)
-      .neq('invoices.status', 'void');
+      .in('invoices.status', ['posted', 'paid', 'confirmed', 'partially_paid']);
 
     if (error) return { data: null, error };
 
     const rows = (data || []) as Array<{
       quantity?: number | null;
       total?: number | null;
-      invoices?: { issue_date?: string | null; type?: string | null } | null;
+      cost_price?: number | null;
+      invoices?: {
+        issue_date?: string | null;
+        type?: string | null;
+        currency_code?: string | null;
+        exchange_rate?: number | null;
+      } | null;
     }>;
 
     let totalQuantitySold = 0;
+    let totalPurchasesQty = 0;
     let totalRevenue = 0;
+    let totalCogs = 0;
+    let saleTxCount = 0;
     let lastSaleDate: string | null = null;
 
     rows.forEach(row => {
-      const multiplier = row.invoices?.type === 'sale_return' ? -1 : 1;
-      totalQuantitySold += (Number(row.quantity) || 0) * multiplier;
-      totalRevenue += (Number(row.total) || 0) * multiplier;
+      const invType = row.invoices?.type;
+      const qty = Number(row.quantity) || 0;
+      const lineTotal = Number(row.total) || 0;
+      const lineCost = Number(row.cost_price) || 0;
+      const rate = Number(row.invoices?.exchange_rate) || 1;
+      const isYer = row.invoices?.currency_code === 'YER' && rate > 1;
+      const toBase = (val: number) => (isYer ? val / rate : row.invoices?.currency_code && row.invoices.currency_code !== 'SAR' ? val * rate : val);
 
-      if (row.invoices?.issue_date && (!lastSaleDate || row.invoices.issue_date > lastSaleDate)) {
-        lastSaleDate = row.invoices.issue_date;
+      if (invType === 'sale' || invType === 'sale_return' || invType === 'return_sale') {
+        const mult = invType === 'sale' ? 1 : -1;
+        totalQuantitySold += qty * mult;
+        totalRevenue += toBase(lineTotal) * mult;
+        totalCogs += toBase(lineCost) * qty * mult;
+        saleTxCount += 1;
+
+        if (invType === 'sale' && row.invoices?.issue_date && (!lastSaleDate || row.invoices.issue_date > lastSaleDate)) {
+          lastSaleDate = row.invoices.issue_date;
+        }
+      } else if (invType === 'purchase' || invType === 'purchase_return' || invType === 'return_purchase') {
+        const mult = invType === 'purchase' ? 1 : -1;
+        totalPurchasesQty += qty * mult;
       }
     });
 
     return {
       data: {
         total_quantity_sold: totalQuantitySold,
+        total_purchases_qty: totalPurchasesQty,
         total_revenue: totalRevenue,
-        transaction_count: rows.length,
+        total_profit: totalRevenue - totalCogs,
+        transaction_count: saleTxCount,
         last_sale_date: lastSaleDate,
       },
       error: null,

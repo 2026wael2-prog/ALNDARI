@@ -101,11 +101,14 @@ const AISmartNotifications: React.FC<AISmartNotificationsProps> = ({
     }
 
     setSmartAlerts(localAlerts);
+    setCurrentIndex(0);
   }, [stats, lowStockProducts]);
 
   if (dismissed || smartAlerts.length === 0) return null;
 
-  const current = smartAlerts[currentIndex];
+  const safeIndex = Math.min(currentIndex, smartAlerts.length - 1);
+  const current = smartAlerts[safeIndex];
+  if (!current) return null;
 
   const typeStyles = {
     warning: {

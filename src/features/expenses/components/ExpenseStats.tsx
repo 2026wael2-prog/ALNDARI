@@ -17,24 +17,24 @@ const ExpenseStats: React.FC<Props> = ({ customStats }) => {
         title="إجمالي المصروفات"
         value={formatCurrency(customStats.totalExpenses)}
         {...(customStats.totalExpensesYER && customStats.totalExpensesYER > 0
-          ? { subtext: `≈ ${customStats.totalExpensesYER.toLocaleString('en-US')} ر.ي` }
+          ? { subtext: `منها باليمني: ${customStats.totalExpensesYER.toLocaleString('en-US')} ر.ي` }
           : {})}
         icon={Receipt}
         colorClass="text-rose-600 dark:text-rose-400"
         iconBgClass="bg-rose-500"
       />
       <StatCard
-        title="مصروفات مسددة"
+        title="مصروفات معتمدة"
         value={formatCurrency(customStats.paidExpenses)}
-        subtext="مدفوعة نقداً"
+        subtext="مرحّلة / مسددة"
         icon={CreditCard}
         colorClass="text-emerald-600 dark:text-emerald-400"
         iconBgClass="bg-emerald-500"
       />
       <StatCard
-        title="ذمم مدينة (آجلة)"
+        title="مسودات بانتظار الاعتماد"
         value={formatCurrency(customStats.pendingExpenses)}
-        subtext="بانتظار السداد"
+        subtext="غير مرحّلة بعد"
         icon={Clock}
         colorClass="text-amber-600 dark:text-amber-400"
         iconBgClass="bg-amber-500"

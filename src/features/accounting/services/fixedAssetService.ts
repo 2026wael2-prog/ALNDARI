@@ -46,7 +46,7 @@ export const fixedAssetService = {
       .is('deleted_at', null);
 
     if (branchId) {
-      query = query.eq('branch_id', branchId);
+      query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });

@@ -1,74 +1,29 @@
-import React, { useState, useRef } from 'react';
-import { Plus, Eye, RotateCcw, FileText, Trash2, Package } from 'lucide-react';
-import ExcelTable from '../../../../ui/common/ExcelTable';
-import {
-  useSalesReturns,
-  useSalesReturnsStats,
-  type SalesReturn,
-} from '../../hooks/useSalesReturns';
-import { useDeleteInvoice } from '../../hooks/index';
-import { formatCurrency, sumInBaseCurrency } from '../../../../core/utils';
-import Button from '../../../../ui/base/Button';
-import { exportToPDF } from '../../../../core/utils/pdfExporter';
-import { formatLocalDate } from '../../../../core/utils/dateUtils';
-import { AdvancedReturnModal } from '../../../returns/components/AdvancedReturnModal';
-import { useReturnsListView, type ReturnsListRow } from '../../../returns/hooks/useReturnsListView';
-import { ReturnsStatsHeader } from '../../../returns/components/view/ReturnsStatsHeader';
-import { ReturnsFilterControls } from '../../../returns/components/view/ReturnsFilterControls';
-import { logger } from '../../../../core/utils/logger';
+import React, { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Plus, RotateCcw } from 'lucide-react';
+import { formatCurrency, sumInBaseCurrency } from '../../../../core/utils';
+import { formatLocalDate } from '../../../../core/utils/dateUtils';
+import { logger } from '../../../../core/utils/logger';
+import { exportToPDF } from '../../../../core/utils/pdfExporter';
+import Button from '../../../../ui/base/Button';
+import ExcelTable from '../../../../ui/common/ExcelTable';
 import { useAuthStore } from '../../../auth/store';
+import { AdvancedReturnModal } from '../../../returns/components/AdvancedReturnModal';
+import { ReturnsFilterControls } from '../../../returns/components/view/ReturnsFilterControls';
+import { ReturnsStatsHeader } from '../../../returns/components/view/ReturnsStatsHeader';
+import { useReturnsListView } from '../../../returns/hooks/useReturnsListView';
 import { salesApi } from '../../api';
-
-// Status labels
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'مسودة',
-  posted: 'معتمد',
-  paid: 'مدفوع',
-};
-
-/**
- * توحيد سجل مرتجع مبيعات مع ReturnsListRow حتى يتوافق مع
- * useReturnsListView (كانت SalesReturn[] لا تطابق ReturnsListRow[]).
- */
-const normalizeSalesReturn = (row: SalesReturn): ReturnsListRow => ({
-  id: row.id,
-  invoice_number: row.invoice_number,
-  issue_date: row.issue_date,
-  created_at: row.created_at,
-  total_amount: row.total_amount,
-  currency_code: row.currency_code ?? 'SAR',
-  exchange_rate: row.exchange_rate ?? null,
-  status: row.status,
-  notes: row.notes ?? null,
-  invoice_items: row.invoice_items ?? [],
-  party: row.party === null || row.party === undefined ? null : { name: row.party.name },
-  reference_invoice_id: row.reference_invoice_id ?? null,
-  reference_invoice: row.reference_invoice
-    ? { invoice_number: row.reference_invoice.invoice_number ?? null }
-    : null,
-  return_reason: row.return_reason ?? null,
-});
+import { useDeleteInvoice } from '../../hooks/index';
+import { useSalesReturns, useSalesReturnsStats } from '../../hooks/useSalesReturns';
+import {
+  normalizeSalesReturn,
+  type SalesReturnRow,
+  useSalesReturnsColumns,
+} from './useSalesReturnsColumns';
 
 interface SalesReturnsViewProps {
   searchTerm: string;
   onViewDetails: (id: string) => void;
-}
-
-/** صف مرتجع مبيعات كما يعيده `useSalesReturns`/`useReturnsListView` (المطبَّع للعرض). */
-interface SalesReturnRow {
-  id: string;
-  invoice_number?: string | null;
-  reference_invoice_id?: string | null;
-  reference_invoice?: { id?: string; invoice_number?: string | null } | null;
-  issue_date?: string | null;
-  created_at?: string | null;
-  total_amount?: number | null;
-  currency_code?: string | null;
-  exchange_rate?: number | null;
-  status?: string | null;
-  invoice_items?: Array<any> | { length: number } | null;
-  party?: { name?: string | null } | null;
 }
 
 const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
@@ -94,9 +49,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
     [queryClient, user?.company_id]
   );
 
-  // We fetch without strict filters since client-side filtering handles most cases for small-medium lists
-  // But for larger datasets, server-side filtering would be preferred.
-  // For now, keeping the pattern consistent with original implementation.
   const [queryFilters, setQueryFilters] = useState({
     status: '',
     startDate: '',
@@ -108,13 +60,12 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
     isLoading,
     refetch,
   } = useSalesReturns({
-    searchTerm: propSearchTerm || '', // Initial search term passed to query
+    searchTerm: propSearchTerm || '',
     status: queryFilters.status || undefined,
     startDate: queryFilters.startDate || undefined,
     endDate: queryFilters.endDate || undefined,
   });
 
-  // توحيد النوع مع ReturnsListRow قبل تمريره لعرض القائمة
   const normalizedReturns = (returns || []).map(normalizeSalesReturn);
 
   const {
@@ -134,8 +85,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
     clearFilters,
     hasActiveFilters,
   } = useReturnsListView(normalizedReturns, 'sales', filteredReturns => {
-    // Guard the display total: a corrupted historical exchange rate must not
-    // crash the returns view — it is logged by sumInBaseCurrency/toBaseCurrency.
     try {
       return sumInBaseCurrency(filteredReturns as SalesReturnRow[]);
     } catch {
@@ -143,14 +92,12 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
     }
   });
 
-  // Sync initial search term
   React.useEffect(() => {
     if (propSearchTerm) {
       setLocalSearchTerm(propSearchTerm);
     }
   }, [propSearchTerm, setLocalSearchTerm]);
 
-  // Sync server filters when local filters change (for larger datasets where full clientside filter isn't enough)
   React.useEffect(() => {
     setQueryFilters({
       status: filters.status,
@@ -159,7 +106,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
     });
   }, [filters.status, filters.startDate, filters.endDate]);
 
-  // Handle print
   const handlePrint = async () => {
     if (!printRef.current) return;
     try {
@@ -169,9 +115,15 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
     }
   };
 
+  const columns = useSalesReturnsColumns({
+    onPrefetchDetails: handlePrefetchDetails,
+    onViewDetails,
+    onDeleteInvoice: deleteInvoice,
+    isDeleting,
+  });
+
   return (
     <div className="animate-in fade-in space-y-3 pt-2 duration-300" ref={printRef}>
-      {/* Stats Cards */}
       <ReturnsStatsHeader
         returnCount={stats?.returnCount || 0}
         totalReturns={stats?.totalReturns || 0}
@@ -180,7 +132,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
         type="sales"
       />
 
-      {/* Search and Filter Bar */}
       <ReturnsFilterControls
         localSearchTerm={localSearchTerm}
         setLocalSearchTerm={setLocalSearchTerm}
@@ -202,7 +153,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
         type="sales"
       />
 
-      {/* Add Return Button */}
       <div className="flex justify-end">
         <Button
           onClick={() => {
@@ -216,7 +166,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
         </Button>
       </div>
 
-      {/* Returns List Redesigned as Excel Table */}
       <div className="flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-xl border border-gray-100 bg-[var(--app-surface)] shadow-sm dark:border-slate-800">
         {isLoading ? (
           <div className="space-y-4 p-8 max-md:p-4">
@@ -235,190 +184,7 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
           </div>
         ) : (
           <ExcelTable
-            columns={[
-              {
-                header: 'رقم المرتجع',
-                accessor: (row: SalesReturnRow) => (
-                  <span className="font-bold text-red-600">#{row.invoice_number}</span>
-                ),
-                accessorKey: 'invoice_number',
-                sortKey: 'invoice_number',
-                width: '120px',
-                align: 'center',
-              },
-              {
-                header: 'الفاتورة الأصلية',
-                accessor: (row: SalesReturnRow) => (
-                  <div className="flex items-center gap-2 max-md:gap-2">
-                    <FileText size={12} className="text-blue-500" />
-                    <span className="font-mono font-bold text-blue-600">
-                      {row.reference_invoice?.invoice_number
-                        ? `#${row.reference_invoice.invoice_number}`
-                        : row.reference_invoice_id
-                          ? `#${row.reference_invoice_id.substring(0, 8)}`
-                          : '---'}
-                    </span>
-                  </div>
-                ),
-                accessorKey: 'reference_invoice_id',
-                sortKey: 'reference_invoice_id',
-                width: '140px',
-                align: 'center',
-              },
-              {
-                header: 'العميل',
-                accessor: (row: SalesReturnRow) => (
-                  <span className="font-bold">{row.party?.name || 'عميل نقدي'}</span>
-                ),
-                accessorKey: 'party.name',
-                sortKey: 'party_name',
-                align: 'center',
-              },
-              {
-                header: 'الأصناف والقطع المرتجعة',
-                accessor: (row: SalesReturnRow) => {
-                  const items = Array.isArray(row.invoice_items)
-                    ? (row.invoice_items as any[])
-                    : [];
-                  if (items.length === 0) {
-                    return (
-                      <span className="text-[11px] text-gray-400 dark:text-slate-500">
-                        لا توجد أصناف
-                      </span>
-                    );
-                  }
-                  return (
-                    <div className="flex flex-col gap-1 py-1">
-                      <div className="flex flex-wrap gap-1">
-                        {items.slice(0, 2).map((item: any, idx: number) => {
-                          const name = item.product?.name_ar || item.description || 'صنف غير محدد';
-                          const partNo = item.product?.part_number;
-                          return (
-                            <span
-                              key={item.id || idx}
-                              className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-800 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
-                              title={`السعر: ${item.unit_price} | الكمية: ${item.quantity}${partNo ? ` | رقم القطعة: ${partNo}` : ''}`}
-                            >
-                              <Package size={11} className="shrink-0 text-rose-500" />
-                              <span className="font-semibold">{name}</span>
-                              {partNo && (
-                                <span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
-                                  [{partNo}]
-                                </span>
-                              )}
-                              <span className="font-mono text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                                ×{item.quantity}
-                              </span>
-                            </span>
-                          );
-                        })}
-                      </div>
-                      {items.length > 2 && (
-                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                          +{items.length - 2} أصناف أخرى
-                        </span>
-                      )}
-                    </div>
-                  );
-                },
-                accessorKey: 'invoice_items.length',
-                sortKey: 'item_count',
-                width: '260px',
-              },
-              {
-                header: 'العملة',
-                accessor: (row: SalesReturnRow) => (
-                  <span className="text-xs font-bold text-gray-500">
-                    {row.currency_code || '---'}
-                  </span>
-                ),
-                accessorKey: 'currency_code',
-                width: '80px',
-                align: 'center',
-              },
-              {
-                header: 'المبلغ الإجمالي',
-                accessor: (row: SalesReturnRow) => (
-                  <div className="font-bold">
-                    <span className="text-red-500">
-                      -{formatCurrency(Number(row.total_amount), row.currency_code || 'SAR')}
-                    </span>
-                  </div>
-                ),
-                accessorKey: 'total_amount',
-                sortKey: 'total_amount',
-                align: 'center',
-              },
-              {
-                header: 'تاريخ الإرجاع',
-                accessor: (row: SalesReturnRow) => (
-                  <span className="text-xs text-gray-500">
-                    {new Date(row.issue_date || row.created_at || '').toLocaleDateString(
-                      'ar-SA-u-nu-latn'
-                    )}
-                  </span>
-                ),
-                accessorKey: 'issue_date',
-                sortKey: 'issue_date',
-                width: '120px',
-                align: 'center',
-              },
-              {
-                header: 'الحالة',
-                accessor: (row: SalesReturnRow) => (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      row.status === 'posted' || row.status === 'paid'
-                        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                    }`}
-                  >
-                    {STATUS_LABELS[row.status ?? ''] || row.status}
-                  </span>
-                ),
-                accessorKey: 'status',
-                width: '100px',
-                align: 'center',
-              },
-              {
-                header: 'الإجراءات',
-                accessor: (row: SalesReturnRow) => (
-                  <div className="flex items-center justify-center gap-1 max-md:gap-1">
-                    <button
-                      onMouseEnter={() => {
-                        handlePrefetchDetails(row.id);
-                      }}
-                      onClick={e => {
-                        e.stopPropagation();
-                        onViewDetails(row.id);
-                      }}
-                      className="rounded-lg p-1 text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 max-md:p-1.5"
-                      title="معاينة تفاصيل المرتجع"
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        if (
-                          window.confirm(
-                            'هل أنت متأكد من حذف هذا المرتجع؟ سيتم إلغاء أثره المالي والمخزني.'
-                          )
-                        ) {
-                          deleteInvoice(row.id);
-                        }
-                      }}
-                      disabled={isDeleting}
-                      className="rounded-lg p-1 text-rose-600 transition-colors hover:bg-rose-50 dark:hover:bg-rose-900/20 max-md:p-1.5"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ),
-                width: '100px',
-                align: 'center',
-              },
-            ]}
+            columns={columns}
             data={processedReturns as unknown as SalesReturnRow[]}
             colorTheme="indigo"
             isRTL={true}
@@ -434,7 +200,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
         )}
       </div>
 
-      {/* Total Summary */}
       {processedReturns.length > 0 && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20 max-md:p-4">
           <div className="flex items-center justify-between">
@@ -456,7 +221,6 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
         </div>
       )}
 
-      {/* Advanced Return Modal */}
       <AdvancedReturnModal
         isOpen={isModalOpen}
         onClose={() => {

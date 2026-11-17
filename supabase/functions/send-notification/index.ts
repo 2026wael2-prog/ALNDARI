@@ -24,6 +24,9 @@ interface NotificationRequest {
     message: string;
     reference_id?: string;
     image_base64?: string; // NEW: base64 PNG for sending images
+    document_base64?: string; // base64 XLSX/PDF for sending study documents
+    document_name?: string;
+    mime_type?: string;
 }
 
 // ---- Telegram: Text ----
@@ -58,6 +61,34 @@ async function sendTelegramPhoto(botToken: string, chatId: string, imageBase64: 
         const res = await fetch(url, { method: 'POST', body: formData });
         const data = await res.json();
         if (!data.ok) return { ok: false, error: data.description || 'Telegram Photo API error' };
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: (e as Error).message };
+    }
+}
+
+// ---- Telegram: Document (XLSX / PDF) ----
+async function sendTelegramDocument(
+    botToken: string,
+    chatId: string,
+    docBase64: string,
+    fileName: string,
+    mimeType: string,
+    caption: string
+): Promise<{ ok: boolean; error?: string }> {
+    try {
+        const url = `https://api.telegram.org/bot${botToken}/sendDocument`;
+        const docBytes = Uint8Array.from(atob(docBase64), c => c.charCodeAt(0));
+        const blob = new Blob([docBytes], { type: mimeType || 'application/octet-stream' });
+
+        const formData = new FormData();
+        formData.append('chat_id', chatId);
+        formData.append('document', blob, fileName || 'study.xlsx');
+        if (caption) formData.append('caption', caption.substring(0, 1024));
+
+        const res = await fetch(url, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!data.ok) return { ok: false, error: data.description || 'Telegram Document API error' };
         return { ok: true };
     } catch (e) {
         return { ok: false, error: (e as Error).message };
@@ -370,7 +401,7 @@ Deno.serve(async (req: Request) => {
             });
         }
 
-        const { company_id, event_type, message, reference_id, image_base64 } = JSON.parse(bodyText) as NotificationRequest;
+        const { company_id, event_type, message, reference_id, image_base64, document_base64, document_name, mime_type } = JSON.parse(bodyText) as NotificationRequest;
 
         if (!company_id || !event_type || !message) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -379,10 +410,15 @@ Deno.serve(async (req: Request) => {
             });
         }
 
-        // Size guard: a 2.8MB base64 string (~2MB binary) caps memory use
-        // and prevents oversized payload DoS.
+        // Size guard: caps memory use and prevents oversized payload DoS.
         if (image_base64 && image_base64.length > 2_800_000) {
             return new Response(JSON.stringify({ error: 'Image payload too large (max ~2MB)' }), {
+                status: 413,
+                headers: { ...cors, 'Content-Type': 'application/json' },
+            });
+        }
+        if (document_base64 && document_base64.length > 4_200_000) {
+            return new Response(JSON.stringify({ error: 'Document payload too large (max ~3MB)' }), {
                 status: 413,
                 headers: { ...cors, 'Content-Type': 'application/json' },
             });
@@ -461,7 +497,16 @@ Deno.serve(async (req: Request) => {
         // ===== TELEGRAM =====
         if (config.telegram_enabled && config.telegram_bot_token && config.telegram_chat_id) {
             let telegramResult;
-            if (image_base64) {
+            if (document_base64) {
+                telegramResult = await sendTelegramDocument(
+                    config.telegram_bot_token,
+                    config.telegram_chat_id,
+                    document_base64,
+                    document_name || 'inventory_study.xlsx',
+                    mime_type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    message
+                );
+            } else if (image_base64) {
                 telegramResult = await sendTelegramPhoto(config.telegram_bot_token, config.telegram_chat_id, image_base64, message);
             } else {
                 telegramResult = await sendTelegramText(config.telegram_bot_token, config.telegram_chat_id, message);
@@ -472,7 +517,11 @@ Deno.serve(async (req: Request) => {
                 company_id,
                 channel: 'telegram',
                 event_type,
-                message: image_base64 ? `[IMAGE] ${message.substring(0, 200)}` : message,
+                message: document_base64
+                    ? `[DOCUMENT: ${document_name || 'study'}] ${message.substring(0, 180)}`
+                    : image_base64
+                      ? `[IMAGE] ${message.substring(0, 200)}`
+                      : message,
                 status: telegramResult.ok ? 'sent' : 'failed',
                 error_message: telegramResult.error || null,
                 reference_id: reference_id || null,

@@ -2,12 +2,10 @@ import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import SalesStats from './SalesStats';
 import ExcelTable from '../../../../ui/common/ExcelTable';
 import { useInvoices, useDeleteInvoice } from '../../hooks/index';
-import { formatCurrency } from '../../../../core/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../auth/store';
 import { salesApi } from '../../api';
 
-import { Eye, Trash2, ArrowLeftRight, FileSpreadsheet } from 'lucide-react';
 import EmptyState from '../../../../ui/base/EmptyState';
 import PageLoader from '../../../../ui/base/PageLoader';
 import ErrorDisplay from '../../../../ui/base/ErrorDisplay';
@@ -16,9 +14,7 @@ import { useFeedbackStore } from '../../../feedback/store';
 import { useAccompanyingInfoStore } from '../../../accompanying-info';
 import InvoiceSearchToolbar from '../../../../ui/common/InvoiceSearchToolbar';
 import type { DatePreset } from '@/core/types/invoiceSearch';
-
-import { InvoiceItemsCell } from './InvoiceItemsCell';
-import { getStatusLabel } from './InvoiceStatusBadge';
+import { useInvoiceListColumns } from './useInvoiceListColumns';
 
 interface InvoiceListViewProps {
   viewType: InvoiceType;
@@ -147,22 +143,19 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
     },
     [onViewDetails]
   );
+
   const handleDelete = useCallback(
     (e: React.MouseEvent, row: InvoiceListItem) => {
       e.stopPropagation();
       if (
-        row.status === 'posted' ||
-        row.status === 'paid' ||
-        (row.status as string) === 'partially_paid'
+        window.confirm(
+          'هل أنت متأكد من حذف/إلغاء هذه الفاتورة؟ سيتم عكس أثرها المالي والمخزني على الأرصدة والقيود تلقائياً.'
+        )
       ) {
-        showToast('لا يمكن حذف فاتورة معتمدة أو مدفوعة. يرجى إنشاء مرتجع بدلاً من ذلك.', 'error');
-        return;
-      }
-      if (window.confirm('هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إلغاء أثرها المالي والمخزني.')) {
         deleteInvoice(row.id);
       }
     },
-    [deleteInvoice, showToast]
+    [deleteInvoice]
   );
 
   const handleShareExcel = useCallback(
@@ -171,6 +164,14 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
       try {
         const { generateInvoiceExcelBlob, exportInvoiceToExcel } =
           await import('../../../../core/utils/invoiceExcelExporter');
+        const fullInvoice = await salesApi.getInvoiceDetails(row.id);
+        const mappedItems = (fullInvoice.invoice_items ?? []).map(item => ({
+          name: item.description ?? item.product?.name_ar ?? 'صنف',
+          sku: item.product?.part_number ?? item.product?.sku ?? '',
+          quantity: Number(item.quantity ?? 0),
+          unitPrice: Number(item.unit_price ?? 0),
+          total: Number(item.total ?? 0),
+        }));
         const data = {
           companyName: '',
           companyAddress: '',
@@ -179,8 +180,8 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
           issueDate: row.date,
           customerName: row.customerName || 'عميل نقدي',
           issuedBy: '',
-          items: [],
-          subtotal: row.total,
+          items: mappedItems,
+          subtotal: Number(fullInvoice.subtotal ?? row.total),
           totalAmount: row.total,
         };
         const blob = await generateInvoiceExcelBlob(data);
@@ -200,182 +201,28 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
     [showToast]
   );
 
-  const columns = useMemo(
-    () => [
-      {
-        header: 'رقم الفاتورة',
-        accessorKey: 'invoiceNumber' as keyof InvoiceListItem,
-        accessor: (row: InvoiceListItem) => (
-          <div className="flex flex-col items-start gap-1">
-            <div className="flex items-center gap-1.5">
-              {row.type === 'sale_return' && (
-                <ArrowLeftRight size={13} className="shrink-0 text-rose-500" />
-              )}
-              <span
-                dir="ltr"
-                className={`font-mono font-bold ${row.type === 'sale_return' ? 'text-rose-600' : 'text-blue-600'}`}
-              >
-                #{row.invoiceNumber}
-              </span>
-            </div>
-            {row.invoiceNumber.endsWith('-INT') && (
-              <span
-                className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                title="فاتورة داخلية نتيجة مبيعات متقاطعة عبر الفروع"
-              >
-                🔄 نقل داخلي
-              </span>
-            )}
-          </div>
-        ),
-        width: 'w-32',
-      },
-      {
-        header: 'العميل',
-        accessorKey: 'customerName' as keyof InvoiceListItem,
-        accessor: (row: InvoiceListItem) => (
-          <div className="flex flex-col gap-1">
-            <span className="font-bold text-gray-800 dark:text-slate-100">{row.customerName}</span>
-            {row.partyPhone && (
-              <span className="font-mono text-[10px] text-gray-500 dark:text-slate-400">
-                {row.partyPhone}
-              </span>
-            )}
-          </div>
-        ),
-        width: 'w-40',
-      },
-      {
-        header: 'الأصناف والقطع',
-        accessor: (row: InvoiceListItem) => (
-          <InvoiceItemsCell items={row.matchedItems} totalCount={row.itemCount} />
-        ),
-        width: 'w-72',
-      },
-
-      {
-        header: 'التاريخ',
-        accessorKey: 'date' as keyof InvoiceListItem,
-        accessor: (row: InvoiceListItem) => (
-          <span className="font-mono text-xs text-gray-500 dark:text-slate-400">{row.date}</span>
-        ),
-        width: 'w-24',
-      },
-      {
-        header: 'طريقة الدفع',
-        accessorKey: 'paymentMethod' as keyof InvoiceListItem,
-        accessor: (row: InvoiceListItem) => (
-          <span
-            className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-              row.paymentMethod === 'cash'
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-            }`}
-          >
-            {row.paymentMethod === 'cash' ? 'نقدي' : 'أجل'}
-          </span>
-        ),
-        width: 'w-20',
-        className: 'text-center',
-      },
-      {
-        header: 'الإجمالي',
-        sortKey: 'total' as keyof InvoiceListItem,
-        accessor: (row: InvoiceListItem) => {
-          const hasForeignCurrency = row.currencyCode && row.currencyCode !== 'SAR';
-          const rateIsNotOne = row.exchangeRate && row.exchangeRate !== 1;
-          const showBaseLine =
-            hasForeignCurrency &&
-            rateIsNotOne &&
-            (row.baseTotal - row.total > 0.01 || row.total - row.baseTotal > 0.01);
-          return (
-            <div className="flex flex-col items-end leading-tight">
-              <span
-                dir="ltr"
-                className={`font-mono text-sm font-bold md:text-base ${row.type === 'sale_return' ? 'text-rose-600' : 'text-emerald-600'}`}
-              >
-                {formatCurrency(row.total, row.currencyCode)}
-              </span>
-              {showBaseLine && (
-                <span dir="ltr" className="mt-0.5 text-xs font-bold text-blue-500">
-                  ≈ {formatCurrency(row.baseTotal, 'SAR')}
-                </span>
-              )}
-            </div>
-          );
-        },
-        width: 'w-32',
-        className: 'text-left',
-      },
-
-      {
-        header: 'الحالة',
-        accessorKey: 'status' as keyof InvoiceListItem,
-        sortKey: 'status' as keyof InvoiceListItem,
-        accessor: (row: InvoiceListItem) => {
-          const s = getStatusLabel(row.status || '');
-          return (
-            <span className={`rounded px-2 py-1 text-[10px] font-bold ${s.cls}`}>{s.label}</span>
-          );
-        },
-        width: 'w-24',
-        className: 'text-center',
-      },
-      {
-        header: 'إجراءات',
-        accessor: (row: InvoiceListItem) => {
-          const isInternal = row.invoiceNumber?.endsWith('-INT');
-          const isLocked = row.status === 'posted' || row.status === 'paid';
-          return (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={e => handleShareExcel(e, row)}
-                className="rounded p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
-                title="تنزيل / مشاركة Excel"
-              >
-                <FileSpreadsheet size={15} />
-              </button>
-              <button
-                onMouseEnter={() => {
-                  handlePrefetchDetails(row.id);
-                }}
-                onClick={() => {
-                  handleViewDetails(row.id);
-                }}
-                className="rounded p-1.5 text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-slate-800"
-                title="معاينة تفاصيل الفاتورة"
-              >
-                <Eye size={15} />
-              </button>
-              {!isInternal && (
-                <button
-                  onClick={e => {
-                    handleDelete(e, row);
-                  }}
-                  disabled={isDeleting}
-                  title={isLocked ? 'لا يمكن حذف فاتورة معتمدة أو مدفوعة' : 'حذف الفاتورة'}
-                  className={`rounded p-1.5 transition-colors ${
-                    isLocked
-                      ? 'cursor-not-allowed text-gray-300 dark:text-slate-600'
-                      : 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20'
-                  }`}
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-            </div>
-          );
-        },
-        width: 'w-28',
-        className: 'text-center',
-      },
-    ],
-    [handleViewDetails, handleDelete, handleShareExcel, isDeleting]
-  );
+  const columns = useInvoiceListColumns({
+    handleViewDetails,
+    handleDelete,
+    handleShareExcel,
+    handlePrefetchDetails,
+    isDeleting,
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col space-y-3">
-      {viewType === 'sale' && <SalesStats />}
+      {viewType === 'sale' && (
+        <SalesStats
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          datePreset={datePreset}
+          onDatePresetChange={(preset, range) => {
+            setDatePreset(preset);
+            setDateFrom(range.from);
+            setDateTo(range.to);
+          }}
+        />
+      )}
 
       <InvoiceSearchToolbar
         searchTerm={internalSearch}

@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabaseClient';
+import { fetchAllRpcPages } from '../../core/utils/dataFetching';
 
 // Typed result shapes for Supabase queries
 interface AccountWithLines {
@@ -133,12 +134,6 @@ export const reportsApi = {
     });
   },
 
-  // تشغيل محرك التدقيق والرقابة المحاسبية الذاتي
-  auditErpIntegrityRPC: async (companyId: string) => {
-    return await supabase.rpc('fn_audit_erp_integrity' as any, {
-      p_company_id: companyId,
-    });
-  },
 
   // جلب كشف حساب لجهة معينة (عميل أو مورد)
   getPartyLedger: async (partyId: string) => {
@@ -196,21 +191,42 @@ export const reportsApi = {
   },
 
   getPartiesWithBalances: async (companyId: string, branchId?: string | null) => {
-    let partiesQuery = supabase
-      .from('parties')
-      .select('id, name, type')
-      .eq('company_id', companyId)
-      .is('deleted_at', null);
+    const PAGE_SIZE = 1000;
+    const fetchAllPartiesRows = async () => {
+      const rows: Array<{ id: string; name: string; type: string }> = [];
+      let from = 0;
+      while (true) {
+        let q = supabase
+          .from('parties')
+          .select('id, name, type')
+          .eq('company_id', companyId)
+          .is('deleted_at', null)
+          .order('name', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
 
-    if (branchId) {
-      partiesQuery = partiesQuery.eq('branch_id', branchId);
-    }
+        if (branchId) {
+          q = q.or(`branch_id.eq.${branchId},branch_id.is.null`);
+        }
+
+        const { data, error } = await q;
+        if (error) return { data: null, error };
+        const batch = (data ?? []) as Array<{ id: string; name: string; type: string }>;
+        rows.push(...batch);
+        if (batch.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return { data: rows, error: null };
+    };
 
     const [{ data: parties }, { data: balances }] = await Promise.all([
-      partiesQuery,
-      supabase.rpc('get_party_balances_by_company', {
-        p_company_id: companyId,
-      }),
+      fetchAllPartiesRows(),
+      fetchAllRpcPages<{ party_id: string; balance: number }>(
+        supabase,
+        'get_party_balances_by_company',
+        { p_company_id: companyId },
+        ['party_id']
+      ),
     ]);
 
     if (!parties) return { data: null, error: { message: 'Failed to fetch parties' } };

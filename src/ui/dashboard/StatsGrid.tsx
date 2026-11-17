@@ -23,8 +23,8 @@ const MiniSparkline: React.FC<{ data: number[]; color: string; className?: strin
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
-  const w = 60;
-  const h = 24;
+  const w = 50;
+  const h = 20;
   const points = data
     .map((v, i) => {
       const x = (i / (data.length - 1)) * w;
@@ -173,7 +173,12 @@ const StatsGrid: React.FC<StatsGridProps> = ({
   }
 
   return (
-    <section className="grid grid-cols-2 gap-4 max-md:gap-3 md:grid-cols-4 lg:grid-cols-5">
+    <section
+      className={cn(
+        'grid grid-cols-2 gap-2.5 max-md:gap-2 md:grid-cols-3',
+        statItems.length >= 6 ? 'xl:grid-cols-6' : 'xl:grid-cols-5'
+      )}
+    >
       {statItems.map(item => {
         const trendKey =
           item.title === t('total_sales')
@@ -209,11 +214,11 @@ const StatsGrid: React.FC<StatsGridProps> = ({
           >
             <div
               className={cn(
-                'bg-[var(--app-surface)] relative rounded-xl border border-[var(--app-border)] p-3 transition-colors duration-150',
-                'hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)]'
+                'bg-[var(--app-surface)] relative h-full rounded-xl border border-[var(--app-border)] p-3 transition-all duration-200',
+                'hover:-translate-y-0.5 hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)] hover:shadow-md'
               )}
             >
-              <div className="flex h-full flex-col justify-between gap-3">
+              <div className="flex h-full flex-col justify-between gap-2">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col">

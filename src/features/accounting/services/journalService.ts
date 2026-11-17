@@ -1,4 +1,4 @@
-import { journalsApi } from '../api/journalsApi';
+import { journalsApi, type JournalQueryFilters } from '../api/journalsApi';
 import type { UIJournalEntry, JournalEntryFormData, JournalStatus } from '../types/models';
 import { PostTransactionUsecase } from '../../../core/usecases/accounting/PostTransactionUsecase';
 import { parseError } from '../../../core/utils/errorUtils';
@@ -56,12 +56,14 @@ export const journalService = {
   formatJournalsForUI: async (
     companyId: string,
     branchId?: string | null,
-    pageParam = 0
+    pageParam = 0,
+    filters?: JournalQueryFilters
   ): Promise<UIJournalEntry[]> => {
     const { data: rawData, error } = await journalsApi.fetchJournals(
       companyId,
       branchId,
-      pageParam
+      pageParam,
+      filters
     );
     if (error) throw parseError(error);
 

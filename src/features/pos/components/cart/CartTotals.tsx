@@ -17,7 +17,7 @@ const DiscountRow: React.FC<{ amount: number; currency: string }> = ({ amount, c
   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-rose-400">
     <span>خصم</span>
     <span dir="ltr" className="font-mono">
-      -{formatCurrency(amount)} {currency}
+      -{formatCurrency(amount, currency)}
     </span>
   </div>
 );
@@ -83,7 +83,7 @@ export const CartTotals: React.FC<CartTotalsProps> = React.memo(
         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
           <span>{t('subtotal')}</span>
           <span dir="ltr" className="font-mono">
-            {formatCurrency(summary.subtotal)} {currency}
+            {formatCurrency(summary.subtotal, currency)}
           </span>
         </div>
 
@@ -102,7 +102,7 @@ export const CartTotals: React.FC<CartTotalsProps> = React.memo(
               dir="ltr"
               className="block font-mono text-3xl font-black leading-none tracking-tighter text-white max-md:text-xl"
             >
-              {formatCurrency(summary.totalAmount)}
+              {formatCurrency(summary.totalAmount, currency)}
             </span>
             <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400/80">
               {currency}

@@ -59,11 +59,33 @@ const validateJournalInput = (data: PostJournalEntryInput): number => {
   return exchangeRate;
 };
 
+export interface JournalQueryFilters {
+  searchTerm?: string | undefined;
+  typeFilter?: string | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+  sortOrder?: 'asc' | 'desc' | undefined;
+}
+
+const TYPE_FILTER_MAP: Record<string, string[]> = {
+  sale: ['sale', 'sales_invoice', 'invoice', 'sale_return', 'sales_return'],
+  purchase: ['purchase', 'purchase_invoice', 'bill', 'purchase_return'],
+  receipt: ['receipt', 'receipt_voucher', 'receipt_bond', 'receipt_bond_void'],
+  payment: ['payment', 'payment_voucher', 'payment_bond', 'payment_bond_void'],
+  expense: ['expense', 'expenses', 'expense_void'],
+};
+
 export const journalsApi = {
-  fetchJournals: async (companyId: string, branchId?: string | null, pageParam = 0) => {
+  fetchJournals: async (
+    companyId: string,
+    branchId?: string | null,
+    pageParam = 0,
+    filters?: JournalQueryFilters
+  ) => {
     const limit = 50;
     const from = pageParam * limit;
     const to = from + limit - 1;
+    const ascending = filters?.sortOrder === 'asc';
 
     let query = supabase
       .from('journal_entries')
@@ -87,11 +109,37 @@ export const journalsApi = {
       )
       .eq('company_id', companyId)
       .is('deleted_at', null)
-      .order('entry_date', { ascending: false })
-      .order('entry_number', { ascending: false });
+      .order('entry_date', { ascending })
+      .order('entry_number', { ascending });
 
     if (branchId) {
       query = query.eq('branch_id', branchId);
+    }
+    if (filters?.dateFrom) {
+      query = query.gte('entry_date', filters.dateFrom);
+    }
+    if (filters?.dateTo) {
+      query = query.lte('entry_date', filters.dateTo);
+    }
+    if (filters?.typeFilter && filters.typeFilter !== 'all') {
+      const mapped = TYPE_FILTER_MAP[filters.typeFilter];
+      if (mapped) {
+        query = query.in('reference_type', mapped);
+      } else if (filters.typeFilter === 'manual') {
+        query = query.or('reference_type.eq.manual,reference_type.eq.journal,reference_type.is.null');
+      } else {
+        query = query.eq('reference_type', filters.typeFilter);
+      }
+    }
+    if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
+      const sanitized = filters.searchTerm.trim().replace(/[%_\\*(),]/g, '');
+      if (sanitized) {
+        if (/^\d+$/.test(sanitized)) {
+          query = query.or(`description.ilike.%${sanitized}%,entry_number.eq.${sanitized}`);
+        } else {
+          query = query.ilike('description', `%${sanitized}%`);
+        }
+      }
     }
 
     return await query.range(from, to);

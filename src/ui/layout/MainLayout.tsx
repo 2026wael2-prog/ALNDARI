@@ -1,32 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useLayoutVariant } from './useLayoutVariant';
 
 const ClassicChrome = lazy(() => import('./classic/ClassicChrome'));
 import { WorkspaceTabBar, MultiViewContainer } from './tabs';
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  Store,
-  Wrench,
-  WifiOff,
-  Ellipsis,
-  Users,
-  Truck,
-  BarChart3,
-  Settings,
-  ReceiptText,
-  PackageOpen,
-  DollarSign,
-  Calculator,
-  CalendarDays,
-} from 'lucide-react';
 import { ROUTES } from '../../core/routes/paths';
 import { useI18nStore } from '../../lib/i18nStore';
 import { useThemeStore } from '../../lib/themeStore';
-import BottomSheet from '../base/BottomSheet';
 import { cn } from '../../core/utils';
 import {
   getBreakpointValue,
@@ -43,7 +25,8 @@ import {
   shouldPersistExpandedSidebar,
 } from './sidebarSizing';
 import { useConnectionStore } from '../../core/store/connectionStore';
-import { Activity, SlidersHorizontal, Link2 } from 'lucide-react';
+import { NetworkStatusPill } from './NetworkStatusPill';
+import { MobileBottomNav } from './mobile/MobileBottomNav';
 /**
  * ⚡ Lazy floating overlays — لا تنتمي لمسار الإقلاع الحرج.
  * برميل `features/chat` يصدّر وحدات المحادثات كاملة (خدمات، متاجر، هوكات صوتية،
@@ -80,7 +63,6 @@ const MainLayout: React.FC = () => {
 
   const { dir } = useI18nStore();
   const location = useLocation();
-  const navigate = useNavigate();
   const { initializeTheme } = useThemeStore();
   const { t } = useTranslation();
   // القشرة الكلاسيكية (قوائم + شريط أوامر) تُفعَّل من الثيم/التفضيل وعلى سطح المكتب فقط
@@ -106,7 +88,7 @@ const MainLayout: React.FC = () => {
   const mainPaddingBottom = useMemo(() => {
     if (deviceCategory === 'phone') return 'pb-[calc(3.75rem_+_env(safe-area-inset-bottom))]';
     if (isIPad && isTabletPortrait) return 'pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]';
-    return 'pb-4';
+    return 'pb-2';
   }, [deviceCategory, isIPad, isTabletPortrait]);
 
   useEffect(() => {
@@ -126,40 +108,6 @@ const MainLayout: React.FC = () => {
   useEffect(() => {
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
-
-  const navItems = [
-    { icon: LayoutDashboard, label: t('overview'), path: ROUTES.DASHBOARD.ROOT },
-    { icon: Store, label: t('pos'), path: ROUTES.DASHBOARD.POS },
-    { icon: ShoppingBag, label: t('invoices'), path: ROUTES.DASHBOARD.SALES },
-    { icon: Wrench, label: t('products'), path: ROUTES.DASHBOARD.INVENTORY },
-    { icon: Calculator, label: t('commission_dashboard'), path: ROUTES.DASHBOARD.COMMISSIONS },
-  ];
-
-  const moreItems = [
-    { icon: BarChart3, label: t('reports'), path: '/reports' },
-    { icon: Users, label: t('customers'), path: '/parties' },
-    { icon: Truck, label: t('purchases'), path: '/purchases' },
-    { icon: ReceiptText, label: t('expenses'), path: '/expenses' },
-    { icon: DollarSign, label: t('accounting'), path: '/accounting' },
-    {
-      icon: SlidersHorizontal,
-      label: t('commission_config'),
-      path: ROUTES.DASHBOARD.COMMISSIONS_CONFIG,
-    },
-    {
-      icon: Link2,
-      label: t('commission_assignments'),
-      path: ROUTES.DASHBOARD.COMMISSIONS_ASSIGNMENTS,
-    },
-    {
-      icon: CalendarDays,
-      label: t('commission_periods'),
-      path: ROUTES.DASHBOARD.COMMISSIONS_PERIODS,
-    },
-    { icon: BarChart3, label: t('commission_reports'), path: ROUTES.DASHBOARD.COMMISSIONS_REPORTS },
-    { icon: PackageOpen, label: t('inventory'), path: '/inventory' },
-    { icon: Settings, label: t('settings'), path: '/settings' },
-  ];
 
   return (
     <div
@@ -235,25 +183,7 @@ const MainLayout: React.FC = () => {
           {isDesktop && <WorkspaceTabBar />}
         </div>
 
-        {/* شريط حالة الشبكة — عنصر عائم (fixed) لا يزيح تخطيط الصفحة.
-            [PERF-FIX] كان الشريطان أدناه داخل التدفّق الطبيعي، فظهور/اختفاء
-            «اتصال غير مستقر» يُزيح كامل الصفحة رأسياً ⇒ اهتزاز مرئي أثناء
-            العمل. الآن يظهران كحبّة عائمة أسفل الشاشة بلا أي إزاحة. */}
-        {(isUnstable || !isOnline) && (
-          <div className="no-print pointer-events-none fixed inset-x-0 bottom-24 z-[280] flex flex-col items-center gap-2 px-3">
-            {!isOnline ? (
-              <div className="animate-in fade-in slide-in-from-bottom-2 flex items-center justify-center gap-2 rounded-full bg-rose-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg duration-300">
-                <WifiOff size={11} className="animate-bounce" />
-                <span>وضع عدم الاتصال — البيانات المحلية المخزّنة مؤقتاً</span>
-              </div>
-            ) : (
-              <div className="animate-in fade-in slide-in-from-bottom-2 flex items-center justify-center gap-2 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg duration-300">
-                <Activity size={11} className="animate-pulse" />
-                <span>الاتصال غير مستقر — جارٍ إعادة المحاولة</span>
-              </div>
-            )}
-          </div>
-        )}
+        <NetworkStatusPill isOnline={isOnline} isUnstable={isUnstable} />
 
         <main
           id="main-content"
@@ -265,115 +195,11 @@ const MainLayout: React.FC = () => {
           <MultiViewContainer />
         </main>
 
-        {/* Tactical Mobile Navigation */}
-        <nav
-          role="navigation"
-          aria-label={t('mobile_navigation') || 'التنقل السفلي'}
-          className="no-print bg-[var(--app-surface)]/95 fixed bottom-0 left-0 right-0 z-40 flex h-[calc(3.25rem_+_env(safe-area-inset-bottom))] items-center justify-around border-t border-[var(--app-border)] px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgba(0,0,0,0.06)] backdrop-blur-md md:hidden"
-        >
-          {navItems.map(item => {
-            const isActive = location.pathname === item.path;
-            return (
-              <button
-                key={item.path}
-                onClick={() => {
-                  React.startTransition(() => {
-                    navigate(item.path);
-                  });
-                }}
-                aria-label={item.label}
-                className={cn(
-                  'flex h-full flex-1 flex-col items-center justify-center transition-all duration-300 active:scale-90',
-                  isActive ? 'text-[var(--accent)]' : 'text-[var(--app-text-secondary)]'
-                )}
-              >
-                <div
-                  className={cn(
-                    'rounded-xl p-1.5 transition-all duration-500 max-md:p-1',
-                    isActive
-                      ? 'bg-[var(--accent)] text-white shadow-lg'
-                      : 'hover:bg-[var(--app-surface-hover)]'
-                  )}
-                >
-                  <item.icon size={18} strokeWidth={isActive ? 3 : 2} />
-                </div>
-                <span className="mt-0.5 text-[10px] font-semibold uppercase leading-none tracking-widest">
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-          {/* More Button */}
-          <button
-            onClick={() => {
-              setIsMoreSheetOpen(true);
-            }}
-            aria-label={t('more') || 'المزيد'}
-            className={cn(
-              'flex h-full flex-1 flex-col items-center justify-center transition-all duration-300 active:scale-90',
-              isMoreSheetOpen ? 'text-[var(--accent)]' : 'text-[var(--app-text-secondary)]'
-            )}
-          >
-            <div
-              className={cn(
-                'rounded-xl p-1.5 transition-all duration-500 max-md:p-1',
-                isMoreSheetOpen
-                  ? 'bg-[var(--accent)] text-white shadow-lg'
-                  : 'hover:bg-[var(--app-surface-hover)]'
-              )}
-            >
-              <Ellipsis size={18} strokeWidth={2} />
-            </div>
-            <span className="mt-0.5 text-[10px] font-semibold uppercase leading-none tracking-widest">
-              {t('more') || 'المزيد'}
-            </span>
-          </button>
-        </nav>
-
-        {/* More Actions BottomSheet */}
-        <BottomSheet
-          isOpen={isMoreSheetOpen}
-          onClose={() => {
-            setIsMoreSheetOpen(false);
-          }}
-          title={t('quick_actions') || 'إجراءات سريعة'}
-        >
-          <div className="grid grid-cols-3 gap-3 max-md:gap-2">
-            {moreItems.map(item => {
-              const isActive = location.pathname === item.path;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    React.startTransition(() => {
-                      navigate(item.path);
-                    });
-                    setIsMoreSheetOpen(false);
-                  }}
-                  aria-label={item.label}
-                  className={cn(
-                    'flex flex-col items-center gap-2 rounded-2xl p-4 transition-all duration-200 active:scale-95 max-md:gap-1.5 max-md:p-2.5',
-                    isActive
-                      ? 'bg-[var(--accent)]/10 ring-[var(--accent)]/30 text-[var(--accent)] ring-2'
-                      : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)]'
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'rounded-xl p-3 transition-all max-md:p-2',
-                      isActive ? 'bg-[var(--accent)] text-white' : 'bg-[var(--app-surface)]'
-                    )}
-                  >
-                    <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
-                  </div>
-                  <span className="text-center text-[10px] font-bold leading-tight">
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </BottomSheet>
+        <MobileBottomNav
+          isMoreSheetOpen={isMoreSheetOpen}
+          onOpenMoreSheet={() => setIsMoreSheetOpen(true)}
+          onCloseMoreSheet={() => setIsMoreSheetOpen(false)}
+        />
 
         {/* Global Realtime Floating Chat & Collaboration Dock */}
         {location.pathname !== ROUTES.DASHBOARD.CHAT && (

@@ -48,7 +48,7 @@ export const RIBBON_GROUPS: readonly RibbonGroupSpec[] = [
     id: 'stock',
     labelKey: 'ribbon_group_stock',
     fallbackLabel: 'المشتريات والمخزون',
-    itemIds: ['purchases', 'inventory', 'suppliers'],
+    itemIds: ['purchases', 'inventory', 'inventory_intelligence', 'suppliers'],
   },
   {
     id: 'finance',

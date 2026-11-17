@@ -46,14 +46,16 @@ const NotificationDropdown: React.FC<Props> = ({ isOpen, onClose }) => {
     getDesktopNotificationPermission()
   );
 
+  const notifications = useNotificationStore(s => s.notifications);
+
   // Company-scoped notifications
   const allNotifications = useMemo(
     () => getCompanyNotifications(companyId),
-    [getCompanyNotifications, companyId]
+    [getCompanyNotifications, companyId, notifications]
   );
   const unreadCount = useMemo(
     () => getCompanyUnreadCount(companyId),
-    [getCompanyUnreadCount, companyId]
+    [getCompanyUnreadCount, companyId, notifications]
   );
 
   const urgentCount = useMemo(

@@ -28,6 +28,7 @@ interface RawProduct {
   sale_price?: number | string;
   min_stock_level?: number | string;
   is_core?: boolean;
+  item_type?: string | null;
   unit?: string;
   image_url?: string | null;
   alternative_numbers?: string | null;
@@ -108,6 +109,7 @@ export function mapRawProducts(
         warehouse_distribution: warehouseDistribution,
         min_stock_level: Number(prod.min_stock_level) || 0,
         is_core: Boolean(prod.is_core),
+        item_type: prod.item_type === 'service' ? 'service' : 'stock',
         unit: prod.unit || 'pcs',
         uoms: (prod.uoms || []).map(u => ({
           id: u.id,

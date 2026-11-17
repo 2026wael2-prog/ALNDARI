@@ -110,3 +110,42 @@ export const batchLookupProducts = async (
   return map;
 };
 
+/**
+ * Paginates a PostgREST table-returning RPC in 1,000-row chunks with deterministic
+ * ordering so large datasets (e.g. >1,000 party balances/currencies) are never truncated.
+ */
+export const fetchAllRpcPages = async <T = Record<string, unknown>>(
+  client: SupabaseClient,
+  fnName: string,
+  args: Record<string, unknown>,
+  orderColumns: string[] = ['party_id'],
+  pageSize = 1000
+): Promise<{ data: T[]; error: unknown | null }> => {
+  const allRows: T[] = [];
+  let from = 0;
+
+  while (true) {
+    let query = client.rpc(fnName, args) as unknown as {
+      order?: (col: string, opts: { ascending: boolean }) => unknown;
+      range?: (from: number, to: number) => Promise<{ data: unknown; error: unknown }>;
+    };
+    for (const col of orderColumns) {
+      if (typeof query?.order === 'function') {
+        query = query.order(col, { ascending: true }) as typeof query;
+      }
+    }
+    const { data, error } =
+      typeof query?.range === 'function'
+        ? await query.range(from, from + pageSize - 1)
+        : await (query as unknown as Promise<{ data: unknown; error: unknown }>);
+
+    if (error) return { data: [], error };
+    const batch = Array.isArray(data) ? (data as T[]) : [];
+    allRows.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return { data: allRows, error: null };
+};
+

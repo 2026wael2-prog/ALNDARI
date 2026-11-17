@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
-import { Search, Box, ChevronDown, GitBranch, Globe, PackageCheck, Plus } from 'lucide-react';
+import { Box } from 'lucide-react';
 import { useProductMutations } from '../../../inventory/hooks/index';
 import type { Product, ProductFormData } from '../../../inventory/types';
 import Modal from '../../../../ui/base/Modal';
@@ -17,6 +17,7 @@ import { logger } from '../../../../core/utils/logger';
 import { useColumnResize } from './useColumnResize';
 import { ProductColumnSettingsMenu } from './ProductColumnSettingsMenu';
 import { ProductSelectionTableRow } from './ProductSelectionTableRow';
+import { ProductSelectionToolbar } from './ProductSelectionToolbar';
 
 interface Props {
   isOpen: boolean;
@@ -177,125 +178,43 @@ const ProductSelectionModal: React.FC<Props> = ({
       >
         <div className="flex h-[70vh] flex-col bg-[var(--app-surface)]">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 border-b bg-[var(--app-surface)] p-2 dark:border-slate-800 max-md:gap-2 max-md:p-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddProduct(true);
-              }}
-              className="flex items-center gap-1 rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700 max-md:gap-1.5"
-              title="إضافة منتج جديد دون مغادرة النافذة"
-            >
-              <Plus size={14} />
-              منتج جديد
-            </button>
-
-            {/* Search */}
-            <div className="relative min-w-[200px] flex-1">
-              <Search
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={15}
+          <ProductSelectionToolbar
+            onOpenAddProduct={() => {
+              setShowAddProduct(true);
+            }}
+            localQuery={localQuery}
+            onQueryChange={setLocalQuery}
+            onSearchKeyDown={handleKeyDown}
+            showInStockOnly={showInStockOnly}
+            onToggleInStockOnly={() => {
+              setShowInStockOnly(prev => !prev);
+            }}
+            isManager={isManager}
+            branchMenuRef={branchMenuRef}
+            showBranchMenu={showBranchMenu}
+            onToggleBranchMenu={() => {
+              setShowBranchMenu(prev => !prev);
+            }}
+            localBranchId={localBranchId}
+            onSelectBranch={branchId => {
+              setLocalBranchId(branchId);
+              setShowBranchMenu(false);
+            }}
+            selectedBranchName={selectedBranchName}
+            activeBranches={activeBranches}
+            columnSettingsSlot={
+              <ProductColumnSettingsMenu
+                showSettings={showSettings}
+                setShowSettings={setShowSettings}
+                settingsRef={settingsRef}
+                config={config}
+                setFontSize={setFontSize}
+                toggleColumnVisibility={toggleColumnVisibility}
+                reorderColumn={reorderColumn}
+                resetConfig={resetConfig}
               />
-              <input
-                autoFocus
-                type="text"
-                value={localQuery}
-                onChange={e => {
-                  setLocalQuery(e.target.value);
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="ابحث بالاسم، رقم القطعة، الماركة..."
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-3 pr-9 text-sm font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800"
-              />
-            </div>
-
-            {/* Filter: In Stock Only */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowInStockOnly(!showInStockOnly);
-              }}
-              className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold transition-colors max-md:gap-1.5 ${
-                showInStockOnly
-                  ? 'border-emerald-600 bg-emerald-500 text-white'
-                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-emerald-400 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-800'
-              }`}
-            >
-              <PackageCheck size={14} />
-              متوفر فقط
-            </button>
-
-            {/* Filter: Branch selector (managers only) */}
-            {isManager && (
-              <div className="relative" ref={branchMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowBranchMenu(!showBranchMenu);
-                  }}
-                  className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold transition-colors max-md:gap-1.5 ${
-                    localBranchId !== null
-                      ? 'border-indigo-600 bg-indigo-500 text-white'
-                      : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-400 dark:border-slate-700 dark:bg-slate-800'
-                  }`}
-                >
-                  {localBranchId !== null ? <GitBranch size={14} /> : <Globe size={14} />}
-                  <span className="max-w-[100px] truncate">{selectedBranchName}</span>
-                  <ChevronDown
-                    size={11}
-                    className={`transition-transform ${showBranchMenu ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {showBranchMenu && (
-                  <div className="absolute right-0 top-full z-[200] mt-1 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocalBranchId(null);
-                        setShowBranchMenu(false);
-                      }}
-                      className={`flex w-full items-center gap-2 px-3 py-2.5 text-right text-xs font-semibold transition-colors max-md:gap-2 ${
-                        localBranchId === null
-                          ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30'
-                          : 'text-gray-600 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      <Globe size={13} /> جميع الفروع
-                    </button>
-                    {activeBranches.map(branch => (
-                      <button
-                        key={branch.id}
-                        type="button"
-                        onClick={() => {
-                          setLocalBranchId(branch.id);
-                          setShowBranchMenu(false);
-                        }}
-                        className={`flex w-full items-center gap-2 px-3 py-2.5 text-right text-xs font-semibold transition-colors max-md:gap-2 ${
-                          localBranchId === branch.id
-                            ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30'
-                            : 'text-gray-600 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        <GitBranch size={13} /> {branch.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Column Settings Menu */}
-            <ProductColumnSettingsMenu
-              showSettings={showSettings}
-              setShowSettings={setShowSettings}
-              settingsRef={settingsRef}
-              config={config}
-              setFontSize={setFontSize}
-              toggleColumnVisibility={toggleColumnVisibility}
-              reorderColumn={reorderColumn}
-              resetConfig={resetConfig}
-            />
-          </div>
+            }
+          />
 
           {/* Table */}
           <div

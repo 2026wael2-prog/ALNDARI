@@ -17,6 +17,9 @@ const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'));
 
 // Lazy Loaded Features — each isolated by FeatureBoundary
 const InventoryPage = lazy(() => import('../features/inventory/InventoryPage'));
+const InventoryIntelligencePage = lazy(
+  () => import('../features/inventory-intelligence/components/InventoryIntelligencePage')
+);
 const AuditSessionPage = lazy(() => import('../features/inventory/pages/AuditSessionPage'));
 const QuickAuditPage = lazy(() => import('../features/inventory/pages/QuickAuditPage'));
 
@@ -228,6 +231,16 @@ export const AppRoutes: React.FC = () => {
             <PermissionGuard permission="inventory:read" label="المخزون">
               <FeatureBoundary name="inventory">
                 <InventoryPage />
+              </FeatureBoundary>
+            </PermissionGuard>
+          }
+        />
+        <Route
+          path={ROUTES.DASHBOARD.INVENTORY_INTELLIGENCE}
+          element={
+            <PermissionGuard permission="inventory:read" label="ذكاء المخزون">
+              <FeatureBoundary name="inventory-intelligence">
+                <InventoryIntelligencePage />
               </FeatureBoundary>
             </PermissionGuard>
           }

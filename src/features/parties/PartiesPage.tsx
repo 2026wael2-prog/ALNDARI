@@ -1,8 +1,8 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-misused-promises */
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, FileText, LayoutGrid, BarChart3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useParties, usePartyMutations, usePartiesView } from './hooks';
 import type { Party, PartyView, PartyType, PartyFormData } from './types';
 import { useAIPrefillStore } from '../ai/store';
@@ -30,8 +30,12 @@ interface PartiesPageProps {
   iconColor?: string;
 }
 
+const isPartyView = (value: string): value is PartyView =>
+  ['list', 'statements', 'analytics', 'categories'].includes(value);
+
 const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconColor }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const {
     activeView,
@@ -44,6 +48,38 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
     handleAddNew,
     handleCloseModal,
   } = usePartiesView();
+
+  const handleTabChange = useCallback(
+    (nextTab: PartyView) => {
+      setActiveView(nextTab);
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (nextTab === 'list') {
+            next.delete('tab');
+          } else {
+            next.set('tab', nextTab);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setActiveView, setSearchParams]
+  );
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && isPartyView(tabParam)) {
+      setActiveView(tabParam);
+    }
+    if (searchParams.get('action') === 'new') {
+      handleAddNew();
+      const next = new URLSearchParams(searchParams);
+      next.delete('action');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setActiveView, handleAddNew, setSearchParams]);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
   const [selectedPartyForStatementId, setSelectedPartyForStatementId] = useState<string>('');
@@ -199,7 +235,9 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
           ]}
           activeTab={activeView}
           onTabChange={id => {
-            setActiveView(id as PartyView);
+            if (isPartyView(id)) {
+              handleTabChange(id);
+            }
           }}
           isMaximized={isMaximized}
           onToggleMaximize={() => {

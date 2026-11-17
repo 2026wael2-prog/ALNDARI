@@ -12,7 +12,7 @@ import type { Invoice, Party, InvoiceItem } from '../../../core/types/supabase-h
 import type { InvoiceStatus } from '../types';
 import { toReturnPayloadItems } from '../../returns/utils/returnHelpers';
 import type { Json } from '../../../core/database.types';
-import { normalizeSearch, toBaseCurrency } from '../../../core/utils';
+import { normalizeSearch } from '../../../core/utils';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
 import { parseError } from '../../../core/utils/errorUtils';
 import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
@@ -138,6 +138,7 @@ export const useSalesReturns = (filters?: {
         )
         .eq('company_id', user.company_id)
         .eq('type', 'sale_return')
+        .not('status', 'in', '("void","cancelled")')
         .is('deleted_at', null);
 
       if (branchId) {
@@ -215,20 +216,10 @@ export const useSalesReturnsStats = () => {
       if (error) throw error;
       const returns = data || [];
       const returnCount = returns.length;
-      const totalReturns = returns.reduce((sum: number, r: any) => {
-        try {
-          return (
-            sum +
-            toBaseCurrency({
-              amount: Number(r.total_amount) || 0,
-              currency_code: r.currency_code || 'SAR',
-              exchange_rate: Number(r.exchange_rate) || 1,
-            })
-          );
-        } catch {
-          return sum + (Number(r.total_amount) || 0);
-        }
-      }, 0);
+      const totalReturns = returns.reduce(
+        (sum: number, r: any) => sum + (Number(r.total_amount) || 0),
+        0
+      );
       const avgReturn = returnCount > 0 ? totalReturns / returnCount : 0;
       const pendingCount = returns.filter(
         (r: any) => r.status === 'draft' || r.status === 'pending'

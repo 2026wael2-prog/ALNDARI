@@ -349,11 +349,7 @@ const OverviewPage: React.FC = () => {
 
   const companyCurrency = company?.base_currency;
   const baseCurrency =
-    currency !== 'ALL'
-      ? currency
-      : companyCurrency !== undefined && companyCurrency !== ''
-        ? companyCurrency
-        : 'SAR';
+    companyCurrency !== undefined && companyCurrency !== '' ? companyCurrency : 'SAR';
   const a = (analytics ?? {}) as DebtAnalytics;
   const analyticsUnavailable = isAnalyticsUnavailable(isLoading, isError, analytics);
 

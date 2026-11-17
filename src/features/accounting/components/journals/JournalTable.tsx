@@ -18,7 +18,6 @@ const JOURNAL_DATE_PRESETS: Array<{ id: DatePreset; label: string }> = [
 ];
 
 const JournalTable: React.FC = () => {
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useJournals();
   const [searchTerm, setSearchTerm] = useState('');
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [dateFrom, setDateFrom] = useState<string | undefined>();
@@ -26,6 +25,14 @@ const JournalTable: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'number'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useJournals({
+    searchTerm: searchTerm.trim() || undefined,
+    typeFilter,
+    dateFrom,
+    dateTo,
+    sortOrder,
+  });
 
   const journals: UIJournalEntry[] = useMemo(() => data?.pages?.flat() || [], [data]);
 

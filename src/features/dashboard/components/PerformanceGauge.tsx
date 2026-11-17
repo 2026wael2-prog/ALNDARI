@@ -145,11 +145,11 @@ const PerformanceGauge: React.FC<PerformanceGaugeProps> = ({
 
       {/* Stats */}
       <div className="mt-4 grid grid-cols-2 gap-3 max-md:mt-3">
-        <div className="rounded-xl border border-white/5 bg-white/5 p-2 text-center">
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50 p-2 text-center dark:border-white/5 dark:bg-white/5">
           <p className="text-[10px] font-bold uppercase text-[var(--app-text-secondary)]">المحقق</p>
           <p className="font-mono text-sm font-bold text-[var(--app-text)]">{displayValue}</p>
         </div>
-        <div className="rounded-xl border border-white/5 bg-white/5 p-2 text-center">
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50 p-2 text-center dark:border-white/5 dark:bg-white/5">
           <p className="text-[10px] font-bold uppercase text-[var(--app-text-secondary)]">الهدف</p>
           <p className="font-mono text-sm font-bold text-[var(--app-text)]">{displayTarget}</p>
         </div>
@@ -157,14 +157,14 @@ const PerformanceGauge: React.FC<PerformanceGaugeProps> = ({
 
       {/* Progress Bar */}
       <div className="mt-3">
-        <div className="h-2 overflow-hidden rounded-full bg-white/5">
+        <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/5">
           <div
             className="h-full rounded-full transition-all duration-1000"
             style={{ width: `${percentage}%`, backgroundColor: color }}
           />
         </div>
         <p className="mt-1 text-center text-[10px] font-medium text-[var(--app-text-secondary)]">
-          متبقي {displayRemaining} للوصول للهدف
+          {value >= target ? 'تم تحقيق الهدف بنجاح' : `متبقي ${displayRemaining} للوصول للهدف`}
         </p>
       </div>
     </div>

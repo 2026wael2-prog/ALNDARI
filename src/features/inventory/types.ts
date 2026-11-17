@@ -83,6 +83,7 @@ export interface Product {
   supplier_name?: string | null | undefined;
   category: string | null;
   category_id?: string | null | undefined;
+  item_type?: 'stock' | 'service' | undefined;
   size: string | null;
   specifications: string | null;
   cost_price: number;
@@ -215,6 +216,7 @@ export interface ProductFormData {
   unit?: 'piece' | 'set' | undefined;
   category?: string | undefined;
   is_core?: boolean | undefined;
+  item_type?: 'stock' | 'service' | undefined;
   uoms?: ProductUOM[] | undefined;
   warehouse_id?: string | null | undefined;
   branch_id?: string | null | undefined;

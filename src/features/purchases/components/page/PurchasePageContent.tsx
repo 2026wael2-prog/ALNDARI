@@ -6,10 +6,19 @@ import type { DatePreset } from '@/core/types/invoiceSearch';
 import type { PurchaseTab } from './usePurchasePrefill';
 
 const CreatePurchaseModal = lazy(() => import('../CreatePurchaseModal'));
-const PurchasesAnalytics = lazy(() => import('../Analytics/PurchasesAnalytics'));
 const PurchaseReturnsView = lazy(() => import('../Returns/PurchaseReturnsView'));
 const PurchaseQuotationsTab = lazy(() => import('../quotations/PurchaseQuotationsTab'));
 const SmartImportView = lazy(() => import('../../../smart-import/components/SmartImportView'));
+const SupplierBiView = lazy(() =>
+  import('../../../reports/components/bi/SupplierBiView').then(m => ({
+    default: m.SupplierBiView,
+  }))
+);
+const SupplierPriceComparisonView = lazy(() =>
+  import('../../../reports/components/bi/SupplierPriceComparisonView').then(m => ({
+    default: m.SupplierPriceComparisonView,
+  }))
+);
 
 type PurchaseRows = React.ComponentProps<typeof PurchasesTable>['data'];
 
@@ -144,10 +153,16 @@ export const PurchasePageContent: React.FC<PageContentProps> = ({
           />
         </Suspense>
       );
-    case 'analytics':
+    case 'bi_suppliers':
       return (
         <Suspense fallback={null}>
-          <PurchasesAnalytics />
+          <SupplierBiView />
+        </Suspense>
+      );
+    case 'bi_prices':
+      return (
+        <Suspense fallback={null}>
+          <SupplierPriceComparisonView />
         </Suspense>
       );
     default:

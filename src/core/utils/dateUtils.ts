@@ -66,3 +66,43 @@ export const getDateRangeForPreset = (
   }
   return {};
 };
+
+export type BiDatePreset =
+  | 'all'
+  | 'today'
+  | 'yesterday'
+  | 'this_week'
+  | 'last_week'
+  | 'this_month'
+  | 'last_month'
+  | 'last_3_months'
+  | 'this_year'
+  | 'last_year'
+  | 'custom';
+
+/**
+ * Computes start and end dates for BI presets including yesterday, last_week, this_year, and last_year.
+ */
+export const getBiDateRangeForPreset = (preset: BiDatePreset): { from?: string; to?: string } => {
+  const now = new Date();
+  const todayStr = formatLocalDate(now);
+
+  if (preset === 'yesterday') {
+    const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yStr = formatLocalDate(y);
+    return { from: yStr, to: yStr };
+  }
+  if (preset === 'last_week') {
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 13);
+    return { from: formatLocalDate(start), to: formatLocalDate(end) };
+  }
+  if (preset === 'this_year') {
+    return { from: `${now.getFullYear()}-01-01`, to: todayStr };
+  }
+  if (preset === 'last_year') {
+    const prevYear = now.getFullYear() - 1;
+    return { from: `${prevYear}-01-01`, to: `${prevYear}-12-31` };
+  }
+  return getDateRangeForPreset(preset);
+};

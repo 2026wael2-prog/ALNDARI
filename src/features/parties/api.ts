@@ -2,6 +2,7 @@
 import { supabase } from '../../lib/supabaseClient';
 import type { PartyFormData, PartyType } from './types';
 import { mapToInsert, mapToUpdate } from '../../core/utils/supabaseMappers';
+import { fetchAllRpcPages } from '../../core/utils/dataFetching';
 
 const toCleanStr = (val: unknown): string | null => {
   if (typeof val !== 'string') return null;
@@ -21,9 +22,12 @@ async function fetchPartyCurrencies(
   // row-level RLS checks on every one of the 2600+ cross-joined rows.
   // The RPC filters by company_id early and runs with security invoker,
   // delegating the company guard to a single WHERE check.
-  const { data } = await supabase.rpc('get_party_currencies_by_company', {
-    p_company_id: companyId,
-  });
+  const { data } = await fetchAllRpcPages<Record<string, unknown>>(
+    supabase,
+    'get_party_currencies_by_company',
+    { p_company_id: companyId },
+    ['party_id', 'currency_code']
+  );
 
   type CurrencyRow = {
     party_id?: string;
@@ -55,6 +59,44 @@ async function fetchPartyCurrencies(
   return map;
 }
 
+const PARTIES_PAGE_SIZE = 1000;
+
+async function fetchAllParties(
+  companyId: string,
+  typeFilter: string[],
+  branchId?: string | null
+): Promise<{ data: Record<string, any>[]; error: any }> {
+  const allRows: Record<string, any>[] = [];
+  let from = 0;
+
+  while (true) {
+    let query = supabase
+      .from('parties')
+      .select('*, party_categories(id, name)')
+      .eq('company_id', companyId)
+      .in('type', typeFilter)
+      .is('deleted_at', null)
+      .order('name', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + PARTIES_PAGE_SIZE - 1);
+
+    if (branchId) {
+      // شمول أطراف الفرع النشط + الأطراف غير المخصصة لفرع (branch_id IS NULL)
+      // حتى لا يختفي أي عميل أُنشئ بدون فرع من قوائم البحث والكشوفات والمبيعات.
+      query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
+    }
+
+    const { data, error } = await query;
+    if (error !== null) return { data: [], error };
+    const batch = data || [];
+    allRows.push(...batch);
+    if (batch.length < PARTIES_PAGE_SIZE) break;
+    from += PARTIES_PAGE_SIZE;
+  }
+
+  return { data: allRows, error: null };
+}
+
 export const partiesApi = {
   getParties: async (companyId: string, type: PartyType, branchId?: string | null) => {
     // 'all' → جلب جميع الأطراف بغض النظر عن النوع (عملاء وموردين وموظفين)
@@ -64,26 +106,16 @@ export const partiesApi = {
         : type === 'employee'
           ? ['employee']
           : [type, 'both'];
-    let partiesQuery = supabase
-      .from('parties')
-      .select('*, party_categories(id, name)')
-      .eq('company_id', companyId)
-      .in('type', typeFilter)
-      .is('deleted_at', null)
-      .order('name', { ascending: true })
-      .limit(5000);
 
-    if (branchId) {
-      // فرز عميق حسب الفرع: يُعرض أطراف الفرع النشط فقط.
-      // الأطراف بلا فرع (branch_id IS NULL) تظهر فقط عند عدم اختيار فرع،
-      // حتى لا تتكرر البطاقات الفارغة في كل الفروع.
-      partiesQuery = partiesQuery.eq('branch_id', branchId);
-    }
-
-    // جلب متزامن للأطراف والأرصدة والعملات لتقليص زمن الانتظار بنسبة > 60%
+    // جلب متزامن للأطراف (بجميع الصفحات دون اقتطاع حد الـ 1000) والأرصدة والعملات
     const fetchBalances = async () => {
       try {
-        return await supabase.rpc('get_party_balances_by_company', { p_company_id: companyId });
+        return await fetchAllRpcPages<Record<string, unknown>>(
+          supabase,
+          'get_party_balances_by_company',
+          { p_company_id: companyId },
+          ['party_id']
+        );
       } catch (error) {
         return { data: null, error };
       }
@@ -98,7 +130,7 @@ export const partiesApi = {
     };
 
     const [partiesRes, balancesRes, currencyMap] = await Promise.all([
-      partiesQuery,
+      fetchAllParties(companyId, typeFilter, branchId),
       fetchBalances(),
       fetchCurrencies(),
     ]);
@@ -193,7 +225,7 @@ export const partiesApi = {
       .is('deleted_at', null);
 
     if (branchId) {
-      req = req.eq('branch_id', branchId);
+      req = req.or(`branch_id.eq.${branchId},branch_id.is.null`);
     }
 
     return await req

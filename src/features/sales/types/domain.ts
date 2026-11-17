@@ -342,8 +342,8 @@ export const SalesValidation = {
   validateCanPost(invoice: SalesInvoice): string[] {
     const errors: string[] = [];
 
-    if (invoice.status !== 'draft') {
-      errors.push('Only draft invoices can be posted');
+    if (!['draft', 'posted', 'paid', 'partially_paid'].includes(invoice.status)) {
+      errors.push('Void invoices cannot be posted');
     }
 
     if (invoice.items.length === 0) {

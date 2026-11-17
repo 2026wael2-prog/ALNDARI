@@ -2447,35 +2447,36 @@ a:focus-visible {
   }
 }
 /* ==========================================================================
-   DENSITY PASS 2026-11-10 — ضغط ~30% لمسافات المحتوى (بدون تصغير الخطوط)
-   النطاق: #main-content فقط (لا يؤثر على الهيدر العام أو الطباعة).
-   الهدف: تقليل الفراغات الرأسية والأفقية بين البطاقات والصفوف.
+   DENSITY PASS 2026-11-15 — ضغط إضافي ~15% للبطاقات والمسافات وسحب المحتوى للأعلى
+   النطاق: #main-content فقط (لا يؤثر على الطباعة، مع الحفاظ على الخطوط >= 10px).
    ========================================================================== */
-#main-content .space-y-6 > * + * { margin-top: 1rem !important; }
-#main-content .space-y-5 > * + * { margin-top: 0.85rem !important; }
-#main-content .space-y-4 > * + * { margin-top: 0.65rem !important; }
-#main-content .space-y-3 > * + * { margin-top: 0.5rem !important; }
-#main-content .space-y-2 > * + * { margin-top: 0.35rem !important; }
+#main-content > * > *:first-child { margin-top: 0 !important; }
 
-#main-content .gap-6 { gap: 1rem !important; }
-#main-content .gap-5 { gap: 0.85rem !important; }
-#main-content .gap-4 { gap: 0.65rem !important; }
-#main-content .gap-3 { gap: 0.5rem !important; }
-#main-content .gap-2\\.5 { gap: 0.4rem !important; }
+#main-content .space-y-6 > * + * { margin-top: 0.85rem !important; }
+#main-content .space-y-5 > * + * { margin-top: 0.7rem !important; }
+#main-content .space-y-4 > * + * { margin-top: 0.55rem !important; }
+#main-content .space-y-3 > * + * { margin-top: 0.4rem !important; }
+#main-content .space-y-2 > * + * { margin-top: 0.3rem !important; }
 
-#main-content .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-#main-content .py-5 { padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; }
-#main-content .py-4 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
-#main-content .py-3 { padding-top: 0.45rem !important; padding-bottom: 0.45rem !important; }
+#main-content .gap-6 { gap: 0.85rem !important; }
+#main-content .gap-5 { gap: 0.7rem !important; }
+#main-content .gap-4 { gap: 0.55rem !important; }
+#main-content .gap-3 { gap: 0.4rem !important; }
+#main-content .gap-2\.5 { gap: 0.32rem !important; }
 
-#main-content .p-6 { padding: 1rem !important; }
-#main-content .p-5 { padding: 0.85rem !important; }
-#main-content .p-4 { padding: 0.65rem !important; }
-#main-content .p-3 { padding: 0.5rem !important; }
+#main-content .py-6 { padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; }
+#main-content .py-5 { padding-top: 0.7rem !important; padding-bottom: 0.7rem !important; }
+#main-content .py-4 { padding-top: 0.55rem !important; padding-bottom: 0.55rem !important; }
+#main-content .py-3 { padding-top: 0.38rem !important; padding-bottom: 0.38rem !important; }
 
-#main-content .mb-6 { margin-bottom: 0.85rem !important; }
-#main-content .mb-4 { margin-bottom: 0.65rem !important; }
-#main-content .mb-3 { margin-bottom: 0.5rem !important; }
-#main-content .mt-4 { margin-top: 0.65rem !important; }
-#main-content .mt-3 { margin-top: 0.5rem !important; }
-#main-content .mt-2 { margin-top: 0.35rem !important; }
+#main-content .p-6 { padding: 0.85rem !important; }
+#main-content .p-5 { padding: 0.7rem !important; }
+#main-content .p-4 { padding: 0.55rem !important; }
+#main-content .p-3 { padding: 0.42rem !important; }
+
+#main-content .mb-6 { margin-bottom: 0.7rem !important; }
+#main-content .mb-4 { margin-bottom: 0.55rem !important; }
+#main-content .mb-3 { margin-bottom: 0.4rem !important; }
+#main-content .mt-4 { margin-top: 0.55rem !important; }
+#main-content .mt-3 { margin-top: 0.4rem !important; }
+#main-content .mt-2 { margin-top: 0.3rem !important; }

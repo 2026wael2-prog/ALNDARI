@@ -1,7 +1,7 @@
 import React from 'react';
 import ExcelTable from '../../../ui/common/ExcelTable';
 import MicroListItem from '../../../ui/common/MicroListItem';
-import { formatCurrency } from '../../../core/utils';
+import { formatCurrency, toBaseCurrency } from '../../../core/utils';
 import { Eye, Trash2, ArrowLeftRight, ShoppingCart, Printer, Package } from 'lucide-react';
 import { useDeletePurchase } from '../hooks';
 import type { MatchedInvoiceItem } from '@/core/types/invoiceSearch';
@@ -29,19 +29,67 @@ type DeletePurchase = (id: string) => void;
 
 const getSupplierName = (row: PurchaseTableRow): string => row.party?.name ?? 'مورد عام';
 const getBaseAmount = (row: PurchaseTableRow): number =>
-  row.currency_code === 'SAR' ? row.total_amount : row.total_amount * (row.exchange_rate ?? 1);
+  toBaseCurrency({
+    amount: row.total_amount,
+    currency_code: row.currency_code ?? 'SAR',
+    exchange_rate: row.exchange_rate ?? 1,
+  });
 const hasForeignCurrency = (row: PurchaseTableRow): boolean =>
   row.currency_code !== null && row.currency_code !== '' && row.currency_code !== 'SAR';
+
+const getPurchaseStatusMeta = (
+  status: string
+): { label: string; color: 'emerald' | 'blue' | 'amber' | 'rose' | 'slate'; badgeCls: string } => {
+  if (status === 'paid') {
+    return {
+      label: 'مدفوع',
+      color: 'emerald',
+      badgeCls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    };
+  }
+  if (status === 'posted') {
+    return {
+      label: 'مرحّل',
+      color: 'blue',
+      badgeCls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    };
+  }
+  if (status === 'partially_paid') {
+    return {
+      label: 'مدفوع جزئياً',
+      color: 'amber',
+      badgeCls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    };
+  }
+  if (status === 'void' || status === 'cancelled') {
+    return {
+      label: 'ملغي (عكسي)',
+      color: 'rose',
+      badgeCls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+    };
+  }
+  return {
+    label: 'مسودة',
+    color: 'slate',
+    badgeCls: 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400',
+  };
+};
 
 const MobilePurchaseList = ({
   data,
   onView,
+  onDelete,
+  isDeleting,
 }: {
   data: PurchaseTableRow[];
   onView: (id: string) => void;
+  onDelete: DeletePurchase;
+  isDeleting: boolean;
 }): React.ReactElement => (
   <div className="grid grid-cols-1 gap-2 md:hidden">
-    {data.map(item => (
+    {data.map(item => {
+      const statusMeta = getPurchaseStatusMeta(item.status);
+      return (
       <div
         key={item.id}
         className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)]"
@@ -56,17 +104,41 @@ const MobilePurchaseList = ({
           }}
           tags={[
             {
-              label:
-                item.status === 'paid' ? 'مدفوع' : item.status === 'posted' ? 'مرحّل' : 'مسودة',
-              color:
-                item.status === 'paid' ? 'emerald' : item.status === 'posted' ? 'blue' : 'slate',
+              label: statusMeta.label,
+              color: statusMeta.color,
             },
           ]}
           actions={
             <div className="flex flex-col items-end gap-1">
-              <div className="flex items-center gap-2">
-                <button className="p-1 text-gray-500 hover:text-blue-600">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onView(item.id);
+                  }}
+                  title="عرض التفاصيل / طباعة"
+                  className="p-1 text-gray-500 hover:text-blue-600"
+                >
                   <Printer size={16} />
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (
+                      window.confirm(
+                        'هل أنت متأكد من حذف/إلغاء فاتورة الشراء؟ سيتم عكس الأثر المالي والمخزني على الأرصدة والقيود تلقائياً.'
+                      )
+                    ) {
+                      onDelete(item.id);
+                    }
+                  }}
+                  title="حذف / إلغاء فاتورة الشراء"
+                  className="p-1 text-rose-500 hover:text-rose-600 disabled:opacity-50"
+                >
+                  <Trash2 size={15} />
                 </button>
                 <p dir="ltr" className="font-mono text-sm font-bold">
                   {formatCurrency(item.total_amount, item.currency_code ?? undefined)}
@@ -100,7 +172,8 @@ const MobilePurchaseList = ({
           </div>
         )}
       </div>
-    ))}
+      );
+    })}
   </div>
 );
 
@@ -241,13 +314,10 @@ const totalColumn = {
 const statusColumn = {
   header: 'الحالة',
   accessor: (row: PurchaseTableRow): React.ReactElement => {
-    const isPaid = row.status === 'paid';
-    const isPosted = row.status === 'posted';
+    const statusMeta = getPurchaseStatusMeta(row.status);
     return (
-      <span
-        className={`rounded px-2 py-1 text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : isPosted ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400'}`}
-      >
-        {isPaid ? 'مدفوع' : isPosted ? 'مرحّل' : 'مسودة'}
+      <span className={`rounded px-2 py-1 text-[10px] font-bold ${statusMeta.badgeCls}`}>
+        {statusMeta.label}
       </span>
     );
   },
@@ -267,14 +337,13 @@ const actionColumn = (
 } => ({
   header: 'إجراءات',
   accessor: (row: PurchaseTableRow): React.ReactElement => {
-    const isLocked = row.status === 'posted' || row.status === 'paid';
     const handleDelete = (event: React.MouseEvent<HTMLButtonElement>): void => {
       event.stopPropagation();
-      if (isLocked) {
-        alert('لا يمكن حذف فاتورة معتمدة أو مدفوعة. يرجى إنشاء فاتورة مرتجع بدلاً من ذلك.');
-        return;
-      }
-      if (window.confirm('هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إلغاء أثرها المالي والمخزني.'))
+      if (
+        window.confirm(
+          'هل أنت متأكد من حذف هذه الفاتورة؟ سيتم عكس أثرها المالي والمحاسبي والمخزني تلقائياً.'
+        )
+      )
         deletePurchase(row.id);
     };
     return (
@@ -289,10 +358,10 @@ const actionColumn = (
           <Eye size={18} />
         </button>
         <button
-          title={isLocked ? 'لا يمكن حذف فاتورة معتمدة أو مدفوعة' : 'حذف'}
+          title="حذف الفاتورة"
           onClick={handleDelete}
-          disabled={isDeleting || isLocked}
-          className={`rounded-lg p-1.5 transition-colors ${isLocked ? 'cursor-not-allowed text-gray-300' : 'text-rose-500'}`}
+          disabled={isDeleting}
+          className="rounded-lg p-1.5 text-rose-500 transition-colors hover:bg-rose-50 disabled:opacity-40 dark:hover:bg-rose-900/20"
         >
           <Trash2 size={18} />
         </button>
@@ -329,6 +398,7 @@ const DesktopPurchaseTable = ({
 };
 
 const PurchasesTable: React.FC<PurchasesTableProps> = ({ data, isLoading, onView }) => {
+  const { mutate: deletePurchase, isPending: isDeleting } = useDeletePurchase();
   if (isLoading)
     return (
       <div className="animate-pulse p-12 text-center text-gray-500">
@@ -337,7 +407,12 @@ const PurchasesTable: React.FC<PurchasesTableProps> = ({ data, isLoading, onView
     );
   return (
     <div className="space-y-4">
-      <MobilePurchaseList data={data} onView={onView} />
+      <MobilePurchaseList
+        data={data}
+        onView={onView}
+        onDelete={deletePurchase}
+        isDeleting={isDeleting}
+      />
       <DesktopPurchaseTable data={data} onView={onView} />
     </div>
   );

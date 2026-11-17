@@ -1,359 +1,60 @@
-import React, { useRef } from 'react';
-import { useSalesStore } from '../../store';
-import { useCreateInvoice, useNextInvoiceNumber } from '../../hooks/index';
-import { useCompany } from '../../../settings/hooks';
-import { useSettingsStore } from '../../../settings/settingsStore';
-import { useFeedbackStore } from '../../../feedback/store';
-import { partiesService } from '../../../../features/parties/service';
+import React from 'react';
 import InvoiceHeader from './InvoiceHeader';
 import InvoiceMeta from './InvoiceMeta';
 import InteractiveInvoiceTable from './InteractiveInvoiceTable';
 import InvoiceTotals from './InvoiceTotals';
 import InvoiceActions from './InvoiceActions';
 import PrintableInvoice from '../PrintableInvoice';
-import type { InvoiceStatus } from '../../types';
 import PageLoader from '../../../../ui/base/PageLoader';
 import ErrorDisplay from '../../../../ui/base/ErrorDisplay';
 import DraftStatusBanner from '../../../../ui/common/DraftStatusBanner';
-import { useReactToPrint } from 'react-to-print';
-import { logger } from '../../../../core/utils/logger';
-import { createIdempotencyKey } from '../../../../core/utils/idempotency';
-import { formatLocalDate } from '../../../../core/utils/dateUtils';
-import { usePaymentAccounts } from '../../../accounting/hooks/index';
-import { useWarehouses } from '../../../inventory/hooks/useInventoryManagement';
 import { InvoiceConfirmationModal } from '../../../../ui/common/InvoiceConfirmationModal';
-import { useInvoiceNavigation } from '../../hooks/useInvoiceNavigation';
-import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 import { InvoiceNavigatorBar } from './InvoiceNavigatorBar';
 import { PreviousInvoiceView } from './PreviousInvoiceView';
 import { OpenInvoicesTabs } from './OpenInvoicesTabs';
-import { useOpenInvoicesStore } from '../../store/openInvoicesStore';
+import { useCreateInvoiceController } from '../../hooks/useCreateInvoiceController';
 
 interface CreateInvoiceViewProps {
   onSuccess: () => void;
 }
 
 const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
-  const { data: company, isLoading: companyLoading, error: companyError } = useCompany();
-  const comp = company as { id: string; [key: string]: unknown } | null;
   const {
-    data: nextInvoiceNumber,
-    isLoading: numberLoading,
-  } = useNextInvoiceNumber();
-  const {
-    items,
+    comp,
+    companyLoading,
+    companyError,
+    nextInvoiceNumber,
+    numberLoading,
+    navigation,
+    printRef,
+    handlePrint,
+    enteredItemsCount,
     selectedCustomer,
     summary,
     resetCart,
     invoiceType,
-    cashboxId,
-    paidAmount,
-    warehouseId,
     currency,
     exchangeRate,
     exchangeOperator,
     notes,
+    paidAmount,
     setMetadata,
-    setCustomer,
     setCurrencyPreservingPrices,
-  } = useSalesStore();
-  const { mutate: createInvoice, isPending } = useCreateInvoice();
-  const { invoice: invoiceSettings } = useSettingsStore();
-  const { showToast } = useFeedbackStore();
-  const { data: paymentAccounts } = usePaymentAccounts();
-  const { data: rawWarehouses } = useWarehouses();
-  const { branchId, branchName } = useBranchFilter();
-  const [showConfirmModal, setShowConfirmModal] = React.useState(false);
-  const [targetStatus, setTargetStatus] = React.useState<InvoiceStatus>('paid');
-
-  const navigation = useInvoiceNavigation();
-  const { closeDraft, activeDraftId, syncCurrentDraft } = useOpenInvoicesStore();
-
-  // مزامنة حالة السلة الحالية مع المتجر المفتوح عند تغيير الحقول
-  React.useEffect(() => {
-    if (!navigation.currentViewingInvoice && Boolean(activeDraftId)) {
-      syncCurrentDraft({
-        items,
-        selectedCustomer,
-        summary,
-        invoiceType,
-        currency,
-        exchangeRate,
-        exchangeOperator,
-        warehouseId,
-        cashboxId,
-        paidAmount,
-        notes,
-      });
-    }
-  }, [
-    items,
-    selectedCustomer,
-    summary,
-    invoiceType,
-    currency,
-    exchangeRate,
-    exchangeOperator,
-    warehouseId,
-    cashboxId,
-    paidAmount,
-    notes,
-    navigation.currentViewingInvoice,
-    activeDraftId,
-    syncCurrentDraft,
-  ]);
-
-  // Ref للطباعة
-  const printRef = useRef<HTMLDivElement>(null);
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: `فاتورة_${nextInvoiceNumber ?? 'مسودة'}`,
-  });
-
-  // Apply defaults on mount
-  const isInitialized = React.useRef(false);
-
-  React.useEffect(() => {
-    if (isInitialized.current) return;
-
-    // 1. Set default currency and invoice type from settings
-    if (invoiceSettings?.default_currency) {
-      setMetadata('currency', invoiceSettings.default_currency);
-    }
-    if (invoiceSettings?.default_invoice_type) {
-      setMetadata('invoiceType', invoiceSettings.default_invoice_type);
-    }
-
-    // 2. Load "General Customer" ONLY on first mount if none selected
-    if (!selectedCustomer && comp?.id) {
-      isInitialized.current = true; // Mark as initialized immediately
-      const loadGeneralCustomer = async (companyId: string) => {
-        try {
-          const generalCustomer = await partiesService.getOrCreateGeneralParty(
-            companyId,
-            'customer'
-          );
-
-          // Re-check selectedCustomer from store to avoid overwriting a fast user selection
-          const currentStoreState = useSalesStore.getState().selectedCustomer;
-
-          if (!currentStoreState && generalCustomer) {
-            setCustomer({
-              id: generalCustomer.id,
-              name: generalCustomer.name,
-              phone: generalCustomer.phone || '',
-              type: 'customer',
-            });
-          }
-        } catch (error) {
-          logger.error('CreateInvoiceView', 'Failed to load general customer', error);
-        }
-      };
-      loadGeneralCustomer(comp.id);
-    } else if (selectedCustomer || !comp?.id) {
-      if (comp?.id) isInitialized.current = true;
-    }
-  }, [comp?.id, invoiceSettings, selectedCustomer, setMetadata, setCustomer]);
-
-  // تنبيه المتصفح عند محاولة الإغلاق غير المقصود مع وجود أصناف مدخلة
-  React.useEffect((): (() => void) => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
-      const hasWork = items.some(i => Boolean(i.productId) && i.quantity > 0);
-      if (hasWork) {
-        event.preventDefault();
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return (): void => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [items]);
-
-  // مفتاح منع التكرار: يُولَّد مرة واحدة لكل نية فاتورة (جلسة النموذج) ويُعاد
-  // توليده فقط بعد نجاح الاعتماد — فيُرفض التكرار عند النقر المزدوج/إعادة المحاولة.
-  const invoiceIdempotencyKeyRef = useRef(createIdempotencyKey('sale'));
-
-  const handleSave = (status: InvoiceStatus) => {
-    // [AUDIT-FIX] «حفظ كمسودة» يجب ألا ينشئ فاتورة معتمدة في الخادم إطلاقاً.
-    // كان status='draft' يُمرَّر إلى commit_sales_invoice_v2 الذي لا يقبل أي
-    // status، فتُنشأ الفاتورة «paid/posted» ويُخصم المخزون ويُسجَّل paid_amount
-    // كاملاً — أي أن زر المسودة كان يعتمد البيع فعلياً. المسودة الآن تُحفظ محلياً
-    // فقط (الـ cart مُخزَّن تلقائياً عبر zustand persist) بلا أي أثر خادمي.
-    if (status === 'draft') {
-      const hasDraftItems = items.some(
-        item => Boolean(item.productId) && Boolean(item.name) && item.quantity > 0
-      );
-      if (!hasDraftItems) {
-        showToast('أضف صنفاً واحداً على الأقل بكمية صحيحة لحفظ المسودة', 'warning');
-        return;
-      }
-      showToast('تم حفظ المسودة محلياً على هذا الجهاز — لم تُرحَّل ولن يُخصم المخزون', 'success');
-      return;
-    }
-
-    // [FIX #2] تحقق من وجود عميل محدد
-    if (!selectedCustomer) {
-      showToast('يرجى اختيار عميل أولاً', 'error');
-      return;
-    }
-
-    // [FIX #1] تحقق من الكمية والسعر معاً
-    const validItems = items.filter(
-      item => item.productId && item.name && item.quantity > 0 && item.price > 0
-    );
-    if (validItems.length === 0) {
-      showToast('يرجى إضافة صنف واحد على الأقل بكمية وسعر صحيحين', 'error');
-      return;
-    }
-
-    // [AUDIT-FIX] منع اعتماد فاتورة بخصم يتجاوز قيمة البضاعة (إجمالي سالب).
-    if (summary.totalAmount < 0) {
-      showToast('الخصم الإجمالي أكبر من قيمة الفاتورة — راجع الخصومات', 'error');
-      return;
-    }
-
-    // [CURRENCY-GUARD] حماية صارمة لمنع إدخال مبالغ بالريال اليمني كـ ريال سعودي في فرع وائل
-    const isWaelBranch =
-      Boolean(
-        branchName &&
-          (branchName.includes('وائل') ||
-            branchName.includes('النظاري') ||
-            branchName.toLowerCase().includes('wael'))
-      ) || (branchId ? localStorage.getItem(`branch_pref_currency_${branchId}`) === 'YER' : false);
-
-    const isSuspiciousSAR =
-      isWaelBranch &&
-      currency === 'SAR' &&
-      (summary.totalAmount >= 5000 || validItems.some(i => i.price >= 1000));
-
-    if (isSuspiciousSAR) {
-      const confirmYemeni = window.confirm(
-        `تنبيه تدقيق العملة الصارم:\n\nإجمالي الفاتورة (${summary.totalAmount} ر.س) مرتفع جداً بالنسبة لمعاملات فرع وائل المعتادة بالريال اليمني.\n\nهل هذه الأسعار بالريال اليمني (YER)؟\n\n- اضغط [موافق / OK] للتحويل التلقائي إلى الريال اليمني (YER) وحساب المعادل الصحيح.\n- اضغط [إلغاء / Cancel] فقط إذا كنت متأكداً 100% أن المبلغ بالريال السعودي الحقيقي.`
-      );
-      if (confirmYemeni) {
-        setCurrencyPreservingPrices('YER');
-        showToast('تم تحويل عملة الفاتورة إلى الريال اليمني (YER) وتثبيت سعر الصرف. يرجى مراجعة الصندوق والاعتماد.', 'info');
-        return;
-      }
-    }
-
-    // تحقق إضافي: الفاتورة النقدية تحتاج صندوقاً مطابقاً لنفس عملة الفاتورة
-    if (invoiceType === 'cash') {
-      if (!cashboxId) {
-        showToast('يرجى اختيار حساب الصندوق / البنك للفاتورة النقدية', 'warning');
-        return;
-      }
-      const selectedBox = paymentAccounts.find(a => a.id === cashboxId);
-      const invoiceCurr = (currency ?? 'SAR').toUpperCase();
-      const boxCurr = (selectedBox?.currency_code ?? 'SAR').toUpperCase();
-      if (selectedBox && selectedBox.currency_code !== '' && boxCurr !== invoiceCurr) {
-        showToast(
-          `تعارض عملات: الصندوق المختار (${selectedBox.name_ar} - ${boxCurr}) لا يطابق عملة الفاتورة (${invoiceCurr})`,
-          'error'
-        );
-        return;
-      }
-    }
-
-    // تحقق من الدفعة النقدية للآجل
-    if (
-      invoiceType === 'credit' &&
-      ((paidAmount || 0) > summary.totalAmount || (paidAmount || 0) < 0)
-    ) {
-      showToast('مبلغ الدفعة المسددة غير صالح؛ يجب أن يكون بين صفر وإجمالي الفاتورة', 'error');
-      return;
-    }
-
-    if (invoiceType === 'credit' && (paidAmount || 0) > 0) {
-      if (!cashboxId) {
-        showToast('يرجى اختيار حساب الصندوق / البنك لاستلام الدفعة النقدية', 'warning');
-        return;
-      }
-      const selectedBox = paymentAccounts.find(a => a.id === cashboxId);
-      const invoiceCurr = (currency ?? 'SAR').toUpperCase();
-      const boxCurr = (selectedBox?.currency_code ?? 'SAR').toUpperCase();
-      if (selectedBox && selectedBox.currency_code !== '' && boxCurr !== invoiceCurr) {
-        showToast(
-          `تعارض عملات: الصندوق المختار لاستلام الدفعة (${selectedBox.name_ar} - ${boxCurr}) لا يطابق عملة الفاتورة (${invoiceCurr})`,
-          'error'
-        );
-        return;
-      }
-    }
-
-    setTargetStatus(status);
-    setShowConfirmModal(true);
-  };
-
-  const executeSave = (statusToSave: InvoiceStatus) => {
-    if (isPending) return;
-    const validItems = items.filter(
-      item => item.productId && item.name && item.quantity > 0 && item.price > 0
-    );
-
-    const whList = (rawWarehouses ?? []) as Array<{ id: string; is_primary?: boolean }>;
-    const effectiveWarehouseId =
-      warehouseId && warehouseId !== 'wh_main' && (whList.length === 0 || whList.some(w => w.id === warehouseId))
-        ? warehouseId
-        : (whList.find(w => w.is_primary)?.id ?? whList[0]?.id ?? warehouseId);
-
-    createInvoice(
-      {
-        partyId: selectedCustomer?.id || null,
-        customerName: selectedCustomer?.name || 'عميل نقدي',
-        items: validItems.map(item => ({
-          productId: item.productId,
-          name: item.name,
-          sku: item.sku,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          costPrice: item.costPrice || 0,
-          warehouseId: effectiveWarehouseId,
-          maxStock: item.warehouse_distribution
-            ? item.warehouse_distribution.reduce((sum, w) => sum + w.quantity, 0)
-            : 9999,
-        })),
-        discount: summary.discountAmount,
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
-        status: statusToSave,
-        type: 'sale' as const,
-        paymentMethod: invoiceType,
-        treasuryAccountId: cashboxId,
-        currency: currency || 'SAR',
-        exchangeRate: currency === 'SAR' ? 1 : exchangeRate || 1,
-        paidAmount: invoiceType === 'credit' ? paidAmount || 0 : 0,
-        idempotencyKey: invoiceIdempotencyKeyRef.current,
-      },
-      {
-        onSuccess: () => {
-          setShowConfirmModal(false);
-          resetCart();
-          if (activeDraftId) {
-            closeDraft(activeDraftId);
-          }
-          onSuccess();
-          invoiceIdempotencyKeyRef.current = createIdempotencyKey('sale');
-        },
-      }
-    );
-  };
-
-  const invoiceForPrint = {
-    company: company,
-    invoice_number: nextInvoiceNumber || '...',
-    issue_date: formatLocalDate(),
-    party_name: selectedCustomer?.name || 'عميل نقدي',
-    items: items.filter(i => i.name),
-    total_amount: summary.totalAmount,
-    tax_amount: 0,
-    currency_code: currency || 'SAR',
-  };
+    handleSave,
+    executeSave,
+    showConfirmModal,
+    setShowConfirmModal,
+    targetStatus,
+    isPending,
+    invoiceForPrint,
+    confirmModalItems,
+    cashboxName,
+    warehouseName,
+  } = useCreateInvoiceController(onSuccess);
 
   if (companyLoading && !comp) return <PageLoader />;
   if (companyError && !comp)
     return <ErrorDisplay error={companyError?.message || null} variant="full" />;
-
-  const enteredItemsCount = items.filter(i => Boolean(i.productId)).length;
 
   return (
     <>
@@ -446,21 +147,9 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
         currency={currency}
         exchangeRate={currency === 'SAR' ? 1 : exchangeRate || 1}
         exchangeOperator={exchangeOperator}
-        cashboxName={paymentAccounts.find(acc => acc.id === cashboxId)?.name_ar}
-        warehouseName={
-          (rawWarehouses as Array<{ id: string; name_ar: string }> | undefined)?.find(
-            w => w.id === warehouseId
-          )?.name_ar
-        }
-        items={items
-          .filter(item => Boolean(item.productId) && Boolean(item.name) && item.quantity > 0 && item.price > 0)
-          .map(item => ({
-            name: item.name,
-            sku: item.sku,
-            quantity: item.quantity,
-            price: item.price,
-            total: item.quantity * item.price,
-          }))}
+        cashboxName={cashboxName}
+        warehouseName={warehouseName}
+        items={confirmModalItems}
         subtotal={summary.subtotal}
         discount={summary.discountAmount}
         tax={0}

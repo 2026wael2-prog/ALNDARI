@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { Search, FileText, CheckCircle2, Eye, ArrowUpDown, Layers } from 'lucide-react';
-import { formatCurrency, formatLocalDate, toBaseCurrency } from '../../../core/utils';
-import { useUnpaidPartyInvoices } from '../hooks';
-import { cn } from '../../../core/utils';
+import React, { useState } from 'react';
+import { FileText, CheckCircle2, Eye, ArrowUpDown } from 'lucide-react';
+import { formatCurrency, formatLocalDate, cn } from '../../../core/utils';
 import InvoiceDetailsModal from '../../sales/components/details/InvoiceDetailsModal';
+import { usePartyInvoicesFilter } from '../hooks/usePartyInvoicesFilter';
+import { PartyInvoicesToolbar } from './PartyInvoicesToolbar';
 
 interface PartyInvoicesListProps {
   partyId: string;
@@ -12,129 +12,30 @@ interface PartyInvoicesListProps {
   selectedInvoiceId?: string | undefined;
 }
 
-type SortField = 'issue_date' | 'total_amount' | 'remaining_amount' | 'invoice_number';
-type SortOrder = 'asc' | 'desc';
-type FilterStatus = 'all' | 'unpaid' | 'partial';
-
 const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
   partyId,
   partyType,
   onSelectInvoice,
   selectedInvoiceId,
 }) => {
-  const { data: invoices, isLoading } = useUnpaidPartyInvoices(partyId, partyType);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
-  const [sortField, setSortField] = useState<SortField>('issue_date');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const {
+    invoices,
+    isLoading,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    handleSort,
+    processedInvoices,
+    totals,
+  } = usePartyInvoicesFilter(partyId, partyType);
   const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
-
-  // Toggle sorting
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortField(field);
-      setSortOrder('desc');
-    }
-  };
-
-  const processedInvoices = useMemo(() => {
-    if (!invoices) return [];
-
-    let list = invoices.map((inv: any) => {
-      const total = Number(inv.total_amount || 0);
-      const paid = Number(inv.paid_amount || 0);
-      const remaining = Math.max(0, total - paid);
-      const isPartial = paid > 0;
-      return {
-        ...inv,
-        _total: total,
-        _paid: paid,
-        _remaining: remaining,
-        _isPartial: isPartial,
-      };
-    });
-
-    // 1. Status Filter
-    if (statusFilter === 'partial') {
-      list = list.filter((inv: any) => inv._isPartial);
-    } else if (statusFilter === 'unpaid') {
-      list = list.filter((inv: any) => !inv._isPartial);
-    }
-
-    // 2. Search Filter
-    if (searchQuery.trim()) {
-      const lowerQuery = searchQuery.toLowerCase().trim();
-      list = list.filter((inv: any) => {
-        if (inv.invoice_number?.toLowerCase().includes(lowerQuery)) return true;
-        if (inv.notes?.toLowerCase().includes(lowerQuery)) return true;
-        if (inv.issue_date?.includes(lowerQuery)) return true;
-        if (inv._total.toString().includes(lowerQuery)) return true;
-        if (inv._remaining.toString().includes(lowerQuery)) return true;
-
-        if (inv.invoice_items && inv.invoice_items.length > 0) {
-          return inv.invoice_items.some((item: any) => {
-            const product = item.product || {};
-            return (
-              product.name_ar?.toLowerCase().includes(lowerQuery) ||
-              product.sku?.toLowerCase().includes(lowerQuery) ||
-              product.part_number?.toLowerCase().includes(lowerQuery) ||
-              product.brand?.toLowerCase().includes(lowerQuery)
-            );
-          });
-        }
-        return false;
-      });
-    }
-
-    // 3. Sorting
-    list.sort((a: any, b: any) => {
-      let comparison = 0;
-      if (sortField === 'issue_date') {
-        comparison = new Date(a.issue_date || 0).getTime() - new Date(b.issue_date || 0).getTime();
-      } else if (sortField === 'total_amount') {
-        comparison = a._total - b._total;
-      } else if (sortField === 'remaining_amount') {
-        comparison = a._remaining - b._remaining;
-      } else if (sortField === 'invoice_number') {
-        comparison = (a.invoice_number || '').localeCompare(b.invoice_number || '');
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    return list;
-  }, [invoices, searchQuery, statusFilter, sortField, sortOrder]);
-
-  // Totals calculations (normalized to base currency SAR so multi-currency invoices never sum raw)
-  const totals = useMemo(() => {
-    const toBase = (amount: number, inv: any) => {
-      try {
-        return toBaseCurrency({
-          amount,
-          currency_code: inv.currency_code || 'SAR',
-          exchange_rate: inv.exchange_rate ?? 1,
-        });
-      } catch {
-        return amount;
-      }
-    };
-    return processedInvoices.reduce(
-      (acc, curr) => {
-        acc.total += toBase(curr._total, curr);
-        acc.paid += toBase(curr._paid, curr);
-        acc.remaining += toBase(curr._remaining, curr);
-        return acc;
-      },
-      { total: 0, paid: 0, remaining: 0 }
-    );
-  }, [processedInvoices]);
 
   if (isLoading) {
     return (
       <div className="flex h-36 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 dark:border-slate-800 dark:bg-slate-900/50">
         <div className="flex flex-col items-center gap-2 text-gray-400">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
           <span className="text-[10px] font-bold uppercase tracking-widest">
             جاري جلب جدول الفواتير الآجلة...
           </span>
@@ -166,88 +67,23 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
   return (
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        {/* Excel Toolbar */}
-        <div className="flex flex-col gap-2.5 border-b border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-850 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-black text-white shadow-sm">
-              <Layers size={13} />
-              <span>{headerTitle}</span>
-              <span className="py-0.2 rounded-md bg-white/20 px-1.5 text-[10px] font-bold">
-                {processedInvoices.length}
-              </span>
-            </div>
-
-            {/* Quick Status Filter Tabs */}
-            <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-[10px] font-bold dark:border-slate-700 dark:bg-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('all');
-                }}
-                className={cn(
-                  'rounded px-2 py-0.5 transition-colors',
-                  statusFilter === 'all'
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
-                )}
-              >
-                الكل
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('partial');
-                }}
-                className={cn(
-                  'rounded px-2 py-0.5 transition-colors',
-                  statusFilter === 'partial'
-                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
-                )}
-              >
-                مسدد جزئياً
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter('unpaid');
-                }}
-                className={cn(
-                  'rounded px-2 py-0.5 transition-colors',
-                  statusFilter === 'unpaid'
-                    ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
-                )}
-              >
-                غير مسدد
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Search */}
-          <div className="relative w-full sm:w-60">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => {
-                setSearchQuery(e.target.value);
-              }}
-              placeholder="بحث برقم الفاتورة، القطعة، المبلغ..."
-              className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs font-bold text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-blue-500"
-            />
-            <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-              size={14}
-            />
-          </div>
-        </div>
+        <PartyInvoicesToolbar
+          headerTitle={headerTitle}
+          count={processedInvoices.length}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+        />
 
         {/* Excel Spreadsheet Table */}
         <div className="custom-scrollbar max-h-72 overflow-x-auto overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800">
           <table className="w-full border-collapse border border-slate-200 text-right text-xs dark:border-slate-800">
             <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/95 text-[10px] font-black uppercase text-slate-600 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-800/95 dark:text-slate-300">
               <tr>
-                <th className="w-10 border border-slate-200 px-2.5 py-2 text-center dark:border-slate-700">تحديد</th>
+                <th className="w-10 border border-slate-200 px-2.5 py-2 text-center dark:border-slate-700">
+                  تحديد
+                </th>
                 <th
                   onClick={() => {
                     handleSort('invoice_number');
@@ -270,7 +106,9 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                     <ArrowUpDown size={11} className="opacity-60" />
                   </div>
                 </th>
-                <th className="border border-slate-200 px-3 py-2 dark:border-slate-700">البيان والملاحظات</th>
+                <th className="border border-slate-200 px-3 py-2 dark:border-slate-700">
+                  البيان والملاحظات
+                </th>
                 <th
                   onClick={() => {
                     handleSort('total_amount');
@@ -282,7 +120,9 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                     <ArrowUpDown size={11} className="opacity-60" />
                   </div>
                 </th>
-                <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">المسدد</th>
+                <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">
+                  المسدد
+                </th>
                 <th
                   onClick={() => {
                     handleSort('remaining_amount');
@@ -294,14 +134,21 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                     <ArrowUpDown size={11} className="opacity-60" />
                   </div>
                 </th>
-                <th className="border border-slate-200 px-3 py-2 text-center dark:border-slate-700">الحالة</th>
-                <th className="w-16 border border-slate-200 px-3 py-2 text-center dark:border-slate-700">معاينة</th>
+                <th className="border border-slate-200 px-3 py-2 text-center dark:border-slate-700">
+                  الحالة
+                </th>
+                <th className="w-16 border border-slate-200 px-3 py-2 text-center dark:border-slate-700">
+                  معاينة
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-sans dark:divide-slate-800">
               {processedInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="border border-slate-200 py-8 text-center text-xs font-bold text-slate-400 dark:border-slate-800">
+                  <td
+                    colSpan={9}
+                    className="border border-slate-200 py-8 text-center text-xs font-bold text-slate-400 dark:border-slate-800"
+                  >
                     لا توجد فواتير تطابق معايير البحث
                   </td>
                 </tr>
@@ -325,7 +172,6 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                             : 'bg-slate-50/40 dark:bg-slate-850/40'
                       )}
                     >
-                      {/* Selection radio/checkbox */}
                       <td
                         className="border border-slate-200/80 px-2.5 py-2 text-center dark:border-slate-800/80"
                         onClick={e => {
@@ -343,7 +189,6 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                         />
                       </td>
 
-                      {/* Invoice Number */}
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 font-mono font-bold dark:border-slate-800/80">
                         <div className="flex items-center gap-1.5">
                           <FileText size={13} className="text-slate-400" />
@@ -359,12 +204,10 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                         </div>
                       </td>
 
-                      {/* Issue Date */}
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 font-mono text-[11px] text-slate-600 dark:border-slate-800/80 dark:text-slate-400">
                         {formatLocalDate(inv.issue_date)}
                       </td>
 
-                      {/* Notes / Items summary */}
                       <td className="max-w-[180px] truncate border border-slate-200/80 px-3 py-2 text-[11px] text-slate-500 dark:border-slate-800/80 dark:text-slate-400">
                         {inv.notes ||
                           (inv.invoice_items?.length
@@ -372,22 +215,18 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                             : 'فاتورة آجلة')}
                       </td>
 
-                      {/* Total Amount */}
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-left font-mono font-bold text-slate-700 dark:border-slate-800/80 dark:text-slate-300">
                         {formatCurrency(inv._total, currency)}
                       </td>
 
-                      {/* Paid Amount */}
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-left font-mono text-emerald-600 dark:border-slate-800/80 dark:text-emerald-400">
                         {inv._paid > 0 ? formatCurrency(inv._paid, currency) : '-'}
                       </td>
 
-                      {/* Remaining Amount */}
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-left font-mono font-black text-rose-600 dark:border-slate-800/80 dark:text-rose-400">
                         {formatCurrency(inv._remaining, currency)}
                       </td>
 
-                      {/* Status Badge */}
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-center dark:border-slate-800/80">
                         {inv._isPartial ? (
                           <span className="inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
@@ -400,7 +239,6 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                         )}
                       </td>
 
-                      {/* Preview Button */}
                       <td
                         className="border border-slate-200/80 px-3 py-2 text-center dark:border-slate-800/80"
                         onClick={e => {
@@ -463,7 +301,6 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
         </div>
       </div>
 
-      {/* Invoice Details Preview Modal */}
       {previewInvoiceId && (
         <InvoiceDetailsModal
           invoiceId={previewInvoiceId}

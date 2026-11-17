@@ -183,6 +183,10 @@ const TotalCard: React.FC<{ invoice: PurchaseDetailInvoice; totalUnitsCount: num
 }) => {
   const itemsCount = (invoice.invoice_items ?? []).length;
   const currencyCode = invoice.currency_code ?? 'SAR';
+  const isForeign = currencyCode !== 'SAR';
+  const docTotal =
+    (invoice as PurchaseDetailInvoice & { total_document_amount?: number | null })
+      .total_document_amount ?? invoice.total_amount;
 
   return (
     <div className="col-span-2 flex flex-col justify-between rounded-xl border border-blue-200 bg-blue-50/60 p-2.5 shadow-xs dark:border-blue-900/60 dark:bg-blue-950/40 sm:col-span-1 sm:p-3">
@@ -195,8 +199,13 @@ const TotalCard: React.FC<{ invoice: PurchaseDetailInvoice; totalUnitsCount: num
           dir="ltr"
           className="font-mono text-base font-black text-blue-700 dark:text-blue-300 sm:text-lg"
         >
-          {formatCurrency(invoice.total_amount, currencyCode)}
+          {formatCurrency(docTotal, currencyCode)}
         </p>
+        {isForeign && (
+          <p dir="ltr" className="mt-0.5 font-mono text-[10px] font-bold text-blue-600/80 dark:text-blue-400/80">
+            المعادل: {formatCurrency(invoice.total_amount, 'SAR')}
+          </p>
+        )}
       </div>
       <div className="mt-1.5 flex items-center justify-between border-t border-blue-200/60 pt-1.5 text-[10px] dark:border-blue-800/40 sm:text-[11px]">
         <span className="text-blue-700/80 dark:text-blue-400">عدد الأصناف:</span>

@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Scale,
   Headphones,
+  BrainCircuit,
 } from 'lucide-react';
 import type { MenuItem } from './types';
 import { ROUTES } from './routes/paths';
@@ -91,6 +92,14 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: Wrench,
     path: ROUTES.DASHBOARD.INVENTORY,
     color: 'orange',
+  },
+  {
+    id: 'inventory_intelligence',
+    labelKey: 'inventory_intelligence',
+    icon: BrainCircuit,
+    path: ROUTES.DASHBOARD.INVENTORY_INTELLIGENCE,
+    requiredPermission: 'inventory:read',
+    color: 'purple',
   },
   {
     id: 'expenses',

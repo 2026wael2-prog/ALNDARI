@@ -35,7 +35,7 @@ const journalEntrySchema = z
     date: z.string().min(1, 'التاريخ مطلوب'),
     description: z.string().min(3, 'الوصف العام مطلوب (على الأقل 3 أحرف)'),
     currency_code: z.string().optional(),
-    exchange_rate: z.number().optional(),
+    exchange_rate: z.number().positive('سعر الصرف يجب أن يكون أكبر من صفر').optional(),
     lines: z.array(journalLineSchema).min(2, 'يجب أن يحتوي القيد على سطرين على الأقل'),
   })
   .refine(
@@ -169,7 +169,16 @@ export const useJournalEntryForm = (
 
   useEffect(() => {
     if (isOpen) {
-      reset();
+      reset({
+        date: formatLocalDate(),
+        description: '',
+        currency_code: 'SAR',
+        exchange_rate: 1,
+        lines: [
+          { account_id: '', description: '', debit_amount: 0, credit_amount: 0 },
+          { account_id: '', description: '', debit_amount: 0, credit_amount: 0 },
+        ],
+      });
     }
   }, [isOpen, reset]);
 

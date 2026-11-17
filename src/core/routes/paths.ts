@@ -9,6 +9,7 @@ export const ROUTES = {
   DASHBOARD: {
     ROOT: '/',
     INVENTORY: '/inventory',
+    INVENTORY_INTELLIGENCE: '/inventory-intelligence',
     INVENTORY_AUDIT_SESSION: '/inventory/audit/:sessionId',
     INVENTORY_QUICK_AUDIT: '/inventory/quick-audit',
     ACCOUNTING: '/accounting',

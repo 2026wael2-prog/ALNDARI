@@ -2,6 +2,7 @@ import type { TrialBalanceItem, LedgerEntry } from '../types/index';
 import { supabase } from '../../../lib/supabaseClient';
 import { logger } from '../../../core/utils/logger';
 import { formatLocalDate, getLocalYearStart } from '../../../core/utils/dateUtils';
+import { fetchAllRpcPages } from '../../../core/utils/dataFetching';
 
 interface LedgerRpcLine {
   entry_date: string | undefined;
@@ -305,12 +306,17 @@ export const reportService = {
     const from = fromDate || getLocalYearStart();
     const to = toDate || formatLocalDate();
 
-    const { data, error } = await supabase.rpc('report_trial_balance', {
-      p_company_id: companyId,
-      p_from: from,
-      p_to: to,
-      ...(branchId ? { p_branch_id: branchId } : {}),
-    });
+    const { data, error } = await fetchAllRpcPages(
+      supabase,
+      'report_trial_balance',
+      {
+        p_company_id: companyId,
+        p_from: from,
+        p_to: to,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      },
+      ['account_code', 'account_id']
+    );
     if (error) throw error;
 
     return toTrialBalanceRows(data).map((row: TrialBalanceRpcRow) => ({
@@ -363,14 +369,16 @@ export const reportService = {
     let totalExpense = 0;
     let netIncome = 0;
 
-    const { data: detailRows, error: detailError } = await supabase.rpc(
+    const { data: detailRows, error: detailError } = await fetchAllRpcPages(
+      supabase,
       'report_profit_loss_detailed',
       {
         p_company_id: companyId,
         p_from: from,
         p_to: to,
         ...(branchId ? { p_branch_id: branchId } : {}),
-      }
+      },
+      ['account_code', 'account_id']
     );
 
     if (detailError === null) {
@@ -468,17 +476,27 @@ export const reportService = {
 
     const [{ data: detailBsData, error: detailBsError }, { data: tbData, error: tbError }] =
       await Promise.all([
-        supabase.rpc('report_balance_sheet_detailed', {
-          p_company_id: companyId,
-          p_as_of_date: to,
-          ...(branchId ? { p_branch_id: branchId } : {}),
-        }),
-        supabase.rpc('report_trial_balance', {
-          p_company_id: companyId,
-          p_from: '1970-01-01',
-          p_to: to,
-          ...(branchId ? { p_branch_id: branchId } : {}),
-        }),
+        fetchAllRpcPages(
+          supabase,
+          'report_balance_sheet_detailed',
+          {
+            p_company_id: companyId,
+            p_as_of_date: to,
+            ...(branchId ? { p_branch_id: branchId } : {}),
+          },
+          ['account_code', 'account_id']
+        ),
+        fetchAllRpcPages(
+          supabase,
+          'report_trial_balance',
+          {
+            p_company_id: companyId,
+            p_from: '1970-01-01',
+            p_to: to,
+            ...(branchId ? { p_branch_id: branchId } : {}),
+          },
+          ['account_code', 'account_id']
+        ),
       ]);
 
     if (detailBsError === null && Array.isArray(detailBsData)) {
@@ -705,12 +723,21 @@ export const reportService = {
     endDate: string,
     branchId?: string | null
   ) => {
-    const { data, error } = await supabase.rpc('fn_get_vat_return_report', {
+    let { data, error } = await supabase.rpc('fn_get_vat_return_report', {
       p_company_id: companyId,
       p_start_date: startDate,
       p_end_date: endDate,
       ...(branchId ? { p_branch_id: branchId } : {}),
     });
+    if (error && branchId && /does not exist|PGRST202|42883|42703/i.test(String(error.message ?? ''))) {
+      const fallback = await supabase.rpc('fn_get_vat_return_report', {
+        p_company_id: companyId,
+        p_start_date: startDate,
+        p_end_date: endDate,
+      });
+      data = fallback.data;
+      error = fallback.error;
+    }
     if (error) throw error;
     return data as {
       success: boolean;

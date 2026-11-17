@@ -16,8 +16,8 @@ const Card: React.FC<CardProps> = ({ className, children, noPadding, isMicro, va
     <div
       className={cn(
         "bg-[var(--app-surface)] shadow-sm border border-[var(--app-border)] overflow-hidden transition-all duration-300",
-        isLedger ? "rounded-none" : isMicro ? "rounded-lg" : "rounded-xl",
-        !noPadding && (isMicro ? "p-1 sm:p-1.5" : isLedger ? "p-1.5" : "p-1.5"),
+        isLedger ? "rounded-none" : isMicro ? "rounded-md" : "rounded-lg",
+        !noPadding && (isMicro ? "p-1" : isLedger ? "p-1.5" : "p-1 sm:p-1.5"),
         className
       )}
       {...props}

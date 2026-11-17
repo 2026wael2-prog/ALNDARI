@@ -69,13 +69,19 @@ export const useInvoices = (options?: UseInvoicesOptions) => {
   });
 };
 
-export const useSalesStats = () => {
+export const useSalesStats = (filters?: {
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+}) => {
   const { user } = useAuthStore();
   const companyId = user?.company_id;
   const { branchId } = useBranchFilter();
   return useQuery({
-    queryKey: ['sales_stats', companyId, branchId],
-    queryFn: () => (companyId ? salesService.getStats(companyId, branchId) : Promise.resolve(null)),
+    queryKey: ['sales_stats', companyId, branchId, filters?.dateFrom, filters?.dateTo],
+    queryFn: () =>
+      companyId
+        ? salesService.getStats(companyId, branchId, filters?.dateFrom, filters?.dateTo)
+        : Promise.resolve(null),
     enabled: !!companyId,
     staleTime: 5 * 60 * 1000,
     placeholderData: prev => prev,

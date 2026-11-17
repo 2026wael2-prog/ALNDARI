@@ -4,8 +4,6 @@
  */
 import { supabase } from '../../../lib/supabaseClient';
 import type { CreateQuotationDTO } from '../types/quotation';
-import { generateQuotationNumber } from '../../../lib/quotationNumbering';
-import type { Database } from '../../../core/database.types';
 import { broadcastCrossBranchActivity } from '@/features/branches/api';
 
 // DB row types
@@ -119,80 +117,41 @@ export const salesQuotationsApi = {
   },
 
   /**
-   * Create a new sales quotation — single atomic write.
-   *
-   * Header + items are sent in ONE PostgREST request via related-resource
-   * insert (FK quotation_items.quotation_id), so a mid-flight failure can no
-   * longer leave an orphaned quotation without items. Numbering is delegated
-   * to the shared race-resistant generator (see src/lib/quotationNumbering.ts).
+   * Create a new sales quotation — single atomic RPC (totals & numbering computed in PostgreSQL).
    */
   createQuotation: async (companyId: string, userId: string, dto: CreateQuotationDTO) => {
-    // Calculate totals
-    const items = dto.items.map((item, idx) => {
-      const lineTotal = item.quantity * item.unitPrice * (1 - (item.discountPercent || 0) / 100);
-      return { ...item, total: Math.round(lineTotal * 100) / 100, sortOrder: idx };
-    });
-    if (items.length === 0) {
+    if (!dto.items || dto.items.length === 0) {
       throw new Error('لا يمكن حفظ عرض سعر بدون أصناف — أضف صنفاً واحداً على الأقل');
     }
-    const subtotal = items.reduce((sum, i) => sum + i.total, 0);
-    const discountAmount = dto.discountAmount || 0;
-    const totalAmount = subtotal - discountAmount;
 
-    // Race-resistant numbering (max+1 scan incl. soft-deleted; DB unique index is the backstop)
-    const quotationNumber = await generateQuotationNumber(companyId, 'sales');
+    const rpcItems = dto.items.map(item => ({
+      product_id: item.productId !== '' ? item.productId : null,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      discount_percent: item.discountPercent ?? 0,
+    }));
 
-    const headerPayload: Database['public']['Tables']['quotations']['Insert'] = {
-      company_id: companyId,
-      branch_id: dto.branchId ?? null,
-      quotation_number: quotationNumber,
-      type: 'sales',
-      status: 'draft',
-      party_id: dto.partyId,
-      issue_date: dto.issueDate,
-      valid_until: dto.validUntil ?? null,
-      subtotal,
-      discount_amount: discountAmount,
-      tax_amount: 0,
-      total_amount: totalAmount,
-      currency_code: dto.currencyCode ?? 'SAR',
-      exchange_rate: dto.exchangeRate ?? 1,
-      notes: dto.notes ?? null,
-      terms_and_conditions: dto.termsAndConditions ?? null,
-      delivery_terms: dto.deliveryTerms ?? null,
-      payment_terms: dto.paymentTerms ?? null,
-      created_by: userId,
-    };
+    const { data, error } = await (supabase.rpc as Function)('create_quotation', {
+      p_company_id: companyId,
+      p_party_id: dto.partyId,
+      p_issue_date: dto.issueDate,
+      p_valid_until: dto.validUntil ?? null,
+      p_discount_amount: dto.discountAmount ?? 0,
+      p_currency_code: dto.currencyCode ?? 'SAR',
+      p_exchange_rate: dto.exchangeRate ?? 1,
+      p_notes: dto.notes ?? null,
+      p_terms_and_conditions: dto.termsAndConditions ?? null,
+      p_delivery_terms: dto.deliveryTerms ?? null,
+      p_payment_terms: dto.paymentTerms ?? null,
+      p_branch_id: dto.branchId ?? null,
+      p_items: rpcItems,
+      p_idempotency_key: crypto.randomUUID(),
+    });
 
-    const { data: quotation, error: qError } = await supabase
-      .from('quotations')
-      .insert(headerPayload)
-      .select('id, quotation_number')
-      .single();
+    if (error) throw error;
 
-    if (qError) throw qError;
-
-    const itemRows: Array<Database['public']['Tables']['quotation_items']['Insert']> = items.map(
-      item => ({
-        quotation_id: quotation.id,
-        company_id: companyId,
-        product_id: item.productId !== '' ? item.productId : null,
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        discount_percent: item.discountPercent ?? 0,
-        total: item.total,
-        sort_order: item.sortOrder,
-      })
-    );
-
-    const { error: itemsError } = await supabase.from('quotation_items').insert(itemRows);
-
-    if (itemsError !== null) {
-      // Rollback newly created quotation header to prevent orphaned drafts
-      await supabase.from('quotations').delete().eq('id', quotation.id);
-      throw itemsError;
-    }
+    const quotation = data as { id: string; quotation_number: string; total_amount?: number };
 
     void broadcastCrossBranchActivity(companyId, {
       id: quotation.id,
@@ -201,7 +160,7 @@ export const salesQuotationsApi = {
       type: 'quotation_created',
       title: 'عرض أسعار جديد',
       message: `تم إصدار عرض أسعار جديد ${quotation.quotation_number ? `رقم ${quotation.quotation_number}` : ''}`,
-      amount: totalAmount,
+      amount: quotation.total_amount ?? 0,
       currency_code: dto.currencyCode || 'SAR',
       document_number: quotation.quotation_number,
       link: '/sales',

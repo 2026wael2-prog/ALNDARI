@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Building2 } from 'lucide-react';
 import Modal from '../../../../ui/base/Modal';
 import Button from '../../../../ui/base/Button';
@@ -12,17 +12,25 @@ interface Props {
   isLoading: boolean;
 }
 
+const buildInitialFormData = (): CreateFixedAssetInput => ({
+  name: '',
+  asset_code: '',
+  category: 'equipment',
+  purchase_date: formatLocalDate(new Date()),
+  purchase_cost: 0,
+  salvage_value: 0,
+  useful_life_months: 60,
+  notes: '',
+});
+
 const AddAssetModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, isLoading }) => {
-  const [formData, setFormData] = useState<CreateFixedAssetInput>({
-    name: '',
-    asset_code: '',
-    category: 'equipment',
-    purchase_date: formatLocalDate(new Date()),
-    purchase_cost: 0,
-    salvage_value: 0,
-    useful_life_months: 60,
-    notes: '',
-  });
+  const [formData, setFormData] = useState<CreateFixedAssetInput>(buildInitialFormData);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(buildInitialFormData());
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

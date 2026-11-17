@@ -28,6 +28,7 @@ export interface Expense {
   recurring_end_date?: string;
   created_at?: string;
   branch_id?: string | null;
+  is_journal_sourced?: boolean;
 }
 
 export interface ExpenseFormData {

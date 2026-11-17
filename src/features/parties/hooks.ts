@@ -3,7 +3,7 @@ import { partiesService } from './service';
 import { useAuthStore } from '../auth/store';
 import { useFeedbackStore } from '../feedback/store';
 import type { PartyFormData, PartyType, Party, PartyView } from './types';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { assertPermission } from '../../core/hooks/usePermission';
 import { syncStore } from '../../core/lib/sync-store';
 import { partyCache } from './lib/party-cache';
@@ -239,19 +239,19 @@ export const usePartiesView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingParty, setEditingParty] = useState<Party | null>(null);
 
-  const handleEdit = (party: Party) => {
+  const handleEdit = useCallback((party: Party) => {
     setEditingParty(party);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setEditingParty(null);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
-  };
+  }, []);
 
   return {
     activeView,

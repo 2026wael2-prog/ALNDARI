@@ -1,7 +1,7 @@
 import React from 'react';
 import { TrendingDown, TrendingUp, Scale, Wallet, DollarSign, Package } from 'lucide-react';
 // Fix: Corrected import path to point to the barrel file.
-import { useFinancials, useAccounts } from '../../hooks/index';
+import { useFinancials } from '../../hooks/index';
 import { formatCurrency } from '../../../../core/utils';
 import StatCard from '../../../../ui/common/StatCard';
 
@@ -11,23 +11,6 @@ interface AccountingStatsProps {
 
 const AccountingStats: React.FC<AccountingStatsProps> = ({ dateRange }) => {
   const { data: financials, isLoading } = useFinancials(dateRange?.from, dateRange?.to);
-  const { data: accounts } = useAccounts();
-
-  const { fallbackAssets, fallbackLiabilities } = React.useMemo(() => {
-    if (!accounts || accounts.length === 0) {
-      return { fallbackAssets: 0, fallbackLiabilities: 0 };
-    }
-    const parentIds = new Set(accounts.map(a => a.parent_id).filter(Boolean));
-    const leaves = accounts.filter(a => !parentIds.has(a.id));
-    let assetsSum = 0;
-    let liabilitiesSum = 0;
-    for (const acc of leaves) {
-      const bal = Number(acc.balance) || 0;
-      if (acc.type === 'asset') assetsSum += bal;
-      else if (acc.type === 'liability') liabilitiesSum += bal;
-    }
-    return { fallbackAssets: assetsSum, fallbackLiabilities: liabilitiesSum };
-  }, [accounts]);
 
   if (isLoading) {
     return (
@@ -59,10 +42,8 @@ const AccountingStats: React.FC<AccountingStatsProps> = ({ dateRange }) => {
   const operatingExpenses =
     incomeStmt?.operatingExpenses ?? (incomeStmt?.totalExpense || 0) - totalCogs;
   const grossProfit = incomeStmt?.grossProfit ?? totalRevenue - totalCogs;
-  const serverAssets = financials?.balanceSheet?.totals?.assets || 0;
-  const serverLiabilities = financials?.balanceSheet?.totals?.liabilities || 0;
-  const totalAssets = serverAssets !== 0 ? serverAssets : fallbackAssets;
-  const totalLiabilities = serverLiabilities !== 0 ? serverLiabilities : fallbackLiabilities;
+  const totalAssets = financials?.balanceSheet?.totals?.assets || 0;
+  const totalLiabilities = financials?.balanceSheet?.totals?.liabilities || 0;
 
   return (
     <div className="grid grid-cols-2 gap-2 transition-colors duration-300 md:grid-cols-3 lg:grid-cols-6">

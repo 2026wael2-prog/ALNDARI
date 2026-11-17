@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   BarChart3,
   FileText,
@@ -7,6 +8,7 @@ import {
   RefreshCw,
   ShoppingCart,
   Sparkles,
+  Scale,
 } from 'lucide-react';
 import PurchaseStats from '../components/PurchaseStats';
 import { usePurchases } from '../hooks';
@@ -30,10 +32,49 @@ import { PurchaseHeaderActions } from '../components/page/PurchaseHeaderActions'
 import { PurchasePageContent } from '../components/page/PurchasePageContent';
 
 const isPurchaseTab = (value: string): value is PurchaseTab =>
-  ['create', 'list', 'returns', 'analytics', 'smart_import', 'quotations'].includes(value);
+  [
+    'create',
+    'list',
+    'returns',
+    'smart_import',
+    'quotations',
+    'bi_suppliers',
+    'bi_prices',
+  ].includes(value);
 
 const PurchasesPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<PurchaseTab>('list');
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState<PurchaseTab>(() => {
+    const initialTab = urlSearchParams.get('tab');
+    return initialTab && isPurchaseTab(initialTab) ? initialTab : 'list';
+  });
+
+  const setActiveTab: React.Dispatch<React.SetStateAction<PurchaseTab>> = useCallback(
+    action => {
+      const nextTab = typeof action === 'function' ? action(activeTab) : action;
+      setActiveTabState(nextTab);
+      setUrlSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (nextTab === 'list') {
+            next.delete('tab');
+          } else {
+            next.set('tab', nextTab);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [activeTab, setUrlSearchParams]
+  );
+
+  useEffect(() => {
+    const tabParam = urlSearchParams.get('tab');
+    if (tabParam && isPurchaseTab(tabParam)) {
+      setActiveTabState(tabParam);
+    }
+  }, [urlSearchParams]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
@@ -95,7 +136,7 @@ const PurchasesPage: React.FC = () => {
     (data: { items: ExtractedItem[]; supplierName?: string; currency?: string }): void => {
       bulkLoadItems(data.items);
       if (data.supplierName !== undefined && data.supplierName !== '')
-        setSupplier({ id: 'ai_detected', name: data.supplierName });
+        setSupplier({ id: '', name: data.supplierName });
       if (data.currency !== undefined && data.currency !== '')
         setMetadata('currency', data.currency);
       setActiveTab('create');
@@ -151,7 +192,8 @@ const PurchasesPage: React.FC = () => {
     { id: 'smart_import', label: 'استيراد ذكي (AI)', icon: Sparkles },
     { id: 'returns', label: t('supplier_returns'), icon: RefreshCw },
     { id: 'quotations', label: 'عروض الأسعار', icon: FileText },
-    { id: 'analytics', label: t('financial_analytics'), icon: BarChart3 },
+    { id: 'bi_suppliers', label: 'تحليلات الموردين BI', icon: BarChart3 },
+    { id: 'bi_prices', label: 'مقارنة أسعار الموردين', icon: Scale },
   ];
 
   return (
@@ -195,8 +237,23 @@ const PurchasesPage: React.FC = () => {
       />
       <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-16 pt-0">
         <div className="h-full space-y-3 pt-2">
-          {activeTab !== 'analytics' && activeTab !== 'create' && activeTab !== 'smart_import' && (
-            <PurchaseStats />
+          {activeTab !== 'create' && activeTab !== 'smart_import' && (
+            <PurchaseStats
+              filters={{
+                startDate: dateFrom ?? null,
+                endDate: dateTo ?? null,
+                currency: currencyFilter !== 'all' ? (currencyFilter as any) : undefined,
+                paymentType: paymentMethodFilter !== 'all' ? (paymentMethodFilter as any) : undefined,
+              }}
+              datePreset={datePreset}
+              onDatePresetChange={(preset, range) => {
+                setDatePreset(preset);
+                setDateFrom(range.from);
+                setDateTo(range.to);
+              }}
+              currencyFilter={currencyFilter}
+              onCurrencyFilterChange={setCurrencyFilter}
+            />
           )}
           <div className="animate-in fade-in slide-in-from-bottom-1 h-full">
             <PurchasePageContent

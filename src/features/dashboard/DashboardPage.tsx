@@ -155,46 +155,55 @@ const DashboardPage: React.FC = () => {
         }
       />
 
-      <div className="custom-scrollbar relative z-10 flex-1 overflow-y-auto px-1 py-1.5 pb-20 md:px-2">
+      <div className="custom-scrollbar relative z-10 flex-1 overflow-y-auto px-1 py-2 pb-20 md:px-3">
         <ContentContainer>
+          {/* 1. شريط المؤشرات الرئيسية (KPIs) */}
           <Suspense
             fallback={
-              <div className="h-40 animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
+              <div className="h-28 animate-pulse rounded-xl bg-[var(--app-surface)]" />
             }
           >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <FinancialHealthScore stats={stats} cashFlow={cashFlow} targets={targets} />
-              <QuickActions />
-            </div>
+            <StatsGrid
+              stats={stats}
+              sparklineData={salesData.map(d => Number(d.value) || 0)}
+              periodLabel={periodLabel}
+            />
           </Suspense>
 
+          {/* 2. الصحة المالية + الإجراءات السريعة (ارتفاع موحد) */}
           <Suspense
             fallback={
-              <div className="mt-3 h-32 animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
+              <div className="mt-3.5 h-44 animate-pulse rounded-xl bg-[var(--app-surface)]" />
             }
           >
-            <div className="mt-3">
-              <StatsGrid
-                stats={stats}
-                sparklineData={salesData.map(d => Number(d.value) || 0)}
-                periodLabel={periodLabel}
-              />
+            <div className="mt-3.5 grid grid-cols-1 items-stretch gap-3.5 xl:grid-cols-12">
+              <div className="flex flex-col xl:col-span-5 [&>*]:h-full">
+                <FinancialHealthScore stats={stats} cashFlow={cashFlow} targets={targets} />
+              </div>
+              <div className="flex flex-col xl:col-span-7 [&>*]:h-full">
+                <QuickActions />
+              </div>
             </div>
           </Suspense>
 
-          <Suspense fallback={null}>
-            <div className="mt-3">
-              <AISmartNotifications
-                stats={stats}
-                lowStockProducts={lowStockProducts}
-                alerts={alerts}
-              />
-            </div>
-          </Suspense>
+          {/* 3. الإشعارات الذكية */}
+          <GlobalErrorBoundary>
+            <Suspense fallback={null}>
+              <div className="mt-3.5">
+                <AISmartNotifications
+                  stats={stats}
+                  lowStockProducts={lowStockProducts}
+                  alerts={alerts}
+                />
+              </div>
+            </Suspense>
+          </GlobalErrorBoundary>
 
-          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+          {/* 4. الشبكة التحليلية الموزونة (12 عموداً — صفوف متساوية الارتفاع بلا تشوش بصري) */}
+          <div className="mt-3.5 grid grid-cols-1 items-stretch gap-3.5 md:grid-cols-2 xl:grid-cols-12">
+            {/* الصف الأول: تدفق المبيعات (6) + الإيرادات والمصروفات (3) + مؤشر الهدف (3) */}
             <Suspense fallback={<ChartSkeleton />}>
-              <div className="bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] p-4 transition-colors">
+              <div className="flex min-h-[320px] flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 transition-colors md:col-span-2 xl:col-span-6">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-400">
@@ -203,7 +212,7 @@ const DashboardPage: React.FC = () => {
                     <div>
                       <h3 className="text-xs font-bold text-[var(--app-text)]">
                         {t('sales_flow_analysis')}{' '}
-                        <span className="text-[10px] text-emerald-500 font-normal">(قطع الغيار)</span>
+                        <span className="text-[10px] font-normal text-emerald-500">(قطع الغيار)</span>
                       </h3>
                       <p className="text-[10px] text-[var(--app-text-secondary)]">
                         تدفق المبيعات اليومية
@@ -219,7 +228,7 @@ const DashboardPage: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                <div>
+                <div className="min-h-0 flex-1">
                   <SalesFlowChart
                     data={salesData.map(d => {
                       const sales = d.value ?? d.sales ?? 0;
@@ -243,71 +252,82 @@ const DashboardPage: React.FC = () => {
             <GlobalErrorBoundary sectionName="الإيرادات والمصروفات">
               <Suspense
                 fallback={
-                  <div className="h-[220px] min-h-[220px] animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
+                  <div className="h-[320px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-3" />
                 }
               >
-                <RevenueExpensesChart data={revenueExpensesData} />
+                <div className="flex min-h-[320px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+                  <RevenueExpensesChart data={revenueExpensesData} />
+                </div>
               </Suspense>
             </GlobalErrorBoundary>
 
             <Suspense
               fallback={
-                <div className="h-40 min-h-[160px] animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
+                <div className="h-[320px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-3" />
               }
             >
-              <PerformanceGauge
-                value={salesValue}
-                target={salesTarget}
-                title="هدف المبيعات الشهري"
-                formatValue={v => formatCurrency(v)}
-              />
+              <div className="flex min-h-[320px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+                <PerformanceGauge
+                  value={salesValue}
+                  target={salesTarget}
+                  title={
+                    period === 'today'
+                      ? 'هدف المبيعات اليومي'
+                      : period === 'last_7_days'
+                        ? 'هدف مبيعات آخر 7 أيام'
+                        : period === 'this_year'
+                          ? 'هدف المبيعات السنوي'
+                          : period === 'all_time'
+                            ? 'هدف المبيعات الإجمالي'
+                            : 'هدف المبيعات الشهري'
+                  }
+                  formatValue={v => formatCurrency(v)}
+                />
+              </div>
+            </Suspense>
+
+            {/* الصف الثاني: التدفق النقدي (4) + نظرة المخزون (4) + أحدث الأنشطة (4) */}
+            <Suspense
+              fallback={
+                <div className="h-[300px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
+              }
+            >
+              <div className="flex min-h-[300px] flex-col md:col-span-1 xl:col-span-4 [&>*]:h-full">
+                <CashFlowWidget data={cashFlow} />
+              </div>
             </Suspense>
 
             <Suspense
               fallback={
-                <div className="h-40 animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
+                <div className="h-[300px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
               }
             >
-              <CashFlowWidget data={cashFlow} />
+              <div className="flex min-h-[300px] flex-col md:col-span-1 xl:col-span-4 [&>*]:h-full">
+                <InventoryOverview lowStockProducts={lowStockProducts} />
+              </div>
             </Suspense>
 
             <Suspense
               fallback={
-                <div className="h-40 animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
+                <div className="h-[300px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-2 xl:col-span-4" />
               }
             >
-              <InventoryOverview
-                lowStockProducts={lowStockProducts}
-                className="col-span-1 md:col-span-2"
-              />
+              <div className="flex min-h-[300px] flex-col md:col-span-2 xl:col-span-4 [&>*]:h-full">
+                <RecentActivity activities={recentActivities} />
+              </div>
             </Suspense>
 
+            {/* الصف الثالث: التصنيفات (4) + عروض الأسعار (4) + شرائح العملاء (4) */}
             <Suspense
               fallback={
-                <div className="h-40 animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
+                <div className="h-[340px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
               }
             >
-              <RecentActivity activities={recentActivities} />
-            </Suspense>
-
-            <Suspense
-              fallback={
-                <div className="h-40 animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl" />
-              }
-            >
-              <QuotationSummaryWidget />
-            </Suspense>
-
-            <Suspense
-              fallback={
-                <div className="h-[300px] min-h-[300px] animate-pulse rounded-xl bg-[var(--app-surface)]" />
-              }
-            >
-              <div className="bg-[var(--app-surface)] h-[350px] rounded-xl border border-[var(--app-border)] p-4">
-                <h3 className="mb-4 text-xs font-bold text-[var(--app-text)] max-md:mb-3">
+              <div className="flex min-h-[340px] flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 md:col-span-1 xl:col-span-4">
+                <h3 className="mb-3 shrink-0 text-xs font-bold text-[var(--app-text)]">
                   التصنيفات الأكثر حركة
                 </h3>
-                <div className="flex h-full flex-col items-center p-2">
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-1">
                   <CategoriesChart
                     data={categoryData.map(d => ({ name: d.name, value: d.value ?? 0 }))}
                   />
@@ -317,42 +337,65 @@ const DashboardPage: React.FC = () => {
 
             <Suspense
               fallback={
-                <div className="col-span-1 h-72 animate-pulse rounded-2xl bg-[var(--app-surface)] max-md:rounded-xl md:col-span-2 xl:col-span-3 2xl:col-span-5" />
+                <div className="h-[340px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
+              }
+            >
+              <div className="flex min-h-[340px] flex-col md:col-span-1 xl:col-span-4 [&>*]:h-full">
+                <QuotationSummaryWidget />
+              </div>
+            </Suspense>
+
+            <Suspense fallback={null}>
+              <div className="flex min-h-[340px] flex-col md:col-span-2 xl:col-span-4 [&>*]:h-full">
+                <CustomerSegmentation companyId={companyId} />
+              </div>
+            </Suspense>
+
+            {/* الصف الرابع: الأعلى أداءً بعرض كامل */}
+            <Suspense
+              fallback={
+                <div className="col-span-1 h-72 animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-2 xl:col-span-12" />
               }
             >
               <TopPerformers
                 products={topProducts as unknown as TopProduct[]}
                 customers={topCustomers as unknown as TopCustomer[]}
                 periodLabel={periodLabel}
-                className="col-span-1 md:col-span-2 xl:col-span-3 2xl:col-span-5"
+                className="col-span-1 md:col-span-2 xl:col-span-12"
               />
             </Suspense>
 
+            {/* الصف الخامس: اقتراحات النقل (6) + التنبيهات (3) + تنبيه المشتريات الذكي (3) */}
             <Suspense fallback={null}>
-              <WarehouseTransferSuggestions className="col-span-1 md:col-span-2 xl:col-span-3" />
+              <div className="flex min-h-[260px] flex-col md:col-span-2 xl:col-span-6 [&>*]:h-full">
+                <WarehouseTransferSuggestions />
+              </div>
             </Suspense>
 
             <Suspense fallback={null}>
-              <CustomerSegmentation companyId={companyId} />
+              <div className="flex min-h-[260px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+                <AlertsPanel
+                  alerts={alerts.map(a => ({
+                    id: a.id,
+                    type: a.type === 'critical' ? 'urgent' : a.type,
+                    message: a.message,
+                    time: a.time ?? '',
+                  }))}
+                />
+              </div>
             </Suspense>
 
             <Suspense fallback={null}>
-              <AlertsPanel
-                alerts={alerts.map(a => ({
-                  id: a.id,
-                  type: a.type === 'critical' ? 'urgent' : a.type,
-                  message: a.message,
-                  time: a.time ?? '',
-                }))}
-              />
+              <div className="flex min-h-[260px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+                <SmartPurchaseAlert lowStockItems={lowStockProducts} />
+              </div>
             </Suspense>
 
+            {/* الصف السادس: الأهداف الذكية بعرض كامل */}
             <Suspense fallback={null}>
-              <SmartPurchaseAlert lowStockItems={lowStockProducts} />
-            </Suspense>
-
-            <Suspense fallback={null}>
-              <SmartTargets targets={targets} />
+              <div className="md:col-span-2 xl:col-span-12">
+                <SmartTargets targets={targets} />
+              </div>
             </Suspense>
           </div>
         </ContentContainer>

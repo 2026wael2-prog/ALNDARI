@@ -67,7 +67,8 @@ const OpeningBalancesModal: React.FC<OpeningBalancesModalProps> = ({ isOpen, onC
   );
 
   const difference = totals.debit_amount - totals.credit_amount;
-  const isBalanced = difference > -BALANCE_TOLERANCE && difference < BALANCE_TOLERANCE;
+  const isBalanced =
+    totals.debit_amount > 0 && difference > -BALANCE_TOLERANCE && difference < BALANCE_TOLERANCE;
 
   const onSubmit = (data: FormData) => {
     const filteredLines = data.lines
@@ -221,13 +222,13 @@ const OpeningBalancesModal: React.FC<OpeningBalancesModalProps> = ({ isOpen, onC
                           step="0.01"
                           {...register(`lines.${field.index}.debit_amount`, {
                             valueAsNumber: true,
+                            onChange: e => {
+                              if (parseFloat(e.target.value) > 0)
+                                setValue(`lines.${field.index}.credit_amount`, 0);
+                            },
                           })}
                           className="h-full w-full bg-transparent p-2 font-mono text-[10px] font-bold text-emerald-600 outline-none focus:bg-emerald-50 dark:focus:bg-emerald-900/10 max-md:p-1.5"
                           dir="ltr"
-                          onChange={e => {
-                            if (parseFloat(e.target.value) > 0)
-                              setValue(`lines.${field.index}.credit_amount`, 0);
-                          }}
                         />
                       </td>
                       <td className="p-0 max-md:p-0">
@@ -236,13 +237,13 @@ const OpeningBalancesModal: React.FC<OpeningBalancesModalProps> = ({ isOpen, onC
                           step="0.01"
                           {...register(`lines.${field.index}.credit_amount`, {
                             valueAsNumber: true,
+                            onChange: e => {
+                              if (parseFloat(e.target.value) > 0)
+                                setValue(`lines.${field.index}.debit_amount`, 0);
+                            },
                           })}
                           className="h-full w-full bg-transparent p-2 font-mono text-[10px] font-bold text-rose-600 outline-none focus:bg-rose-50 dark:focus:bg-rose-900/10 max-md:p-1.5"
                           dir="ltr"
-                          onChange={e => {
-                            if (parseFloat(e.target.value) > 0)
-                              setValue(`lines.${field.index}.debit_amount`, 0);
-                          }}
                         />
                       </td>
                     </tr>

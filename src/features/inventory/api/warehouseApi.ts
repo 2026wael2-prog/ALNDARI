@@ -49,21 +49,15 @@ export const warehouseApi = {
 
   initializeStock: async (
     companyId: string,
-    userId: string,
+    _userId: string,
     stockData: { product_id: string; warehouse_id: string; quantity: number; unit_cost?: number }
   ) => {
-    const unitCost = Number(stockData.unit_cost) || 0;
-    const totalCost = unitCost * (stockData.quantity || 0);
-    return await supabase.from('inventory_transactions').insert({
-      company_id: companyId,
-      created_by: userId,
-      product_id: stockData.product_id,
-      warehouse_id: stockData.warehouse_id,
-      quantity: stockData.quantity,
-      total_cost: totalCost,
-      unit_cost: unitCost,
-      transaction_type: 'initial',
-      reference_type: 'opening_balance',
+    return await (supabase.rpc as Function)('initialize_product_stock_atomic', {
+      p_company_id: companyId,
+      p_product_id: stockData.product_id,
+      p_warehouse_id: stockData.warehouse_id,
+      p_quantity: stockData.quantity,
+      p_unit_cost: Number(stockData.unit_cost) || 0,
     });
   },
 
@@ -72,10 +66,6 @@ export const warehouseApi = {
     quantity: number,
     userId?: string
   ) => {
-    // ⚡ RPC ذري (يقرأ المخزون ويُدرج التسوية داخل معاملة واحدة) — إصلاح TOCTOU.
-    // الهجرة: supabase/migrations/20260901000004_fix_update_stock_atomic.sql
-    // ملاحظة: الاسم غير مُدرج بعد في database.types.ts (يُزامَن عند توليد الأنواع) —
-    // نمرر عبر cast ضيّق بدل تعديل ملف الأنواع المولّد يدوياً.
     const { companyId, productId, warehouseId } = target;
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       name: string,
@@ -84,51 +74,13 @@ export const warehouseApi = {
       data: unknown;
       error: { code?: string; message?: string } | null;
     }>;
-    const { data, error } = await rpc('adjust_stock_atomic', {
+    return await rpc('adjust_stock_atomic', {
       p_company_id: companyId,
       p_product_id: productId,
       p_warehouse_id: warehouseId,
       p_target_quantity: quantity,
       p_user_id: userId ?? null,
     });
-
-    // Fallback: RPC غير منشور بعد على الخادم (42883/PGRST202) → المسار القديم.
-    const isMissingRpc =
-      error !== null &&
-      (error.code === 'PGRST202' ||
-        error.code === '42883' ||
-        (error.message ?? '').includes('does not exist'));
-    if (isMissingRpc) {
-      const { data: currentStock } = await supabase
-        .from('product_stock')
-        .select('quantity')
-        .eq('product_id', productId)
-        .eq('warehouse_id', warehouseId)
-        .maybeSingle();
-
-      const currentQty = currentStock?.quantity || 0;
-      const adjustment = quantity - currentQty;
-
-      if (adjustment === 0) return { data: null, error: null };
-
-      return await supabase.from('inventory_transactions').insert({
-        company_id: companyId,
-        ...(userId ? { created_by: userId } : {}),
-        product_id: productId,
-        warehouse_id: warehouseId,
-        quantity: adjustment,
-        total_cost: 0,
-        unit_cost: 0,
-        // 'adj' وليس 'adjustment': الأول هو القيمة المسموحة في قيد CHECK، وهو الفرق
-        // المُوقَّع الذي يفهمه trg_update_product_stock (بينما adj_in/adj_out تأخذ
-        // القيمة المطلقة). قيمة 'adjustment' كانت تُفشل الإدراج بـ23514، ولو مُرّرت
-        // لما تغيّر المخزون أصلاً لأن المُشغّل لا يملك فرعاً لها.
-        transaction_type: 'adj',
-        reference_type: 'manual_update',
-      });
-    }
-
-    return { data, error };
   },
 
   saveWarehouse: async (

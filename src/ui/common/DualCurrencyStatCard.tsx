@@ -60,7 +60,7 @@ export const DualCurrencyStatCard: React.FC<DualCurrencyStatCardProps> = ({
           }
         : {})}
       className={cn(
-        'group relative flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 shadow-xs transition-all duration-200',
+        'group relative flex flex-col justify-between overflow-hidden rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 shadow-xs transition-all duration-200',
         isInteractive &&
           'cursor-pointer hover:border-[var(--app-border-hover,#94a3b8)] hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30',
         isActive && 'border-blue-500 bg-blue-50/40 dark:border-blue-400 dark:bg-blue-950/20 ring-1 ring-blue-500',
@@ -81,18 +81,18 @@ export const DualCurrencyStatCard: React.FC<DualCurrencyStatCardProps> = ({
         </div>
         <div
           className={cn(
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white shadow-xs transition-transform group-hover:scale-105',
+            'flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white shadow-xs transition-transform group-hover:scale-105',
             iconBgClass
           )}
         >
-          <Icon className="h-3.5 w-3.5" />
+          <Icon className="h-3 w-3" />
         </div>
       </div>
 
       {/* Main Monetary Values */}
-      <div className="mt-2 flex flex-col">
+      <div className="mt-1.5 flex flex-col">
         {isDual ? (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {/* SAR Row */}
             <div className="flex items-baseline justify-between gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">

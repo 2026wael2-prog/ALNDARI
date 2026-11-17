@@ -37,6 +37,16 @@ const applyQuotationToCart = (quotation: QuotationDetailRow): void => {
   }
 
   setMetadata('invoiceType', 'credit');
+  const qMeta = quotation as QuotationDetailRow & {
+    currency_code?: string | null;
+    exchange_rate?: number | null;
+  };
+  if (qMeta.currency_code) {
+    setMetadata('currency', qMeta.currency_code);
+  }
+  if (qMeta.exchange_rate && qMeta.exchange_rate > 0) {
+    setMetadata('exchangeRate', qMeta.exchange_rate);
+  }
   useSalesStore.setState({ items: quotation.quotation_items.map(toCartItem) });
   calculateTotals();
 };

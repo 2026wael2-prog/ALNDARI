@@ -3,7 +3,14 @@ import { usePurchaseStore } from '../../store';
 import { useAIPrefillStore } from '../../../ai/store';
 import type { AIEntityItem } from '../../../ai/core/types';
 
-export type PurchaseTab = 'create' | 'list' | 'returns' | 'analytics' | 'smart_import' | 'quotations';
+export type PurchaseTab =
+  | 'create'
+  | 'list'
+  | 'returns'
+  | 'smart_import'
+  | 'quotations'
+  | 'bi_suppliers'
+  | 'bi_prices';
 
 export const usePurchasePrefill = (
   setActiveTab: React.Dispatch<React.SetStateAction<PurchaseTab>>
@@ -16,7 +23,7 @@ export const usePurchasePrefill = (
     const entities = aiData?.entities;
     if (entities === undefined) return;
     if (entities.partyName !== undefined && entities.partyName !== '')
-      setSupplier({ id: `ai_temp_${String(Date.now())}`, name: entities.partyName });
+      setSupplier({ id: '', name: entities.partyName });
     if (entities.items !== undefined && entities.items.length > 0) {
       bulkLoadItems(
         entities.items.map((item: AIEntityItem) => ({

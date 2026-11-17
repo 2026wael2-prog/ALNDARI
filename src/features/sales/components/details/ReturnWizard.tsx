@@ -64,6 +64,7 @@ const ReturnWizard: React.FC<Props> = ({ invoice, onReturn, onCancel, onAlert })
 
     if (invalidItems.length > 0) {
       onAlert({ type: 'warning', message: 'تحذير: تجاوزت الكمية المتاحة للإرجاع!' });
+      return;
     } else {
       onAlert({ type: 'success', message: 'جاري إنشاء مرتجع...' });
     }

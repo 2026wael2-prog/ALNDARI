@@ -71,7 +71,7 @@ export const useBranchNotifications = (): void => {
               type: 'warning',
               category: 'inventory',
               priority: 'urgent',
-              link: '#/inventory',
+              link: '/inventory',
               tag: `transfer_in_${payload.id}`,
             });
           } else {
@@ -95,7 +95,7 @@ export const useBranchNotifications = (): void => {
               type: 'info',
               category: 'inventory',
               priority: 'normal',
-              link: '#/inventory',
+              link: '/inventory',
               tag: `transfer_peer_${payload.id}`,
             });
           }
@@ -126,7 +126,7 @@ export const useBranchNotifications = (): void => {
             type: 'success',
             category: 'inventory',
             priority: isRequester ? 'high' : 'normal',
-            link: '#/inventory',
+            link: '/inventory',
             tag: `transfer_app_${payload.id}`,
           });
           break;
@@ -156,7 +156,7 @@ export const useBranchNotifications = (): void => {
             type: 'error',
             category: 'inventory',
             priority: 'normal',
-            link: '#/inventory',
+            link: '/inventory',
             tag: `transfer_rej_${payload.id}`,
           });
           break;
@@ -184,7 +184,7 @@ export const useBranchNotifications = (): void => {
             type: 'info',
             category: 'sales',
             priority: 'normal',
-            link: '#/sales',
+            link: '/sales',
             tag: `sale_${payload.id}`,
           });
           break;
@@ -212,7 +212,7 @@ export const useBranchNotifications = (): void => {
             type: 'info',
             category: 'sales',
             priority: 'normal',
-            link: '#/purchases',
+            link: '/purchases',
             tag: `purchase_${payload.id}`,
           });
           break;
@@ -240,7 +240,7 @@ export const useBranchNotifications = (): void => {
             type: 'info',
             category: 'finance',
             priority: 'normal',
-            link: '#/bonds',
+            link: '/bonds',
             tag: `bond_${payload.id}`,
           });
           break;
@@ -268,7 +268,7 @@ export const useBranchNotifications = (): void => {
             type: 'info',
             category: 'sales',
             priority: 'normal',
-            link: '#/sales',
+            link: '/sales',
             tag: `quote_${payload.id}`,
           });
           break;
@@ -296,7 +296,7 @@ export const useBranchNotifications = (): void => {
             type: 'info',
             category: 'inventory',
             priority: 'normal',
-            link: '#/sales',
+            link: '/sales',
             tag: `req_${payload.id}`,
           });
           break;
@@ -325,7 +325,7 @@ export const useBranchNotifications = (): void => {
               type: 'info',
               category: 'sales',
               priority: 'high',
-              link: '#/sales',
+              link: '/sales',
               tag: `internal_sale_${payload.id}`,
             });
           }

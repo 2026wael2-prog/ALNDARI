@@ -113,7 +113,9 @@ const AddJournalEntryModal: React.FC<AddJournalEntryModalProps> = ({
                 value={exchangeRate || ''}
                 onChange={e => {
                   const val = parseFloat(e.target.value);
-                  setValue('exchange_rate', val || 1, { shouldValidate: true });
+                  setValue('exchange_rate', Number.isFinite(val) ? val : 0, {
+                    shouldValidate: true,
+                  });
                 }}
                 className="focus:ring-2 focus:ring-blue-500/10 w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 font-mono text-sm text-[var(--app-text)] outline-none transition-all focus:border-blue-500 disabled:opacity-50 shadow-sm"
                 dir="ltr"

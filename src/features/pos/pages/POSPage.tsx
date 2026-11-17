@@ -186,6 +186,12 @@ const POSPage: React.FC = () => {
         };
       });
 
+      const convertedDiscount = needConversion
+        ? finalCurrency === 'YER'
+          ? convertCurrency(summary.discountAmount || 0, finalRate, 'fromBase', 'divide')
+          : convertCurrency(summary.discountAmount || 0, finalRate, 'toBase', 'multiply')
+        : summary.discountAmount || 0;
+
       processPayment(
         {
           partyId: selectedCustomer?.id || null,
@@ -193,7 +199,7 @@ const POSPage: React.FC = () => {
           type: 'sale',
           isCrossBranch: !!isCrossBranch,
           items: processedItems,
-          discount: summary.discountAmount || 0,
+          discount: convertedDiscount,
           currency: finalCurrency,
           exchangeRate: finalRate,
           paymentMethod: 'cash',
@@ -372,7 +378,13 @@ const POSPage: React.FC = () => {
           onResume={id => {
             const res = resumeOrder(id);
             if (res) {
-              useSalesStore.setState({ items: res.items, selectedCustomer: res.customer });
+              const resumed = res as typeof res & { currency?: string; exchangeRate?: number };
+              useSalesStore.setState({
+                items: res.items,
+                selectedCustomer: res.customer,
+                ...(resumed.currency ? { currency: resumed.currency } : {}),
+                ...(resumed.exchangeRate ? { exchangeRate: resumed.exchangeRate } : {}),
+              });
               useSalesStore.getState().calculateTotals();
             }
           }}

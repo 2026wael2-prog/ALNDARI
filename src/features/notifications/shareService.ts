@@ -81,6 +81,49 @@ export const shareService = {
   },
 
   /**
+   * Share a binary document (e.g., .xlsx or .pdf) encoded as base64 via WhatsApp & Telegram
+   */
+  shareDocument: async (
+    companyId: string,
+    documentBase64: string,
+    documentName: string,
+    mimeType: string,
+    caption: string,
+    eventType = 'share'
+  ): Promise<{ success: boolean; results?: any[] }> => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-notification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token || ''}`,
+          },
+          body: JSON.stringify({
+            company_id: companyId,
+            event_type: eventType,
+            message: caption,
+            document_base64: documentBase64,
+            document_name: documentName,
+            mime_type: mimeType,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      return { success: response.ok, results: result.results };
+    } catch (error) {
+      logger.error('shareService', '[ShareService] Document share failed:', error);
+      return { success: false };
+    }
+  },
+
+  /**
    * Share multiple messages in bulk (e.g., multiple invoices)
    */
   shareBulk: async (

@@ -14,8 +14,20 @@ const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-application-name',
+    'authorization, x-client-info, apikey, content-type, x-application-name, x-webhook-secret',
 };
+
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) {
+    diff |= ab[i] ^ bb[i];
+  }
+  return diff === 0;
+}
 
 const json = (payload: unknown, status = 200): Response =>
   new Response(JSON.stringify(payload), {
@@ -294,6 +306,20 @@ Deno.serve(async (req: Request) => {
   // دعم فحص الـ Webhook بواسطة GET
   if (req.method === 'GET') {
     return json({ status: 'active', service: 'Al-Zahra WhatsApp Inbound Webhook (WASender & UltraMsg)' });
+  }
+
+  // التحقق الإلزامي من سر Webhook لمنع الوصول غير المصرح به
+  const expectedSecret = Deno.env.get('WHATSAPP_WEBHOOK_SECRET');
+  if (!expectedSecret) {
+    return json({ error: 'Webhook secret not configured' }, 500);
+  }
+  const authHeader = req.headers.get('authorization');
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim() ?? '';
+  const headerSecret = req.headers.get('x-webhook-secret')?.trim() ?? '';
+  const querySecret = new URL(req.url).searchParams.get('secret')?.trim() ?? '';
+  const providedSecret = headerSecret || bearerToken || querySecret;
+  if (!providedSecret || !timingSafeEqualStr(providedSecret, expectedSecret)) {
+    return json({ error: 'Unauthorized' }, 401);
   }
 
   try {

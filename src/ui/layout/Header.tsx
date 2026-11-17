@@ -57,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   return (
     <div className="no-print sticky top-0 z-50 flex-shrink-0">
-      <header className="flex h-9 items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-2 shadow-sm transition-colors md:px-3">
+      <header className="flex h-11 items-center justify-between border-b border-slate-200/90 bg-[var(--app-surface)]/95 px-3 shadow-xs backdrop-blur-md transition-colors dark:border-slate-800 md:px-4">
         {/* Left side: Logo/Title (Mobile) / Page Title (Desktop) */}
         <div className="flex flex-1 items-center gap-3 md:flex-none">
           {/* Mobile Menu Button */}
@@ -80,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <Car size={14} />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-xs font-bold leading-none text-[var(--app-text)] md:text-sm">
+            <h1 className="text-sm font-extrabold leading-tight text-[var(--app-text)] md:text-base">
               {title}
             </h1>
             <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--app-text-secondary)] md:hidden">
@@ -90,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         </div>
 
         {/* Center: Search (Desktop) */}
-        <div className="hidden flex-1 justify-center px-8 md:flex">
+        <div className="hidden flex-1 justify-center px-4 md:flex">
           <div className="group relative w-full max-w-xl">
             {isPageSearchActive ? (
               <div className="animate-in zoom-in-95 relative duration-300">
@@ -102,20 +102,20 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                     onPageSearchChange(e.target.value);
                   }}
                   autoFocus
-                  className="w-full rounded-lg border border-blue-500/30 bg-blue-50/50 py-1.5 pe-10 ps-9 text-xs font-bold text-[var(--app-text)] shadow-sm shadow-blue-500/5 ring-1 ring-blue-500/10 transition-all placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-blue-900/20 dark:placeholder:text-blue-300"
+                  className="w-full rounded-xl border border-blue-500/30 bg-blue-50/50 py-1.5 pe-10 ps-9 text-xs font-bold text-[var(--app-text)] shadow-sm shadow-blue-500/5 ring-1 ring-blue-500/10 transition-all placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-blue-900/20 dark:placeholder:text-blue-300"
                 />
                 <Search
-                  className={`absolute top-2.5 text-blue-500 transition-colors ${dir === 'rtl' ? 'right-3' : 'left-3'}`}
-                  size={14}
+                  className={`absolute top-2 text-blue-500 transition-colors ${dir === 'rtl' ? 'right-3' : 'left-3'}`}
+                  size={15}
                 />
                 {pageSearchValue && (
                   <button
                     onClick={() => {
                       onPageSearchChange('');
                     }}
-                    className={`absolute top-2.5 text-blue-400 transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-3' : 'right-3'}`}
+                    className={`absolute top-2 text-blue-400 transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-3' : 'right-3'}`}
                   >
-                    <X size={14} />
+                    <X size={15} />
                   </button>
                 )}
               </div>
@@ -131,14 +131,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   autoComplete="off"
                   aria-describedby="global-search-desc"
                   aria-label={t('global_search_placeholder')}
-                  className="w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] py-1.5 pe-10 ps-9 text-xs font-bold text-[var(--app-text)] transition-all placeholder:text-[var(--app-text-secondary)] focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                  className="w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] py-1.5 pe-10 ps-9 text-xs font-bold text-[var(--app-text)] transition-all placeholder:text-[var(--app-text-secondary)] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
                 <span id="global-search-desc" className="sr-only">
                   {t('global_search_desc') || 'ابحث عن منتج أو فاتورة أو عميل في النظام'}
                 </span>
                 <Search
-                  className={`absolute top-2.5 text-[var(--app-text-secondary)] transition-colors group-focus-within:text-blue-500 ${dir === 'rtl' ? 'right-3' : 'left-3'}`}
-                  size={14}
+                  className={`absolute top-2 text-[var(--app-text-secondary)] transition-colors group-focus-within:text-blue-500 ${dir === 'rtl' ? 'right-3' : 'left-3'}`}
+                  size={15}
                 />
                 {globalSearchVal && (
                   <button
@@ -146,7 +146,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                     onClick={() => {
                       setGlobalSearchVal('');
                     }}
-                    className={`absolute top-2.5 text-[var(--app-text-secondary)] transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-3' : 'right-3'}`}
+                    className={`absolute top-2 text-[var(--app-text-secondary)] transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-3' : 'right-3'}`}
                   >
                     <X size={14} />
                   </button>
@@ -165,7 +165,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
       {/* Mobile Page Search — يظهر فقط عندما تسجّل الصفحة حقل بحث في useSearchStore */}
       {isPageSearchActive && (
-        <div className="border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 shadow-sm md:hidden">
+        <div className="border-b border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 shadow-sm md:hidden">
           <div className="animate-in slide-in-from-top-2 relative duration-300">
             <input
               type="text"
@@ -176,11 +176,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 onPageSearchChange(e.target.value);
               }}
               aria-label={pageSearchPlaceholder}
-              className="w-full rounded-xl border border-blue-500/30 bg-blue-50/50 py-2.5 pe-9 ps-9 text-sm font-bold text-[var(--app-text)] placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-blue-900/20 dark:placeholder:text-blue-300"
+              className="w-full rounded-lg border border-blue-500/30 bg-blue-50/50 py-1.5 pe-9 ps-9 text-sm font-bold text-[var(--app-text)] placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-blue-900/20 dark:placeholder:text-blue-300"
             />
             <Search
-              className={`absolute top-3 text-blue-500 ${dir === 'rtl' ? 'right-3' : 'left-3'}`}
-              size={16}
+              className={`absolute top-2 text-blue-500 ${dir === 'rtl' ? 'right-3' : 'left-3'}`}
+              size={15}
             />
             {pageSearchValue && (
               <button
@@ -188,9 +188,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   onPageSearchChange('');
                 }}
                 aria-label="مسح البحث"
-                className={`absolute top-2.5 p-0.5 text-blue-400 transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-2' : 'right-2'}`}
+                className={`absolute top-1.5 p-0.5 text-blue-400 transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-2' : 'right-2'}`}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             )}
           </div>

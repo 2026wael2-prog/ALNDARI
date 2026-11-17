@@ -63,19 +63,19 @@ const StatCard: React.FC<StatCardProps> = ({
         : {})}
       className={cn(
         'stat-card group flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm transition-all duration-300 hover:border-blue-500/20 hover:shadow-md',
-        isCompact ? 'p-3 lg:p-4' : 'p-3 max-md:p-2.5 md:p-4 lg:rounded-2xl lg:p-5 xl:p-6',
+        isCompact ? 'p-2 lg:p-2.5' : 'p-2.5 max-md:p-2 md:p-3 lg:rounded-xl lg:p-3.5 xl:p-4',
         isInteractive && 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
         isActive && 'border-blue-500/60 ring-2 ring-blue-500/40',
         className
       )}
     >
 
-      <div className={cn('flex items-start justify-between', isCompact ? 'mb-1' : 'mb-2')}>
+      <div className={cn('flex items-start justify-between', isCompact ? 'mb-0.5' : 'mb-1')}>
         <div className="flex flex-col">
           <span
             className={cn(
               'truncate font-medium leading-none text-[var(--app-text-secondary)]',
-              isCompact ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'
+              isCompact ? 'mb-0.5 text-[10px]' : 'mb-1 text-[11px]'
             )}
           >
             {title}
@@ -83,7 +83,7 @@ const StatCard: React.FC<StatCardProps> = ({
           <h3
             className={cn(
               'truncate font-mono font-bold leading-none tracking-tight',
-              isCompact ? 'text-lg lg:text-xl' : 'text-xl max-md:text-lg md:text-2xl lg:text-3xl',
+              isCompact ? 'text-base lg:text-lg' : 'text-lg max-md:text-base md:text-xl lg:text-2xl',
               colorClass
             )}
           >
@@ -93,7 +93,7 @@ const StatCard: React.FC<StatCardProps> = ({
         <div
           className={cn(
             'flex items-center justify-center rounded-lg transition-transform group-hover:scale-110',
-            isCompact ? 'p-1.5 lg:p-2' : 'p-2 max-md:p-1.5 lg:rounded-xl lg:p-3',
+            isCompact ? 'p-1 lg:p-1.5' : 'p-1.5 max-md:p-1 lg:rounded-lg lg:p-2',
             iconBgClass + ' bg-opacity-10'
           )}
         >
@@ -101,15 +101,15 @@ const StatCard: React.FC<StatCardProps> = ({
             className={cn(
               colorClass,
               isCompact
-                ? 'h-3.5 w-3.5 lg:h-4 lg:w-4'
-                : 'h-4 w-4 max-md:h-3.5 max-md:w-3.5 md:h-5 md:w-5 lg:h-6 lg:w-6'
+                ? 'h-3 w-3 lg:h-3.5 lg:w-3.5'
+                : 'h-3.5 w-3.5 max-md:h-3 max-md:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5'
             )}
           />
         </div>
       </div>
 
       {(subtext || trend) && (
-        <div className="mt-3 flex items-center justify-between border-t border-[var(--app-border)] pt-2">
+        <div className="mt-1.5 flex items-center justify-between border-t border-[var(--app-border)] pt-1.5">
           <span className="max-w-[60%] truncate text-[10px] font-medium text-[var(--app-text-secondary)]">
             {subtext}
           </span>

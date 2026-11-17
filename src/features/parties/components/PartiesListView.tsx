@@ -6,6 +6,7 @@ import PartiesStats from './PartiesStats';
 import ExcelTable from '../../../ui/common/ExcelTable';
 import { cn } from '../../../core/utils';
 import { useAccompanyingInfoStore } from '../../accompanying-info';
+import { calculatePartyStats } from '../services/partyStatementService';
 
 type FilterChip = 'all' | 'debtors' | 'creditors' | 'settled' | 'active' | 'blocked';
 
@@ -113,20 +114,25 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
     { id: 'blocked', label: 'محظور', count: counts.blocked, color: 'rose' },
   ];
 
+  const isFiltered = activeFilter !== 'all' || selectedCategory !== 'all';
+
+  const effectiveStats: PartyStats = useMemo(() => {
+    if (!isFiltered && stats) return stats;
+    return calculatePartyStats(filteredParties, partyType);
+  }, [isFiltered, stats, filteredParties, partyType]);
+
   return (
     <div className="animate-in fade-in space-y-3 duration-500">
       <PartiesStats
-        stats={
-          stats ?? {
-            totalCount: 0,
-            totalBalance: 0,
-            totalReceivable: 0,
-            totalPayable: 0,
-            activeCount: 0,
-            blockedCount: 0,
-          }
-        }
+        stats={effectiveStats}
         type={partyType}
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+        isFiltered={isFiltered}
+        onResetFilters={() => {
+          setActiveFilter('all');
+          setSelectedCategory('all');
+        }}
       />
 
       {/* Filter Chips Toolbar */}

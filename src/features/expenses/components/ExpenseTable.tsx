@@ -28,7 +28,13 @@ const ExpenseTable: React.FC<ExpenseTableProps> = ({
       e.expense_date,
       e.amount,
       e.currency_code,
-      e.status === 'posted' ? 'مدفوع' : e.status === 'void' ? 'ملغي' : 'مسودة',
+      e.status === 'paid'
+        ? 'مدفوع'
+        : e.status === 'posted'
+          ? 'مرحل'
+          : e.status === 'void'
+            ? 'ملغي'
+            : 'مسودة',
     ]);
     void exportGenericTableToExcel({
       title: 'سجل المصروفات التشغيلية',
@@ -145,7 +151,7 @@ const ExpenseTable: React.FC<ExpenseTableProps> = ({
               <Receipt size={15} />
             </button>
           )}
-          {row.status !== 'void' && (
+          {row.status !== 'void' && !row.is_journal_sourced && (
             <button
               onClick={() => {
                 if (

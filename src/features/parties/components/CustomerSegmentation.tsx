@@ -14,7 +14,7 @@ export const CustomerSegmentation: React.FC<CustomerSegmentationProps> = () => {
   }
 
   const totalCustomers = customers?.length || 0;
-  const activeCustomers = customers?.filter(c => (c.balance || 0) > 0).length || 0;
+  const activeCustomers = customers?.filter(c => (c.status ?? 'active') === 'active').length || 0;
   const vipCustomers = customers?.filter(c => (c.balance || 0) > 10000).length || 0;
 
   return (

@@ -15,6 +15,7 @@ import {
   ArrowRightLeft,
   DollarSign,
   Receipt,
+  Sparkles,
 } from 'lucide-react';
 import MicroHeader from '../../ui/base/MicroHeader';
 import FullscreenContainer from '../../ui/base/FullscreenContainer';
@@ -31,15 +32,45 @@ import ReportErrorBoundary from './components/ReportErrorBoundary';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import './reportStyles.css';
 
-// Lazy-loaded heavy chart components for code splitting
+// Lazy-loaded heavy chart & BI components for code splitting
 const ProfitLossView = lazy(() => import('./components/ProfitLossView'));
 const InventoryMovementView = lazy(() => import('./components/InventoryMovementView'));
 const CashFlowView = lazy(() => import('./components/CashFlowView'));
+const ExecutiveBiView = lazy(() =>
+  import('./components/bi/ExecutiveBiView').then(m => ({ default: m.ExecutiveBiView }))
+);
+const CustomerBiView = lazy(() =>
+  import('./components/bi/CustomerBiView').then(m => ({ default: m.CustomerBiView }))
+);
+const SupplierBiView = lazy(() =>
+  import('./components/bi/SupplierBiView').then(m => ({ default: m.SupplierBiView }))
+);
+const ProductBiView = lazy(() =>
+  import('./components/bi/ProductBiView').then(m => ({ default: m.ProductBiView }))
+);
+const SalesBiView = lazy(() =>
+  import('./components/bi/SalesBiView').then(m => ({ default: m.SalesBiView }))
+);
+const InventoryBiView = lazy(() =>
+  import('./components/bi/InventoryBiView').then(m => ({ default: m.InventoryBiView }))
+);
+const SupplierPriceComparisonView = lazy(() =>
+  import('./components/bi/SupplierPriceComparisonView').then(m => ({
+    default: m.SupplierPriceComparisonView,
+  }))
+);
 
-type ReportCategory = 'all' | 'sales' | 'financial' | 'accounting';
+type ReportCategory = 'all' | 'executive' | 'sales' | 'products' | 'financial' | 'accounting';
 
-/** Mapping from tab ID -> translation key for error boundary report name */
+/** Mapping from tab ID -> translation key / label for error boundary report name */
 const reportLabelKeys: Record<ReportTab, string> = {
+  executive_bi: 'لوحة القيادة التنفيذية (BI)',
+  customer_bi: 'تحليلات العملاء والولاء',
+  supplier_bi: 'تحليلات الموردين',
+  product_bi: 'تحليلات حركة وربحية المنتجات',
+  sales_bi: 'تحليلات المبيعات المتقدمة',
+  inventory_bi: 'تحليلات المخزون والفروع',
+  supplier_prices_bi: 'مقارنة أسعار الموردين',
   daily_sales: 'daily_sales_report',
   returns_report: 'returns_report',
   debt_report: 'debt_report',
@@ -75,12 +106,57 @@ const ReportSkeleton: React.FC<{ type?: 'financial' | 'default' }> = ({ type = '
 );
 
 /** Lazy render map */
-const renderReportComponent = (tab: ReportTab): React.ReactNode => {
+const renderReportComponent = (
+  tab: ReportTab,
+  onNavigateToTab?: (tabId: string) => void
+): React.ReactNode => {
   const loadingFallback = (
-    <ReportSkeleton type={tab === 'p_and_l' || tab === 'balance_sheet' ? 'financial' : 'default'} />
+    <ReportSkeleton type={tab === 'p_and_l' || tab === 'balance_sheet' || tab === 'executive_bi' ? 'financial' : 'default'} />
   );
 
   switch (tab) {
+    case 'executive_bi':
+      return (
+        <Suspense fallback={loadingFallback}>
+          <ExecutiveBiView onNavigateToTab={onNavigateToTab} />
+        </Suspense>
+      );
+    case 'customer_bi':
+      return (
+        <Suspense fallback={loadingFallback}>
+          <CustomerBiView />
+        </Suspense>
+      );
+    case 'supplier_bi':
+      return (
+        <Suspense fallback={loadingFallback}>
+          <SupplierBiView />
+        </Suspense>
+      );
+    case 'product_bi':
+      return (
+        <Suspense fallback={loadingFallback}>
+          <ProductBiView />
+        </Suspense>
+      );
+    case 'sales_bi':
+      return (
+        <Suspense fallback={loadingFallback}>
+          <SalesBiView />
+        </Suspense>
+      );
+    case 'inventory_bi':
+      return (
+        <Suspense fallback={loadingFallback}>
+          <InventoryBiView />
+        </Suspense>
+      );
+    case 'supplier_prices_bi':
+      return (
+        <Suspense fallback={loadingFallback}>
+          <SupplierPriceComparisonView />
+        </Suspense>
+      );
     case 'daily_sales':
       return <DailySalesReport />;
     case 'returns_report':
@@ -127,14 +203,15 @@ const CAT_STORAGE_KEY = 'reports_activeCategory';
 const getStoredTab = (): ReportTab => {
   try {
     const stored = localStorage.getItem(TAB_STORAGE_KEY);
-    return (stored as ReportTab) || 'daily_sales';
+    return (stored as ReportTab) || 'executive_bi';
   } catch {
-    return 'daily_sales';
+    return 'executive_bi';
   }
 };
 const getStoredCategory = (): ReportCategory => {
   try {
     const stored = localStorage.getItem(CAT_STORAGE_KEY);
+    if (stored === 'purchases') return 'all';
     return (stored as ReportCategory) || 'all';
   } catch {
     return 'all';
@@ -181,11 +258,25 @@ const ReportsPage: React.FC = () => {
       activeClass: 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-500/25',
     },
     {
+      id: 'executive',
+      label: 'القيادة والذكاء',
+      icon: Sparkles,
+      colorClass: 'text-indigo-500',
+      activeClass: 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-500/25',
+    },
+    {
       id: 'sales',
-      label: t('reports_sales_inventory'),
+      label: 'المبيعات والعملاء',
       icon: Activity,
       colorClass: 'text-emerald-500',
       activeClass: 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-500/25',
+    },
+    {
+      id: 'products',
+      label: 'المنتجات والمخزون',
+      icon: Layers,
+      colorClass: 'text-cyan-500',
+      activeClass: 'bg-cyan-600 text-white border-cyan-600 shadow-lg shadow-cyan-500/25',
     },
     {
       id: 'financial',
@@ -197,16 +288,17 @@ const ReportsPage: React.FC = () => {
     {
       id: 'accounting',
       label: t('reports_accounting'),
-      icon: Layers,
+      icon: Scale,
       colorClass: 'text-amber-500',
       activeClass: 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-500/25',
     },
   ];
 
   const allTabs: Array<{ id: ReportTab; label: string; icon: any; category: ReportCategory }> = [
+    { id: 'executive_bi', label: 'لوحة القيادة (BI)', icon: Sparkles, category: 'executive' },
     { id: 'daily_sales', label: t('daily_sales_report'), icon: ShoppingCart, category: 'sales' },
     { id: 'returns_report', label: t('returns_report'), icon: History, category: 'sales' },
-    { id: 'item_movement', label: t('item_movement'), icon: ArrowRightLeft, category: 'sales' },
+    { id: 'item_movement', label: t('item_movement'), icon: ArrowRightLeft, category: 'products' },
     { id: 'balance_sheet', label: t('balance_sheet'), icon: Landmark, category: 'financial' },
     { id: 'p_and_l', label: t('profit_and_loss'), icon: TrendingUp, category: 'financial' },
     { id: 'cash_flow', label: t('cash_flow'), icon: DollarSign, category: 'financial' },
@@ -288,7 +380,7 @@ const ReportsPage: React.FC = () => {
           <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-4 pt-3 max-md:px-2 max-md:pb-3 max-md:pt-2 md:px-6 md:pb-8 md:pt-5">
             <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto max-w-none duration-700">
               <ReportErrorBoundary reportName={t(reportLabelKeys[activeTab])}>
-                {renderReportComponent(activeTab)}
+                {renderReportComponent(activeTab, handleTabChange)}
               </ReportErrorBoundary>
             </div>
           </div>

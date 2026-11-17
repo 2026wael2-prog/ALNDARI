@@ -10,6 +10,16 @@ const WarehousesView = lazy(() => import('./WarehousesView'));
 const AuditLogView = lazy(() => import('./AuditLogView'));
 const CategoriesManagementView = lazy(() => import('./CategoriesManagementView'));
 const CoreProductsView = lazy(() => import('./CoreProductsView'));
+const InventoryBiView = lazy(() =>
+  import('../../reports/components/bi/InventoryBiView').then(m => ({
+    default: m.InventoryBiView,
+  }))
+);
+const ProductBiView = lazy(() =>
+  import('../../reports/components/bi/ProductBiView').then(m => ({
+    default: m.ProductBiView,
+  }))
+);
 
 interface InventoryViewRendererProps {
   activeView: string;
@@ -93,6 +103,23 @@ const InventoryViewRenderer: React.FC<InventoryViewRendererProps> = ({
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
           />
+        </Suspense>
+      );
+
+    case 'bi_inventory':
+      return (
+        <Suspense fallback={null}>
+          <div className="custom-scrollbar h-full overflow-y-auto p-3 pb-16">
+            <InventoryBiView />
+          </div>
+        </Suspense>
+      );
+    case 'bi_products':
+      return (
+        <Suspense fallback={null}>
+          <div className="custom-scrollbar h-full overflow-y-auto p-3 pb-16">
+            <ProductBiView />
+          </div>
         </Suspense>
       );
 

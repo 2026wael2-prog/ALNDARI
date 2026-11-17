@@ -67,11 +67,11 @@ const HeaderActions: React.FC = () => {
     };
   }, []);
 
-  const { getCompanyUnreadCount } = useNotificationStore();
+  const { getCompanyUnreadCount, notifications } = useNotificationStore();
   const companyId = user?.company_id || '';
   const unreadCount = useMemo(
     () => getCompanyUnreadCount(companyId),
-    [getCompanyUnreadCount, companyId]
+    [getCompanyUnreadCount, companyId, notifications]
   );
   const { isSoundEnabled, toggleSound } = useSoundStore();
   const [isNotifOpen, setIsNotifOpen] = useState(false);

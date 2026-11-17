@@ -1,4 +1,5 @@
 import React, { useState, useMemo, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 // Fix: Added missing `Scale` icon from lucide-react.
 import {
   Layers,
@@ -51,10 +52,11 @@ const buildAccountTree = (accounts: Account[]): AccountNode[] => {
   // Function to recursively calculate total balance for parent accounts
   const calculateBalances = (node: AccountNode): number => {
     if (node.children.length === 0) return node.balance;
-    node.balance = node.children.reduce(
+    const childrenSum = node.children.reduce(
       (sum: number, child: AccountNode) => sum + calculateBalances(child),
       0
     );
+    node.balance = childrenSum + (Number(node.balance) || 0);
     return node.balance;
   };
   roots.forEach(calculateBalances);
@@ -72,6 +74,7 @@ const AccountTreeRow: React.FC<{
   isExpanded: boolean;
   onDelete: (id: string, isSystem: boolean) => void;
 }> = ({ node, level, onToggle, isExpanded, onDelete }) => {
+  const navigate = useNavigate();
   return (
     <Fragment>
       <tr className="group transition-colors hover:bg-blue-50/20 dark:hover:bg-blue-950/20">
@@ -132,6 +135,10 @@ const AccountTreeRow: React.FC<{
         <td className="border-b border-[var(--app-border)] p-2 text-center">
           <div className="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100">
             <button
+              type="button"
+              onClick={() => {
+                navigate(`/accounting?tab=ledger&accountId=${encodeURIComponent(node.id)}`);
+              }}
               className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
               title="عرض كشف الحساب"
             >
@@ -238,29 +245,40 @@ const AccountsTable: React.FC = () => {
 
   if (!accounts || accounts.length === 0) {
     return (
-      <EmptyState
-        icon={Layers}
-        title="لا توجد حسابات مضافة"
-        description="لم يتم إعداد شجرة الحسابات بعد. يمكنك البدء بإضافة حسابات يدوياً أو إنشاء الدليل المحاسبي القياسي الموصى به."
-        action={
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              onClick={() => {
-                seedAccounts();
-              }}
-              disabled={isSeeding}
-              variant="success"
-              isLoading={isSeeding}
-              leftIcon={<ShieldCheck size={16} />}
-            >
-              إنشاء الدليل القياسي
-            </Button>
-            <Button onClick={handleAddNew} variant="secondary" leftIcon={<Plus size={16} />}>
-              إضافة حساب يدوياً
-            </Button>
-          </div>
-        }
-      />
+      <>
+        <EmptyState
+          icon={Layers}
+          title="لا توجد حسابات مضافة"
+          description="لم يتم إعداد شجرة الحسابات بعد. يمكنك البدء بإضافة حسابات يدوياً أو إنشاء الدليل المحاسبي القياسي الموصى به."
+          action={
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                onClick={() => {
+                  seedAccounts();
+                }}
+                disabled={isSeeding}
+                variant="success"
+                isLoading={isSeeding}
+                leftIcon={<ShieldCheck size={16} />}
+              >
+                إنشاء الدليل القياسي
+              </Button>
+              <Button onClick={handleAddNew} variant="secondary" leftIcon={<Plus size={16} />}>
+                إضافة حساب يدوياً
+              </Button>
+            </div>
+          }
+        />
+        <AddAccountModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+          }}
+          onSubmit={handleCreate}
+          isSubmitting={isCreating}
+          accounts={accounts}
+        />
+      </>
     );
   }
 
@@ -315,6 +333,7 @@ const AccountsTable: React.FC = () => {
         }}
         onSubmit={handleCreate}
         isSubmitting={isCreating}
+        accounts={accounts}
       />
 
       <OpeningBalancesModal

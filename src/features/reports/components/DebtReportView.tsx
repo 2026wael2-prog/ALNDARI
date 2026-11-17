@@ -28,8 +28,8 @@ const DebtReportView: React.FC = () => {
     );
 
   const receivables =
-    data?.debts.filter(d => d.type === 'customer' && d.remaining_amount > 0) || [];
-  const payables = data?.debts.filter(d => d.type === 'supplier' && d.remaining_amount < 0) || [];
+    data?.debts.filter(d => d.type === 'customer' && d.remaining_amount !== 0) || [];
+  const payables = data?.debts.filter(d => d.type === 'supplier' && d.remaining_amount !== 0) || [];
   const netPosition = (data?.summary?.receivables || 0) - (data?.summary?.payables || 0);
   // report_debts returns base-currency amounts → format with the base currency.
   const baseCurrency = data?.summary.currency || 'SAR';

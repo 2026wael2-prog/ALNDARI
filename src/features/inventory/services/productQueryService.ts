@@ -159,7 +159,7 @@ export const productQueryService = {
         `
           id, company_id, name_ar, sku, part_number, brand, category_id, size, description,
           purchase_price, sale_price, min_stock_level, unit, image_url, is_core,
-          alternative_numbers, barcode, created_at, updated_at, status,
+          alternative_numbers, barcode, item_type, created_at, updated_at, status,
           category:product_categories(id, name),
           stock:product_stock(quantity, warehouse_id, warehouses(name_ar, branch_id, branches(id, name)))
         `,

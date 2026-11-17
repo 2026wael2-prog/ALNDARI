@@ -102,6 +102,7 @@ const DOMAIN_KEYS = {
     'suppliers',
     'party_statement',
     'party_statement_v3',
+    'party_statement_v4',
     'party_details',
     'party_balances',
   ],

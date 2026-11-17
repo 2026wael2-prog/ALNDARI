@@ -299,11 +299,18 @@ export const salesService = {
   // ⚡ Client-side stats computation via direct query
   // [FIX] Uses rolling 30-day window instead of current calendar month to prevent
   // stats showing all-zero when the month just started. Also filters voided invoices.
-  getStats: async (companyId: string, branchId?: string | null) => {
+  getStats: async (
+    companyId: string,
+    branchId?: string | null,
+    dateFrom?: string,
+    dateTo?: string
+  ) => {
     try {
       const { data, error } = await supabase.rpc('get_sales_stats_summary', {
         p_company_id: companyId,
         p_branch_id: branchId ?? null,
+        ...(dateFrom ? { p_date_from: dateFrom } : {}),
+        ...(dateTo ? { p_date_to: dateTo } : {}),
       });
       if (error) throw error;
 

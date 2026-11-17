@@ -1,5 +1,6 @@
 /* eslint-disable */
-import React, { Suspense, lazy, useState, useMemo } from 'react';
+import React, { Suspense, lazy, useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useProductsPaginated } from './hooks/useProductsPaginated';
 import { useProductMutations } from './hooks/useProducts';
 import { useInventoryView } from './hooks/useInventoryView';
@@ -49,11 +50,22 @@ const InventoryPage: React.FC = () => {
     handleCloseModal,
   } = useInventoryView();
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [pageSize, setPageSize] = useState(50);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
   const [isDetailsMaximized, setIsDetailsMaximized] = useState(false);
   const [showSmartImport, setShowSmartImport] = useState(false);
+  const [qualityFilter, setQualityFilter] = useState<'all' | 'loss_priced' | 'zero_cost' | 'zero_sale'>('all');
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'new') {
+      handleAdd();
+      const next = new URLSearchParams(searchParams);
+      next.delete('action');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, handleAdd, setSearchParams]);
 
   const { t } = useTranslation();
   const isDesktop = useBreakpoint('lg');
@@ -106,12 +118,24 @@ const InventoryPage: React.FC = () => {
   };
 
   // Stats from current page (server delivers totalCount for the badge)
-  const { availableProducts, outOfStockProducts } = useMemo(
+  const { availableProducts, outOfStockProducts, filteredProducts } = useMemo(
     () => ({
       availableProducts: products.filter(p => p.stock_quantity > 0).length,
-      outOfStockProducts: products.filter(p => p.stock_quantity <= 0).length,
+      outOfStockProducts: products.filter(p => p.item_type !== 'service' && p.stock_quantity <= 0).length,
+      filteredProducts: products.filter(p => {
+        if (qualityFilter === 'loss_priced') {
+          return (p.sale_price ?? 0) > 0 && (p.cost_price ?? 0) > 0 && (p.sale_price ?? 0) < (p.cost_price ?? 0);
+        }
+        if (qualityFilter === 'zero_cost') {
+          return p.item_type !== 'service' && (p.cost_price ?? 0) <= 0 && (p.purchase_price ?? 0) <= 0;
+        }
+        if (qualityFilter === 'zero_sale') {
+          return (p.sale_price ?? 0) <= 0;
+        }
+        return true;
+      }),
     }),
-    [products]
+    [products, qualityFilter]
   );
 
   return (
@@ -150,14 +174,14 @@ const InventoryPage: React.FC = () => {
                   <span className="h-3 w-px bg-slate-300 dark:bg-slate-600"></span>
                   <span
                     className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
-                    title="منتجات متوفرة"
+                    title="منتجات متوفرة (الصفحة الحالية)"
                   >
                     <CheckCircle size={12} /> {availableProducts}
                   </span>
                   <span className="h-3 w-px bg-slate-300 dark:bg-slate-600"></span>
                   <span
                     className="flex items-center gap-1 text-rose-600 dark:text-rose-400"
-                    title="منتجات ناقصة"
+                    title="منتجات ناقصة (الصفحة الحالية)"
                   >
                     <AlertTriangle size={12} /> {outOfStockProducts}
                   </span>
@@ -253,9 +277,34 @@ const InventoryPage: React.FC = () => {
                 </div>
                 {/* Table/Grid — right side */}
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                  {activeView === 'products' && (
+                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5 px-1">
+                      <span className="text-[10px] font-bold text-slate-400">تدقيق التسعير:</span>
+                      {[
+                        { id: 'all', label: 'الكل' },
+                        { id: 'loss_priced', label: 'سعر البيع أقل من التكلفة' },
+                        { id: 'zero_cost', label: 'بدون تكلفة' },
+                        { id: 'zero_sale', label: 'بدون سعر بيع' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setQualityFilter(opt.id as typeof qualityFilter)}
+                          className={cn(
+                            'rounded-lg px-2 py-0.5 text-[10px] font-bold transition-colors',
+                            qualityFilter === opt.id
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <InventoryViewRenderer
                     activeView={activeView}
-                    products={products}
+                    products={filteredProducts}
                     isLoading={isLoading}
                     isDesktop={isDesktop}
                     displayMode={displayMode}
@@ -293,9 +342,34 @@ const InventoryPage: React.FC = () => {
                   />
                 ) : (
                   <>
+                    {activeView === 'products' && (
+                      <div className="mb-1.5 flex flex-wrap items-center gap-1.5 px-1">
+                        <span className="text-[10px] font-bold text-slate-400">تدقيق التسعير:</span>
+                        {[
+                          { id: 'all', label: 'الكل' },
+                          { id: 'loss_priced', label: 'سعر البيع أقل من التكلفة' },
+                          { id: 'zero_cost', label: 'بدون تكلفة' },
+                          { id: 'zero_sale', label: 'بدون سعر بيع' },
+                        ].map(opt => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setQualityFilter(opt.id as typeof qualityFilter)}
+                            className={cn(
+                              'rounded-lg px-2 py-0.5 text-[10px] font-bold transition-colors',
+                              qualityFilter === opt.id
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <InventoryViewRenderer
                       activeView={activeView}
-                      products={products}
+                      products={filteredProducts}
                       isLoading={isLoading}
                       isDesktop={isDesktop}
                       displayMode={displayMode}
@@ -337,6 +411,7 @@ const InventoryPage: React.FC = () => {
                 setIsDetailsMaximized(false);
               }}
               onEdit={handleEdit}
+              onDelete={handleDeleteProduct}
             />
           )}
 

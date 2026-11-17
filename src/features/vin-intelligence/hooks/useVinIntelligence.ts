@@ -220,7 +220,9 @@ export function useVinIntelligence(companyId?: string, userId?: string): UseVinI
 
   const linkMutation = useMutation({
     mutationFn: ({ productId }: { productId: string }) => {
-      if (companyId == null || userId == null || vehicle?.id == null) return Promise.resolve();
+      if (companyId == null || userId == null || vehicle?.id == null) {
+        return Promise.reject(new Error('يرجى حفظ المركبة أولاً قبل ربط القطع'));
+      }
       return vinService.linkProduct(companyId, userId, vehicle.id, productId);
     },
     onSuccess: () => {

@@ -7,6 +7,7 @@ interface FinancialHealthProps {
         sales: number | string;
         purchases?: number | string;
         expenses: number | string;
+        profit?: number | string;
         debts: number | string;
     };
     cashFlow?: {
@@ -58,9 +59,10 @@ const FinancialHealthScore: React.FC<FinancialHealthProps> = ({
     };
     const sales = cleanNumber(stats?.sales);
     const expenses = cleanNumber(stats?.expenses);
+    const profit = cleanNumber(stats?.profit);
     const debts = cleanNumber(stats?.debts);
 
-    const profitMargin = sales > 0 ? Math.max(-100, Math.min(100, ((sales - expenses) / sales) * 100)) : 0;
+    const profitMargin = sales > 0 ? Math.max(-100, Math.min(100, (profit / sales) * 100)) : 0;
     const profitScore = Math.max(0, Math.min(30, (profitMargin > 0 ? profitMargin * 0.3 : 0)));
     const collectionScore = Math.min(25, (targets?.collectionRate || 0) * 0.25);
 

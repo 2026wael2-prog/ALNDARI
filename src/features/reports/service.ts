@@ -1,6 +1,5 @@
 import { logger } from '../../core/utils/logger';
 import { formatLocalDate, getLocalYearStart } from '../../core/utils/dateUtils';
-import { getDefaultExchangeOperator, toBaseCurrency } from '../../core/utils/currencyUtils';
 
 import { reportsApi } from './api';
 import type { PartyDebt, ReportsStats } from './types';
@@ -349,128 +348,36 @@ export const reportsService = {
     };
   },
 
-  // ⚡ Actual currency gain/loss using exchange_rates table
+  // ⚡ Actual currency gain/loss computed server-side via PostgreSQL RPC
   getCurrencyDiffs: async (
     companyId: string,
     branchId?: string | null
   ): Promise<CurrencyAccount[]> => {
-    const { data: company } = await supabase
-      .from('companies')
-      .select('base_currency')
-      .eq('id', companyId)
-      .single();
-    const baseCurrency = company?.base_currency || 'SAR';
+    const { data, error } = await (supabase.rpc as Function)('get_currency_diffs_report', {
+      p_company_id: companyId,
+      p_branch_id: branchId ?? null,
+    });
 
-    const [{ data: accounts }, { data: rates }] = await Promise.all([
-      supabase
-        .from('accounts')
-        .select('id, name_ar, currency_code')
-        .eq('company_id', companyId)
-        .is('deleted_at', null)
-        .not('currency_code', 'is', null)
-        .neq('currency_code', baseCurrency),
-      supabase
-        .from('exchange_rates')
-        .select('currency_code, rate_to_base')
-        .eq('company_id', companyId)
-        .order('effective_date', { ascending: false }),
-    ]);
-
-    if (!accounts || accounts.length === 0) return [];
-
-    // Fetch journal entry lines for these foreign currency accounts to calculate both:
-    // 1) Foreign currency balance: SUM(foreign_amount)
-    // 2) Book value in base currency: SUM(debit_amount - credit_amount)
-    const { data: lines } = await supabase
-      .from('journal_entry_lines')
-      .select(
-        'account_id, branch_id, debit_amount, credit_amount, foreign_amount, exchange_rate, journal_entries!inner(status, deleted_at, branch_id)'
-      )
-      .eq('company_id', companyId)
-      .eq('journal_entries.status', 'posted')
-      .is('journal_entries.deleted_at', null)
-      .is('deleted_at', null)
-      .in(
-        'account_id',
-        accounts.map(a => a.id)
-      );
-
-    const accountCurrencyMap = new Map(
-      accounts.map((a: any) => [a.id, (a.currency_code as string) || baseCurrency])
-    );
-    const accountDataMap = new Map<string, { foreignBalance: number; bookValueBase: number }>();
-
-    for (const l of (lines || []) as Array<{
-      account_id: string;
-      branch_id?: string | null;
-      debit_amount: number | null;
-      credit_amount: number | null;
-      foreign_amount: number | null;
-      exchange_rate: number | null;
-      journal_entries?: { branch_id?: string | null } | Array<{ branch_id?: string | null }> | null;
-    }>) {
-      if (branchId) {
-        const je = Array.isArray(l.journal_entries) ? l.journal_entries[0] : l.journal_entries;
-        const effectiveLineBranch = l.branch_id ?? je?.branch_id ?? null;
-        if (effectiveLineBranch !== branchId) continue;
-      }
-      const current = accountDataMap.get(l.account_id) || { foreignBalance: 0, bookValueBase: 0 };
-      const debit = Number(l.debit_amount) || 0;
-      const credit = Number(l.credit_amount) || 0;
-      const fAmount = Number(l.foreign_amount) || 0;
-      const exRate = Number(l.exchange_rate) || 1;
-      const absBaseDiff = Math.abs(debit - credit);
-      const accCurrency = accountCurrencyMap.get(l.account_id) || baseCurrency;
-      const isDivide = getDefaultExchangeOperator(accCurrency) === 'divide';
-
-      // Calculate foreign movement
-      const fMovement =
-        fAmount > 0
-          ? fAmount
-          : exRate > 0 && exRate !== 1
-            ? isDivide
-              ? absBaseDiff * (exRate < 1 ? 1 / exRate : exRate)
-              : absBaseDiff / exRate
-            : absBaseDiff;
-      const sign = debit >= credit ? 1 : -1;
-
-      current.foreignBalance += sign * fMovement;
-      current.bookValueBase += debit - credit;
-      accountDataMap.set(l.account_id, current);
+    if (error) {
+      logger.warn('service', '[reports] get_currency_diffs_report error:', error.message);
+      throw error;
     }
 
-    const rateMap = new Map(
-      (rates || []).map((r: any) => [r.currency_code, Number(r.rate_to_base)])
-    );
+    const rows = (data || []) as Array<{
+      id: string;
+      name: string;
+      currency_code: string;
+      balance: number | string;
+      unrealized_gain: number | string;
+    }>;
 
-    return accounts.map((a: any): CurrencyAccount => {
-      const accData = accountDataMap.get(a.id) || { foreignBalance: 0, bookValueBase: 0 };
-      const foreignBalance = accData.foreignBalance;
-      const rate = rateMap.get(a.currency_code);
-
-      // Current market value in base currency using toBaseCurrency (handles divide vs multiply)
-      let currentMarketValue = accData.bookValueBase;
-      if (rate && rate > 0) {
-        try {
-          currentMarketValue = toBaseCurrency({
-            amount: foreignBalance,
-            currency_code: a.currency_code,
-            exchange_rate: rate,
-          });
-        } catch {
-          currentMarketValue = accData.bookValueBase;
-        }
-      }
-      const unrealizedGain = rate ? currentMarketValue - accData.bookValueBase : 0;
-
-      return {
-        id: a.id,
-        name: a.name_ar,
-        currency_code: a.currency_code,
-        balance: foreignBalance,
-        unrealizedGain: Math.round(unrealizedGain * 100) / 100,
-      };
-    });
+    return rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      currency_code: row.currency_code,
+      balance: Number(row.balance) || 0,
+      unrealizedGain: Number(row.unrealized_gain) || 0,
+    }));
   },
 
   /**

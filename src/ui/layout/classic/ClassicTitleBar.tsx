@@ -11,7 +11,7 @@ interface ClassicTitleBarProps {
  * شريط عنوان النافذة الكلاسيكي: هوية المنشأة + عنوان الصفحة + بحث سريع + أدوات الحساب.
  */
 const ClassicTitleBar: React.FC<ClassicTitleBarProps> = ({ pageTitle }) => (
-  <div className="classic-titlebar flex h-11 items-center gap-3 px-2">
+  <div className="classic-titlebar flex h-9 items-center gap-2 px-2">
     <div className="flex shrink-0 items-center gap-2">
       <span className="classic-brand-mark">
         <Car size={16} strokeWidth={2.25} />

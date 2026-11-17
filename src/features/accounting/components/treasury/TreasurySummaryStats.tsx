@@ -69,8 +69,8 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
         foreignBalance: accountAggregate.foreignBalance,
         totalDebit: Math.max(0, accountAggregate.totalDebit),
         totalCredit: Math.max(0, accountAggregate.totalCredit),
-        foreignTotalDebit: Math.max(0, accountAggregate.totalDebit),
-        foreignTotalCredit: Math.max(0, accountAggregate.totalCredit),
+        foreignTotalDebit: isForeign ? 0 : Math.max(0, accountAggregate.totalDebit),
+        foreignTotalCredit: isForeign ? 0 : Math.max(0, accountAggregate.totalCredit),
         isCumulativeFallback:
           accountAggregate.totalDebit > 0 || accountAggregate.totalCredit > 0,
       };
@@ -170,11 +170,11 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
       totalCredit: Math.max(0, useAggregateTotals ? accountAggregate.totalCredit : totalCredit),
       foreignTotalDebit: Math.max(
         0,
-        useAggregateTotals ? accountAggregate.totalDebit : foreignTotalDebit
+        useAggregateTotals ? (isForeign ? 0 : accountAggregate.totalDebit) : foreignTotalDebit
       ),
       foreignTotalCredit: Math.max(
         0,
-        useAggregateTotals ? accountAggregate.totalCredit : foreignTotalCredit
+        useAggregateTotals ? (isForeign ? 0 : accountAggregate.totalCredit) : foreignTotalCredit
       ),
       isCumulativeFallback: useAggregateTotals,
     };

@@ -194,7 +194,9 @@ const SettingsPage: React.FC = () => {
     return menuGroups
       .map(g => ({
         ...g,
-        items: g.items.filter(i => i.label.includes(q) || i.desc.includes(q)),
+        items: g.items.filter(
+          i => i.label.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q)
+        ),
       }))
       .filter(g => g.items.length > 0);
   }, [searchQuery, menuGroups]);

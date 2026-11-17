@@ -4,6 +4,7 @@ import { accountsApi } from '../api/accountsApi';
 import { supabase } from '../../../lib/supabaseClient';
 import { parseError } from '../../../core/utils/errorUtils';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
+import { fetchAllRpcPages } from '../../../core/utils/dataFetching';
 
 // دليل الحسابات الافتراضي (بالريال السعودي) — يستخدمه seedDefaultAccounts
 const DEFAULT_CHART_OF_ACCOUNTS: Array<{
@@ -39,11 +40,16 @@ export const accountsService = {
     // جلب متزامن لهيكل الحسابات وأرصدتها التراكمية لتسريع تحميل دليل الحسابات
     const accountsPromise = accountsApi.getAccounts(companyId);
     const balancesPromise = options?.includeBalances
-      ? supabase.rpc('report_account_balances', {
-          p_company_id: companyId,
-          p_as_of_date: formatLocalDate(),
-          ...(options.branchId ? { p_branch_id: options.branchId } : {}),
-        })
+      ? fetchAllRpcPages(
+          supabase,
+          'report_account_balances',
+          {
+            p_company_id: companyId,
+            p_as_of_date: formatLocalDate(),
+            ...(options.branchId ? { p_branch_id: options.branchId } : {}),
+          },
+          ['account_id']
+        )
       : Promise.resolve({ data: null, error: null });
 
     const [accountsRes, balancesRes] = await Promise.all([accountsPromise, balancesPromise]);
@@ -181,144 +187,19 @@ export const accountsService = {
   },
 
   seedSubCashboxes: async (companyId: string) => {
-    // 1. Get the main cashbox (1010)
-    const { data: mainCashbox } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('code', '1010')
-      .single();
-
-    if (!mainCashbox) {
-      throw new Error('لم يتم العثور على الصندوق الرئيسي (1010)');
-    }
-
-    // 2. Query for existing children
-    const { data: existingChildren } = await supabase
-      .from('accounts')
-      .select('currency_code')
-      .eq('company_id', companyId)
-      .eq('parent_id', mainCashbox.id);
-
-    const existingCurrencies = new Set(existingChildren?.map(c => c.currency_code) || []);
-
-    // 3. Define the desired sub-cashboxes
-    const desiredBoxes = [
-      {
-        code: '101001',
-        name_ar: 'صندوق الكاش - ريال سعودي',
-        name_en: 'Cash Box - SAR',
-        currency_code: 'SAR',
-      },
-      {
-        code: '101002',
-        name_ar: 'صندوق الكاش - ريال يمني',
-        name_en: 'Cash Box - YER',
-        currency_code: 'YER',
-      },
-      {
-        code: '101003',
-        name_ar: 'صندوق الكاش - دولار أمريكي',
-        name_en: 'Cash Box - USD',
-        currency_code: 'USD',
-      },
-      {
-        code: '101004',
-        name_ar: 'صندوق الكاش - ريال عماني',
-        name_en: 'Cash Box - OMR',
-        currency_code: 'OMR',
-      },
-      {
-        code: '101005',
-        name_ar: 'صندوق الكاش - يوان صيني',
-        name_en: 'Cash Box - CNY',
-        currency_code: 'CNY',
-      },
-    ];
-
-    const toInsert = desiredBoxes
-      .filter(box => !existingCurrencies.has(box.currency_code))
-      .map(box => ({
-        company_id: companyId,
-        code: box.code,
-        name_ar: box.name_ar,
-        type: 'asset' as const,
-        currency_code: box.currency_code,
-        parent_id: mainCashbox.id,
-        is_system: true,
-      }));
-
-    if (toInsert.length > 0) {
-      const { error } = await accountsApi.insertAccounts(toInsert);
-      if (error) throw error;
-    }
-
-    return true;
+    const { data, error } = await (supabase.rpc as Function)('seed_sub_cashboxes_atomic', {
+      p_company_id: companyId,
+    });
+    if (error) throw error;
+    return Boolean(data ?? true);
   },
 
-  // Fix: Added missing seedYemeniExchanges method
   seedYemeniExchanges: async (companyId: string) => {
-    // 1. Check if 1030 (Exchange Companies parent) exists
-    let { data: exchangeParent } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('code', '1030')
-      .maybeSingle();
-
-    if (!exchangeParent) {
-      // Create 1030
-      const { data: newParent, error: parentError } = await supabase
-        .from('accounts')
-        .insert({
-          company_id: companyId,
-          code: '1030',
-          name_ar: 'شركات الصرافة',
-          type: 'asset',
-          currency_code: 'SAR',
-          is_system: true,
-        })
-        .select()
-        .single();
-      if (parentError) throw parentError;
-      if (!newParent) throw new Error('Failed to create parent account');
-      exchangeParent = { id: newParent.id };
-    }
-
-    // 2. Query for existing children
-    const { data: existingChildren } = await supabase
-      .from('accounts')
-      .select('code')
-      .eq('company_id', companyId)
-      .eq('parent_id', exchangeParent.id);
-
-    const existingCodes = new Set(existingChildren?.map(c => c.code) || []);
-
-    const exchanges = [
-      { code: '103001', name_ar: 'شركة الكريمي للصرافة', currency_code: 'SAR' },
-      { code: '103002', name_ar: 'النجم للصرافة والتحويلات', currency_code: 'SAR' },
-      { code: '103003', name_ar: 'الامتياز للصرافة', currency_code: 'SAR' },
-      { code: '103004', name_ar: 'الياباني للصرافة', currency_code: 'SAR' },
-    ];
-
-    const toInsert = exchanges
-      .filter(ex => !existingCodes.has(ex.code))
-      .map(ex => ({
-        company_id: companyId,
-        code: ex.code,
-        name_ar: ex.name_ar,
-        type: 'asset' as const,
-        currency_code: ex.currency_code,
-        parent_id: exchangeParent.id,
-        is_system: false,
-      }));
-
-    if (toInsert.length > 0) {
-      const { error } = await accountsApi.insertAccounts(toInsert);
-      if (error) throw error;
-    }
-
-    return true;
+    const { data, error } = await (supabase.rpc as Function)('seed_yemeni_exchanges_atomic', {
+      p_company_id: companyId,
+    });
+    if (error) throw error;
+    return Boolean(data ?? true);
   },
 
   findAccountByCode: async (companyId: string, code: string) => {

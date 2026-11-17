@@ -6,14 +6,29 @@ import { useI18nStore } from '@/lib/i18nStore';
 import Card from '@/ui/base/Card';
 import MessagingIntegration from './MessagingIntegration';
 import { useAuthStore } from '@/features/auth/store';
+import { useFeedbackStore } from '@/features/feedback/store';
 
 export const IntegrationsSettings: React.FC = () => {
   const { dictionary: t } = useI18nStore();
   const { integration, setIntegrationSettings } = useSettingsStore();
   const companyId = useAuthStore(s => s.user?.company_id);
+  const showToast = useFeedbackStore(s => s.showToast);
 
   const handleUpdate = (updates: Partial<typeof integration>) => {
     setIntegrationSettings(updates);
+  };
+
+  const handleCopyKey = async (value: string | undefined, label: string) => {
+    if (!value) {
+      showToast(`لا يوجد ${label} لنسخه حالياً`, 'warning');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast(`تم نسخ ${label}`, 'success');
+    } catch {
+      showToast('تعذر النسخ إلى الحافظة', 'error');
+    }
   };
 
   return (
@@ -33,7 +48,14 @@ export const IntegrationsSettings: React.FC = () => {
             </p>
           </div>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700 max-md:gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setIntegrationSettings(integration);
+            showToast('تم حفظ إعدادات التكامل بنجاح', 'success');
+          }}
+          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700 max-md:gap-2"
+        >
           <Save className="h-4 w-4" />
           <span className="text-sm font-medium">{t.save || 'حفظ'}</span>
         </button>
@@ -240,12 +262,16 @@ export const IntegrationsSettings: React.FC = () => {
               <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                 {t.public_key || 'المفتاح العام'}
               </span>
-              <button className="text-xs text-indigo-600 hover:text-indigo-700">
+              <button
+                type="button"
+                onClick={() => void handleCopyKey(integration.api_public_key, 'المفتاح العام')}
+                className="text-xs text-indigo-600 hover:text-indigo-700"
+              >
                 {t.copy || 'نسخ'}
               </button>
             </div>
             <code className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-              {integration.api_public_key || 'pk_xxxxxxxxxxxx'}
+              {integration.api_public_key || 'غير مُعد'}
             </code>
           </div>
           <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50 max-md:p-4">
@@ -253,7 +279,13 @@ export const IntegrationsSettings: React.FC = () => {
               <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                 {t.secret_key || 'المفتاح السري'}
               </span>
-              <button className="text-xs text-indigo-600 hover:text-indigo-700">
+              <button
+                type="button"
+                onClick={() =>
+                  void handleCopyKey((integration as { api_secret_key?: string }).api_secret_key, 'المفتاح السري')
+                }
+                className="text-xs text-indigo-600 hover:text-indigo-700"
+              >
                 {t.copy || 'نسخ'}
               </button>
             </div>

@@ -5,17 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import type { BondFormData, BondType } from './types';
 
 export const bondsApi = {
-  getBonds: async (companyId: string, branchId?: string | null, type?: BondType, limitNum = 200) => {
-    // Map BondType → payments.type
-    const paymentType =
-      type === 'receipt'
-        ? 'receipt'
-        : type === 'transfer'
-          ? 'transfer'
-          : type === 'payment'
-            ? 'disbursement'
-            : null;
-
+  getBonds: async (companyId: string, branchId?: string | null, type?: BondType, limitNum = 1000) => {
     let query = supabase
       .from('payments')
       .select(
@@ -41,12 +31,16 @@ export const bondsApi = {
       .limit(limitNum);
 
     // Only filter by type when explicitly requested
-    if (paymentType) {
-      query = query.eq('type', paymentType);
+    if (type === 'receipt') {
+      query = query.eq('type', 'receipt');
+    } else if (type === 'transfer') {
+      query = query.eq('type', 'transfer');
+    } else if (type === 'payment') {
+      query = query.in('type', ['disbursement', 'payment']);
     }
 
     if (branchId) {
-      query = query.eq('branch_id', branchId);
+      query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
     }
 
     return await query;
@@ -90,8 +84,11 @@ export const bondsApi = {
 
     const paymentType =
       data.type === 'receipt' ? 'receipt' : data.type === 'transfer' ? 'transfer' : 'disbursement';
+    const idempotencyKey =
+      (data as BondFormData & { idempotency_key?: string }).idempotency_key ||
+      crypto.randomUUID();
 
-    const { data: resultData, error } = await supabase.rpc('create_financial_bond', {
+    const { data: resultData, error } = await (supabase.rpc as Function)('create_financial_bond', {
       p_bond_type: paymentType,
       p_company_id: companyId,
       p_user_id: userId,
@@ -107,6 +104,13 @@ export const bondsApi = {
       ...(data.exchange_rate ? { p_exchange_rate: data.exchange_rate } : {}),
       ...(data.foreign_amount ? { p_foreign_amount: data.foreign_amount } : {}),
       ...(data.branchId ? { p_branch_id: data.branchId } : {}),
+      p_idempotency_key: idempotencyKey,
+      ...(data.commission_amount && data.commission_amount > 0 && data.commission_account_id
+        ? {
+            p_commission_amount: data.commission_amount,
+            p_commission_account_id: data.commission_account_id,
+          }
+        : {}),
     });
 
     if (error) {
@@ -115,37 +119,7 @@ export const bondsApi = {
       throw appErr;
     }
 
-    const result = resultData as any;
-
-    // Handle Commission / Discount if provided
-    if (data.commission_amount && data.commission_amount > 0 && data.commission_account_id) {
-      const { error: commError } = await supabase.rpc('create_financial_bond', {
-        p_bond_type: paymentType, // receipt for customers, payment for suppliers
-        p_company_id: companyId,
-        p_user_id: userId,
-        p_amount: data.commission_amount,
-        p_date: data.date,
-        p_cash_account_id: data.commission_account_id, // The discount/commission expense account
-        p_counterparty_type: data.counterparty_type,
-        p_counterparty_id: data.counterparty_id,
-        p_description: `تسوية خصم/عمولة: ${data.description}`,
-        p_payment_method: 'cash',
-        ...(data.invoice_id ? { p_invoice_id: data.invoice_id } : {}), // Atomic allocation to the same invoice
-        ...(data.currency_code ? { p_currency_code: data.currency_code } : {}),
-        ...(data.exchange_rate ? { p_exchange_rate: data.exchange_rate } : {}),
-        ...(data.branchId ? { p_branch_id: data.branchId } : {}),
-      });
-
-      if (commError) {
-        const commAppErr = parseError(commError);
-        logger.error('bondsApi', 'Failed to create commission bond', commAppErr);
-        throw new Error(
-          `تم حفظ السند الرئيسي بنجاح، لكن فشل تسجيل سند الخصم/العمولة: ${commAppErr.message}`
-        );
-      }
-    }
-
-    return result;
+    return resultData as unknown;
   },
 
   getUnpaidPartyInvoices: async (

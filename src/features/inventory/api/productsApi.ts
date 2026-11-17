@@ -9,25 +9,8 @@ export const productsApi = {
   getProducts: async (companyId: string, page = 1, limitNum = 500, signal?: AbortSignal) => {
     const safeLimit = Math.min(Math.max(1, limitNum), 500);
     const offset = (page - 1) * safeLimit;
-
-    // Use the optimized RPC that applies LIMIT before the heavy join (33x faster than direct join)
-    try {
-      const rpcQuery = supabase.rpc('get_products_paged', {
-        p_company_id: companyId,
-        p_limit: limitNum,
-        p_offset: offset,
-      });
-      const res = await (signal ? rpcQuery.abortSignal(signal) : rpcQuery);
-      if (!res.error && Array.isArray(res.data)) {
-        return { data: res.data, error: null };
-      }
-    } catch {
-      // fall through to direct query fallback
-    }
-
-    // Fallback: direct query with subquery to ensure limit is applied before join
     const from = offset;
-    const to = offset + limitNum - 1;
+    const to = offset + safeLimit - 1;
     const query = supabase
       .from('products')
       .select(

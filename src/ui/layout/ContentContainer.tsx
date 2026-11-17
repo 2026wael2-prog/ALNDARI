@@ -24,7 +24,7 @@ interface ContentContainerProps {
 const ContentContainer: React.FC<ContentContainerProps> = ({ children, fluid, className, fillHeight = false }) => (
     <div
         className={cn(
-            'mx-auto w-full px-1.5 md:px-2 lg:px-3 xl:px-4',
+            'mx-auto w-full px-1.5 md:px-2 lg:px-2.5 xl:px-3',
             fillHeight && 'h-full flex-1 flex flex-col min-h-0',
             !fluid && [
                 'max-w-none',                          // mobile/tablet: full width

@@ -168,7 +168,7 @@ export const WorkspaceTabBar: React.FC = () => {
     <div
       role="tablist"
       aria-label="شريط شاشات العمل المفتوحة"
-      className="no-print bg-[var(--app-surface)]/90 relative flex h-10 w-full select-none items-center border-b border-[var(--app-border)] px-2 backdrop-blur-md transition-colors"
+      className="no-print bg-[var(--app-surface)]/95 relative flex h-9 w-full select-none items-center border-b border-[var(--app-border)] px-1.5 backdrop-blur-md transition-colors"
       dir={dir}
     >
       {/* Scroll Left Button */}
@@ -177,15 +177,15 @@ export const WorkspaceTabBar: React.FC = () => {
           handleScroll('left');
         }}
         aria-label="تمرير التبويبات لليمين"
-        className="flex h-7 w-6 items-center justify-center rounded-md text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]"
+        className="flex h-6 w-5 items-center justify-center rounded-md text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]"
       >
-        <ChevronRight size={15} className={isRTL ? '' : 'rotate-180'} />
+        <ChevronRight size={14} className={isRTL ? '' : 'rotate-180'} />
       </button>
 
       {/* Tabs Container */}
       <div
         ref={scrollContainerRef}
-        className="custom-scrollbar-hide flex flex-1 items-center gap-1.5 overflow-x-auto scroll-smooth px-1 py-1"
+        className="custom-scrollbar-hide flex flex-1 items-center gap-1 overflow-x-auto scroll-smooth px-1 py-0.5"
       >
         {tabs.map(tab => {
           const isActive = tab.id === activeTabId;
@@ -212,7 +212,7 @@ export const WorkspaceTabBar: React.FC = () => {
               }}
               title={`${tab.title} (${tab.isClosable ? 'انقر بالزر الأوسط للإغلاق' : 'الرئيسية'})`}
               className={cn(
-                'group relative flex h-8 min-w-[110px] max-w-[200px] cursor-pointer items-center gap-2 rounded-t-lg border border-b-0 px-2.5 text-xs font-bold transition-all duration-150',
+                'group relative flex h-8 min-w-[96px] max-w-[180px] cursor-pointer items-center gap-1.5 rounded-t-lg border border-b-0 px-2.5 text-xs font-bold transition-all duration-150',
                 isActive
                   ? 'z-10 -mb-[1px] border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--accent)] shadow-xs ring-1 ring-blue-500/20'
                   : 'border-transparent bg-transparent text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
@@ -225,7 +225,7 @@ export const WorkspaceTabBar: React.FC = () => {
 
               {/* Icon */}
               <IconComp
-                size={14}
+                size={16}
                 className={cn(
                   'shrink-0 transition-transform group-hover:scale-105',
                   isActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--app-text-secondary)]'
@@ -233,7 +233,7 @@ export const WorkspaceTabBar: React.FC = () => {
               />
 
               {/* Title */}
-              <span className="flex-1 truncate text-[11px] tracking-tight">{tab.title}</span>
+              <span className="flex-1 truncate text-xs tracking-tight">{tab.title}</span>
 
               {/* Unsaved Changes Dot */}
               {tab.isDirty && (
@@ -250,7 +250,7 @@ export const WorkspaceTabBar: React.FC = () => {
                     handleCloseTab(e, tab.id);
                   }}
                   aria-label={`إغلاق تبويب ${tab.title}`}
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md p-0.5 text-[var(--app-text-secondary)] opacity-60 transition-all hover:bg-rose-500/15 hover:text-rose-600 hover:opacity-100 group-hover:opacity-90"
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-md p-0.5 text-[var(--app-text-secondary)] opacity-60 transition-all hover:bg-rose-500/15 hover:text-rose-600 hover:opacity-100 group-hover:opacity-90"
                 >
                   <X size={12} strokeWidth={2.5} />
                 </button>
@@ -268,9 +268,9 @@ export const WorkspaceTabBar: React.FC = () => {
           handleScroll('right');
         }}
         aria-label="تمرير التبويبات لليسار"
-        className="flex h-7 w-6 items-center justify-center rounded-md text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]"
+        className="flex h-6 w-5 items-center justify-center rounded-md text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]"
       >
-        <ChevronLeft size={15} className={isRTL ? '' : 'rotate-180'} />
+        <ChevronLeft size={14} className={isRTL ? '' : 'rotate-180'} />
       </button>
 
       {/* Add New Tab (+) Quick Launch Button */}
@@ -281,9 +281,9 @@ export const WorkspaceTabBar: React.FC = () => {
           }}
           aria-label="فتح شاشة جديدة في تبويب"
           title="فتح شاشة جديدة في تبويب (+)"
-          className="shadow-2xs flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text-secondary)] transition-all hover:border-blue-500/40 hover:bg-blue-50/50 hover:text-blue-600 dark:hover:bg-blue-900/20"
+          className="shadow-2xs flex h-6 w-6 items-center justify-center rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text-secondary)] transition-all hover:border-blue-500/40 hover:bg-blue-50/50 hover:text-blue-600 dark:hover:bg-blue-900/20"
         >
-          <Plus size={14} strokeWidth={2.5} />
+          <Plus size={13} strokeWidth={2.5} />
         </button>
 
         {/* Quick Launch Dropdown */}
@@ -291,7 +291,7 @@ export const WorkspaceTabBar: React.FC = () => {
           <div
             className="animate-in fade-in-50 zoom-in-95 fixed z-[600] mt-1 w-56 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-2xl backdrop-blur-xl duration-150"
             style={{
-              top: '84px',
+              top: '68px',
               [isRTL ? 'left' : 'right']: '12px',
             }}
           >

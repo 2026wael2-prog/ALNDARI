@@ -123,6 +123,19 @@ const ProductCoreInfo: React.FC<Props> = ({ register, errors, setValue, watch })
           )}
         </div>
 
+        <div>
+          <label className="mb-1.5 block px-1 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            نوع الصنف
+          </label>
+          <select
+            {...register('item_type')}
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700 outline-none transition-all focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-gray-300"
+          >
+            <option value="stock">صنف مخزني (يُجرد ويُخصم من المستودع)</option>
+            <option value="service">خدمة / أجرة عمل يد (بدون رصيد مخزني)</option>
+          </select>
+        </div>
+
         {/* Note: is_core field is in ProductStockInfo tab (checkbox for strategic product designation) */}
       </div>
     </div>

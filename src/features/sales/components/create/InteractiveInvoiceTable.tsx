@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, lazy, Suspense } from 
 import { useSalesStore, type SalesCartItem } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import type { Product } from '../../../inventory/types';
-import { Plus, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { cn } from '../../../../core/utils';
 import { logger } from '../../../../core/utils/logger';
 import { STORAGE_KEYS } from '../../../../core/constants';
@@ -269,9 +269,6 @@ const InteractiveInvoiceTable: React.FC = () => {
               </button>
             )}
           </div>
-          <button className="p-2 text-gray-400 transition-colors hover:text-blue-500">
-            <Settings size={14} />
-          </button>
         </div>
       </div>
 

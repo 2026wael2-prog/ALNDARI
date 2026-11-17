@@ -88,6 +88,7 @@ const AddProductModal: React.FC<Props> = ({
         size: initialData.size ?? '',
         specifications: initialData.specifications ?? '',
         alternative_numbers: rawAlternatives,
+        item_type: initialData.item_type ?? 'stock',
         image_url: initialData.image_url ?? null,
         cost_price:
           initialData.cost_price !== 0
@@ -115,6 +116,7 @@ const AddProductModal: React.FC<Props> = ({
         size: '',
         specifications: '',
         alternative_numbers: '',
+        item_type: 'stock',
         image_url: null,
         cost_price: '',
         selling_price: '',

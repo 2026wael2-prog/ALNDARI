@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAccounts, useLedger } from '../../hooks/index';
 import type { LedgerEntry } from '../../types/index';
 import ExcelTable from '../../../../ui/common/ExcelTable';
@@ -29,8 +30,16 @@ const magnitude = (value: number): number => (value < 0 ? -value : value);
 const differsByMoreThanCent = (a: number, b: number): boolean => a - b > 0.01 || b - a > 0.01;
 
 const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector = true }) => {
+  const [searchParams] = useSearchParams();
+  const urlAccountId = searchParams.get('accountId') ?? '';
   const { data: accounts } = useAccounts();
-  const [internalAccountId, setInternalAccountId] = useState<string>('');
+  const [internalAccountId, setInternalAccountId] = useState<string>(urlAccountId);
+
+  useEffect(() => {
+    if (urlAccountId) {
+      setInternalAccountId(urlAccountId);
+    }
+  }, [urlAccountId]);
 
   // Determine effective account ID: prop takes precedence (an empty string is
   // treated as "not provided" so the internal selector can take over).

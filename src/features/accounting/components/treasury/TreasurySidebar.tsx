@@ -10,10 +10,8 @@ import { formatCurrency } from '../../../../core/utils';
 import { Wallet, Landmark, Loader2, Globe, ChevronRight, Building2 } from 'lucide-react';
 import { cn } from '../../../../core/utils';
 import Button from '../../../../ui/base/Button';
-import AddAccountModal from '../accounts/AddAccountModal';
 import { AddTreasuryEntityModal } from './AddTreasuryEntityModal';
 import type { Account } from '../../types/models';
-import type { AccountFormData } from '../../types';
 
 interface Props {
   onSelectAccount: (id: string) => void;
@@ -164,9 +162,7 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
   const { data: accounts, isLoading } = useAccounts();
   const { data: cashboxes } = useCashboxes();
   const { data: exchanges } = useExchangeCompanies();
-  const { createAccount, isCreating, migrateCashboxBalances, isMigratingCashbox } =
-    useAccountMutations();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { migrateCashboxBalances, isMigratingCashbox } = useAccountMutations();
   const [treasuryModalType, setTreasuryModalType] = useState<'cashbox' | 'exchange' | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -276,22 +272,28 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
     return treasuryTree.reduce((sum, node) => sum + (Number(node.balance) || 0), 0);
   }, [treasuryTree]);
 
-  const currencyBreakdown = useMemo(() => {
+  const currencyBreakdown = useMemo<Array<{ code: string; amount: number }>>(() => {
     if (!accounts || accounts.length === 0 || treasuryAccounts.length === 0) {
-      return { sar: 0, yer: 0 };
+      return [{ code: 'SAR', amount: 0 }];
     }
     const parentIds = new Set(accounts.map(a => a.parent_id).filter(Boolean));
     const leaves = treasuryAccounts.filter(a => !parentIds.has(a.id));
 
-    const sar = leaves
-      .filter(a => (a.currency_code ?? 'SAR') === 'SAR')
-      .reduce((s, a) => s + (Number(a.balance) || 0), 0);
+    const totals = new Map<string, number>();
+    for (const acc of leaves) {
+      const code = (acc.currency_code || 'SAR').toUpperCase();
+      const amt =
+        code === 'SAR'
+          ? Number(acc.balance) || 0
+          : Number(acc.foreign_balance ?? acc.balance) || 0;
+      totals.set(code, (totals.get(code) ?? 0) + amt);
+    }
 
-    const yer = leaves
-      .filter(a => a.currency_code === 'YER')
-      .reduce((s, a) => s + (a.foreign_balance ?? a.balance ?? 0), 0);
+    const entries = Array.from(totals.entries())
+      .filter(([code, amount]) => code === 'SAR' || Math.abs(amount) > 0.001)
+      .map(([code, amount]) => ({ code, amount }));
 
-    return { sar, yer };
+    return entries.length > 0 ? entries : [{ code: 'SAR', amount: 0 }];
   }, [accounts, treasuryAccounts]);
 
   const toggleExpand = (id: string): void => {
@@ -301,26 +303,6 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
       else newSet.add(id);
       return newSet;
     });
-  };
-
-  const handleCreate = (data: AccountFormData) => {
-    // Generate the next sibling code under the direct '10xx' level only
-    // (never mix 1010, 101001 etc. in the same max() call — that produces wrong codes)
-    const directChildren = (accounts || []).filter(a => {
-      const numeric = parseInt(a.code, 10);
-      return a.code.startsWith('10') && a.code.length <= 4 && !isNaN(numeric);
-    });
-    const highestCode = Math.max(0, ...directChildren.map(a => parseInt(a.code, 10)));
-    const newCode = (highestCode + 1).toString();
-
-    createAccount(
-      { ...data, type: 'asset', code: newCode },
-      {
-        onSuccess: () => {
-          setIsModalOpen(false);
-        },
-      }
-    );
   };
 
   if (isLoading)
@@ -348,14 +330,17 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
         {/* Currency breakdown summary for quick physical cash verification */}
         {accounts && accounts.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-1.5 border-t border-slate-800/80 pt-2 font-mono text-[10px]">
-            <span className="rounded bg-slate-800 px-2 py-0.5 font-bold text-amber-300">
-              SAR: {formatCurrency(currencyBreakdown.sar, 'SAR')}
-            </span>
-            {currencyBreakdown.yer !== 0 ? (
-              <span className="rounded bg-slate-800 px-2 py-0.5 font-bold text-emerald-300">
-                YER: {formatCurrency(currencyBreakdown.yer, 'YER')}
+            {currencyBreakdown.map(({ code, amount }) => (
+              <span
+                key={code}
+                className={cn(
+                  'rounded bg-slate-800 px-2 py-0.5 font-bold',
+                  code === 'SAR' ? 'text-amber-300' : 'text-emerald-300'
+                )}
+              >
+                {code}: {formatCurrency(amount, code)}
               </span>
-            ) : null}
+            ))}
           </div>
         ) : null}
       </div>
@@ -413,16 +398,6 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
           </Button>
         )}
       </div>
-
-      <AddAccountModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-        }}
-        onSubmit={handleCreate}
-        isSubmitting={isCreating}
-        accounts={accounts}
-      />
 
       {treasuryModalType && (
         <AddTreasuryEntityModal

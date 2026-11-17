@@ -144,7 +144,7 @@ export const SupplierPortalPage: React.FC = () => {
         items: payload.items,
         subtotal: payload.subtotal,
         discount: payload.discount,
-        tax: 0,
+        tax: payload.tax ?? 0,
         total: payload.total,
         currency: payload.currency,
         leadTimeDays: payload.leadTimeDays,
@@ -313,6 +313,7 @@ export const SupplierPortalPage: React.FC = () => {
         }}
         allProducts={products}
         onImportComplete={items => {
+          setActiveQuotationId(undefined);
           setQuotationDraftItems(items);
           setIsQuotationDrawerOpen(true);
           showToast(`تم استيراد ${items.length} صنف بنجاح`, 'success');

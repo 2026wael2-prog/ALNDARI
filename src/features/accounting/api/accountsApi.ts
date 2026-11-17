@@ -26,15 +26,31 @@ const throwParsed = (err: unknown): never => {
   throw new Error(parsed.message);
 };
 
+const ACCOUNTS_PAGE_SIZE = 1000;
+
 export const accountsApi = {
   getAccounts: async (companyId: string) => {
-    return await supabase
-      .from('accounts')
-      .select('*')
-      .eq('company_id', companyId)
-      .is('deleted_at', null)
-      .limit(5000)
-      .order('code', { ascending: true });
+    const allRows: Database['public']['Tables']['accounts']['Row'][] = [];
+    let from = 0;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('company_id', companyId)
+        .is('deleted_at', null)
+        .order('code', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + ACCOUNTS_PAGE_SIZE - 1);
+
+      if (error) return { data: null, error };
+      const batch = data ?? [];
+      allRows.push(...batch);
+      if (batch.length < ACCOUNTS_PAGE_SIZE) break;
+      from += ACCOUNTS_PAGE_SIZE;
+    }
+
+    return { data: allRows, error: null };
   },
 
   createAccount: async (account: AccountInsert) => {

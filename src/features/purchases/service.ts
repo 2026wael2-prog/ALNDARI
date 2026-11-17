@@ -23,11 +23,11 @@ export interface PurchaseTrendRow {
 }
 
 export interface PurchaseStatsFilters {
-  branchId?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  currency?: 'ALL' | 'SAR' | 'YER';
-  paymentType?: 'ALL' | 'cash' | 'credit' | 'bank' | 'network';
+  branchId?: string | null | undefined;
+  startDate?: string | null | undefined;
+  endDate?: string | null | undefined;
+  currency?: 'ALL' | 'SAR' | 'YER' | undefined;
+  paymentType?: 'ALL' | 'cash' | 'credit' | 'bank' | 'network' | undefined;
 }
 
 const isPurchaseReturn = (purchase: PurchaseListRow): boolean =>

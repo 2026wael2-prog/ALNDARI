@@ -13,7 +13,7 @@ const InventoryStats: React.FC<InventoryStatsProps> = ({ stats }) => {
     { title: 'إجمالي الأصناف', value: formatNumberDisplay(stats.count), icon: Layers, color: 'text-blue-600', bg: 'bg-blue-500' },
     { title: 'قيمة الأصول', value: formatCurrency(stats.totalValue), icon: Wallet, color: 'text-emerald-600', bg: 'bg-emerald-500' },
     { title: 'نواقص حرجة', value: formatNumberDisplay(stats.lowStockCount), icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-500' },
-    { title: 'راكد (180 يوم)', value: '12', icon: TrendingDown, color: 'text-amber-600', bg: 'bg-amber-500' },
+    { title: 'راكد (180 يوم)', value: formatNumberDisplay(stats.deadStockCount ?? 0), icon: TrendingDown, color: 'text-amber-600', bg: 'bg-amber-500' },
   ];
 
   return (

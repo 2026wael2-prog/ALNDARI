@@ -47,6 +47,8 @@ const ROUTE_PREFETCH_MAP: Record<string, PrefetchFn> = {
   '/supplier-portal': () => import('../../features/supplier-portal/pages/SupplierPortalPage'),
   '/customer-service': () => import('../../features/integrations/chatwoot/ChatwootWidgetPage'),
   '/chat': () => import('../../features/chat'),
+  '/inventory-intelligence': () =>
+    import('../../features/inventory-intelligence/components/InventoryIntelligencePage'),
 };
 
 // Track which routes have already been prefetched to avoid duplicate fetches

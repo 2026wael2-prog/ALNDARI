@@ -1,5 +1,5 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/explicit-function-return-type, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Bond } from '../types';
 import type { DatePreset } from '@/core/types/invoiceSearch';
 
@@ -31,6 +31,7 @@ export interface UseBondsFilterReturn {
 
 export function useBondsFilter(bonds: Bond[] | undefined): UseBondsFilterReturn {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [dateFrom, setDateFrom] = useState<string | undefined>();
   const [dateTo, setDateTo] = useState<string | undefined>();
@@ -39,13 +40,24 @@ export function useBondsFilter(bonds: Bond[] | undefined): UseBondsFilterReturn 
   const [sortBy, setSortBy] = useState<BondSortBy>('date');
   const [sortOrder, setSortOrder] = useState<BondSortOrder>('desc');
 
+  useEffect(() => {
+    if (!searchTerm) {
+      setDebouncedSearch('');
+      return;
+    }
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const displayedBonds = useMemo(() => {
     if (!bonds) return [];
     let result = [...bonds];
 
     // Search term
-    if (searchTerm && searchTerm.trim() !== '') {
-      const term = searchTerm.trim().toLowerCase();
+    if (debouncedSearch && debouncedSearch.trim() !== '') {
+      const term = debouncedSearch.trim().toLowerCase();
       result = result.filter(
         b =>
           (b.payment_number || '').toLowerCase().includes(term) ||

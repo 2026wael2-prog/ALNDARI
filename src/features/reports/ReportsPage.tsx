@@ -20,19 +20,20 @@ import {
 import MicroHeader from '../../ui/base/MicroHeader';
 import FullscreenContainer from '../../ui/base/FullscreenContainer';
 import type { ReportTab } from './types';
-import DebtReportView from './components/DebtReportView';
-import TrialBalanceView from './components/TrialBalanceView';
-import BalanceSheetView from './components/BalanceSheetView';
-import CurrencyDiffView from './components/CurrencyDiffView';
-import ReturnsReportView from './components/ReturnsReportView';
-import DailySalesReport from './components/DailySalesReport';
-import OperationalExpensesReport from './components/OperationalExpensesReport';
-import DebtAgingReport from './components/DebtAgingReport';
 import ReportErrorBoundary from './components/ReportErrorBoundary';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import './reportStyles.css';
 
-// Lazy-loaded heavy chart & BI components for code splitting
+// Lazy-loaded report & BI components for modular code splitting
+const DebtReportView = lazy(() => import('./components/DebtReportView'));
+const TrialBalanceView = lazy(() => import('./components/TrialBalanceView'));
+const BalanceSheetView = lazy(() => import('./components/BalanceSheetView'));
+const CurrencyDiffView = lazy(() => import('./components/CurrencyDiffView'));
+const ReturnsReportView = lazy(() => import('./components/ReturnsReportView'));
+const DailySalesReport = lazy(() => import('./components/DailySalesReport'));
+const OperationalExpensesReport = lazy(() => import('./components/OperationalExpensesReport'));
+const DebtAgingReport = lazy(() => import('./components/DebtAgingReport'));
+
 const ProfitLossView = lazy(() => import('./components/ProfitLossView'));
 const InventoryMovementView = lazy(() => import('./components/InventoryMovementView'));
 const CashFlowView = lazy(() => import('./components/CashFlowView'));
@@ -158,17 +159,41 @@ const renderReportComponent = (
         </Suspense>
       );
     case 'daily_sales':
-      return <DailySalesReport />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <DailySalesReport />
+        </Suspense>
+      );
     case 'returns_report':
-      return <ReturnsReportView />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <ReturnsReportView />
+        </Suspense>
+      );
     case 'debt_report':
-      return <DebtReportView />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <DebtReportView />
+        </Suspense>
+      );
     case 'debt_aging':
-      return <DebtAgingReport />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <DebtAgingReport />
+        </Suspense>
+      );
     case 'operational_expenses':
-      return <OperationalExpensesReport />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <OperationalExpensesReport />
+        </Suspense>
+      );
     case 'trial_balance':
-      return <TrialBalanceView />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <TrialBalanceView />
+        </Suspense>
+      );
     case 'p_and_l':
       return (
         <Suspense fallback={loadingFallback}>
@@ -176,9 +201,17 @@ const renderReportComponent = (
         </Suspense>
       );
     case 'balance_sheet':
-      return <BalanceSheetView />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <BalanceSheetView />
+        </Suspense>
+      );
     case 'currency_diff':
-      return <CurrencyDiffView />;
+      return (
+        <Suspense fallback={loadingFallback}>
+          <CurrencyDiffView />
+        </Suspense>
+      );
     case 'item_movement':
       return (
         <Suspense fallback={loadingFallback}>

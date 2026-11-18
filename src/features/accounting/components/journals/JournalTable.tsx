@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Calendar, RotateCcw, X, Filter } from 'lucide-react';
 import { useJournals } from '../../hooks/useJournals';
 import JournalEntryRow, { TRANSACTION_TYPE_LABELS } from './JournalEntryRow';
@@ -19,6 +19,7 @@ const JOURNAL_DATE_PRESETS: Array<{ id: DatePreset; label: string }> = [
 
 const JournalTable: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [dateFrom, setDateFrom] = useState<string | undefined>();
   const [dateTo, setDateTo] = useState<string | undefined>();
@@ -26,8 +27,15 @@ const JournalTable: React.FC = () => {
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'number'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useJournals({
-    searchTerm: searchTerm.trim() || undefined,
+    searchTerm: debouncedSearch.trim() || undefined,
     typeFilter,
     dateFrom,
     dateTo,

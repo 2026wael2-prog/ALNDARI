@@ -47,6 +47,11 @@ export const SmartPartySelect: React.FC<SmartPartySelectProps> = ({
     return filterPartiesSmart(parties, query);
   }, [parties, query]);
 
+  // Capped to top 80 items to guarantee instant DOM mount and smooth 60fps scrolling
+  const displayParties = useMemo(() => {
+    return filteredParties.slice(0, 80);
+  }, [filteredParties]);
+
   // Click outside listener
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -101,14 +106,14 @@ export const SmartPartySelect: React.FC<SmartPartySelectProps> = ({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex(prev => (prev < filteredParties.length - 1 ? prev + 1 : prev));
+      setHighlightedIndex(prev => (prev < displayParties.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (filteredParties[highlightedIndex]) {
-        handleSelect(filteredParties[highlightedIndex].id);
+      if (displayParties[highlightedIndex]) {
+        handleSelect(displayParties[highlightedIndex].id);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -183,7 +188,7 @@ export const SmartPartySelect: React.FC<SmartPartySelectProps> = ({
               ref={listRef}
               className="custom-scrollbar max-h-64 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800/60"
             >
-              {filteredParties.map((party, index) => {
+              {displayParties.map((party, index) => {
                 const isSelected = party.id === selectedPartyId;
                 const isHighlighted = index === highlightedIndex;
 
@@ -246,6 +251,11 @@ export const SmartPartySelect: React.FC<SmartPartySelectProps> = ({
                   </li>
                 );
               })}
+              {filteredParties.length > displayParties.length && (
+                <li className="p-2 text-center text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/30">
+                  عرض أول {displayParties.length} طرفاً من أصل {filteredParties.length} — اكتب في شريط البحث لتحديد طرف بعينه
+                </li>
+              )}
             </ul>
           )}
         </div>

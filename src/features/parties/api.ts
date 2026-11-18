@@ -59,7 +59,7 @@ async function fetchPartyCurrencies(
   return map;
 }
 
-const PARTIES_PAGE_SIZE = 1000;
+const PARTIES_PAGE_SIZE = 3000;
 
 async function fetchAllParties(
   companyId: string,

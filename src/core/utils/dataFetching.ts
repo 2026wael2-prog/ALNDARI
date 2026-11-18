@@ -119,7 +119,7 @@ export const fetchAllRpcPages = async <T = Record<string, unknown>>(
   fnName: string,
   args: Record<string, unknown>,
   orderColumns: string[] = ['party_id'],
-  pageSize = 1000
+  pageSize = 3000
 ): Promise<{ data: T[]; error: unknown | null }> => {
   const allRows: T[] = [];
   let from = 0;

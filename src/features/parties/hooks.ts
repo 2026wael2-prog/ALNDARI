@@ -3,7 +3,7 @@ import { partiesService } from './service';
 import { useAuthStore } from '../auth/store';
 import { useFeedbackStore } from '../feedback/store';
 import type { PartyFormData, PartyType, Party, PartyView } from './types';
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { assertPermission } from '../../core/hooks/usePermission';
 import { syncStore } from '../../core/lib/sync-store';
 import { partyCache } from './lib/party-cache';
@@ -41,11 +41,24 @@ export const useParties = (type: PartyType, searchTerm = '') => {
     refetchOnWindowFocus: false,
   });
 
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setDebouncedSearch('');
+      return;
+    }
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const filteredData = useMemo(() => {
     const data = query.data || [];
-    if (!searchTerm) return data;
-    return filterPartiesSmart(data, searchTerm);
-  }, [query.data, searchTerm]);
+    if (!debouncedSearch) return data;
+    return filterPartiesSmart(data, debouncedSearch);
+  }, [query.data, debouncedSearch]);
 
   const stats = useMemo(() => {
     return partiesService.calculateStats(query.data || [], type);

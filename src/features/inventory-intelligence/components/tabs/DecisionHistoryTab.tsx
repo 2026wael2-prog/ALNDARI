@@ -27,7 +27,7 @@ const STATUS_AR: Record<string, { label: string; cls: string }> = {
   pending: { label: 'قيد المراجعة', cls: 'bg-slate-500/10 text-slate-600' },
 };
 
-export const DecisionHistoryTab: React.FC<Props> = ({
+export const DecisionHistoryTab: React.FC<Props> = React.memo(({
   history,
   isLoading,
   products = [],
@@ -223,4 +223,4 @@ export const DecisionHistoryTab: React.FC<Props> = ({
       </div>
     </div>
   );
-};
+});

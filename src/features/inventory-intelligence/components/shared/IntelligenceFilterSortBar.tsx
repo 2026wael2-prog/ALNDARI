@@ -40,6 +40,21 @@ export const IntelligenceFilterSortBar: React.FC<IntelligenceFilterSortBarProps>
   extraControls,
 }) => {
   const options = React.useMemo(() => extractFilterOptions(products), [products]);
+  const [localSearch, setLocalSearch] = React.useState(filters.search);
+
+  React.useEffect(() => {
+    setLocalSearch(filters.search);
+  }, [filters.search]);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== filters.search) {
+        onChange({ ...filters, search: localSearch });
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [localSearch, filters, onChange]);
+
   const hasActiveFilters =
     filters.search !== '' ||
     filters.partType !== 'all' ||
@@ -59,9 +74,9 @@ export const IntelligenceFilterSortBar: React.FC<IntelligenceFilterSortBarProps>
           />
           <input
             type="text"
-            value={filters.search}
+            value={localSearch}
             onChange={e => {
-              onChange({ ...filters, search: e.target.value });
+              setLocalSearch(e.target.value);
             }}
             placeholder={searchPlaceholder}
             className="w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] py-1.5 pr-9 pl-3 text-xs text-[var(--app-text)]"

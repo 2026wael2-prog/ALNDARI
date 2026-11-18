@@ -47,7 +47,7 @@ interface Props {
   isDeciding: boolean;
 }
 
-export const PurchaseRecommendationsTab: React.FC<Props> = ({
+export const PurchaseRecommendationsTab: React.FC<Props> = React.memo(({
   recommendations,
   products = [],
   branches = [],
@@ -359,4 +359,4 @@ export const PurchaseRecommendationsTab: React.FC<Props> = ({
       />
     </div>
   );
-};
+});

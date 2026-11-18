@@ -16,12 +16,21 @@ interface Props {
   horizons: number[];
 }
 
-export const DemandForecastingTab: React.FC<Props> = ({ products, horizons }) => {
+export const DemandForecastingTab: React.FC<Props> = React.memo(({ products, horizons }) => {
   const [search, setSearch] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
   const [horizon, setHorizon] = useState<number>(horizons.includes(30) ? 30 : horizons[0] ?? 30);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 50;
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(localSearch);
+      setPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [localSearch]);
 
   const allCandidates = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -65,9 +74,9 @@ export const DemandForecastingTab: React.FC<Props> = ({ products, horizons }) =>
           <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--app-text-secondary)]" />
           <input
             type="text"
-            value={search}
+            value={localSearch}
             onChange={e => {
-              setSearch(e.target.value);
+              setLocalSearch(e.target.value);
             }}
             placeholder="اختر صنفاً لمعاينة السلسلة التاريخية والتنبؤ..."
             className="w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] py-1.5 pl-3 pr-9 text-xs text-[var(--app-text)] outline-none focus:border-blue-500"
@@ -226,4 +235,4 @@ export const DemandForecastingTab: React.FC<Props> = ({ products, horizons }) =>
       />
     </div>
   );
-};
+});

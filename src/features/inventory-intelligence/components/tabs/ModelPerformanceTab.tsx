@@ -10,7 +10,7 @@ interface Props {
   runs: IntelligenceRunSummary[];
 }
 
-export const ModelPerformanceTab: React.FC<Props> = ({
+export const ModelPerformanceTab: React.FC<Props> = React.memo(({
   evaluations,
   championModel,
   runs,
@@ -114,4 +114,4 @@ export const ModelPerformanceTab: React.FC<Props> = ({
       )}
     </div>
   );
-};
+});

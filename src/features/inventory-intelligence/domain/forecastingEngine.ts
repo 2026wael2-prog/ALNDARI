@@ -165,14 +165,46 @@ export function backtestModel(
   };
 }
 
+export function scaleForecastHorizon(
+  base: ForecastResult,
+  targetHorizonDays: number
+): ForecastResult {
+  if (base.horizonDays === targetHorizonDays) return base;
+  return {
+    ...base,
+    horizonDays: targetHorizonDays,
+    predictedQty: Math.max(0, Number((base.dailyRate * targetHorizonDays).toFixed(2))),
+  };
+}
+
 export function forecastForMetrics(
   productId: string,
   metrics: BranchDemandMetrics,
   horizonDays: number,
   config: EngineConfig
 ): ForecastResult {
-  const series = metrics.monthlySeries;
+  // FAST PATH: If product has zero demand across all series, skip complex backtests and model walk-forwards
+  const series = metrics.monthlySeries ?? [];
   const activeMonths = series.filter(v => v > 0).length;
+  if (activeMonths === 0 && metrics.adjustedDailyDemand <= 0) {
+    return {
+      productId,
+      branchId: metrics.branchId === 'company' ? null : metrics.branchId,
+      horizonDays,
+      demandPattern: metrics.demandPattern,
+      selectedModel: 'SMA',
+      modelVersion: MODEL_VERSION,
+      predictedQty: 0,
+      dailyRate: 0,
+      confidenceScore: 20,
+      mae: 0,
+      wape: 0,
+      forecastBias: 0,
+      stockoutAdjusted: false,
+      allModelEvaluations: [],
+    };
+  }
+
   const candidates =
     config.preferred_model !== 'auto'
       ? [config.preferred_model]

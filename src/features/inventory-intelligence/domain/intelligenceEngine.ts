@@ -21,7 +21,7 @@ import {
   type ModelEvalAccumEntry,
 } from './engine/analyticsRollup';
 import { buildSnapshotIndexes } from './engine/snapshotIndexers';
-import { forecastForMetrics } from './forecastingEngine';
+import { forecastForMetrics, scaleForecastHorizon } from './forecastingEngine';
 import { generatePurchaseRecommendations, rankSuppliersForProduct } from './procurementEngine';
 import { buildProductIdentityProfile, getProductRelationships } from './productIntelligence';
 import { generateTransferRecommendations } from './transferOptimizer';
@@ -98,12 +98,12 @@ export function runIntelligenceEngine(
     const isExcessStock = movementClass === 'excess_stock';
     const isNewlyStocked = movementClass === 'newly_stocked';
 
+    const forecast30d = forecastForMetrics(rawProd.id, companyMetrics, 30, config);
     const forecastsByHorizon: Record<number, ForecastResult> = {};
     for (const h of config.forecast_horizons) {
-      forecastsByHorizon[h] = forecastForMetrics(rawProd.id, companyMetrics, h, config);
+      forecastsByHorizon[h] =
+        h === 30 ? forecast30d : scaleForecastHorizon(forecast30d, h);
     }
-    const forecast30d =
-      forecastsByHorizon[30] ?? forecastForMetrics(rawProd.id, companyMetrics, 30, config);
 
     const branchForecasts: Record<string, ForecastResult> = {};
     for (const bm of branchMetrics) {

@@ -12,7 +12,7 @@ interface Props {
   recommendations: PurchaseRecommendation[];
 }
 
-export const SuppliersTab: React.FC<Props> = ({ recommendations }) => {
+export const SuppliersTab: React.FC<Props> = React.memo(({ recommendations }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 50;
@@ -138,4 +138,4 @@ export const SuppliersTab: React.FC<Props> = ({ recommendations }) => {
       />
     </div>
   );
-};
+});

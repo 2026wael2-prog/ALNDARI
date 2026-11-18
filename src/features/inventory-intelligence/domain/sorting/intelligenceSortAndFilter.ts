@@ -40,7 +40,10 @@ export const DEFAULT_INTELLIGENCE_FILTERS: IntelligenceFilterState = {
 const arCollator = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });
 
 function compareStrings(a: string, b: string, dir: SortDirection): number {
-  const res = arCollator.compare(a || '—', b || '—');
+  if (a === b) return 0;
+  if (!a) return dir === 'asc' ? 1 : -1;
+  if (!b) return dir === 'asc' ? -1 : 1;
+  const res = arCollator.compare(a, b);
   return dir === 'asc' ? res : -res;
 }
 
@@ -48,7 +51,21 @@ function compareNumbers(a: number, b: number, dir: SortDirection): number {
   return dir === 'asc' ? a - b : b - a;
 }
 
+const filterOptionsCache = new WeakMap<
+  ProductIntelligenceSummary[],
+  {
+    partTypes: string[];
+    sizes: string[];
+    suppliers: Array<{ id: string; name: string }>;
+    customers: Array<{ id: string; name: string }>;
+  }
+>();
+
 export function extractFilterOptions(products: ProductIntelligenceSummary[]) {
+  if (filterOptionsCache.has(products)) {
+    return filterOptionsCache.get(products)!;
+  }
+
   const partTypeCounts = new Map<string, number>();
   const sizeCounts = new Map<string, number>();
   const suppliers = new Map<string, string>();
@@ -72,7 +89,7 @@ export function extractFilterOptions(products: ProductIntelligenceSummary[]) {
     }
   }
 
-  return {
+  const result = {
     partTypes: Array.from(partTypeCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 60)
@@ -92,6 +109,9 @@ export function extractFilterOptions(products: ProductIntelligenceSummary[]) {
       .sort((a, b) => arCollator.compare(a.name, b.name))
       .slice(0, 150),
   };
+
+  filterOptionsCache.set(products, result);
+  return result;
 }
 
 export function filterAndSortProducts(

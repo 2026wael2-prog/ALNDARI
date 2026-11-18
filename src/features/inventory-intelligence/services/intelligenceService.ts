@@ -26,41 +26,44 @@ export const intelligenceService = {
     const last = lastRunRecordedAt.get(companyId) ?? 0;
     if (now - last > 5 * 60 * 1000) {
       lastRunRecordedAt.set(companyId, now);
-      const forecastsCount = output.products.reduce(
-        (s, p) => s + Object.keys(p.forecastsByHorizon).length,
-        0
-      );
-      void intelligenceApi.recordRunAndEvaluations(companyId, {
-        productsAnalyzed: output.overviewKpis.totalAnalyzedProducts,
-        forecastsGenerated: forecastsCount,
-        transferCount: output.transferRecommendations.length,
-        purchaseCount: output.purchaseRecommendations.length,
-        championModel: output.championModel,
-        leaderboard: output.modelEvaluations.map(m => ({
-          modelName: m.modelName,
-          avgMae: m.mae,
-          avgWape: m.wape,
-          avgBias: m.forecastBias,
-          sampleCount: m.sampleCount,
-          isChampion: m.isChampion,
-        })),
-        forecasts: output.products
-          .filter(p => p.forecast30d.predictedQty > 0)
-          .slice(0, 300)
-          .map(p => ({
-            productId: p.identity.productId,
-            horizonDays: p.forecast30d.horizonDays,
-            demandPattern: p.forecast30d.demandPattern,
-            selectedModel: p.forecast30d.selectedModel,
-            predictedQty: p.forecast30d.predictedQty,
-            dailyRate: p.forecast30d.dailyRate,
-            confidenceScore: p.forecast30d.confidenceScore,
-            mae: p.forecast30d.mae,
-            wape: p.forecast30d.wape,
-            forecastBias: p.forecast30d.forecastBias,
-            stockoutAdjusted: p.forecast30d.stockoutAdjusted,
+      // Defer recording background run summary to let UI render immediately without network contention
+      setTimeout(() => {
+        const forecastsCount = output.products.reduce(
+          (s, p) => s + Object.keys(p.forecastsByHorizon).length,
+          0
+        );
+        void intelligenceApi.recordRunAndEvaluations(companyId, {
+          productsAnalyzed: output.overviewKpis.totalAnalyzedProducts,
+          forecastsGenerated: forecastsCount,
+          transferCount: output.transferRecommendations.length,
+          purchaseCount: output.purchaseRecommendations.length,
+          championModel: output.championModel,
+          leaderboard: output.modelEvaluations.map(m => ({
+            modelName: m.modelName,
+            avgMae: m.mae,
+            avgWape: m.wape,
+            avgBias: m.forecastBias,
+            sampleCount: m.sampleCount,
+            isChampion: m.isChampion,
           })),
-      });
+          forecasts: output.products
+            .filter(p => p.forecast30d.predictedQty > 0)
+            .slice(0, 300)
+            .map(p => ({
+              productId: p.identity.productId,
+              horizonDays: p.forecast30d.horizonDays,
+              demandPattern: p.forecast30d.demandPattern,
+              selectedModel: p.forecast30d.selectedModel,
+              predictedQty: p.forecast30d.predictedQty,
+              dailyRate: p.forecast30d.dailyRate,
+              confidenceScore: p.forecast30d.confidenceScore,
+              mae: p.forecast30d.mae,
+              wape: p.forecast30d.wape,
+              forecastBias: p.forecast30d.forecastBias,
+              stockoutAdjusted: p.forecast30d.stockoutAdjusted,
+            })),
+        });
+      }, 1500);
     }
 
     return output;

@@ -19,7 +19,7 @@ interface Props {
   branches: BranchInfo[];
 }
 
-export const BranchDemandTab: React.FC<Props> = ({ products, branches }) => {
+export const BranchDemandTab: React.FC<Props> = React.memo(({ products, branches }) => {
   const [filters, setFilters] = useState<IntelligenceFilterState>({
     ...DEFAULT_INTELLIGENCE_FILTERS,
     sortBy: 'qty365d',
@@ -189,4 +189,4 @@ export const BranchDemandTab: React.FC<Props> = ({ products, branches }) => {
       />
     </div>
   );
-};
+});

@@ -11,7 +11,7 @@ interface Props {
   isSaving: boolean;
 }
 
-export const EngineSettingsTab: React.FC<Props> = ({
+export const EngineSettingsTab: React.FC<Props> = React.memo(({
   config,
   branches = [],
   onSave,
@@ -261,4 +261,4 @@ export const EngineSettingsTab: React.FC<Props> = ({
       </div>
     </form>
   );
-};
+});

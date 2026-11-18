@@ -21,7 +21,7 @@ interface Props {
   branches?: BranchInfo[];
 }
 
-export const FastGrowingTab: React.FC<Props> = ({ products, branches = [] }) => {
+export const FastGrowingTab: React.FC<Props> = React.memo(({ products, branches = [] }) => {
   const [filters, setFilters] = useState<IntelligenceFilterState>(DEFAULT_INTELLIGENCE_FILTERS);
   const [page, setPage] = useState(1);
   const pageSize = 50;
@@ -139,4 +139,4 @@ export const FastGrowingTab: React.FC<Props> = ({ products, branches = [] }) => 
       />
     </div>
   );
-};
+});

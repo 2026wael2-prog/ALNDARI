@@ -21,7 +21,7 @@ interface Props {
   branches: BranchInfo[];
 }
 
-export const TopMovingTab: React.FC<Props> = ({ products, branches }) => {
+export const TopMovingTab: React.FC<Props> = React.memo(({ products, branches }) => {
   const [filters, setFilters] = useState<IntelligenceFilterState>({
     ...DEFAULT_INTELLIGENCE_FILTERS,
     sortBy: 'qty365d',
@@ -171,4 +171,4 @@ export const TopMovingTab: React.FC<Props> = ({ products, branches }) => {
       />
     </div>
   );
-};
+});

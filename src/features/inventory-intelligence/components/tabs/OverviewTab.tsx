@@ -23,7 +23,7 @@ interface Props {
   onNavigateTab: (tabId: string) => void;
 }
 
-export const OverviewTab: React.FC<Props> = ({ data, history = [], onNavigateTab }) => {
+export const OverviewTab: React.FC<Props> = React.memo(({ data, history = [], onNavigateTab }) => {
   const companyId = useAuthStore(s => s.user?.company_id) ?? 'default_company';
   const { overviewKpis, championModel, generatedAt } = data;
 
@@ -235,4 +235,4 @@ export const OverviewTab: React.FC<Props> = ({ data, history = [], onNavigateTab
       />
     </div>
   );
-};
+});

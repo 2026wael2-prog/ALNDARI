@@ -35,7 +35,7 @@ interface Props {
   isDeciding: boolean;
 }
 
-export const TransferRecommendationsTab: React.FC<Props> = ({
+export const TransferRecommendationsTab: React.FC<Props> = React.memo(({
   recommendations,
   history = [],
   onDecide,
@@ -216,4 +216,4 @@ export const TransferRecommendationsTab: React.FC<Props> = ({
       />
     </div>
   );
-};
+});

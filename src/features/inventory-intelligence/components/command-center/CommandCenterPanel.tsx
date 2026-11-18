@@ -19,7 +19,7 @@ const ROLE_LABELS = {
   inventory_auditor: 'مدقق المخزون والمحاسبة',
 } as const;
 
-export const CommandCenterPanel: React.FC<CommandCenterPanelProps> = ({
+export const CommandCenterPanel: React.FC<CommandCenterPanelProps> = React.memo(({
   data,
   history,
   companyId,
@@ -155,4 +155,4 @@ export const CommandCenterPanel: React.FC<CommandCenterPanelProps> = ({
       />
     </div>
   );
-};
+});

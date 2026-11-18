@@ -88,14 +88,26 @@ const InventoryIntelligencePage: React.FC = () => {
     isReviewingAlternative,
   } = useIntelligenceMutations();
 
-  const headerTabs = TABS.map(t => {
-    const Icon = t.icon;
-    return {
-      id: t.id,
-      label: t.label,
-      icon: Icon,
-    };
-  });
+  const headerTabs = React.useMemo(
+    () =>
+      TABS.map(t => ({
+        id: t.id,
+        label: t.label,
+        icon: t.icon,
+      })),
+    []
+  );
+
+  const handleTabChange = React.useCallback((id: string) => {
+    setActiveTab(id as IntelligenceTabId);
+  }, []);
+
+  const handleDecide = React.useCallback(
+    async (params: any) => {
+      await decideRecommendation(params);
+    },
+    [decideRecommendation]
+  );
 
   return (
     <div className="font-cairo flex h-full flex-col bg-[var(--app-bg)]">
@@ -105,9 +117,7 @@ const InventoryIntelligencePage: React.FC = () => {
         iconColor="text-blue-500"
         tabs={headerTabs}
         activeTab={activeTab}
-        onTabChange={id => {
-          setActiveTab(id as IntelligenceTabId);
-        }}
+        onTabChange={handleTabChange}
         actions={
           <Button
             size="sm"
@@ -165,9 +175,7 @@ const InventoryIntelligencePage: React.FC = () => {
                 <OverviewTab
                   data={data}
                   history={history}
-                  onNavigateTab={id => {
-                    setActiveTab(id as IntelligenceTabId);
-                  }}
+                  onNavigateTab={handleTabChange}
                 />
               )}
               {activeTab === 'top_moving' && (
@@ -180,9 +188,7 @@ const InventoryIntelligencePage: React.FC = () => {
                 <TransferRecommendationsTab
                   recommendations={data.transferRecommendations}
                   history={history}
-                  onDecide={async params => {
-                    await decideRecommendation(params);
-                  }}
+                  onDecide={handleDecide}
                   isDeciding={isDeciding}
                 />
               )}
@@ -192,9 +198,7 @@ const InventoryIntelligencePage: React.FC = () => {
                   products={data.products}
                   branches={data.branches}
                   history={history}
-                  onDecide={async params => {
-                    await decideRecommendation(params);
-                  }}
+                  onDecide={handleDecide}
                   isDeciding={isDeciding}
                 />
               )}
@@ -216,9 +220,7 @@ const InventoryIntelligencePage: React.FC = () => {
                   products={data.products}
                   branches={data.branches}
                   history={history}
-                  onDecide={async params => {
-                    await decideRecommendation(params);
-                  }}
+                  onDecide={handleDecide}
                   isDeciding={isDeciding}
                 />
               )}

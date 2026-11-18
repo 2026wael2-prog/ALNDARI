@@ -139,7 +139,10 @@ export const fetchAllRpcPages = async <T = Record<string, unknown>>(
         ? await query.range(from, from + pageSize - 1)
         : await (query as unknown as Promise<{ data: unknown; error: unknown }>);
 
-    if (error) return { data: [], error };
+    if (error) {
+      // If page 1 already fetched rows but a subsequent page times out, return what we have gracefully
+      return { data: allRows, error: allRows.length > 0 ? null : error };
+    }
     const batch = Array.isArray(data) ? (data as T[]) : [];
     allRows.push(...batch);
     if (batch.length < pageSize) break;

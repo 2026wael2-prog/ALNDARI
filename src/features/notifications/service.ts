@@ -1,6 +1,5 @@
 import { logger } from '../../core/utils/logger';
 import { inventoryApi } from '../inventory/api';
-import { partiesApi } from '../parties/api';
 import { useNotificationStore } from './store';
 
 export const notificationService = {
@@ -75,32 +74,7 @@ export const notificationService = {
         });
       }
 
-      // 2. Check High Debts (Customers)
-      const { data: customers } = await partiesApi.getParties(companyId, 'customer');
-      const riskyCustomers = customers?.filter((c: any) => {
-        const balance = c.party_balances?.[0]?.balance ?? c.balance ?? 0;
-        return Number(balance) > 10000;
-      });
 
-      if (riskyCustomers && riskyCustomers.length > 0) {
-        addNotification({
-          companyId,
-          tag: 'high_debt_summary',
-          category: 'debt',
-          priority: 'normal',
-          title: 'تنبيه سقف المديونيات',
-          message: `هناك ${riskyCustomers.length} عملاء تجاوزت مديونيتهم 10,000 ريال.`,
-          type: 'info',
-          link: '/reports?tab=debt_report',
-          actions: [
-            {
-              label: 'تقرير الديون',
-              link: '/reports?tab=debt_report',
-              isPrimary: true,
-            },
-          ],
-        });
-      }
     } catch (error) {
       logger.error('service', 'Health Check Failed', error);
     }

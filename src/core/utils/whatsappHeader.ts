@@ -1,66 +1,66 @@
-/* eslint-disable complexity, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-optional-chain */
+/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import type { WhatsappHeaderConfig } from '../types/documentHeader';
+import { buildOfficialTextHeader, resolveAlNadaryIdentity } from './alNadaryIdentity';
 
 export interface CompanyHeaderSource {
   name: string;
+  branchName?: string | undefined;
   slogan?: string | undefined;
   phone?: string | undefined;
   taxNumber?: string | undefined;
   address?: string | undefined;
 }
 
+/**
+ * يبني الترويسة النصية الرسمية الموحدة لرسائل الواتساب وتليجرام
+ * متضمنة هوية شركة النظاري والفرع النشط وأرقام التواصل بشكل رسمي معتمد.
+ */
 export function buildWhatsappHeader(
   config: WhatsappHeaderConfig,
   company: CompanyHeaderSource
 ): string {
   const parts: string[] = [];
 
-  // Greeting
   if (config.customGreeting && config.customGreeting.trim()) {
     parts.push(config.customGreeting.trim());
   }
 
-  // Company Name
-  if (config.includeCompanyName && company.name) {
-    parts.push(`🏢 *${company.name.trim()}*`);
+  const identity = resolveAlNadaryIdentity({
+    nameAr: company.name,
+    branchName: company.branchName,
+    phone: company.phone,
+    address: company.address,
+  });
+
+  if (config.includeCompanyName !== false) {
+    parts.push(`*${identity.plainCompanyName}*`);
+    if (identity.branchName) {
+      parts.push(`*${identity.branchName}*`);
+    }
   }
 
-  // Slogan
-  if (config.includeSlogan && company.slogan && company.slogan.trim()) {
-    parts.push(`✨ _${company.slogan.trim()}_`);
+  if (config.includeSlogan !== false) {
+    parts.push(...identity.taglineLines);
   }
 
-  // Contact
-  if (config.includeContact && company.phone && company.phone.trim()) {
-    parts.push(`📞 هاتف: ${company.phone.trim()}`);
+  if (config.includeContact !== false) {
+    parts.push(`العنوان: ${identity.address}`);
+    parts.push(
+      identity.phone.includes('هاتف') || identity.phone.includes('جوال')
+        ? identity.phone
+        : `هاتف: ${identity.phone}`
+    );
   }
 
-  // Tax number
   if (config.includeTaxNumber && company.taxNumber && company.taxNumber.trim()) {
-    parts.push(`📋 الرقم الضريبي: ${company.taxNumber.trim()}`);
+    parts.push(`الرقم الضريبي: ${company.taxNumber.trim()}`);
   }
 
-  // Divider
-  let divider = '';
-  switch (config.dividerStyle) {
-    case 'stars':
-      divider = '━━━━━━━━━━━━━━━━━━━━━━';
-      break;
-    case 'dashes':
-      divider = '----------------------';
-      break;
-    case 'emojis':
-      divider = '🔹 🔹 🔹 🔹 🔹 🔹 🔹';
-      break;
-    case 'none':
-    default:
-      divider = '';
-      break;
+  if (config.dividerStyle !== 'none' && parts.length > 0) {
+    parts.push('━━━━━━━━━━━━━━━━━━━━━━');
   }
 
-  if (divider && parts.length > 0) {
-    parts.push(divider);
-  }
-
-  return parts.length > 0 ? parts.join('\n') + '\n\n' : '';
+  return parts.length > 0 ? parts.join('\n') + '\n\n' : buildOfficialTextHeader(company);
 }
+
+export { buildOfficialTextHeader };

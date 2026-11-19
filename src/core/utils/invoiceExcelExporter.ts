@@ -12,6 +12,7 @@ import {
   workbookToBlob,
 } from './excelExporterBase';
 import type { ExcelMergeRange, XlsxWorkbook } from './excelExporterBase';
+import { resolveAlNadaryIdentity } from './alNadaryIdentity';
 
 interface InvoiceExcelData {
   companyName: string;
@@ -35,13 +36,20 @@ interface InvoiceExcelData {
 const buildInvoiceRows = (data: InvoiceExcelData): unknown[][] => {
   const rows: unknown[][] = [];
   const curr = data.currency || 'SAR';
+  const identity = resolveAlNadaryIdentity({
+    nameAr: data.companyName,
+    address: data.companyAddress,
+  });
+  const titleLine = identity.branchName
+    ? `${identity.plainCompanyName} - ${identity.branchName}`
+    : identity.plainCompanyName;
 
-  // --- Header Section ---
-  rows.push([data.companyName]);
-  rows.push([data.companyAddress ?? '']);
-  rows.push([`الرقم الضريبي: ${data.taxNumber ?? '---'}`]);
+  // --- Header Section (Unified Official Al-Nadary Identity) ---
+  rows.push([titleLine]);
+  rows.push([identity.taglineLines.join(' | ')]);
+  rows.push([`${identity.address} | ${identity.phone}`]);
   rows.push([]);
-  rows.push([`فاتورة بيع رقم: ${data.invoiceNumber}`]);
+  rows.push([`فاتورة بيع المحل رقم: ${data.invoiceNumber}`]);
   rows.push([]);
 
   // --- Meta Info Section ---

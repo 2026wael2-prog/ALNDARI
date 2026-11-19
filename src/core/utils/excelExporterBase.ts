@@ -145,15 +145,15 @@ export interface ExcelPalette {
 }
 
 const DEFAULT_PALETTE: ExcelPalette = {
-  accent: '1F4E78',
-  titleFill: '1F4E78',
-  subtitleFill: 'DCE6F1',
-  headerFill: '1F4E78',
-  headerFont: 'FFFFFF',
-  metaFill: 'F2F2F2',
-  summaryFill: 'EBF1DE',
-  alternateFill: 'FAFAFA',
-  border: 'D3D3D3',
+  accent: '000000',
+  titleFill: 'FFFFFF',
+  subtitleFill: 'F3F4F6',
+  headerFill: 'E5E7EB',
+  headerFont: '000000',
+  metaFill: 'F9FAFB',
+  summaryFill: 'F3F4F6',
+  alternateFill: 'FFFFFF',
+  border: '000000',
 };
 
 const pickColor = (value: string | undefined, fallback: string): string => value ?? fallback;

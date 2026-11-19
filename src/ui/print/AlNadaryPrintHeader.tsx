@@ -1,7 +1,16 @@
 import React from 'react';
+import {
+  ALNADARY_DEFAULT_ADDRESS,
+  ALNADARY_DEFAULT_LOGO,
+  ALNADARY_DEFAULT_PHONE,
+  ALNADARY_DEFAULT_TAGLINE,
+  resolveAlNadaryIdentity,
+} from '@/core/utils/alNadaryIdentity';
+import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 
 export interface AlNadaryHeaderCompany {
   nameAr?: string | null | undefined;
+  branchName?: string | null | undefined;
   logoUrl?: string | null | undefined;
   address?: string | null | undefined;
   phone?: string | null | undefined;
@@ -27,24 +36,20 @@ export interface AlNadaryPrintHeaderProps {
   rightMeta?: readonly AlNadaryMetaField[] | undefined;
   /** حقول الجهة اليسرى أسفل الخط الفاصل (مثل: طريقة الدفع / الفترة / العملة) */
   leftMeta?: readonly AlNadaryMetaField[] | undefined;
-  /** بيانات الشركة الاختيارية (تسقط للقيم الرسمية المعتمدة لشركة النظاري) */
+  /** بيانات الشركة/الفرع الاختيارية (تُدمج تلقائياً مع الفرع النشط والقيم الرسمية لشركة النظاري) */
   company?: AlNadaryHeaderCompany | null | undefined;
 }
 
-export const ALNADARY_DEFAULT_LOGO = '/assets/alnadary-print-logo.png';
-
-export const ALNADARY_DEFAULT_TAGLINE: readonly string[] = [
-  'لبيع قطع غيار السيارات بجميع أنواعها',
-  'وبيع جميع أنواع الفريمات والمكملات',
-  'والزيوت والإطارات والبطاريات',
-];
-
-export const ALNADARY_DEFAULT_ADDRESS = 'الجمهورية اليمنية - المهرة - الغيظة - خلف مطعم قطر';
-export const ALNADARY_DEFAULT_PHONE = 'هاتف : 05610263 - جوال : 712165706 - 770319249';
+export {
+  ALNADARY_DEFAULT_ADDRESS,
+  ALNADARY_DEFAULT_LOGO,
+  ALNADARY_DEFAULT_PHONE,
+  ALNADARY_DEFAULT_TAGLINE,
+};
 
 /**
  * الهيدر الموحد الرسمي لشركة النظاري لقطع غيار السيارات.
- * يُستخدم في كافة المستندات المطبوعة: فواتير المبيعات، المشتريات، السندات، وكشوف الحساب.
+ * يتكيّف تلقائياً مع اسم الفرع وأرقامه وعنوانه مع الحفاظ التام على نفس القالب والشعار.
  */
 export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   documentTitle,
@@ -55,23 +60,11 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   leftMeta = [],
   company,
 }) => {
-  const logoSrc =
-    company?.logoUrl && company.logoUrl.trim().length > 0
-      ? company.logoUrl
-      : ALNADARY_DEFAULT_LOGO;
-
-  const addressText =
-    company?.address && company.address.trim().length > 0
-      ? company.address
-      : ALNADARY_DEFAULT_ADDRESS;
-
-  const phoneText =
-    company?.phone && company.phone.trim().length > 0 ? company.phone : ALNADARY_DEFAULT_PHONE;
-
-  const taglineLines =
-    company?.taglineLines && company.taglineLines.length > 0
-      ? company.taglineLines
-      : ALNADARY_DEFAULT_TAGLINE;
+  const { branchName: activeBranchName } = useBranchFilter();
+  const identity = resolveAlNadaryIdentity({
+    ...company,
+    branchName: company?.branchName ?? activeBranchName,
+  });
 
   const formattedDate = documentDate ? documentDate.replace(/-/g, '/') : '';
 
@@ -80,9 +73,14 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
       {/* الصف العلوي ثلاثي الأعمدة: يمين (الاسم + الأحمر) | منتصف (الشعار) | يسار (العنوان + الهاتف + التاريخ) */}
       <div className="alnadary-header-grid">
         <div className="alnadary-header-right">
-          <h1 className="alnadary-company-title">النظــــاري</h1>
+          <h1 className="alnadary-company-title">{identity.companyTitle}</h1>
+          {identity.branchName && (
+            <div style={{ fontSize: '12px', fontWeight: 900, marginBottom: '3px', color: '#000' }}>
+              {identity.branchName}
+            </div>
+          )}
           <p className="alnadary-tagline">
-            {taglineLines.map((line, idx) => (
+            {identity.taglineLines.map((line, idx) => (
               <span key={idx} className="alnadary-tagline-line">
                 {line}
               </span>
@@ -92,7 +90,7 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
 
         <div className="alnadary-header-center">
           <img
-            src={logoSrc}
+            src={identity.logoUrl}
             alt="شعار شركة النظاري"
             className="alnadary-logo-img"
             onError={e => {
@@ -106,8 +104,8 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
 
         <div className="alnadary-header-left">
           <div className="alnadary-address-block">
-            <div>{addressText}</div>
-            <div>{phoneText}</div>
+            <div>{identity.address}</div>
+            <div>{identity.phone}</div>
           </div>
           {formattedDate && (
             <div className="alnadary-date-row">

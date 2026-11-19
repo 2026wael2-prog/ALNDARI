@@ -15,6 +15,7 @@ import {
 } from './excelExporterBase';
 import { formatLocalDate } from './dateUtils';
 import type { ExcelMergeRange, XlsxWorkbook } from './excelExporterBase';
+import { resolveAlNadaryIdentity } from './alNadaryIdentity';
 
 interface CompanyInfo {
   name_ar: string;
@@ -55,9 +56,18 @@ const buildSingleBondRows = (
 ): unknown[][] => {
   const rows: unknown[][] = [];
 
-  // --- Header Section ---
-  rows.push([company.name_ar]);
-  rows.push([`${company.address ?? ''} | هاتف: ${company.phone ?? ''}`]);
+  const identity = resolveAlNadaryIdentity({
+    nameAr: company.name_ar,
+    address: company.address,
+    phone: company.phone,
+  });
+  const titleLine = identity.branchName
+    ? `${identity.plainCompanyName} - ${identity.branchName}`
+    : identity.plainCompanyName;
+
+  // --- Header Section (Unified Official Al-Nadary Identity) ---
+  rows.push([titleLine]);
+  rows.push([`${identity.address} | ${identity.phone}`]);
   rows.push([`الرقم الضريبي: ${company.tax_number ?? '---'}`]);
   rows.push([]);
   rows.push([`${bondTitle} رقم: ${bond.payment_number}`]);

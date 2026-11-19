@@ -17,6 +17,8 @@ interface ExcelTableToolbarProps {
   setIsZoomed: (v: boolean) => void;
   zoomLevel: number;
   setZoomLevel: React.Dispatch<React.SetStateAction<number>>;
+  /** أيقونة إعدادات الجدول الشاملة (الأعمدة، الحجم، الألوان، الخطوط) */
+  settingsButton?: React.ReactNode;
 }
 
 const ExcelTableToolbar: React.FC<ExcelTableToolbarProps> = ({
@@ -33,6 +35,7 @@ const ExcelTableToolbar: React.FC<ExcelTableToolbarProps> = ({
   setIsZoomed,
   zoomLevel,
   setZoomLevel,
+  settingsButton,
 }) => {
   return (
     <div className="flex flex-col items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface-hover)] px-1 py-0.5 sm:flex-row">
@@ -85,6 +88,12 @@ const ExcelTableToolbar: React.FC<ExcelTableToolbarProps> = ({
           >
             <Plus size={12} />
           </button>
+          {settingsButton && (
+            <>
+              <div className="mx-0.5 h-4 w-px bg-[var(--app-border)]" />
+              {settingsButton}
+            </>
+          )}
         </div>
       </div>
 

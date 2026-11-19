@@ -23,6 +23,11 @@ import FullscreenContainer from '../base/FullscreenContainer';
 import ExcelTableToolbar from './ExcelTableToolbar';
 import { EXCEL_TABLE_THEMES, type ExcelTableColorTheme } from './excelTableThemes';
 import { exportGenericTableToExcel } from '../../core/utils/genericExcelExporter';
+import {
+  TableSettingsButton,
+  useTableCustomization,
+} from '../table-settings/TableSettingsButton';
+import type { TableColumnDescriptor } from '../table-settings/TableSettingsDrawer';
 
 export interface Column<T> {
   header: string;
@@ -130,14 +135,96 @@ function ExcelTable<T>({
   } = useTableWrapperResize({ tableWrapperRef });
 
   const currentTheme = EXCEL_TABLE_THEMES[colorTheme];
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const tableSettingsId = useMemo(
+    () =>
+      resizeStorageKey ??
+      (title
+        ? `excel:${title.trim()}`
+        : `excel:${columns
+            .slice(0, 3)
+            .map(c => c.header)
+            .join('|')}`),
+    [resizeStorageKey, title, columns]
+  );
+  const { settings: tableSettings, customized: isTableCustomized, containerProps: tableCustomProps } =
+    useTableCustomization(tableSettingsId);
+  const [zoomLevel, setZoomLevel] = useState(tableSettings.zoom || 1);
+
+  useEffect(() => {
+    if (tableSettings.zoom && tableSettings.zoom !== zoomLevel) {
+      setZoomLevel(tableSettings.zoom);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableSettings.zoom]);
+
+  // دمج الأعمدة الأصلية + الأعمدة المضافة + الترتيب + الإخفاء
+  const baseColumnDescriptors = useMemo<TableColumnDescriptor[]>(() => {
+    const ids = getColumnIds(columns);
+    return columns.map((col, idx) => ({
+      id: ids[idx] ?? String(idx),
+      header: col.header,
+    }));
+  }, [columns]);
+
+  const availableFields = useMemo<string[]>(() => {
+    const sample = data[0];
+    if (!sample || typeof sample !== 'object') return [];
+    return Object.keys(sample as Record<string, unknown>).filter(
+      k => !k.startsWith('_') && k !== 'id' && k !== 'company_id'
+    );
+  }, [data]);
+
+  const effectiveColumns = useMemo<Array<Column<T>>>(() => {
+    const baseIds = getColumnIds(columns);
+    const tagged: Array<{ id: string; col: Column<T> }> = columns.map((col, idx) => ({
+      id: baseIds[idx] ?? String(idx),
+      col,
+    }));
+
+    // إضافة الأعمدة المخصّصة التي أضافها المستخدم
+    for (const custom of tableSettings.customColumns) {
+      if (!tagged.some(t => t.id === custom.id)) {
+        tagged.push({
+          id: custom.id,
+          col: {
+            header: custom.header,
+            accessorKey: custom.fieldKey,
+            accessor: row => {
+              const raw = (row as Record<string, unknown>)[custom.fieldKey];
+              if (raw === null || raw === undefined || raw === '') return '—';
+              if (typeof raw === 'object') return JSON.stringify(raw);
+              return String(raw);
+            },
+            align: 'center',
+          },
+        });
+      }
+    }
+
+    // تطبيق ترتيب الأعمدة
+    const ordered =
+      tableSettings.columnOrder.length > 0
+        ? [...tagged].sort((a, b) => {
+            const ia = tableSettings.columnOrder.indexOf(a.id);
+            const ib = tableSettings.columnOrder.indexOf(b.id);
+            return (ia === -1 ? 9999 : ia) - (ib === -1 ? 9999 : ib);
+          })
+        : tagged;
+
+    // تطبيق الإخفاء (مع الإبقاء على عمود واحد ظاهر على الأقل)
+    const visible = ordered.filter(item => !tableSettings.hiddenColumns.includes(item.id));
+    return (visible.length > 0 ? visible : ordered).map(item => item.col);
+  }, [columns, tableSettings.customColumns, tableSettings.columnOrder, tableSettings.hiddenColumns]);
 
   // ── Column Resize (موحّدة + محفوظة + ناعمة) ──────────────────────
   const tableResizeStorageKey =
     resizeStorageKey ?? (title ? `excel-table-cols:${title.trim()}` : undefined);
   // هوية كل عمود (لا ترتيبه) — فيبقى عرض المستخدم على العمود نفسه عند إخفاء/إظهار أعمدة
-  const columnIds = useMemo(() => getColumnIds(columns), [columns]);
-  const defaultColWidths = useMemo(() => buildDefaultColumnWidths(columns), [columns]);
+  const columnIds = useMemo(() => getColumnIds(effectiveColumns), [effectiveColumns]);
+  const defaultColWidths = useMemo(
+    () => buildDefaultColumnWidths(effectiveColumns),
+    [effectiveColumns]
+  );
   // ترحيل العروض المحفوظة قديماً بترتيب الأعمدة إلى هوية العمود
   const migrateLegacyWidths = useCallback(
     (raw: ColumnWidths) => migrateLegacyIndexWidths(raw, columnIds, defaultColWidths),
@@ -211,7 +298,7 @@ function ExcelTable<T>({
   } = useTableKeyboardNavigation({
     tableRef: tableRef as React.RefObject<HTMLDivElement>,
     orderedData,
-    columns,
+    columns: effectiveColumns,
     isRTL,
     onRowDoubleClick,
     onCellUpdate,
@@ -340,13 +427,25 @@ function ExcelTable<T>({
           setIsZoomed={setIsZoomed}
           zoomLevel={zoomLevel}
           setZoomLevel={setZoomLevel}
+          settingsButton={
+            <TableSettingsButton
+              tableId={tableSettingsId}
+              tableTitle={title}
+              columns={baseColumnDescriptors}
+              availableFields={availableFields}
+              onZoomSync={setZoomLevel}
+              onResetWidths={handleResetSize}
+            />
+          }
         />
 
         {/* Table Wrapper with Resize Handles */}
         <div
           ref={tableWrapperRef}
+          data-table-customized={isTableCustomized ? 'true' : undefined}
           className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm"
           style={{
+            ...(tableCustomProps.style ?? {}),
             ...(customSize.width ? { width: customSize.width } : {}),
             ...(customSize.height ? { maxHeight: customSize.height } : {}),
             ...(position.x !== 0 || position.y !== 0
@@ -375,7 +474,7 @@ function ExcelTable<T>({
             <table
               role="table"
               aria-label={title || 'جدول البيانات'}
-              style={{ fontSize: `${zoomLevel * 11}px` }}
+              style={{ fontSize: `${Math.round(zoomLevel * (tableSettings.fontSize || 11))}px` }}
               className={cn(
                 'w-full min-w-[640px] table-fixed border-collapse border-l border-t border-[var(--app-border)] md:min-w-[800px]',
                 isRTL ? 'text-right' : 'text-left'
@@ -384,7 +483,7 @@ function ExcelTable<T>({
               <colgroup>
                 {enableSelection && <col style={{ width: 40 }} />}
                 <col style={{ width: 40 }} />
-                {columns.map((col, idx) => {
+                {effectiveColumns.map((col, idx) => {
                   const savedWidth = indexedColWidths[String(idx)];
                   const colStyle = savedWidth
                     ? { width: `${savedWidth}px` }
@@ -401,7 +500,7 @@ function ExcelTable<T>({
                 })}
               </colgroup>
               <ExcelTableHeader
-                columns={columns}
+                columns={effectiveColumns}
                 enableSelection={enableSelection}
                 orderedDataLength={orderedData.length}
                 selectedRowIdsSize={selectedRowIds.size}
@@ -420,7 +519,7 @@ function ExcelTable<T>({
               <ExcelTableBody
                 isLoading={isLoading}
                 orderedData={orderedData}
-                columns={columns}
+                columns={effectiveColumns}
                 enableSelection={enableSelection}
                 emptyMessage={emptyMessage}
                 selectedRowIds={selectedRowIds}
@@ -450,7 +549,7 @@ function ExcelTable<T>({
                 isRTL={isRTL}
                 scrollRef={tableRef as React.RefObject<HTMLDivElement>}
               />
-              {columns.some(c => c.footer) && (
+              {effectiveColumns.some(c => c.footer) && (
                 <tfoot className="border-t-2 border-[var(--app-border)] bg-[var(--app-bg)]">
                   <tr>
                     {enableSelection && (
@@ -459,7 +558,7 @@ function ExcelTable<T>({
                     <td className="border-r border-[var(--app-border)] p-2 text-center text-[10px] font-bold text-[var(--app-text-secondary)]">
                       الإجمالي
                     </td>
-                    {columns.map((col, idx) => (
+                    {effectiveColumns.map((col, idx) => (
                       <td
                         key={idx}
                         className={cn(

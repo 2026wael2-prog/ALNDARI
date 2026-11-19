@@ -3,6 +3,10 @@ import { useSalesStore, type SalesCartItem } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import type { Product } from '../../../inventory/types';
 import { Plus } from 'lucide-react';
+import {
+  TableSettingsButton,
+  useTableCustomization,
+} from '@/ui/table-settings/TableSettingsButton';
 import { cn } from '../../../../core/utils';
 import { logger } from '../../../../core/utils/logger';
 import { STORAGE_KEYS } from '../../../../core/constants';
@@ -241,8 +245,13 @@ const InteractiveInvoiceTable: React.FC = () => {
     }
   };
 
+  const { containerProps: invoiceTableCustomProps } = useTableCustomization('sales.create_invoice');
+
   return (
-    <div className="flex flex-col overflow-hidden bg-[var(--app-surface)]">
+    <div
+      className="flex flex-col overflow-hidden bg-[var(--app-surface)]"
+      {...invoiceTableCustomProps}
+    >
       {/* Table Toolbar */}
       <div className="flex items-center justify-between border-y bg-gray-50 p-1.5 dark:border-slate-800 dark:bg-slate-950">
         <div className="flex items-center gap-2 px-2">
@@ -251,7 +260,12 @@ const InteractiveInvoiceTable: React.FC = () => {
             محتويات الفاتورة
           </span>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <TableSettingsButton
+            tableId="sales.create_invoice"
+            tableTitle="جدول فاتورة المبيعات"
+            compact={false}
+          />
           <div className="flex rounded-lg border bg-gray-100 p-0.5 dark:border-slate-800 dark:bg-slate-800">
             {useDiscountStore.getState().discountEnabled && (
               <button

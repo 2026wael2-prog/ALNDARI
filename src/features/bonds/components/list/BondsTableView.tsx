@@ -1,4 +1,5 @@
 import React from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -31,6 +32,7 @@ export const BondsTableView: React.FC<BondsTableViewProps> = ({
   onExport,
   onDelete,
 }) => (
+  <CustomizableTableWrapper tableId="bonds.list" tableTitle="جدول السندات">
   <div className="w-full space-y-3">
     <div className="table-scroll-viewport custom-scrollbar overflow-x-auto rounded-2xl border border-slate-200 bg-[var(--app-surface)] shadow-sm dark:border-slate-800">
       <table className="w-full min-w-[760px] border-collapse border border-slate-200 text-right dark:border-slate-800">
@@ -240,4 +242,5 @@ export const BondsTableView: React.FC<BondsTableViewProps> = ({
       </table>
     </div>
   </div>
+  </CustomizableTableWrapper>
 );

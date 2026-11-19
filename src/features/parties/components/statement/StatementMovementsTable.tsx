@@ -1,5 +1,6 @@
 /* eslint-disable max-lines-per-function, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing */
 import React from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import { CheckSquare, Square } from 'lucide-react';
 import type { StatementMovement } from '../../service';
 import { StatementMovementRow } from './StatementMovementRow';
@@ -42,6 +43,7 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
   onOpenBondModal,
 }) => {
   return (
+    <CustomizableTableWrapper tableId="parties.statement_movements" tableTitle="جدول كشف الحساب">
     <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-md">
       <div className="table-scroll-viewport overflow-x-auto">
         <table className="w-full border-collapse border border-[var(--app-border)] text-right">
@@ -127,5 +129,6 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
         </table>
       </div>
     </div>
+    </CustomizableTableWrapper>
   );
 };

@@ -6,6 +6,7 @@ import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { usePurchaseStore } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import { Plus } from 'lucide-react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import { useColumnResize } from '../../../../ui/common/hooks/useColumnResize';
 
 const ProductSelectionModal = lazy(
@@ -66,6 +67,10 @@ const InteractivePurchaseTable: React.FC = () => {
 
   // ── Render ─────────────────────────────────────────────────
   return (
+    <CustomizableTableWrapper
+      tableId="purchases.create_invoice"
+      tableTitle="جدول فاتورة المشتريات"
+    >
     <div className="flex flex-col overflow-hidden border-y-2 border-blue-600 bg-[var(--app-surface)] max-md:border-y">
       <PurchaseTableToolbar
         discountEnabled={discountEnabled}
@@ -120,6 +125,7 @@ const InteractivePurchaseTable: React.FC = () => {
         </Suspense>
       )}
     </div>
+    </CustomizableTableWrapper>
   );
 };
 

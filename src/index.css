@@ -3169,3 +3169,35 @@ html[data-preset='obsidian-pro'].dark button[class*='bg-rose-600'] *,
 html[data-preset='obsidian-sun'].dark button[class*='bg-rose-600'] * {
   color: #ffffff !important;
 }
+
+/* ==========================================================================
+   UNIFIED TABLE CUSTOMIZATION ENGINE (تخصيص الأعمدة والحجم والألوان والخطوط لكل جدول)
+   ========================================================================== */
+[data-table-customized='true'] table {
+  font-family: var(--tbl-font-family, inherit) !important;
+  font-size: var(--tbl-font-size, inherit) !important;
+  font-weight: var(--tbl-font-weight, inherit);
+}
+
+[data-table-customized='true'] table th {
+  background-color: var(--tbl-header-bg, inherit) !important;
+  color: var(--tbl-header-fg, inherit) !important;
+  border-color: var(--tbl-border, inherit) !important;
+  padding-top: var(--tbl-row-py, 6px) !important;
+  padding-bottom: var(--tbl-row-py, 6px) !important;
+}
+
+[data-table-customized='true'] table td {
+  border-color: var(--tbl-border, inherit) !important;
+  padding-top: var(--tbl-row-py, 6px) !important;
+  padding-bottom: var(--tbl-row-py, 6px) !important;
+  white-space: var(--tbl-white-space, normal);
+}
+
+[data-table-customized='true'] table tbody tr:nth-child(even) td {
+  background-color: var(--tbl-zebra-bg, inherit);
+}
+
+[data-table-customized='true'] table tbody tr:hover td {
+  background-color: var(--tbl-hover-bg, inherit) !important;
+}

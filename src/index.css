@@ -2986,7 +2986,7 @@ html[data-preset='obsidian-sun'].dark .dark\:text-gray-400 {
 html[data-preset='obsidian-pro'].dark .dark\:bg-black,
 html[data-preset='obsidian-pro'].dark .dark\:bg-zinc-950,
 html[data-preset='obsidian-pro'].dark .dark\:bg-zinc-900 {
-  background-color: #f3ede2 !important;
+  background-color: #faf7f2 !important;
 }
 
 html[data-preset='obsidian-sun'].dark .dark\:bg-black,
@@ -2997,8 +2997,8 @@ html[data-preset='obsidian-sun'].dark .dark\:bg-zinc-900 {
 
 /* القائمة الجانبية (Sidebar) — إزالة التظليل العشوائي وتوحيد الأيقونات والأسماء */
 html[data-preset='obsidian-pro'].dark aside {
-  background-color: #f3ede2 !important;
-  border-color: rgba(28, 25, 23, 0.14) !important;
+  background-color: #faf7f2 !important;
+  border-color: rgba(28, 25, 23, 0.12) !important;
 }
 
 html[data-preset='obsidian-sun'].dark aside {
@@ -3112,15 +3112,22 @@ html[data-preset='obsidian-sun'].dark aside nav button[aria-current='page'] > di
   stroke: #ffffff !important;
 }
 
-/* الشريط العلوي (Header) */
+/* الشريط العلوي وترويسات الجداول (Headers) — سماوي خفيف راقٍ في أوبسيديان بيج */
 html[data-preset='obsidian-pro'].dark header {
-  background-color: #f3ede2 !important;
-  border-bottom: 1px solid rgba(28, 25, 23, 0.14) !important;
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  border-bottom: 1px solid rgba(14, 116, 144, 0.18) !important;
+}
+
+html[data-preset='obsidian-pro'].dark table thead,
+html[data-preset='obsidian-pro'].dark table thead th {
+  background-color: #e0f2fe !important;
+  color: #0f172a !important;
+  border-color: rgba(14, 116, 144, 0.18) !important;
 }
 
 html[data-preset='obsidian-sun'].dark header {
-  background-color: #fefce8 !important;
-  border-bottom: 1px solid rgba(28, 25, 23, 0.14) !important;
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  border-bottom: 1px solid rgba(14, 116, 144, 0.18) !important;
 }
 
 html[data-preset='obsidian-pro'].dark header button,

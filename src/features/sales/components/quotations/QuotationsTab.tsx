@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import {
   FileText,
   Plus,
@@ -208,6 +209,7 @@ export const QuotationsTab: React.FC<Props> = ({ onConvertToInvoice }) => {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-[var(--app-surface)] shadow-sm dark:border-slate-800">
+          <CustomizableTableWrapper tableId="sales.quotations" tableTitle="عروض الأسعار">
           <div className="custom-scrollbar scroll-x-hint-surface table-scroll-viewport">
             <table className="w-full text-sm">
               <thead>
@@ -304,6 +306,7 @@ export const QuotationsTab: React.FC<Props> = ({ onConvertToInvoice }) => {
               </tbody>
             </table>
           </div>
+          </CustomizableTableWrapper>
         </div>
       )}
 

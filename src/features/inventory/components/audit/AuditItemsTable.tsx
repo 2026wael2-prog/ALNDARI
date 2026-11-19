@@ -1,4 +1,5 @@
 import React from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import type { UseFormRegister } from 'react-hook-form';
 import { Trash2, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { formatNumberDisplay } from '../../../../core/utils';
@@ -123,6 +124,7 @@ const AuditItemsTable: React.FC<Props> = ({
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-100 bg-[var(--app-surface)] shadow-sm dark:border-slate-800">
+      <CustomizableTableWrapper tableId="inventory.audit_items" tableTitle="جدول الجرد">
       <div className="table-scroll-viewport custom-scrollbar overflow-x-auto">
         <table className="w-full border-collapse text-right text-xs">
           <thead className="sticky top-0 z-10 border-b-2 border-slate-700 bg-slate-800 font-bold uppercase tracking-wider text-white dark:bg-slate-900">
@@ -351,6 +353,7 @@ const AuditItemsTable: React.FC<Props> = ({
           </tfoot>
         </table>
       </div>
+      </CustomizableTableWrapper>
 
       {/* Mobile: discrepancy summary */}
       {discrepancyCount > 0 && (

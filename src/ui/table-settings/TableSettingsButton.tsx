@@ -102,7 +102,8 @@ export function useTableCustomization(tableId: string) {
 }
 
 /**
- * غلاف جاهز لأي جدول مستقل: يضيف شريطاً رفيعاً بأيقونة الإعدادات ⚙ ويطبّق الألوان والخطوط والتكبير فوراً.
+ * غلاف أنيق بصفر مساحة إضافية: يضع أيقونة الإعدادات ⚙ عائمة برقة في زاوية الترويسة
+ * دون إضافة أي شريط أفقي أو إهدار للارتفاع العمودي، ويطبّق الألوان والخطوط والتكبير فوراً.
  */
 export const CustomizableTableWrapper: React.FC<{
   tableId: string;
@@ -114,13 +115,14 @@ export const CustomizableTableWrapper: React.FC<{
   const { settings, customized, containerProps } = useTableCustomization(tableId);
 
   return (
-    <div className={`relative w-full ${className}`} {...containerProps}>
-      <div className="no-print mb-1 flex items-center justify-end px-1">
+    <div className={`group/tbl relative w-full ${className}`} {...containerProps}>
+      <div className="no-print absolute left-1.5 top-1.5 z-20 opacity-70 transition-opacity duration-150 hover:opacity-100 group-hover/tbl:opacity-100">
         <TableSettingsButton
           tableId={tableId}
           tableTitle={tableTitle}
           columns={columns}
-          compact={false}
+          compact
+          className="h-6 w-6 justify-center rounded-lg border-slate-300/80 bg-white/90 p-0 shadow-xs backdrop-blur-xs hover:scale-105"
         />
       </div>
       <div

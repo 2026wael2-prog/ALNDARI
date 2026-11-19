@@ -3,6 +3,7 @@ import { useColumnResize } from '../../../../ui/common/hooks/useColumnResize';
 import type { SalesCartItem } from '../../../sales/store';
 import { ExcelCartTableHeader } from './ExcelCartTableHeader';
 import { ExcelCartTableRow } from './ExcelCartTableRow';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 
 export interface ExcelCartTableProps {
   items: SalesCartItem[];
@@ -277,6 +278,7 @@ export const ExcelCartTable: React.FC<ExcelCartTableProps> = ({
       className="flex h-full w-full select-none flex-col bg-[var(--app-surface)] outline-none"
       data-testid="excel-cart-container"
     >
+      <CustomizableTableWrapper tableId="pos.cart" tableTitle="سلة نقطة البيع" className="flex min-h-0 flex-1 flex-col">
       <div className="custom-scrollbar flex-1 overflow-auto">
         <table className="w-full table-fixed border-collapse border border-slate-300 text-right dark:border-slate-700/80">
           <colgroup>
@@ -338,6 +340,7 @@ export const ExcelCartTable: React.FC<ExcelCartTableProps> = ({
           </tbody>
         </table>
       </div>
+      </CustomizableTableWrapper>
     </div>
   );
 };

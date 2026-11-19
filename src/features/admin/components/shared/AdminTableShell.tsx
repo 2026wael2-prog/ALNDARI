@@ -1,4 +1,5 @@
 import React from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '../../../../core/utils';
 import type { ReactNode } from 'react';
@@ -99,6 +100,7 @@ export const AdminTableShell: React.FC<AdminTableShellProps> = ({
       )}
 
       {/* الجدول */}
+      <CustomizableTableWrapper tableId="admin.table" tableTitle="جدول الإدارة">
       <div className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-xs">
         <div className="table-scroll-viewport overflow-x-auto">
           <table className="w-full text-right text-xs">
@@ -123,6 +125,7 @@ export const AdminTableShell: React.FC<AdminTableShellProps> = ({
         </div>
         {!loading && <AdminPagination {...pagination} />}
       </div>
+      </CustomizableTableWrapper>
     </div>
   );
 };

@@ -24,6 +24,7 @@ import { cn } from '../../../../core/utils';
 import type { Account, AccountFormData } from '../../types/index';
 import { useFeedbackStore } from '../../../../features/feedback/store';
 import { ConfirmModal } from '../../../../ui/base/ConfirmModal';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 
 // ==========================================
 // 1. Data Transformation: Flat List to Tree
@@ -300,6 +301,7 @@ const AccountsTable: React.FC = () => {
         </Button>
       </div>
 
+      <CustomizableTableWrapper tableId="accounting.accounts" tableTitle="شجرة الحسابات">
       <div className="overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
         <table className="w-full">
           <thead className="border-b-2 border-[var(--app-border)] bg-[var(--app-surface-hover)]">
@@ -325,6 +327,7 @@ const AccountsTable: React.FC = () => {
           </tbody>
         </table>
       </div>
+      </CustomizableTableWrapper>
 
       <AddAccountModal
         isOpen={isModalOpen}

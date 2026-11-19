@@ -7,6 +7,7 @@ import MobileCardList, { MobileCardRow } from '../../../../ui/base/MobileCardLis
 import type { UIJournalEntry, UIJournalLine } from '../../types/models';
 import type { DatePreset } from '../../../../core/types/invoiceSearch';
 import { getDateRangeForPreset } from '../../../../core/utils/dateUtils';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 
 const JOURNAL_DATE_PRESETS: Array<{ id: DatePreset; label: string }> = [
   { id: 'all', label: 'كل الفترات' },
@@ -306,6 +307,7 @@ const JournalTable: React.FC = () => {
 
       {/* Journals Table */}
       <div className="overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
+        <CustomizableTableWrapper tableId="accounting.journals" tableTitle="جدول القيود اليومية">
         <div className="table-scroll-viewport scroll-x-hint-surface hidden overflow-x-auto md:block">
           <table className="w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--app-surface-hover)] font-bold text-[var(--app-text)] shadow-sm">
@@ -359,6 +361,7 @@ const JournalTable: React.FC = () => {
             </tbody>
           </table>
         </div>
+        </CustomizableTableWrapper>
 
         {/* Mobile Cards — بديل الجدول على الهاتف (مكوّن موحّد) */}
         <MobileCardList

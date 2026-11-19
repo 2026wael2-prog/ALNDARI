@@ -1,5 +1,6 @@
 /* eslint-disable max-lines-per-function, @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-confusing-void-expression, @typescript-eslint/restrict-template-expressions */
 import React from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import { ArrowDown, ArrowUp, ArrowUpDown, Layers } from 'lucide-react';
 import type { TopProduct } from '../TopPerformers';
 import { FastMovingTableRow } from './FastMovingTableRow';
@@ -55,6 +56,7 @@ export const FastMovingTable: React.FC<FastMovingTableProps> = ({
   }
 
   return (
+    <CustomizableTableWrapper tableId="dashboard.fast_moving" tableTitle="الأصناف الأكثر حركة">
     <div className="overflow-x-auto rounded-2xl border-2 border-slate-700/90 shadow-lg">
       <table className="w-full border-collapse text-right">
         <thead className="bg-slate-950 text-xs font-bold text-slate-300">
@@ -170,5 +172,6 @@ export const FastMovingTable: React.FC<FastMovingTableProps> = ({
         </tbody>
       </table>
     </div>
+    </CustomizableTableWrapper>
   );
 };

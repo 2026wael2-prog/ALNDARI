@@ -1,5 +1,6 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-unnecessary-condition */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import { Trash2, Plus, Copy, Sparkles, ArrowUp, ArrowDown, X, AlertTriangle } from 'lucide-react';
 import { useRequisitionsStore } from '../../store/requisitionsStore';
 import { useProductSearch, type ProductSearchResult } from '../../hooks/useProductSearch';
@@ -105,6 +106,7 @@ export const RequisitionsExcelGrid: React.FC<RequisitionsExcelGridProps> = ({
       )}
 
       {/* Excel Table Container with Visible Border Lines */}
+      <CustomizableTableWrapper tableId="sales.requisitions" tableTitle="جدول طلبات المبيعات">
       <div className="relative overflow-x-auto rounded-lg border-2 border-slate-300 bg-white shadow-xs dark:border-slate-700 dark:bg-slate-900">
         <table className="w-full min-w-[780px] border-collapse text-right text-xs">
           {/* Excel Header */}
@@ -390,6 +392,7 @@ export const RequisitionsExcelGrid: React.FC<RequisitionsExcelGridProps> = ({
           </tfoot>
         </table>
       </div>
+      </CustomizableTableWrapper>
 
       {/* Quick Add Row Button */}
       <div className="flex items-center justify-between pt-1">

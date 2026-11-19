@@ -1,4 +1,5 @@
 import React from 'react';
+import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import { formatCurrency, toBaseCurrency } from '../../../../core/utils';
 import type { ReportView, ReturnsType } from '../../hooks/useReturnsReport';
 import type { ReturnReportRow } from '../../hooks/returnsNormalizers';
@@ -102,6 +103,7 @@ const ReturnsTransactionsTable: React.FC<Props> = ({
         </div>
       </div>
 
+      <CustomizableTableWrapper tableId="reports.returns_transactions" tableTitle="حركات المرتجعات">
       <div className="table-scroll-viewport overflow-x-auto">
         <table className="w-full border-collapse text-right">
           <thead>
@@ -200,6 +202,7 @@ const ReturnsTransactionsTable: React.FC<Props> = ({
           </tbody>
         </table>
       </div>
+      </CustomizableTableWrapper>
 
       {(reportView === 'overview'
         ? [...filteredSalesReturns, ...filteredPurchaseReturns]

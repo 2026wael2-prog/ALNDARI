@@ -264,7 +264,7 @@ const InteractiveInvoiceTable: React.FC = () => {
           <TableSettingsButton
             tableId="sales.create_invoice"
             tableTitle="جدول فاتورة المبيعات"
-            compact={false}
+            compact
           />
           <div className="flex rounded-lg border bg-gray-100 p-0.5 dark:border-slate-800 dark:bg-slate-800">
             {useDiscountStore.getState().discountEnabled && (

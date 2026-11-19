@@ -124,6 +124,10 @@ const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId
                   company={company}
                   partyType={partyType}
                   partyName={selectedParty?.name ?? ''}
+                  partyPhone={selectedParty?.phone ?? undefined}
+                  partyCode={selectedParty?.id ? selectedParty.id.slice(0, 8).toUpperCase() : undefined}
+                  currency={selectedCurrency}
+                  movements={isPrintingSelectedOnly ? selectedMovements : filteredMovements}
                   printSubtitle={
                     isPrintingSelectedOnly
                       ? `كشف حساب مالي (${selectedMovements.length} معاملات محددة)`
@@ -131,38 +135,40 @@ const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId
                   }
                 />
 
-                <StatementToolbar
-                  selectedCurrency={selectedCurrency}
-                  setSelectedCurrency={setSelectedCurrency}
-                  availableCurrencies={availableCurrencies}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                />
+                <div className="no-print">
+                  <StatementToolbar
+                    selectedCurrency={selectedCurrency}
+                    setSelectedCurrency={setSelectedCurrency}
+                    availableCurrencies={availableCurrencies}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
 
-                <StatementMovementsTable
-                  filteredMovements={filteredMovements}
-                  selectedRowIds={selectedRowIds}
-                  expandedRowIds={expandedRowIds}
-                  rowColors={rowColors}
-                  activeColorPickerRowId={activeColorPickerRowId}
-                  isPrintingSelectedOnly={isPrintingSelectedOnly}
-                  partyName={selectedParty?.name || ''}
-                  isAllSelected={isAllSelected}
-                  onToggleSelectAll={handleToggleSelectAll}
-                  onToggleRowSelection={handleToggleRowSelection}
-                  onToggleRowExpand={handleToggleRowExpand}
-                  onOpenColorPicker={setActiveColorPickerRowId}
-                  onApplyColorToSingleRow={handleApplyColorToSingleRow}
-                  onPrintSingleTransaction={handlePrintSingleTransaction}
-                  onOpenInvoiceModal={setActiveInvoiceId}
-                  onOpenBondModal={handleOpenBondModal}
-                />
+                  <StatementMovementsTable
+                    filteredMovements={filteredMovements}
+                    selectedRowIds={selectedRowIds}
+                    expandedRowIds={expandedRowIds}
+                    rowColors={rowColors}
+                    activeColorPickerRowId={activeColorPickerRowId}
+                    isPrintingSelectedOnly={isPrintingSelectedOnly}
+                    partyName={selectedParty?.name || ''}
+                    isAllSelected={isAllSelected}
+                    onToggleSelectAll={handleToggleSelectAll}
+                    onToggleRowSelection={handleToggleRowSelection}
+                    onToggleRowExpand={handleToggleRowExpand}
+                    onOpenColorPicker={setActiveColorPickerRowId}
+                    onApplyColorToSingleRow={handleApplyColorToSingleRow}
+                    onPrintSingleTransaction={handlePrintSingleTransaction}
+                    onOpenInvoiceModal={setActiveInvoiceId}
+                    onOpenBondModal={handleOpenBondModal}
+                  />
 
-                <StatementSummaryCards
-                  movements={filteredMovements}
-                  partyType={partyType}
-                  activeCurrency={selectedCurrency}
-                />
+                  <StatementSummaryCards
+                    movements={filteredMovements}
+                    partyType={partyType}
+                    activeCurrency={selectedCurrency}
+                  />
+                </div>
               </>
             )}
 

@@ -1,9 +1,10 @@
-/* eslint-disable max-lines-per-function, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing */
-import React from 'react';
+/* eslint-disable @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing */
+import React, { useMemo } from 'react';
 import type { PartyType } from '../../types';
-import { useDocumentHeaderSettings } from '@/features/settings/settingsStore';
-import { UniversalDocumentHeader } from '@/ui/common/UniversalDocumentHeader';
+import type { StatementMovement } from '../../services/statementTypes';
 import { formatLocalDate } from '@/core/utils/dateUtils';
+import { tafqeet } from '@/core/utils/tafqeet';
+import { AlNadaryPrintShell } from '@/ui/print/AlNadaryPrintShell';
 
 interface CompanyInfo {
   nameAr: string;
@@ -13,93 +14,204 @@ interface CompanyInfo {
   taxNumber: string;
   specialization: string;
   headerText: string;
+  logoUrl?: string | undefined;
 }
 
 interface StatementPrintSheetProps {
   company: CompanyInfo;
   partyType: PartyType;
   partyName?: string | undefined;
+  partyPhone?: string | undefined;
+  partyCode?: string | undefined;
+  currency?: string | undefined;
+  movements?: StatementMovement[] | undefined;
   printSubtitle?: string | undefined;
 }
 
+const formatNum = (val: number): string => {
+  if (!Number.isFinite(val)) return '0';
+  return Number.isInteger(val)
+    ? val.toLocaleString('en-US')
+    : val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const currencyUnitOf = (code?: string): string => {
+  if (!code || code === 'ALL' || code === 'SAR') return 'ريال سعودي';
+  if (code === 'YER') return 'ريال يمني';
+  if (code === 'OMR') return 'ريال عماني';
+  return code;
+};
+
+/**
+ * قالب طباعة كشف حساب العملاء والموردين الموحد لشركة النظاري.
+ * يظهر على الشاشة كمعاينة مدمجة للهيدر، وعند الطباعة/تصدير PDF يُخرج كشف حساب A4 رسمي كامل
+ * مطابق لهوية فاتورة النظاري المرجعية مع تكرار الترويسة والرصيد الافتتاحي وحالة الحساب.
+ */
 export const StatementPrintSheet: React.FC<StatementPrintSheetProps> = ({
   company,
   partyType,
   partyName,
+  partyPhone,
+  partyCode,
+  currency = 'SAR',
+  movements = [],
   printSubtitle,
 }) => {
-  const headerConfig = useDocumentHeaderSettings();
   const currentDate = formatLocalDate();
+  const isCustomer = partyType === 'customer';
+  const docTitle =
+    printSubtitle || (isCustomer ? 'كشف حساب عميل' : 'كشف حساب مورد');
+  const currencyUnit = currencyUnitOf(currency);
+
+  const summary = useMemo(() => {
+    const openingRow = movements.find(m => m.is_bf === 1 || m.type === 'opening_balance');
+    const openingBalance = openingRow
+      ? (openingRow.debit || 0) - (openingRow.credit || 0)
+      : 0;
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let running = 0;
+    const rows = movements.map(m => {
+      const debit = Number(m.debit) || 0;
+      const credit = Number(m.credit) || 0;
+      totalDebit += debit;
+      totalCredit += credit;
+      running = m.balance !== undefined ? Number(m.balance) : running + debit - credit;
+      return {
+        ...m,
+        debit,
+        credit,
+        computedBalance: running,
+      };
+    });
+
+    const finalBalance = rows.length > 0 ? rows[rows.length - 1].computedBalance : openingBalance;
+    const dates = rows.map(r => r.date).filter(Boolean).sort();
+    const periodText =
+      dates.length > 1
+        ? `من ${dates[0]} إلى ${dates[dates.length - 1]}`
+        : dates.length === 1
+          ? `بتاريخ ${dates[0]}`
+          : `حتى ${currentDate}`;
+
+    let statusLabel = 'متزن (خالص)';
+    if (Math.abs(finalBalance) >= 0.01) {
+      if (isCustomer) {
+        statusLabel =
+          finalBalance > 0 ? 'مدين (مستحق على العميل)' : 'دائن (رصيد لصالح العميل)';
+      } else {
+        statusLabel =
+          finalBalance < 0 ? 'دائن (مستحق للمورد)' : 'مدين (رصيد لصالح الشركة)';
+      }
+    }
+
+    return {
+      rows,
+      openingBalance,
+      totalDebit,
+      totalCredit,
+      finalBalance,
+      periodText,
+      statusLabel,
+    };
+  }, [movements, currentDate, isCustomer]);
+
+  const partyDisplay = partyPhone ? `${partyName || '—'}   ${partyPhone}` : (partyName || '—');
 
   return (
-    <>
-      <style>{`
-        @media print {
-            body { background-color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            @page { margin: 8mm 10mm; size: A4 portrait; }
-            .print-area {
-                font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-                color: #000 !important;
-                font-variant-numeric: tabular-nums;
-            }
-            /* Make ExcelTable look like a real printed Excel grid */
-            table {
-                border-collapse: collapse !important;
-                width: 100% !important;
-            }
-            th, td {
-                border: 1px solid #cbd5e1 !important;
-                padding: 6px 8px !important;
-                color: #000 !important;
-            }
-            th {
-                background-color: #1F4E78 !important;
-                color: #fff !important;
-                font-weight: 800 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            /* Colored rows preserved during print */
-            tr.row-colored-emerald td { background-color: #d1fae5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            tr.row-colored-rose td { background-color: #ffe4e6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            tr.row-colored-amber td { background-color: #fef3c7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            tr.row-colored-blue td { background-color: #e0f2fe !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            /* Hide the toolbar of ExcelTable in print */
-            .table-toolbar { display: none !important; }
-        }
-        .print-only { display: none; }
-      `}</style>
+    <div className="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm print:m-0 print:rounded-none print:border-none print:shadow-none">
+      <AlNadaryPrintShell
+        documentTitle={docTitle}
+        documentDate={currentDate}
+        documentNumber={partyCode || undefined}
+        documentNumberLabel="رقم الحساب"
+        company={{
+          nameAr: company.nameAr,
+          logoUrl: company.logoUrl,
+          address: company.address,
+          phone: company.phone,
+        }}
+        rightMeta={[
+          { label: isCustomer ? 'اسم العميل' : 'اسم المورد', value: partyDisplay },
+          {
+            label: 'الرصيد الافتتاحي',
+            value: `${formatNum(summary.openingBalance)} ${currencyUnit}`,
+          },
+        ]}
+        leftMeta={[
+          { label: 'الفترة الزمنية', value: summary.periodText },
+          { label: 'العملة', value: currency === 'ALL' ? 'جميع العملات' : currencyUnit },
+        ]}
+        showDefaultTerms={false}
+        signatures={['مطابقة العميل / المورد', 'المحاسب', 'الختم والاعتماد']}
+      >
+        {/* جدول الحركات المالية الرسمي — يظهر في الطباعة وتصدير PDF */}
+        <div className="hidden print:block">
+          <table className="alnadary-table">
+            <thead>
+              <tr>
+                <th style={{ width: '13%' }}>التاريخ</th>
+                <th style={{ width: '14%' }}>رقم الفاتورة / السند</th>
+                <th style={{ width: '37%' }}>البيان</th>
+                <th style={{ width: '12%' }}>مدين</th>
+                <th style={{ width: '12%' }}>دائن</th>
+                <th style={{ width: '12%' }}>الرصيد</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="alnadary-td-center" style={{ padding: '14px' }}>
+                    لا توجد حركات مالية مسجلة خلال هذه الفترة
+                  </td>
+                </tr>
+              ) : (
+                summary.rows.map((row, idx) => (
+                  <tr key={row.id || idx}>
+                    <td className="alnadary-td-center" dir="ltr">
+                      {row.date ? row.date.replace(/-/g, '/') : '—'}
+                    </td>
+                    <td className="alnadary-td-center" dir="ltr">
+                      {row.ref || '—'}
+                    </td>
+                    <td className="alnadary-td-right">{row.desc || '—'}</td>
+                    <td className="alnadary-td-num">{row.debit > 0 ? formatNum(row.debit) : '0'}</td>
+                    <td className="alnadary-td-num">{row.credit > 0 ? formatNum(row.credit) : '0'}</td>
+                    <td className="alnadary-td-num">{formatNum(row.computedBalance)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
 
-      {/* Professional Commercial Header */}
-      <div className="screen:max-md:mb-3 screen:max-md:pb-2 screen:max-md:p-3 mb-5 rounded-xl border-b-2 border-[#1F4E78] bg-[var(--app-surface)] p-5 pb-4 shadow-sm dark:border-blue-700 print:mb-4 print:border-none print:bg-white print:p-0 print:shadow-none">
-        <div className="mb-4">
-          <UniversalDocumentHeader
-            config={headerConfig}
-            company={{
-              name: company.nameAr,
-              name_en: company.nameEn,
-              phone: company.phone || undefined,
-              address: company.address || undefined,
-              tax_number: company.taxNumber || undefined,
-              slogan: company.specialization || undefined,
-            }}
-            documentTitle={printSubtitle || 'كشف حساب رسمي معتمد'}
-            documentDate={currentDate}
-          />
-        </div>
-        <div className="flex justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/80 print:border-slate-400 print:bg-slate-50 print:text-black">
-          <div className="text-sm text-slate-800 dark:text-slate-200 print:text-black">
-            <strong>اسم {partyType === 'customer' ? 'العميل' : 'المورد'}:</strong>{' '}
-            <span className="font-bold">{partyName || '—'}</span>
+          {/* ملخص كشف الحساب الرسمي أسفل الجدول */}
+          <div className="alnadary-totals-section">
+            <div className="alnadary-inline-summary">
+              <span>
+                إجمالي المدين : <span dir="ltr">{formatNum(summary.totalDebit)}</span>
+              </span>
+              <span>
+                إجمالي الدائن : <span dir="ltr">{formatNum(summary.totalCredit)}</span>
+              </span>
+              <span>حالة الحساب : {summary.statusLabel}</span>
+            </div>
+
+            <div className="alnadary-total-bar">
+              <div className="alnadary-total-bar-label">الرصيد النهائي</div>
+              <div className="alnadary-total-bar-words">
+                {Math.abs(summary.finalBalance) >= 0.01
+                  ? tafqeet(Math.abs(summary.finalBalance), currencyUnit)
+                  : 'صفر لا غير'}
+              </div>
+              <div className="alnadary-total-bar-amount">
+                {formatNum(summary.finalBalance)}
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-slate-800 dark:text-slate-200 print:text-black">
-            <strong>تاريخ الاستخراج:</strong> <span dir="ltr" className="font-mono font-bold">{currentDate}</span>
-          </div>
         </div>
-      </div>
-    </>
+      </AlNadaryPrintShell>
+    </div>
   );
 };
 

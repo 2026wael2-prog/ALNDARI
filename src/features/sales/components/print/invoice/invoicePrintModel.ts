@@ -28,6 +28,9 @@ export interface InvoiceRawItem extends DisplayableItemInput {
   discount?: number | string | null | undefined;
   tax_amount?: number | string | null | undefined;
   total?: number | string | null | undefined;
+  unit?: string | null | undefined;
+  uom_name?: string | null | undefined;
+  notes?: string | null | undefined;
 }
 
 /** الفاتورة كما تصل إلى قالب الطباعة. */
@@ -51,6 +54,7 @@ export interface PrintableInvoiceSource {
   branch_name?: string | null | undefined;
   issuedBy?: string | null | undefined;
   type?: string | null | undefined;
+  notes?: string | null | undefined;
 }
 
 /** بند جاهز للطباعة بأرقام مُتحقَّق منها. */
@@ -59,6 +63,8 @@ export interface InvoiceDisplayItem {
   name: string;
   sku: string;
   partNumber: string;
+  unit: string;
+  notes: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -81,6 +87,7 @@ export interface InvoicePrintView {
   currencyCode: string;
   currencyUnit: string;
   amountInWords: string;
+  remainingInWords: string;
   zatcaTimestamp: string;
   isReturn: boolean;
   paymentLabel: string;
@@ -91,6 +98,7 @@ export interface InvoicePrintView {
   branchName: string;
   dueDate: string;
   issuedBy: string;
+  notes: string;
 }
 
 /** الشروط الافتراضية للطباعة — قابلة للتحرير داخل الصفحة. */
@@ -130,6 +138,8 @@ export const buildInvoiceDisplayItems = (
       name: getDisplayItemName(item, 'صنف غير محدد'),
       sku: getDisplayItemCode(item, ''),
       partNumber: firstNonEmpty(item.part_number, item.product?.part_number, item.partNumber),
+      unit: firstNonEmpty(item.unit, item.uom_name, (item.product as { unit?: string | null } | undefined)?.unit),
+      notes: firstNonEmpty(item.notes),
       quantity,
       unitPrice,
       lineTotal,
@@ -201,6 +211,7 @@ export const buildInvoicePrintView = (source: PrintableInvoiceSource): InvoicePr
     currencyCode,
     currencyUnit,
     amountInWords: tafqeet(totals.total, currencyUnit),
+    remainingInWords: totals.remaining > 0 ? tafqeet(totals.remaining, currencyUnit) : 'صفر لا غير',
     zatcaTimestamp: firstNonEmpty(source.issue_date) || new Date().toISOString(),
     isReturn: source.type === 'sale_return',
     paymentLabel: source.payment_method === 'credit' ? 'آجل' : 'نقداً',
@@ -211,5 +222,6 @@ export const buildInvoicePrintView = (source: PrintableInvoiceSource): InvoicePr
     branchName: firstNonEmpty(source.branch_name),
     dueDate: firstNonEmpty(source.due_date),
     issuedBy: firstNonEmpty(source.issuedBy),
+    notes: firstNonEmpty(source.notes),
   };
 };

@@ -200,6 +200,8 @@ export const PREMIUM_PRESETS: ThemePreset[] = [
       '--app-text': '#020617',
       '--app-text-secondary': '#475569',
       '--accent': '#0f172a',
+      '--table-header-bg': '#e6f1ff',
+      '--table-header-fg': '#0f172a',
     },
     dark: {
       '--app-bg': '#f5f0e6',
@@ -251,6 +253,8 @@ export const PREMIUM_PRESETS: ThemePreset[] = [
       '--app-text': '#020617',
       '--app-text-secondary': '#475569',
       '--accent': '#0f172a',
+      '--table-header-bg': '#e6f1ff',
+      '--table-header-fg': '#0f172a',
     },
     dark: {
       '--app-bg': '#fef3c7',

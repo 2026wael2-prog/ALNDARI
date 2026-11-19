@@ -2947,3 +2947,34 @@ html[data-preset='solar-noir'] aside footer,
 html[data-preset='solar-noir'] aside > div:last-of-type {
   border-color: rgba(10, 10, 10, 0.12) !important;
 }
+
+/* ==========================================================================
+   OBSIDIAN PRO (بيج فخم) & OBSIDIAN SUN (أصفر خفيف) — الوضع الليلي بدون خلفية سوداء
+   ========================================================================== */
+html[data-preset='obsidian-pro'].dark,
+html[data-preset='obsidian-sun'].dark {
+  color: #1c1917 !important;
+}
+
+html[data-preset='obsidian-pro'].dark .dark\:text-white,
+html[data-preset='obsidian-sun'].dark .dark\:text-white,
+html[data-preset='obsidian-pro'].dark .dark\:text-slate-100,
+html[data-preset='obsidian-sun'].dark .dark\:text-slate-100,
+html[data-preset='obsidian-pro'].dark .dark\:text-slate-200,
+html[data-preset='obsidian-sun'].dark .dark\:text-slate-200,
+html[data-preset='obsidian-pro'].dark .dark\:text-gray-100,
+html[data-preset='obsidian-sun'].dark .dark\:text-gray-100 {
+  color: #1c1917 !important;
+}
+
+html[data-preset='obsidian-pro'].dark .dark\:bg-black,
+html[data-preset='obsidian-pro'].dark .dark\:bg-zinc-950,
+html[data-preset='obsidian-pro'].dark .dark\:bg-zinc-900 {
+  background-color: #f3ede2 !important;
+}
+
+html[data-preset='obsidian-sun'].dark .dark\:bg-black,
+html[data-preset='obsidian-sun'].dark .dark\:bg-zinc-950,
+html[data-preset='obsidian-sun'].dark .dark\:bg-zinc-900 {
+  background-color: #fefce8 !important;
+}

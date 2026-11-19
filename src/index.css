@@ -2480,3 +2480,286 @@ a:focus-visible {
 #main-content .mt-4 { margin-top: 0.55rem !important; }
 #main-content .mt-3 { margin-top: 0.4rem !important; }
 #main-content .mt-2 { margin-top: 0.3rem !important; }
+
+/* ==========================================================================
+   SOLAR NOIR THEME — الأبيض والأسود البرتقالي والأصفر الخفيف
+   الأسود فقط للحواف والخطوط والكتابة (في الوضعين النهاري والليلي)
+   مع تنسيق احترافي متناسق للأيقونات والنصوص لضمان قراءة واضحة 100%
+   ========================================================================== */
+html[data-preset='solar-noir'] {
+  color: #0a0a0a !important;
+  --app-border-subtle: rgba(10, 10, 10, 0.22);
+  --app-border: rgba(10, 10, 10, 0.55);
+  --app-border-strong: #0a0a0a;
+  --app-grid: rgba(10, 10, 10, 0.24);
+}
+
+html[data-preset='solar-noir'] * {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 1. نصوص واضحة وحادة بالأسود في الوضعين النهاري والليلي (منع النصوص الصفراء/الباهتة) */
+html[data-preset='solar-noir'] h1,
+html[data-preset='solar-noir'] h2,
+html[data-preset='solar-noir'] h3,
+html[data-preset='solar-noir'] h4,
+html[data-preset='solar-noir'] h5,
+html[data-preset='solar-noir'] h6,
+html[data-preset='solar-noir'] strong,
+html[data-preset='solar-noir'] b {
+  color: #0a0a0a !important;
+  font-weight: 800;
+}
+
+html[data-preset='solar-noir'] .text-slate-300,
+html[data-preset='solar-noir'] .text-slate-400,
+html[data-preset='solar-noir'] .text-slate-500,
+html[data-preset='solar-noir'] .text-slate-600,
+html[data-preset='solar-noir'] .text-gray-300,
+html[data-preset='solar-noir'] .text-gray-400,
+html[data-preset='solar-noir'] .text-gray-500,
+html[data-preset='solar-noir'] .text-gray-600,
+html[data-preset='solar-noir'] .text-neutral-400,
+html[data-preset='solar-noir'] .text-neutral-500,
+html[data-preset='solar-noir'] .text-\[var\(--app-text-secondary\)\] {
+  color: #171717 !important;
+}
+
+html[data-preset='solar-noir'].dark .dark\:text-slate-100,
+html[data-preset='solar-noir'].dark .dark\:text-slate-200,
+html[data-preset='solar-noir'].dark .dark\:text-slate-300,
+html[data-preset='solar-noir'].dark .dark\:text-slate-400,
+html[data-preset='solar-noir'].dark .dark\:text-slate-500,
+html[data-preset='solar-noir'].dark .dark\:text-gray-100,
+html[data-preset='solar-noir'].dark .dark\:text-gray-200,
+html[data-preset='solar-noir'].dark .dark\:text-gray-300,
+html[data-preset='solar-noir'].dark .dark\:text-gray-400,
+html[data-preset='solar-noir'].dark .dark\:text-white {
+  color: #0a0a0a !important;
+}
+
+/* 2. القائمة الجانبية (Sidebar) — تنسيق احترافي: أسماء سوداء واضحة + أيقونات برتقالية على أصفر خفيف */
+html[data-preset='solar-noir'] aside {
+  background-color: #ffffff !important;
+  border-color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'].dark aside {
+  background-color: #fefce8 !important;
+  border-color: #0a0a0a !important;
+}
+
+/* عناوين أقسام القائمة الجانبية */
+html[data-preset='solar-noir'] aside nav > div > div:first-child {
+  color: #c2410c !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid rgba(10, 10, 10, 0.14);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* عناصر القائمة الجانبية (غير النشطة) */
+html[data-preset='solar-noir'] aside nav button {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] aside nav button span {
+  color: #0a0a0a !important;
+  font-weight: 700 !important;
+}
+
+/* حاوية الأيقونة في القائمة الجانبية (أصفر خفيف + إطار أسود رفيع + أيقونة برتقالية واضحة) */
+html[data-preset='solar-noir'] aside nav button > div {
+  background: #fef9c3 !important;
+  background-image: none !important;
+  border: 1px solid #0a0a0a !important;
+  color: #c2410c !important;
+  box-shadow: none !important;
+}
+
+html[data-preset='solar-noir'] aside nav button > div svg {
+  color: #c2410c !important;
+  stroke: #c2410c !important;
+}
+
+/* حالة المرور بالمؤشر في القائمة الجانبية */
+html[data-preset='solar-noir'] aside nav button:hover {
+  background-color: #fef9c3 !important;
+  border-color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] aside nav button:hover > div {
+  background: #ea580c !important;
+  border-color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] aside nav button:hover > div svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* العنصر النشط في القائمة الجانبية */
+html[data-preset='solar-noir'] aside nav button[aria-current='page'] {
+  background-color: #fef08a !important;
+  border: 1.5px solid #ea580c !important;
+  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.16) !important;
+}
+
+html[data-preset='solar-noir'] aside nav button[aria-current='page'] > span:first-child {
+  background-color: #ea580c !important;
+}
+
+html[data-preset='solar-noir'] aside nav button[aria-current='page'] > span:last-of-type {
+  color: #0a0a0a !important;
+  font-weight: 900 !important;
+}
+
+html[data-preset='solar-noir'] aside nav button[aria-current='page'] > div {
+  background: #ea580c !important;
+  background-image: none !important;
+  border: 1px solid #0a0a0a !important;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3) !important;
+}
+
+html[data-preset='solar-noir'] aside nav button[aria-current='page'] > div svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* 3. الشريط العلوي (Header) — خلفية بيضاء/صفراء خفيفة + خط سفلي أسود + أيقونات واضحة */
+html[data-preset='solar-noir'] header {
+  background-color: #ffffff !important;
+  border-bottom: 1.5px solid #0a0a0a !important;
+  color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'].dark header {
+  background-color: #fefce8 !important;
+  border-bottom: 1.5px solid #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] header button,
+html[data-preset='solar-noir'] header span,
+html[data-preset='solar-noir'] header svg {
+  color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] header button:hover {
+  background-color: #fef9c3 !important;
+  border-color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] header button:hover svg {
+  color: #c2410c !important;
+}
+
+/* 4. توحيد ألوان الأيقونات داخل المحتوى (منع أي أيقونة صفراء باهتة غير مقروءة) */
+html[data-preset='solar-noir'] #main-content svg.text-yellow-300,
+html[data-preset='solar-noir'] #main-content svg.text-yellow-400,
+html[data-preset='solar-noir'] #main-content svg.text-yellow-500,
+html[data-preset='solar-noir'] #main-content svg.text-amber-300,
+html[data-preset='solar-noir'] #main-content svg.text-amber-400,
+html[data-preset='solar-noir'] #main-content svg.text-amber-500,
+html[data-preset='solar-noir'] #main-content svg.text-orange-400,
+html[data-preset='solar-noir'] #main-content svg.text-orange-500 {
+  color: #c2410c !important;
+}
+
+html[data-preset='solar-noir'] #main-content svg.text-slate-300,
+html[data-preset='solar-noir'] #main-content svg.text-slate-400,
+html[data-preset='solar-noir'] #main-content svg.text-gray-300,
+html[data-preset='solar-noir'] #main-content svg.text-gray-400 {
+  color: #171717 !important;
+}
+
+/* 5. الجداول — ترويسة صفراء خفيفة + خطوط سوداء + نص أسود واضح */
+html[data-preset='solar-noir'] table thead,
+html[data-preset='solar-noir'] table thead th {
+  background-color: #fef9c3 !important;
+  color: #0a0a0a !important;
+  border-color: #0a0a0a !important;
+  font-weight: 800 !important;
+}
+
+html[data-preset='solar-noir'] table tbody tr {
+  background-color: #ffffff !important;
+  color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] table tbody tr:nth-child(even) {
+  background-color: #fefce8 !important;
+}
+
+html[data-preset='solar-noir'] table tbody tr:hover {
+  background-color: #fef9c3 !important;
+}
+
+html[data-preset='solar-noir'] table td {
+  border-color: rgba(10, 10, 10, 0.22) !important;
+  color: #0a0a0a !important;
+}
+
+/* 6. الأزرار الأساسية — برتقالي احترافي بنص أبيض نقي وإطار أسود رفيع */
+html[data-preset='solar-noir'] button.bg-blue-600,
+html[data-preset='solar-noir'] button.bg-indigo-600,
+html[data-preset='solar-noir'] button.bg-emerald-600,
+html[data-preset='solar-noir'] button.bg-orange-600,
+html[data-preset='solar-noir'] button.bg-orange-500,
+html[data-preset='solar-noir'] a.bg-blue-600 {
+  background-color: #ea580c !important;
+  color: #ffffff !important;
+  border: 1px solid #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] button.bg-blue-600 *,
+html[data-preset='solar-noir'] button.bg-indigo-600 *,
+html[data-preset='solar-noir'] button.bg-emerald-600 *,
+html[data-preset='solar-noir'] button.bg-orange-600 *,
+html[data-preset='solar-noir'] button.bg-orange-500 *,
+html[data-preset='solar-noir'] a.bg-blue-600 * {
+  color: #ffffff !important;
+}
+
+html[data-preset='solar-noir'] button.bg-blue-600:hover,
+html[data-preset='solar-noir'] button.bg-indigo-600:hover,
+html[data-preset='solar-noir'] button.bg-emerald-600:hover,
+html[data-preset='solar-noir'] button.bg-orange-600:hover,
+html[data-preset='solar-noir'] button.bg-orange-500:hover {
+  background-color: #c2410c !important;
+}
+
+/* 7. حقول الإدخال — خلفية بيضاء + نص وإطار أسود + تركيز برتقالي */
+html[data-preset='solar-noir'] input:not([type='checkbox']):not([type='radio']),
+html[data-preset='solar-noir'] select,
+html[data-preset='solar-noir'] textarea {
+  background-color: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] input:focus,
+html[data-preset='solar-noir'] select:focus,
+html[data-preset='solar-noir'] textarea:focus {
+  border-color: #ea580c !important;
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.25) !important;
+  outline: none !important;
+}
+
+/* 8. شارات التفعيل والمؤشرات الزرقاء ← برتقالي متناسق */
+html[data-preset='solar-noir'] .border-blue-500,
+html[data-preset='solar-noir'] .ring-blue-500\/20 {
+  border-color: #ea580c !important;
+}
+
+html[data-preset='solar-noir'] .bg-blue-500 {
+  background-color: #ea580c !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='solar-noir'] .text-blue-500,
+html[data-preset='solar-noir'] .text-blue-600 {
+  color: #c2410c !important;
+}

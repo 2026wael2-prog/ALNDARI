@@ -17,17 +17,24 @@ const toCleanStr = (val: unknown): string | null => {
 async function fetchPartyCurrencies(
   companyId: string
 ): Promise<Map<string, Array<{ currency: string; balance: number; transaction_count?: number }>>> {
-  // Use dedicated RPC instead of querying the view directly.
-  // The view caused 500 errors for authenticated users because PostgREST applied
-  // row-level RLS checks on every one of the 2600+ cross-joined rows.
-  // The RPC filters by company_id early and runs with security invoker,
-  // delegating the company guard to a single WHERE check.
-  const { data } = await fetchAllRpcPages<Record<string, unknown>>(
-    supabase,
-    'get_party_currencies_by_company',
-    { p_company_id: companyId },
-    ['party_id', 'currency_code']
+  // Single-call JSONB RPC bypasses PostgREST's 1,000-row cap (1 round-trip instead of 4 sequential scans).
+  let rows: Record<string, unknown>[] | null = null;
+  const { data: jsonData, error: jsonError } = await (supabase.rpc as any)(
+    'get_party_currencies_by_company_json',
+    { p_company_id: companyId }
   );
+
+  if (!jsonError && Array.isArray(jsonData)) {
+    rows = jsonData as Record<string, unknown>[];
+  } else {
+    const { data } = await fetchAllRpcPages<Record<string, unknown>>(
+      supabase,
+      'get_party_currencies_by_company',
+      { p_company_id: companyId },
+      ['party_id', 'currency_code']
+    );
+    rows = data;
+  }
 
   type CurrencyRow = {
     party_id?: string;
@@ -40,8 +47,8 @@ async function fetchPartyCurrencies(
     string,
     Array<{ currency: string; balance: number; transaction_count?: number }>
   >();
-  if (data !== null && Array.isArray(data)) {
-    (data as CurrencyRow[]).forEach(c => {
+  if (rows !== null && Array.isArray(rows)) {
+    (rows as CurrencyRow[]).forEach(c => {
       if (typeof c.party_id === 'string' && typeof c.currency_code === 'string') {
         const list = map.get(c.party_id) ?? [];
         const item: { currency: string; balance: number; transaction_count?: number } = {

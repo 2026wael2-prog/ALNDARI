@@ -424,7 +424,9 @@ export const useStockedProducts = (): UseQueryResult<Product[]> => {
         ? inventoryService.getProductsWithStock(companyId, signal)
         : Promise.resolve([]),
     enabled: companyId !== undefined && companyId !== '',
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 

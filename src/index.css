@@ -2815,3 +2815,135 @@ html[data-preset='solar-noir'] .text-blue-500,
 html[data-preset='solar-noir'] .text-blue-600 {
   color: #c2410c !important;
 }
+
+/* 10. لمسات حديثة متطورة — عمق جوي ناعم، محاذاة الأرقام المالية، وتنسيق النوافذ والتبويبات */
+html[data-preset='solar-noir'] {
+  accent-color: #ea580c;
+}
+
+html[data-preset='solar-noir'] #main-content {
+  background-image: radial-gradient(
+    ellipse 85% 42% at 50% 0%,
+    rgba(254, 249, 195, 0.55) 0%,
+    rgba(255, 253, 245, 0) 72%
+  );
+  background-attachment: local;
+}
+
+/* محاذاة الأرقام المالية والجداول بدقة مصرفية حديثة */
+html[data-preset='solar-noir'] table,
+html[data-preset='solar-noir'] .tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ترويسة الجداول المثبتة + مؤشر برتقالي ناعم على الصف عند المرور */
+html[data-preset='solar-noir'] table thead {
+  box-shadow: 0 2px 6px rgba(10, 10, 10, 0.05);
+}
+
+html[data-preset='solar-noir'] table tbody tr:hover {
+  box-shadow: inset -3px 0 0 0 #ea580c;
+}
+
+/* النوافذ المنبثقة والقوائم المنسدلة (Modals, Dialogs, Popovers) */
+html[data-preset='solar-noir'] [role='dialog'],
+html[data-preset='solar-noir'] [role='alertdialog'] {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(10, 10, 10, 0.18) !important;
+  border-top: 3px solid #f97316 !important;
+  box-shadow: 0 22px 50px -12px rgba(10, 10, 10, 0.16),
+    0 4px 16px rgba(234, 88, 12, 0.07) !important;
+}
+
+html[data-preset='solar-noir'] [role='menu'],
+html[data-preset='solar-noir'] [role='listbox'] {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(10, 10, 10, 0.16) !important;
+  box-shadow: 0 12px 32px -6px rgba(10, 10, 10, 0.12),
+    0 2px 8px rgba(234, 88, 12, 0.06) !important;
+}
+
+/* أشرطة التبويبات الحديثة (Modern Segmented Tabs) */
+html[data-preset='solar-noir'] [role='tablist'] {
+  background-color: #fefce8 !important;
+  border: 1px solid rgba(10, 10, 10, 0.14) !important;
+  padding: 3px;
+  border-radius: 0.75rem;
+}
+
+html[data-preset='solar-noir'] [role='tab'] {
+  color: rgba(10, 10, 10, 0.75) !important;
+  font-weight: 700 !important;
+  border-radius: 0.55rem;
+  transition: all 180ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+html[data-preset='solar-noir'] [role='tab']:hover:not([aria-selected='true']) {
+  background-color: rgba(255, 255, 255, 0.65) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-preset='solar-noir'] [role='tab'][aria-selected='true'] {
+  background-color: #ffffff !important;
+  color: #0a0a0a !important;
+  font-weight: 800 !important;
+  border: 1px solid rgba(234, 88, 12, 0.38) !important;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.12), inset 0 -2px 0 0 #ea580c !important;
+}
+
+/* الأزرار الثانوية الأنيقة (Secondary / Outline Buttons) */
+html[data-preset='solar-noir'] button.bg-slate-100,
+html[data-preset='solar-noir'] button.bg-gray-100 {
+  background-color: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid rgba(10, 10, 10, 0.18) !important;
+  transition: all 160ms ease !important;
+}
+
+html[data-preset='solar-noir'] button.bg-slate-100:hover,
+html[data-preset='solar-noir'] button.bg-gray-100:hover {
+  background-color: #fefce8 !important;
+  border-color: rgba(234, 88, 12, 0.45) !important;
+  color: #0a0a0a !important;
+}
+
+/* الشارات والملصقات (Badges & Status Chips) — متناغمة بلا فوضى ألوان */
+html[data-preset='solar-noir'] .bg-blue-50,
+html[data-preset='solar-noir'] .bg-indigo-50,
+html[data-preset='solar-noir'] .bg-purple-50,
+html[data-preset='solar-noir'] .bg-sky-50 {
+  background-color: #fefce8 !important;
+  border-color: rgba(234, 88, 12, 0.25) !important;
+}
+
+html[data-preset='solar-noir'] .text-indigo-600,
+html[data-preset='solar-noir'] .text-purple-600,
+html[data-preset='solar-noir'] .text-sky-600 {
+  color: #c2410c !important;
+}
+
+/* شريط التقدم (Progress Bars) */
+html[data-preset='solar-noir'] progress::-webkit-progress-bar {
+  background-color: #fefce8;
+  border: 1px solid rgba(10, 10, 10, 0.14);
+  border-radius: 9999px;
+}
+
+html[data-preset='solar-noir'] progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #f97316 0%, #ea580c 100%);
+  border-radius: 9999px;
+}
+
+/* بطاقات الإحصائيات والواجهات الرئيسية — لمعة علوية رقيقة + حركة ناعمة */
+html[data-preset='solar-noir'] #main-content .bg-\[var\(--app-surface\)\],
+html[data-preset='solar-noir'] #main-content .bg-white {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 3px rgba(10, 10, 10, 0.04),
+    0 6px 18px -4px rgba(234, 88, 12, 0.04);
+}
+
+/* تفاعل أزرار القائمة الجانبية المصغّرة وتذييل الشريط الجانبي */
+html[data-preset='solar-noir'] aside footer,
+html[data-preset='solar-noir'] aside > div:last-of-type {
+  border-color: rgba(10, 10, 10, 0.12) !important;
+}

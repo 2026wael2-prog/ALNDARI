@@ -110,6 +110,7 @@ export function ExcelTableBody<T>({
     getScrollElement: () => scrollRef.current,
     estimateSize: () => rowHeight,
     overscan: 10,
+    initialRect: { width: 1200, height: 600 },
   });
 
   // Auto-scroll when keyboard navigation changes focused row
@@ -162,6 +163,14 @@ export function ExcelTableBody<T>({
   }
 
   const virtualItems = rowVirtualizer.getVirtualItems();
+  const itemsToRender =
+    virtualItems.length > 0
+      ? virtualItems
+      : orderedData.slice(0, 50).map((_, index) => ({
+          index,
+          start: index * rowHeight,
+          end: (index + 1) * rowHeight,
+        }));
   const paddingTop = virtualItems.length > 0 ? virtualItems?.[0]?.start || 0 : 0;
   const paddingBottom =
     virtualItems.length > 0
@@ -179,7 +188,7 @@ export function ExcelTableBody<T>({
         </tr>
       )}
 
-      {virtualItems.map(virtualRow => {
+      {itemsToRender.map(virtualRow => {
         const rowIdx = virtualRow.index;
         const row = orderedData[rowIdx];
         if (!row) return null;

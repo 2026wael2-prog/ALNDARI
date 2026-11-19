@@ -20,6 +20,42 @@ async function fetchPaginated<T>(
   return rows;
 }
 
+export async function getInventorySummary(
+  companyId: string,
+  lookbackDays = 365,
+  branchId?: string | null
+) {
+  const { data, error } = await (supabase.rpc as Function)(
+    'fn_get_inventory_intelligence_summary',
+    {
+      p_company_id: companyId,
+      p_lookback_days: lookbackDays,
+      p_branch_id: branchId ?? null,
+    }
+  );
+  if (error) throw new Error(error.message || 'تعذر تحميل ملخص ذكاء المخزون');
+  return data;
+}
+
+export async function getInventoryProductsPage(
+  companyId: string,
+  opts: { lookbackDays?: number; branchId?: string | null; search?: string | null; limit?: number; offset?: number } = {}
+) {
+  const { data, error } = await (supabase.rpc as Function)(
+    'fn_get_inventory_intelligence_products_page',
+    {
+      p_company_id: companyId,
+      p_lookback_days: opts.lookbackDays ?? 365,
+      p_branch_id: opts.branchId ?? null,
+      p_search: opts.search ?? null,
+      p_limit: opts.limit ?? 50,
+      p_offset: opts.offset ?? 0,
+    }
+  );
+  if (error) throw new Error(error.message || 'تعذر تحميل صفحة منتجات ذكاء المخزون');
+  return data;
+}
+
 export async function getInventorySnapshot(
   companyId: string,
   lookbackDays = 365

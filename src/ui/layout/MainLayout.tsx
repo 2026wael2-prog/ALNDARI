@@ -56,6 +56,12 @@ const MainLayout: React.FC = () => {
   const previousIsDesktop = useRef(isDesktop);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
+  const [mountSecondaryOverlays, setMountSecondaryOverlays] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMountSecondaryOverlays(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
   const { isOnline } = useNetworkStatus();
   const isUnstable = useConnectionStore(s => s.isUnstable);
   const { deviceCategory, isIPad } = useDevice();
@@ -201,17 +207,19 @@ const MainLayout: React.FC = () => {
           onCloseMoreSheet={() => setIsMoreSheetOpen(false)}
         />
 
-        {/* Global Realtime Floating Chat & Collaboration Dock */}
-        {location.pathname !== ROUTES.DASHBOARD.CHAT && (
+        {/* Global Realtime Floating Chat & Collaboration Dock (deferred until main view settles) */}
+        {mountSecondaryOverlays && location.pathname !== ROUTES.DASHBOARD.CHAT && (
           <Suspense fallback={null}>
             <FloatingChatWidget />
           </Suspense>
         )}
 
         {/* Global Accompanying Information (المعلومات المرافقة) HUD */}
-        <Suspense fallback={null}>
-          <AccompanyingInfoWindow />
-        </Suspense>
+        {mountSecondaryOverlays && (
+          <Suspense fallback={null}>
+            <AccompanyingInfoWindow />
+          </Suspense>
+        )}
       </div>
     </div>
   );

@@ -37,7 +37,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   const [currencyFilter, setCurrencyFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'date' | 'total' | 'number'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [limit, setLimit] = useState(50);
+  const [limit, setLimit] = useState(25);
 
   useEffect(() => {
     if (searchTerm !== undefined && searchTerm !== internalSearch) {
@@ -48,7 +48,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(internalSearch);
-    }, 300);
+    }, 200);
     return () => {
       clearTimeout(timer);
     };

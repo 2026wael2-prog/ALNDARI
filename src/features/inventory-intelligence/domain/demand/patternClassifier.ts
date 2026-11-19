@@ -1,14 +1,28 @@
 import type { DemandPattern } from '../../types';
 
+/**
+ * Returns the 12 most recent COMPLETED calendar month keys (YYYY-MM),
+ * excluding the current partial month-to-date so incomplete observations
+ * never distort WMA, LinearTrendRidge, growth rates, or walk-forward backtests.
+ */
 export function buildLast12MonthKeys(referenceDate = new Date()): string[] {
   const keys: string[] = [];
-  for (let i = 11; i >= 0; i--) {
+  for (let i = 12; i >= 1; i--) {
     const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     keys.push(`${y}-${m}`);
   }
   return keys;
+}
+
+/**
+ * Returns the current partial calendar month key (YYYY-MM) for separate MTD tracking.
+ */
+export function getCurrentMonthKey(referenceDate = new Date()): string {
+  const y = referenceDate.getFullYear();
+  const m = String(referenceDate.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
 }
 
 /**

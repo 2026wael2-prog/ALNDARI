@@ -11,7 +11,11 @@ import {
   DollarSign,
   Ban,
 } from 'lucide-react';
-import type { IntelligenceEngineOutput, PersistedRecommendationRecord } from '../../types';
+import type {
+  IntelligenceEngineOutput,
+  OrchestrationResult,
+  PersistedRecommendationRecord,
+} from '../../types';
 import { formatCurrency, formatNumberDisplay } from '../../../../core/utils';
 import { useAuthStore } from '../../../auth/store';
 import { CommandCenterPanel } from '../command-center/CommandCenterPanel';
@@ -20,10 +24,11 @@ import { GRID_TABLE_CLASS, QualityBadge } from '../shared/IntelligenceBadges';
 interface Props {
   data: IntelligenceEngineOutput;
   history?: PersistedRecommendationRecord[];
+  orchestration?: OrchestrationResult | null | undefined;
   onNavigateTab: (tabId: string) => void;
 }
 
-export const OverviewTab: React.FC<Props> = React.memo(({ data, history = [], onNavigateTab }) => {
+export const OverviewTab: React.FC<Props> = React.memo(({ data, history = [], orchestration, onNavigateTab }) => {
   const companyId = useAuthStore(s => s.user?.company_id) ?? 'default_company';
   const { overviewKpis, championModel, generatedAt } = data;
 
@@ -231,6 +236,7 @@ export const OverviewTab: React.FC<Props> = React.memo(({ data, history = [], on
         data={data}
         history={history}
         companyId={companyId}
+        orchestration={orchestration}
         onNavigateTab={onNavigateTab}
       />
     </div>

@@ -35,20 +35,38 @@ export async function recordRecommendationDecision(params: {
   decisionReason?: string;
   calculationBreakdown?: Record<string, unknown>;
   idempotencyKey?: string;
+  conflictBlocked?: boolean;
+  conflictReasons?: string[];
 }): Promise<{ linkedTransferId?: string | null; linkedPoId?: string | null }> {
-  const lockKey = `${params.companyId}:${params.recType}:${params.productId}`;
+  const routeSuffix =
+    params.recType === 'transfer'
+      ? `:${params.fromBranchId ?? 'none'}:${params.toBranchId ?? 'none'}`
+      : '';
+  const lockKey = `${params.companyId}:${params.recType}:${params.productId}${routeSuffix}`;
   if (inFlightDecisions.has(lockKey)) {
     throw new Error('عملية الاعتماد قيد التنفيذ بالفعل — يرجى الانتظار لمنع التكرار');
   }
   inFlightDecisions.add(lockKey);
 
   try {
+    const effectiveQty = Math.max(1, Math.round(params.approvedQty ?? params.recommendedQty));
+
     if (params.status === 'approved' || params.status === 'modified') {
-      // 0) Accounting Audit Veto Guard: Reject execution on negative/corrupted stock
-      const { data: stockRows } = await (supabase as unknown as { from: (t: string) => any })
+      if (params.conflictBlocked) {
+        const reasonText = (params.conflictReasons ?? []).join(' • ') || 'قرار محجوب من محرك الحوكمة والتدقيق';
+        throw new Error(`حجب الحوكمة: ${reasonText}`);
+      }
+
+      // 0) Accounting Audit Veto Guard: Reject execution on negative/corrupted stock (company-scoped)
+      const { data: stockRows, error: stockErr } = await (supabase as unknown as { from: (t: string) => any })
         .from('product_stock')
         .select('quantity, reserved_quantity, damaged_quantity, warehouse_id')
+        .eq('company_id', params.companyId)
         .eq('product_id', params.productId);
+
+      if (stockErr) {
+        throw new Error('تعذر التحقق من الأرصدة المخزنية قبل التنفيذ (فشل أمني آمن)');
+      }
 
       const hasNegativeStock = (stockRows ?? []).some(
         (s: { quantity: number | null }) => Number(s.quantity ?? 0) < 0
@@ -57,8 +75,8 @@ export async function recordRecommendationDecision(params: {
         throw new Error('حجب التدقيق المحاسبي: الصنف يحتوي على رصيد سالب في أحد المستودعات — يُحظر الشراء أو التحويل قبل التسوية الجردية');
       }
 
-      // 1) Role-based authorization check against user_company_roles
-      const { data: roleRow } = await (supabase as unknown as { from: (t: string) => any })
+      // 1) Fail-Closed Role-Based Authorization check against user_company_roles
+      const { data: roleRow, error: roleErr } = await (supabase as unknown as { from: (t: string) => any })
         .from('user_company_roles')
         .select('role')
         .eq('company_id', params.companyId)
@@ -66,7 +84,15 @@ export async function recordRecommendationDecision(params: {
         .limit(1)
         .maybeSingle();
 
-      const role = String(roleRow?.role ?? '').toLowerCase();
+      if (roleErr) {
+        throw new Error('تعذر التحقق من صلاحية المستخدم — تم رفض التنفيذ احترازياً');
+      }
+
+      const role = String(roleRow?.role ?? '').trim().toLowerCase();
+      if (!role) {
+        throw new Error('access_denied: لا توجد صلاحية مسجلة لهذا المستخدم في هذه الشركة');
+      }
+
       const allowedApprovers = new Set([
         'owner',
         'admin',
@@ -75,48 +101,56 @@ export async function recordRecommendationDecision(params: {
         'accountant',
         'procurement',
       ]);
-      if (role && !allowedApprovers.has(role)) {
+      if (!allowedApprovers.has(role)) {
         throw new Error(`صلاحيتك (${role}) لا تسمح باعتماد أو تنفيذ قرارات المخزون والمشتريات`);
       }
 
-      const estimatedAmount = Number(params.calculationBreakdown?.estimatedCost ?? 0) || 0;
-      if (
-        params.recType === 'purchase' &&
-        estimatedAmount >= 5000 &&
-        role &&
-        role !== 'owner' &&
-        role !== 'admin'
-      ) {
-        throw new Error('أوامر الشراء بقيمة 5,000 فأكثر تتطلب اعتماد المالك أو المدير العام (Owner/Admin)');
+      if (params.recType === 'purchase') {
+        const unitPrice = Number(params.calculationBreakdown?.unitPrice ?? 0);
+        if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+          throw new Error('لا يمكن اعتماد أو إنشاء أمر شراء بدون سعر وحدة موثوق (unitPrice > 0)');
+        }
+        if (!params.supplierId) {
+          throw new Error('لا يمكن اعتماد أمر الشراء بدون تحديد مورد مسجل');
+        }
+        const authoritativeAmount = Number((effectiveQty * unitPrice).toFixed(2));
+        if (authoritativeAmount >= 5000 && role !== 'owner' && role !== 'admin') {
+          throw new Error('أوامر الشراء بقيمة 5,000 فأكثر تتطلب اعتماد المالك أو المدير العام (Owner/Admin)');
+        }
       }
 
-      // 2) Same-day idempotency guard against duplicate execution
+      // 2) Same-day route-aware idempotency guard against duplicate execution
       const todayStart = `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`;
-      const { data: existing } = await (supabase as unknown as { from: (t: string) => any })
+      let dupQuery = (supabase as unknown as { from: (t: string) => any })
         .from('inv_intelligence_recommendations')
         .select('id, status, linked_transfer_id, linked_po_id')
         .eq('company_id', params.companyId)
         .eq('rec_type', params.recType)
         .eq('product_id', params.productId)
         .in('status', ['approved', 'modified', 'executed'])
-        .gte('created_at', todayStart)
-        .limit(1)
-        .maybeSingle();
+        .gte('created_at', todayStart);
+
+      if (params.recType === 'transfer' && params.fromBranchId && params.toBranchId) {
+        dupQuery = dupQuery
+          .eq('from_branch_id', params.fromBranchId)
+          .eq('to_branch_id', params.toBranchId);
+      }
+
+      const { data: existing } = await dupQuery.limit(1).maybeSingle();
 
       if (existing) {
         throw new Error('تم اعتماد أو تنفيذ هذه التوصية مسبقاً اليوم (حماية منع التكرار)');
       }
     }
 
-    const effectiveQty = Math.max(1, Math.round(params.approvedQty ?? params.recommendedQty));
   let linkedTransferId: string | null = null;
   let linkedPoId: string | null = null;
   let finalStatus: RecommendationStatus = params.status;
 
-  // Compute idempotency key early — used by both transfer and purchase blocks below
+  // Compute route-aware idempotency key early — used by both transfer and purchase blocks below
   const computedIdempotencyKey =
     params.idempotencyKey ??
-    `decision:${params.companyId}:${params.recType}:${params.productId}:${new Date().toISOString().slice(0, 10)}`;
+    `decision:${params.companyId}:${params.recType}:${params.productId}${routeSuffix}:${new Date().toISOString().slice(0, 10)}`;
 
   if (
     params.recType === 'transfer' &&

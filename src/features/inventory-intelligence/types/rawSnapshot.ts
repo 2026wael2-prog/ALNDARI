@@ -125,6 +125,10 @@ export interface RawMonthlySalesRow {
 export interface RawSupplierHistoryRow {
   product_id: string;
   supplier_id: string;
+  prc_supplier_id?: string | null;
+  party_id?: string | null;
+  is_procurement_registered?: boolean;
+  currency?: string | null;
   supplier_name: string;
   purchase_tx_count: number;
   total_qty_supplied: number;
@@ -150,9 +154,12 @@ export interface RawStockMovementRow {
 export interface RawSupplierConstraintRow {
   product_id: string;
   supplier_id: string;
+  party_id?: string | null;
   minimum_order_quantity: number;
   order_multiple: number;
   lead_time_days: number;
+  default_currency?: string | null;
+  preferred_supplier?: boolean;
   uom_name: string | null;
   conversion_factor: number | null;
 }

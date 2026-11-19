@@ -29,7 +29,10 @@ export function runOperationalExecutionAgent(
   const start = performance.now();
   const latestByProductType = new Map<string, PersistedRecommendationRecord>();
   for (const h of history) {
-    const key = `${h.rec_type}::${h.product_id}`;
+    const key =
+      h.rec_type === 'transfer' && h.from_branch_id && h.to_branch_id
+        ? `${h.rec_type}::${h.product_id}::${h.from_branch_id}::${h.to_branch_id}`
+        : `${h.rec_type}::${h.product_id}`;
     if (!latestByProductType.has(key)) {
       latestByProductType.set(key, h);
     }
@@ -44,7 +47,13 @@ export function runOperationalExecutionAgent(
     }
     if (!d.productId) return d;
 
-    const match = latestByProductType.get(`${d.recType}::${d.productId}`);
+    const fromBranchId = String(d.supportingSourceData?.fromBranchId ?? '');
+    const toBranchId = String(d.supportingSourceData?.toBranchId ?? '');
+    const routeKey =
+      d.recType === 'transfer' && fromBranchId && toBranchId
+        ? `${d.recType}::${d.productId}::${fromBranchId}::${toBranchId}`
+        : `${d.recType}::${d.productId}`;
+    const match = latestByProductType.get(routeKey);
     if (!match) return d;
 
     const lifecycleState = mapRecordStatusToLifecycle(match);

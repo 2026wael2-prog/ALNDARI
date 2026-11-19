@@ -104,7 +104,7 @@ export const invoicesApi = {
       ...optArg('p_status', params.status),
       ...optArg('p_payment_method', params.paymentMethod),
       ...optArg('p_branch_id', params.branchId),
-      p_limit: params.limit ?? 80,
+      p_limit: params.limit ?? 30,
       p_offset: params.offset ?? 0,
     });
 

@@ -31,6 +31,10 @@ export interface TransferRecommendation {
 
 export interface RankedSupplier {
   supplierId: string;
+  prcSupplierId?: string | null;
+  partyId?: string | null;
+  isProcurementRegistered?: boolean;
+  currency?: string;
   supplierName: string;
   lastPurchaseDate: string | null;
   lastUnitPrice: number;
@@ -58,6 +62,7 @@ export interface PurchaseCalculationBreakdown {
   reorderPoint: number;
   physicalStock: number;
   reservedStock: number;
+  damagedStock?: number;
   availableStock: number;
   incomingStock: number;
   netPendingTransfers: number;
@@ -74,6 +79,9 @@ export interface PurchaseCalculationBreakdown {
     shortage: number;
   }>;
   finalRecommendedQty: number;
+  unitPrice: number;
+  estimatedCost: number;
+  currency: string;
   leadTimeDays: number;
   reviewPeriodDays: number;
   serviceLevel: number;

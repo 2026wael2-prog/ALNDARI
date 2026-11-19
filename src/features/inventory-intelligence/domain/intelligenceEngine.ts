@@ -28,12 +28,13 @@ import { generateTransferRecommendations } from './transferOptimizer';
 
 export function runIntelligenceEngine(
   snapshot: InventoryIntelligenceSnapshot,
-  config: EngineConfig
+  config: EngineConfig,
+  referenceDate = new Date()
 ): IntelligenceEngineOutput {
   const branches = snapshot.branches ?? [];
   const mainBranch = branches.find(b => b.is_main) ?? branches[0];
-  const monthKeys = buildLast12MonthKeys();
-  const monthlyIndex = buildMonthlyIndex(snapshot.monthly_sales ?? []);
+  const monthKeys = buildLast12MonthKeys(referenceDate);
+  const monthlyIndex = buildMonthlyIndex(snapshot.monthly_sales ?? [], mainBranch?.id);
 
   const {
     salesMap,

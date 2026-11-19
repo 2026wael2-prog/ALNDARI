@@ -1,4 +1,4 @@
-import { getInventorySnapshot } from './snapshotApi';
+import { getInventorySnapshot, getInventorySummary, getInventoryProductsPage } from './snapshotApi';
 import { getRecommendationHistory, recordRecommendationDecision } from './decisionsApi';
 import {
   getConfig,
@@ -10,6 +10,8 @@ import {
 
 export const intelligenceApi = {
   getSnapshot: getInventorySnapshot,
+  getSummary: getInventorySummary,
+  getProductsPage: getInventoryProductsPage,
   getConfig,
   saveConfig,
   getRecommendationHistory,

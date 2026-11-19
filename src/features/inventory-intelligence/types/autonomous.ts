@@ -25,7 +25,9 @@ export type AgentId =
   | 'supplier_intelligence'
   | 'dead_stock_recovery'
   | 'data_integrity_audit'
-  | 'operational_execution';
+  | 'operational_execution'
+  | 'decision_risk_financial_impact'
+  | 'product_intelligence';
 
 export interface AgentMetadata {
   agentId: AgentId;
@@ -112,6 +114,7 @@ export interface OrchestrationResult {
   companyId: string;
   decisions: UnifiedDecision[];
   agentRuns: AgentRunResult[];
+  financialRiskRun?: AgentRunResult;
   summary: {
     totalDecisions: number;
     criticalRisks: number;

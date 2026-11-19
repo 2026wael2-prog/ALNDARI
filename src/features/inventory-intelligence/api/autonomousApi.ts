@@ -26,24 +26,25 @@ export async function enqueueIntelligenceJob(params: {
     params.idempotencyKey ??
     `${params.jobType}:${params.companyId}:${new Date().toISOString().slice(0, 13)}`;
   try {
-    const { data, error } = await (supabase as unknown as { from: (t: string) => any })
-      .from('inv_autonomous_jobs')
-      .upsert(
-        {
-          company_id: params.companyId,
-          job_type: params.jobType,
-          status: 'queued',
-          idempotency_key: key,
-        },
-        { onConflict: 'company_id,idempotency_key', ignoreDuplicates: true }
-      )
-      .select('id')
-      .maybeSingle();
+    const { data, error } = await (supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: { queued?: boolean; job_id?: string } | null; error: { message: string } | null }>)(
+      'fn_enqueue_autonomous_job',
+      {
+        p_company_id: params.companyId,
+        p_job_type: params.jobType,
+        p_idempotency_key: key,
+      }
+    );
 
     if (error) {
       return { queued: false, reason: error.message };
     }
-    return { queued: true, jobId: data?.id };
+    return {
+      queued: Boolean(data?.queued),
+      ...(data?.job_id ? { jobId: data.job_id } : {}),
+    };
   } catch (err) {
     return {
       queued: false,

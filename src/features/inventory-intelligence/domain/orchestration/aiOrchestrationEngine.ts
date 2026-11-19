@@ -9,6 +9,7 @@ import type {
 import { runBranchTransferAgent } from '../agents/branchTransferAgent';
 import { runDataIntegrityAuditAgent } from '../agents/dataIntegrityAuditAgent';
 import { runDeadStockRecoveryAgent } from '../agents/deadStockRecoveryAgent';
+import { runDecisionRiskFinancialAgent } from '../agents/decisionRiskFinancialAgent';
 import { runDemandForecastingAgent } from '../agents/demandForecastingAgent';
 import { runInventoryMonitoringAgent } from '../agents/inventoryMonitoringAgent';
 import { runOperationalExecutionAgent } from '../agents/operationalExecutionAgent';
@@ -87,11 +88,14 @@ export function runAiOrchestration(
     }
   }
 
-  // Cross-agent conflict detection & opinion synthesis
+  // Cross-agent conflict detection & opinion synthesis + Agent 8 (Decision Risk & Financial Impact)
+  const preRiskDecisions = Array.from(dedupedMap.values());
+  const financialRisk = runDecisionRiskFinancialAgent(preRiskDecisions, output);
+
   let conflictsCount = 0;
   let blockedByAuditCount = 0;
 
-  const conflictResolved: UnifiedDecision[] = Array.from(dedupedMap.values()).map(d => {
+  const conflictResolved: UnifiedDecision[] = preRiskDecisions.map(d => {
     const opinions: AgentOpinion[] = [
       { agentId: d.agentId, stance: 'approve', note: d.recommendedAction },
     ];
@@ -133,6 +137,20 @@ export function runAiOrchestration(
       }
     }
 
+    // Conflict 4: Decision Risk & Financial Impact Agent (Agent 8)
+    const riskAssessment = financialRisk.assessments.get(d.decisionId);
+    if (riskAssessment && riskAssessment.riskFlags.length > 0) {
+      if (riskAssessment.recommendedStance === 'block') {
+        conflictBlocked = true;
+      }
+      conflicts.push(...riskAssessment.riskFlags);
+      opinions.push({
+        agentId: 'decision_risk_financial_impact',
+        stance: riskAssessment.recommendedStance,
+        note: riskAssessment.riskFlags.join(' • '),
+      });
+    }
+
     if (conflicts.length > 0) conflictsCount += 1;
     if (conflictBlocked) blockedByAuditCount += 1;
 
@@ -143,6 +161,9 @@ export function runAiOrchestration(
       conflictsDetected: conflicts,
       conflictBlocked,
       lifecycleState: conflictBlocked ? 'cancelled' : d.lifecycleState,
+      supportingSourceData: riskAssessment
+        ? { ...d.supportingSourceData, financialRiskAssessment: riskAssessment }
+        : d.supportingSourceData,
     };
   });
 
@@ -180,6 +201,7 @@ export function runAiOrchestration(
     companyId,
     decisions: prioritized,
     agentRuns,
+    financialRiskRun: financialRisk.run,
     summary: {
       totalDecisions: prioritized.length,
       criticalRisks,

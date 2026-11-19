@@ -250,11 +250,13 @@ export function aggregateCompanyMetrics(
 }
 
 export function buildMonthlyIndex(
-  monthlyRows: RawMonthlySalesRow[]
+  monthlyRows: RawMonthlySalesRow[],
+  mainBranchId?: string | null
 ): Map<string, Map<string, number>> {
   const index = new Map<string, Map<string, number>>();
   for (const row of monthlyRows) {
-    const key = `${row.product_id}::${row.branch_id ?? 'none'}`;
+    const branchKey = row.branch_id ?? mainBranchId ?? 'none';
+    const key = `${row.product_id}::${branchKey}`;
     let m = index.get(key);
     if (!m) {
       m = new Map<string, number>();

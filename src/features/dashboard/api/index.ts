@@ -25,6 +25,45 @@ export const dashboardApi = {
     const activeSignal: AbortSignal =
       signal && 'addEventListener' in signal ? signal : new AbortController().signal;
 
+    // Consolidated single-RPC Dashboard bundle (reduces 10 HTTP calls -> 1 under concurrency)
+    const bundleRes = await (supabase.rpc as Function)(
+      'get_dashboard_bundle',
+      {
+        p_company_id: companyId,
+        p_date_from: effectiveDateFrom || null,
+        p_date_to: effectiveDateTo,
+        ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
+      }
+    );
+
+    const bundleErr = bundleRes.error as { code?: string; message?: string } | null;
+    const isMissingBundleRpc =
+      bundleErr?.code === '42883' ||
+      bundleErr?.code === 'PGRST202' ||
+      (bundleErr?.message ?? '').includes('Could not find the function');
+
+    if (!bundleErr && bundleRes.data) {
+      const b = bundleRes.data as Record<string, unknown>;
+      const ok = (d: unknown): DashResult => ({ status: 'fulfilled', value: { data: d, error: null } });
+      return normalizeRawDashboardPayload({
+        summaryRes: ok(b.summary),
+        plRes: ok(b.profit_loss),
+        debtFollowupRes: ok(b.debt_followup),
+        lowStockRes: ok(b.low_stock),
+        recentInvoicesRes: ok(b.recent_invoices),
+        recentExpensesRes: ok(b.recent_expenses),
+        chartRes: ok(b.sales_chart),
+        topRes: ok(b.top_data),
+        topSellingRes: ok(b.top_selling),
+        productCategoriesRes: ok(b.product_categories),
+        trialBalanceRows: [],
+      });
+    }
+
+    if (bundleErr && !isMissingBundleRpc) {
+      logger.warn('DashboardApi', 'get_dashboard_bundle failed, falling back to parallel RPCs:', bundleErr);
+    }
+
     const [
       summaryRes,
       plRes,
@@ -51,7 +90,7 @@ export const dashboardApi = {
         'report_profit_loss',
         {
           p_company_id: companyId,
-          ...(effectiveDateFrom ? { p_from: effectiveDateFrom } : {}),
+          p_from: effectiveDateFrom || ALL_TIME_START,
           p_to: effectiveDateTo,
           ...(branchParam !== undefined ? { p_branch_id: branchParam } : {}),
         },
@@ -81,7 +120,7 @@ export const dashboardApi = {
         let q = supabase
           .from('invoices')
           .select(
-            'id, invoice_number, type, issue_date, created_at, total_amount, currency_code, party_id, parties(name)'
+            'id, invoice_number, type, issue_date, created_at, total_amount, currency_code, party_id, parties!invoices_party_id_fkey(name)'
           )
           .eq('company_id', companyId)
           .is('deleted_at', null)

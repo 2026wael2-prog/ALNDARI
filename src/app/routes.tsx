@@ -1,16 +1,16 @@
 import React, { lazy } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import MainLayout from '../ui/layout/MainLayout';
+const MainLayout = lazy(() => import('../ui/layout/MainLayout'));
 import { ROUTES } from '../core/routes/paths';
 import { useTranslation } from '../lib/hooks/useTranslation';
 import { AuthGuard } from '../features/auth/components/AuthGuard';
 import { GuestGuard } from '../features/auth/components/GuestGuard';
 import { FeatureBoundary } from '../core/components/FeatureBoundary';
 
-// Auth Pages (Eager Loading — must be instant)
-import LandingPage from '../features/auth/LandingPage';
-import ForgotPasswordPage from '../features/auth/ForgotPasswordPage';
-import UpdatePasswordPage from '../features/auth/UpdatePasswordPage';
+// Auth Pages (Lazy-loaded so authenticated users do not download landing assets on startup)
+const LandingPage = lazy(() => import('../features/auth/LandingPage'));
+const ForgotPasswordPage = lazy(() => import('../features/auth/ForgotPasswordPage'));
+const UpdatePasswordPage = lazy(() => import('../features/auth/UpdatePasswordPage'));
 
 // Critical Dashboard Page (lazy-loaded so Auth/Landing pages don't download dashboard + charts)
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'));

@@ -34,7 +34,7 @@ export function generateTransferRecommendations(
               item.identity.minStockLevel,
               Math.ceil(bm.adjustedDailyDemand * config.target_coverage_days * mult)
             );
-        const surplus = Math.floor(bm.availableStock - protectedReserve);
+        const surplus = Math.floor(bm.availableStock - bm.pendingTransferOut - protectedReserve);
         return { bm, forecast30, protectedReserve, surplus };
       })
       .filter(s => s.surplus >= 1)
@@ -51,7 +51,7 @@ export function generateTransferRecommendations(
           item.identity.minStockLevel,
           Math.ceil(forecastLeadAndReview * 1.15)
         );
-        const netAvailable = bm.availableStock + bm.incomingStock + bm.pendingTransferIn;
+        const netAvailable = bm.availableStock + bm.incomingStock + bm.pendingTransferIn - bm.pendingTransferOut;
         const deficit = Math.ceil(targetNeeded - netAvailable);
         const hasRealDemand = bm.adjustedDailyDemand > 0 || bm.qty90d > 0;
         return { bm, deficit, hasRealDemand };

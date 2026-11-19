@@ -36,7 +36,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const { t, dir } = useTranslation();
 
-  const { pageSearchValue, pageSearchPlaceholder, onPageSearchChange } = useSearchStore();
+  const pageSearchValue = useSearchStore(s => s.pageSearchValue);
+  const pageSearchPlaceholder = useSearchStore(s => s.pageSearchPlaceholder);
+  const onPageSearchChange = useSearchStore(s => s.onPageSearchChange);
   const isPageSearchActive = !!onPageSearchChange;
 
   const [globalSearchVal, setGlobalSearchVal] = useState('');
@@ -207,4 +209,4 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   );
 };
 
-export default Header;
+export default React.memo(Header);

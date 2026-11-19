@@ -127,6 +127,8 @@ export const useChatRealtime = () => {
     }
 
     let hasSubscribedBefore = false;
+    let reconnectAttempts = 0;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
     const channelName = `chat-realtime-${companyId}`;
 
     // لو تغيّرت المنشأة/المستخدم مع بقاء وسم قديم (تسجيل خروج/تبديل منشأة)
@@ -231,6 +233,11 @@ export const useChatRealtime = () => {
       )
       .subscribe(status => {
         if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+          reconnectAttempts = 0;
+          if (fallbackTimer) {
+            clearTimeout(fallbackTimer);
+            fallbackTimer = null;
+          }
           logger.debug('ChatRealtime', `Connected to chat realtime channel [${channelName}]`);
           // If reconnected after initial connection, resync channels & messages
           if (hasSubscribedBefore) {
@@ -248,16 +255,35 @@ export const useChatRealtime = () => {
           status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR ||
           status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT
         ) {
-          logger.error(
-            'ChatRealtime',
-            `Realtime channel unavailable (${status}); awaiting automatic reconnect`
-          );
+          reconnectAttempts += 1;
+          const backoffMs = Math.min(60000, 5000 * Math.pow(2, Math.min(reconnectAttempts - 1, 4)));
+          if (reconnectAttempts === 1) {
+            logger.warn(
+              'ChatRealtime',
+              `Realtime channel unavailable (${status}); using controlled backoff (${backoffMs}ms)`
+            );
+          } else {
+            logger.debug('ChatRealtime', `Realtime retry #${reconnectAttempts} (${status}); next poll in ${backoffMs}ms`);
+          }
+          if (!fallbackTimer) {
+            fallbackTimer = setTimeout(() => {
+              fallbackTimer = null;
+              const state = getState();
+              if (state.activeChannelId) {
+                state.fetchMessages(state.activeChannelId);
+              }
+            }, backoffMs);
+          }
         }
       });
 
     activeSubscription = { key, channel, refCount: 1 };
 
     return () => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
       releaseSubscription(key);
     };
   }, [companyId, userId]);

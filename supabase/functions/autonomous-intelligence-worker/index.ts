@@ -23,14 +23,18 @@ Deno.serve(async (req: Request) => {
 
   try {
     const workerSecret = Deno.env.get('AUTONOMOUS_WORKER_SECRET');
-    if (workerSecret) {
-      const incoming = req.headers.get('x-worker-secret') ?? '';
-      if (incoming !== workerSecret) {
-        return new Response(JSON.stringify({ error: 'Unauthorized worker secret' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    if (!workerSecret) {
+      return new Response(JSON.stringify({ error: 'Worker secret is not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const incoming = req.headers.get('x-worker-secret') ?? '';
+    if (incoming !== workerSecret) {
+      return new Response(JSON.stringify({ error: 'Unauthorized worker secret' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const supabase = createClient(
@@ -89,7 +93,7 @@ Deno.serve(async (req: Request) => {
             .maybeSingle();
 
           if (!tr || tr.reversed_at || tr.status === 'cancelled') {
-            await supabase
+            const { error: trFailErr } = await supabase
               .from('inv_intelligence_recommendations')
               .update({
                 lifecycle_state: 'failed',
@@ -98,9 +102,10 @@ Deno.serve(async (req: Request) => {
               })
               .eq('id', r.id)
               .eq('company_id', companyId);
+            if (trFailErr) throw new Error(trFailErr.message);
             escalatedCount += 1;
-          } else if (tr.status === 'completed' || tr.status === 'in_transit' || tr.status === 'pending' || tr.status === 'approved') {
-            await supabase
+          } else if (tr.status === 'completed' || tr.status === 'pending') {
+            const { error: trOkErr } = await supabase
               .from('inv_intelligence_recommendations')
               .update({
                 lifecycle_state: tr.status === 'completed' ? 'verified' : 'executed',
@@ -109,18 +114,20 @@ Deno.serve(async (req: Request) => {
               })
               .eq('id', r.id)
               .eq('company_id', companyId);
+            if (trOkErr) throw new Error(trOkErr.message);
             if (tr.status === 'completed') verifiedCount += 1;
           }
         } else if (r.rec_type === 'purchase' && r.linked_po_id) {
-          const { data: po } = await supabase
+          const { data: po, error: poReadErr } = await supabase
             .from('prc_purchase_orders')
             .select('po_id, status')
             .eq('po_id', r.linked_po_id)
             .eq('company_id', companyId)
             .maybeSingle();
+          if (poReadErr) throw new Error(poReadErr.message);
 
           if (!po || po.status === 'cancelled') {
-            await supabase
+            const { error: poFailErr } = await supabase
               .from('inv_intelligence_recommendations')
               .update({
                 lifecycle_state: 'failed',
@@ -129,10 +136,14 @@ Deno.serve(async (req: Request) => {
               })
               .eq('id', r.id)
               .eq('company_id', companyId);
+            if (poFailErr) throw new Error(poFailErr.message);
             escalatedCount += 1;
           } else {
-            const isReceived = po.status === 'received' || po.status === 'partially_received' || po.status === 'issued' || po.status === 'approved';
-            await supabase
+            const isReceived =
+              po.status === 'fully_received' ||
+              po.status === 'partially_received' ||
+              po.status === 'closed';
+            const { error: poOkErr } = await supabase
               .from('inv_intelligence_recommendations')
               .update({
                 lifecycle_state: isReceived ? 'verified' : 'executed',
@@ -141,23 +152,14 @@ Deno.serve(async (req: Request) => {
               })
               .eq('id', r.id)
               .eq('company_id', companyId);
+            if (poOkErr) throw new Error(poOkErr.message);
             if (isReceived) verifiedCount += 1;
           }
         }
       }
 
-      if (escalatedCount > 0) {
-        await supabase.from('notification_log').insert({
-          company_id: companyId,
-          channel: 'system_escalation',
-          event_type: 'autonomous_verification_escalation',
-          message: `تصعيد آلي: تم رصد ${escalatedCount} عملية تحويل أو شراء ملغاة/فاشلة أثناء التحقق في قاعدة البيانات`,
-          status: 'pending',
-        });
-      }
-
-      // 3) Mark job completed & log agent execution
-      await supabase
+      // 3) Mark job completed & log agent execution (internal escalations recorded here, not in notification_log)
+      const { error: jobDoneErr } = await supabase
         .from('inv_autonomous_jobs')
         .update({
           status: 'completed',
@@ -166,8 +168,9 @@ Deno.serve(async (req: Request) => {
           completed_at: new Date().toISOString(),
         })
         .eq('id', job.id);
+      if (jobDoneErr) throw new Error(jobDoneErr.message);
 
-      await supabase.from('inv_agent_execution_logs').insert({
+      const { error: logErr } = await supabase.from('inv_agent_execution_logs').insert({
         company_id: companyId,
         job_id: job.id,
         agent_id: 'operational_execution',
@@ -176,7 +179,12 @@ Deno.serve(async (req: Request) => {
         decisions_generated: verifiedCount,
         duration_ms: Date.now() - startMs,
         summary: `Job ${job.job_type}: ${verifiedCount} verified, ${escalatedCount} escalated`,
+        error_details:
+          escalatedCount > 0
+            ? `تصعيد تشغيلي: تم رصد ${escalatedCount} عملية تحويل أو شراء ملغاة/فاشلة أثناء التحقق`
+            : null,
       });
+      if (logErr) throw new Error(logErr.message);
 
       return new Response(
         JSON.stringify({ ok: true, jobId: job.id, verifiedCount, escalatedCount }),
@@ -197,13 +205,16 @@ Deno.serve(async (req: Request) => {
         .eq('id', job.id);
 
       if (nextStatus === 'failed') {
-        await supabase.from('notification_log').insert({
+        await supabase.from('inv_agent_execution_logs').insert({
           company_id: companyId,
-          channel: 'system_escalation',
-          event_type: 'autonomous_job_failed',
-          message: `تصعيد فشل مهمة خلفية (${job.job_type}) بعد ${job.attempts} محاولات: ${msg}`,
-          status: 'failed',
-          error_message: msg,
+          job_id: job.id,
+          agent_id: 'operational_execution',
+          status: 'error',
+          items_scanned: 0,
+          decisions_generated: 0,
+          duration_ms: Date.now() - startMs,
+          summary: `Job ${job.job_type} failed after ${job.attempts} attempts`,
+          error_details: msg,
         });
       }
 

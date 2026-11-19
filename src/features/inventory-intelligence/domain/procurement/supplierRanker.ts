@@ -15,13 +15,22 @@ export function rankSuppliersForProduct(
 ): RankedSupplier[] {
   if (!rows || rows.length === 0) return [];
 
-  const constraintBySupplier = new Map(constraints.map(c => [c.supplier_id, c]));
+  const constraintBySupplier = new Map<string, RawSupplierConstraintRow>();
+  for (const c of constraints) {
+    constraintBySupplier.set(c.supplier_id, c);
+    if (c.party_id) {
+      constraintBySupplier.set(c.party_id, c);
+    }
+  }
   const minPrice = Math.min(...rows.map(r => Number(r.last_unit_price) || Number(r.avg_unit_price) || Infinity));
   const maxTx = Math.max(...rows.map(r => Number(r.purchase_tx_count) || 1), 1);
 
   return rows
     .map((r): RankedSupplier => {
-      const constraint = constraintBySupplier.get(r.supplier_id);
+      const constraint =
+        constraintBySupplier.get(r.prc_supplier_id ?? '') ??
+        constraintBySupplier.get(r.supplier_id) ??
+        constraintBySupplier.get(r.party_id ?? '');
       const lastPrice = Number(r.last_unit_price) || 0;
       const avgPrice = Number(r.avg_unit_price) || lastPrice;
       const txCount = Number(r.purchase_tx_count) || 0;
@@ -76,8 +85,16 @@ export function rankSuppliersForProduct(
       if (hasMeasuredLead) reasons.push(`توريد مقاس (${leadTime}ي)`);
       if (reasons.length === 0) reasons.push('مورد تاريخي مسجل للصنف');
 
+      const resolvedSupplierId = r.prc_supplier_id ?? constraint?.supplier_id ?? r.supplier_id;
+      const isProcurementRegistered =
+        r.is_procurement_registered ?? Boolean(r.prc_supplier_id || constraint?.supplier_id);
+
       return {
-        supplierId: r.supplier_id,
+        supplierId: resolvedSupplierId,
+        prcSupplierId: r.prc_supplier_id ?? constraint?.supplier_id ?? null,
+        partyId: r.party_id ?? constraint?.party_id ?? null,
+        isProcurementRegistered,
+        currency: r.currency ?? constraint?.default_currency ?? 'SAR',
         supplierName: r.supplier_name,
         lastPurchaseDate: r.last_purchase_date,
         lastUnitPrice: Number(lastPrice.toFixed(2)),

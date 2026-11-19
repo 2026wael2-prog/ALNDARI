@@ -1,6 +1,10 @@
 import React, { useMemo } from 'react';
 import { Activity, CheckCircle2, ShieldAlert, ShieldCheck } from 'lucide-react';
-import type { IntelligenceEngineOutput, PersistedRecommendationRecord } from '../../types';
+import type {
+  IntelligenceEngineOutput,
+  OrchestrationResult,
+  PersistedRecommendationRecord,
+} from '../../types';
 import { formatCurrency } from '../../../../core/utils';
 import { runAiOrchestration } from '../../domain/orchestration/aiOrchestrationEngine';
 import { GRID_TABLE_CLASS } from '../shared/IntelligenceBadges';
@@ -10,6 +14,7 @@ interface CommandCenterPanelProps {
   data: IntelligenceEngineOutput;
   history: PersistedRecommendationRecord[];
   companyId: string;
+  orchestration?: OrchestrationResult | null | undefined;
   onNavigateTab: (tabId: string) => void;
 }
 
@@ -23,11 +28,12 @@ export const CommandCenterPanel: React.FC<CommandCenterPanelProps> = React.memo(
   data,
   history,
   companyId,
+  orchestration: externalOrchestration,
   onNavigateTab,
 }) => {
   const orchestration = useMemo(
-    () => runAiOrchestration(data, history, companyId),
-    [data, history, companyId]
+    () => externalOrchestration ?? runAiOrchestration(data, history, companyId),
+    [externalOrchestration, data, history, companyId]
   );
 
   const s = orchestration.summary;

@@ -53,6 +53,9 @@ export function generatePurchaseRecommendations(
     const forecastDaily = Math.max(item.forecast30d.dailyRate, cm.adjustedDailyDemand);
     // Never recommend purchasing solely for low stock when there is zero historical demand
     if (forecastDaily <= 0 && cm.qty365d <= 0) continue;
+    // Prevent external purchasing for company-wide dead stock unless a specific branch has active recent demand (90d)
+    const hasActiveBranchDemand = item.branchMetrics.some(bm => bm.qty90d > 0);
+    if (item.isDeadStock && !hasActiveBranchDemand) continue;
 
     const topSupplier = item.suppliers[0] ?? null;
     const leadTimeDays = topSupplier?.estimatedLeadTimeDays ?? config.default_lead_time_days;
@@ -99,8 +102,10 @@ export function generatePurchaseRecommendations(
     const sumBranchShortages = branchShortageBreakdown.reduce((s, b) => s + b.shortage, 0);
 
     const pendingTransferQty = transferCoverageByProduct.get(item.identity.productId) ?? 0;
+    // Canonical Inventory Contract: availableStock = max(0, physicalStock - reservedStock - damagedStock).
+    // Do NOT deduct reservedStock a second time here.
     const netInventoryPosition =
-      cm.availableStock + cm.incomingStock + cm.pendingTransferIn - cm.pendingTransferOut - cm.reservedStock;
+      cm.availableStock + cm.incomingStock + cm.pendingTransferIn - cm.pendingTransferOut;
     const netBranchShortageAfterIncomingPO = Math.max(0, sumBranchShortages - cm.incomingStock);
 
     // Only recommend purchase if net inventory position is at or below reorder point OR a branch still has net shortage after incoming POs
@@ -117,8 +122,9 @@ export function generatePurchaseRecommendations(
     const packMultiple = Math.max(1, topSupplier?.orderMultiple ?? 1);
     const baseQty = Math.max(moq, Math.ceil(rawRequired));
     const recommendedQty = Math.ceil(baseQty / packMultiple) * packMultiple;
-    const unitPrice = topSupplier?.lastUnitPrice || item.identity.unitCost;
+    const unitPrice = Number((topSupplier?.lastUnitPrice || item.identity.unitCost || 0).toFixed(4));
     const estimatedCost = Number((recommendedQty * unitPrice).toFixed(2));
+    const currency = topSupplier?.currency ?? 'SAR';
 
     const expectedCoverageDaysAfter =
       forecastDaily > 0
@@ -177,6 +183,7 @@ export function generatePurchaseRecommendations(
         reorderPoint,
         physicalStock: cm.physicalStock,
         reservedStock: cm.reservedStock,
+        damagedStock: cm.damagedStock,
         availableStock: cm.availableStock,
         incomingStock: cm.incomingStock,
         netPendingTransfers: pendingTransferQty,
@@ -188,6 +195,9 @@ export function generatePurchaseRecommendations(
         branchForecastUsed,
         branchShortageBreakdown,
         finalRecommendedQty: recommendedQty,
+        unitPrice,
+        estimatedCost,
+        currency,
         leadTimeDays,
         reviewPeriodDays,
         serviceLevel: config.safety_stock_service_level,

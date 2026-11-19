@@ -1,16 +1,32 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { HashRouter } from 'react-router-dom';
 import { AppRoutes } from './app/routes';
 import FeedbackToast from './ui/base/FeedbackToast';
 import { ErrorBoundary } from './core/components/ErrorBoundary';
-import CommandPalette from './ui/base/CommandPalette';
 import { useSystemInitialization } from './core/hooks/useSystemInitialization';
-import { DebtAlertsRunner } from './features/debts/components/DebtAlertsRunner';
-import { BranchTransferAlertRunner } from './features/inventory/components/transfers/BranchTransferAlertRunner';
+
+const CommandPalette = lazy(() => import('./ui/base/CommandPalette'));
+const DebtAlertsRunner = lazy(() =>
+  import('./features/debts/components/DebtAlertsRunner').then(m => ({ default: m.DebtAlertsRunner }))
+);
+const BranchTransferAlertRunner = lazy(() =>
+  import('./features/inventory/components/transfers/BranchTransferAlertRunner').then(m => ({
+    default: m.BranchTransferAlertRunner,
+  }))
+);
 
 const App: React.FC = () => {
   // Centralized system bootstrapping (Auth, I18n, Sync, Shortcuts)
   useSystemInitialization();
+  const [mountBackgroundRunners, setMountBackgroundRunners] = React.useState(false);
+
+  // تأجيل تشغيل محركات التنبيه الخلفية حتى يستقر الإقلاع الأولي والرسم الرئيسي
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setMountBackgroundRunners(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // جسر تنقّل من Service Worker: عند النقر على تنبيه دفع والتطبيق مفتوح،
   // العامل يرسل رسالة بدل إعادة تحميل الصفحة — نطبّقها على HashRouter.
@@ -32,12 +48,18 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <HashRouter>
         <AppRoutes />
-        {/* محرك تنبيهات التحصيل مركزي: يعمل خارج قسم الديون (مبوّب بصلاحية debts:read) */}
-        <DebtAlertsRunner />
-        {/* محرك تنبيهات طلبات المناقلة اللحظية بين الفروع */}
-        <BranchTransferAlertRunner />
+        <Suspense fallback={null}>
+          {mountBackgroundRunners && (
+            <>
+              {/* محرك تنبيهات التحصيل مركزي: يعمل خارج قسم الديون (مبوّب بصلاحية debts:read) */}
+              <DebtAlertsRunner />
+              {/* محرك تنبيهات طلبات المناقلة اللحظية بين الفروع */}
+              <BranchTransferAlertRunner />
+            </>
+          )}
+          <CommandPalette />
+        </Suspense>
         <FeedbackToast />
-        <CommandPalette />
       </HashRouter>
     </ErrorBoundary>
   );

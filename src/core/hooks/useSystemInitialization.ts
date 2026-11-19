@@ -7,7 +7,6 @@ import { notificationService } from '../../features/notifications/service';
 import { useLocalizationSettings } from '../../features/settings/settingsStore';
 import { useSoundStore } from '../../features/notifications/store';
 import { initAPM } from '../utils/initAPM';
-import { prefetchCriticalRoutes } from '../utils/routePrefetcher';
 import { useRealtimeSync } from '../../lib/hooks/useRealtimeSync';
 import { useBranchNotifications } from '../../features/branches/hooks/useBranchNotifications';
 
@@ -75,16 +74,13 @@ export const useSystemInitialization = () => {
     }
   }, [lang, localizationSettings?.default_language, setLang]);
 
-  // 2. Smart Notifications, Health Check & Idle Route Prefetching
+  // 2. Smart Notifications & Health Check (deferred well after initial paint; no automatic 11-route JS prefetch storm)
   useEffect(() => {
     if (!user?.company_id) return;
 
-    // ⚡ تأجيل فحص صحة النظام والتحميل المسبق للمسارات الحرجة لما بعد استقرار الإقلاع الأولي
-    // حتى لا تتزاحم مع طلبات الصفحة الرئيسية عند فتح التطبيق.
     const bootTimer = setTimeout(() => {
       notificationService.checkSystemHealth(user.company_id!, user.branch_id);
-      prefetchCriticalRoutes();
-    }, 3500);
+    }, 10000);
 
     // Run interval checks every 10 minutes
     const interval = setInterval(

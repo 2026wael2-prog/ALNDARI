@@ -53,7 +53,12 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
-          await supabase.auth.signOut();
+          await queryClient.cancelQueries();
+          await Promise.race([
+            supabase.auth.signOut(),
+            new Promise<void>(resolve => setTimeout(resolve, 2500)),
+          ]);
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
         } catch (err) {
           logger.error('Auth', 'Sign out error', err);
         } finally {

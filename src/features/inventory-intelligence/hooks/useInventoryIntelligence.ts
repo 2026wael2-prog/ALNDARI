@@ -3,17 +3,63 @@ import { useAuthStore } from '../../auth/store';
 import { useFeedbackStore } from '../../feedback/store';
 import { assertPermission } from '../../../core/hooks/usePermission';
 import { intelligenceService } from '../services/intelligenceService';
+import { getBackgroundJobs, enqueueIntelligenceJob } from '../api/autonomousApi';
 import type { EngineConfig, RecommendationStatus } from '../types';
 import { DEFAULT_ENGINE_CONFIG } from '../types';
 
-export function useInventoryIntelligence() {
+export function useInventoryIntelligenceSummary(lookbackDays = 365, branchId?: string | null) {
+  const { user } = useAuthStore();
+  const companyId = user?.company_id ?? '';
+
+  return useQuery({
+    queryKey: ['inventory_intelligence_summary', companyId, lookbackDays, branchId ?? null],
+    queryFn: () => intelligenceService.getSummary(companyId, lookbackDays, branchId),
+    enabled: Boolean(companyId),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useInventoryIntelligenceProductsPage(opts: {
+  lookbackDays?: number;
+  branchId?: string | null;
+  search?: string | null;
+  limit?: number;
+  offset?: number;
+  enabled?: boolean;
+}) {
+  const { user } = useAuthStore();
+  const companyId = user?.company_id ?? '';
+
+  return useQuery({
+    queryKey: [
+      'inventory_intelligence_products_page',
+      companyId,
+      opts.lookbackDays ?? 365,
+      opts.branchId ?? null,
+      opts.search ?? '',
+      opts.limit ?? 25,
+      opts.offset ?? 0,
+    ],
+    queryFn: () => intelligenceService.getProductsPage(companyId, opts),
+    enabled: Boolean(companyId) && (opts.enabled ?? true),
+    staleTime: 60 * 1000,
+    placeholderData: prev => prev,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useInventoryIntelligence(enabled = false) {
   const { user } = useAuthStore();
   const companyId = user?.company_id ?? '';
 
   return useQuery({
     queryKey: ['inventory_intelligence', 'v2', companyId],
     queryFn: () => intelligenceService.loadAndRunAnalysis(companyId),
-    enabled: Boolean(companyId),
+    enabled: Boolean(companyId) && enabled,
     staleTime: 5 * 60 * 1000,
     gcTime: 20 * 60 * 1000,
     retry: 0,
@@ -76,6 +122,8 @@ export function useIntelligenceMutations() {
       status: RecommendationStatus;
       decisionReason?: string;
       calculationBreakdown?: Record<string, unknown>;
+      conflictBlocked?: boolean;
+      conflictReasons?: string[];
     }) => {
       if (!user?.company_id || !user?.id) throw new Error('جلسة العمل منتهية');
       await assertPermission('inventory:update', 'اعتماد توصيات ذكاء المخزون');
@@ -142,4 +190,37 @@ export function useIntelligenceMutations() {
     reviewAlternative: reviewAlternative.mutateAsync,
     isReviewingAlternative: reviewAlternative.isPending,
   };
+}
+
+export function useBackgroundJobs() {
+  const { user } = useAuthStore();
+  const companyId = user?.company_id ?? '';
+
+  return useQuery({
+    queryKey: ['inventory_intelligence_jobs', companyId],
+    queryFn: () => getBackgroundJobs(companyId),
+    enabled: Boolean(companyId),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useEnqueueIntelligenceJob() {
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { showToast } = useFeedbackStore();
+
+  return useMutation({
+    mutationFn: async (jobType: 'full_orchestration' | 'outcome_verification' | 'snapshot_refresh') => {
+      if (!user?.company_id) throw new Error('جلسة العمل منتهية');
+      await assertPermission('inventory:update', 'جدولة فحص ذكاء المخزون');
+      return enqueueIntelligenceJob({ companyId: user.company_id, jobType });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['inventory_intelligence_jobs'] });
+      showToast('تمت إضافة المهمة إلى قائمة الانتظار بنجاح', 'success');
+    },
+    onError: (err: Error) => {
+      showToast(err.message || 'تعذر جدولة المهمة', 'error');
+    },
+  });
 }

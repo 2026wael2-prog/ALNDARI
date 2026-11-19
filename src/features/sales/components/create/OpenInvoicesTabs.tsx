@@ -143,9 +143,9 @@ export const OpenInvoicesTabs: React.FC<OpenInvoicesTabsProps> = ({ disabled = f
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-slate-100/70 px-2 py-1.5 dark:border-slate-800/80 dark:bg-slate-900/40">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-200/80 bg-slate-100/70 px-1.5 py-1 dark:border-slate-800/80 dark:bg-slate-900/40">
         {/* قائمة التبويبات للفواتير المفتوحة */}
-        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-1 overflow-x-auto">
           {drafts.map(draft => {
             const isActive = draft.id === activeDraftId;
             const isEditing = editingDraftId === draft.id;

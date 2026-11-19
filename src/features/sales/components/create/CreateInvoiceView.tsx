@@ -58,9 +58,9 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
 
   return (
     <>
-      <div className="animate-in fade-in mx-auto max-w-none space-y-2 px-1 pb-28 pt-1 duration-500 sm:space-y-3 sm:px-2 sm:pb-32 sm:pt-2">
+      <div className="animate-in fade-in mx-auto max-w-none space-y-1 px-1 pb-24 pt-0 duration-500 sm:space-y-1.5 sm:px-1.5 sm:pb-24 sm:pt-0">
         {/* شريط تبويبات الفواتير المفتوحة المتعددة بالتوازي */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <OpenInvoicesTabs disabled={Boolean(navigation.currentViewingInvoice)} />
         </div>
 

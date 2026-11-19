@@ -65,8 +65,8 @@ export const InvoiceTreasurySelector: React.FC<Props> = ({
 
   return (
     <div className="relative" ref={containerRef}>
-      <div className="mb-1 flex items-center gap-1 text-slate-400">
-        <Wallet size={12} className="text-emerald-500" />
+      <div className="mb-0.5 flex items-center gap-1 text-slate-400">
+        <Wallet size={11} className="text-emerald-500" />
         <span className="text-[10px] font-bold">حساب الصندوق</span>
       </div>
 
@@ -75,7 +75,7 @@ export const InvoiceTreasurySelector: React.FC<Props> = ({
         onClick={() => {
           setIsOpen(prev => !prev);
         }}
-        className="flex w-full items-center justify-between gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none transition-colors hover:border-slate-300 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+        className="flex w-full items-center justify-between gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-800 outline-none transition-colors hover:border-slate-300 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
       >
         <span className="truncate">
           {selectedAccount ? selectedAccount.name_ar : 'اختر الصندوق...'}

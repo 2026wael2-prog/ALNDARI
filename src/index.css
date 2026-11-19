@@ -2482,23 +2482,38 @@ a:focus-visible {
 #main-content .mt-2 { margin-top: 0.3rem !important; }
 
 /* ==========================================================================
-   SOLAR NOIR THEME — الأبيض والأسود البرتقالي والأصفر الخفيف
-   الأسود فقط للحواف والخطوط والكتابة (في الوضعين النهاري والليلي)
-   مع تنسيق احترافي متناسق للأيقونات والنصوص لضمان قراءة واضحة 100%
+   SOLAR NOIR THEME — الأبيض والأسود البرتقالي والأصفر الخفيف (الإصدار الراقي الهادئ)
+   الأسود فقط للحواف والخطوط الرفيعة والكتابة (في الوضعين النهاري والليلي)
+   تدرّج بصري هادئ ومريح للعين بأسلوب سويسري فاخر
    ========================================================================== */
 html[data-preset='solar-noir'] {
   color: #0a0a0a !important;
-  --app-border-subtle: rgba(10, 10, 10, 0.22);
-  --app-border: rgba(10, 10, 10, 0.55);
-  --app-border-strong: #0a0a0a;
-  --app-grid: rgba(10, 10, 10, 0.24);
+  --app-border-subtle: rgba(10, 10, 10, 0.09);
+  --app-border: rgba(10, 10, 10, 0.18);
+  --app-border-strong: rgba(10, 10, 10, 0.34);
+  --app-grid: rgba(10, 10, 10, 0.09);
 }
 
 html[data-preset='solar-noir'] * {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 1. نصوص واضحة وحادة بالأسود في الوضعين النهاري والليلي (منع النصوص الصفراء/الباهتة) */
+html[data-preset='solar-noir'] ::selection {
+  background-color: #fef08a;
+  color: #0a0a0a;
+}
+
+/* شريط تمرير ناعم وهادئ */
+html[data-preset='solar-noir'] ::-webkit-scrollbar-thumb {
+  background: rgba(10, 10, 10, 0.22);
+  border-radius: 9999px;
+}
+
+html[data-preset='solar-noir'] ::-webkit-scrollbar-thumb:hover {
+  background: #ea580c;
+}
+
+/* 1. طباعة راقية وتباين مريح للعين (أسود صافي للعناوين + أسود هادئ للوصف) */
 html[data-preset='solar-noir'] h1,
 html[data-preset='solar-noir'] h2,
 html[data-preset='solar-noir'] h3,
@@ -2509,6 +2524,7 @@ html[data-preset='solar-noir'] strong,
 html[data-preset='solar-noir'] b {
   color: #0a0a0a !important;
   font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 html[data-preset='solar-noir'] .text-slate-300,
@@ -2522,7 +2538,7 @@ html[data-preset='solar-noir'] .text-gray-600,
 html[data-preset='solar-noir'] .text-neutral-400,
 html[data-preset='solar-noir'] .text-neutral-500,
 html[data-preset='solar-noir'] .text-\[var\(--app-text-secondary\)\] {
-  color: #171717 !important;
+  color: rgba(10, 10, 10, 0.72) !important;
 }
 
 html[data-preset='solar-noir'].dark .dark\:text-slate-100,
@@ -2538,25 +2554,26 @@ html[data-preset='solar-noir'].dark .dark\:text-white {
   color: #0a0a0a !important;
 }
 
-/* 2. القائمة الجانبية (Sidebar) — تنسيق احترافي: أسماء سوداء واضحة + أيقونات برتقالية على أصفر خفيف */
+/* 2. القائمة الجانبية (Sidebar) — أبيض دافئ هادئ + حدود رفيعة + أيقونات برتقالية راقية */
 html[data-preset='solar-noir'] aside {
-  background-color: #ffffff !important;
-  border-color: #0a0a0a !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fffef8 100%) !important;
+  border-color: rgba(10, 10, 10, 0.16) !important;
+  box-shadow: 0 0 24px rgba(10, 10, 10, 0.04) !important;
 }
 
 html[data-preset='solar-noir'].dark aside {
-  background-color: #fefce8 !important;
-  border-color: #0a0a0a !important;
+  background: linear-gradient(180deg, #fffef9 0%, #fefce8 100%) !important;
+  border-color: rgba(10, 10, 10, 0.18) !important;
 }
 
 /* عناوين أقسام القائمة الجانبية */
 html[data-preset='solar-noir'] aside nav > div > div:first-child {
   color: #c2410c !important;
   font-weight: 800 !important;
-  letter-spacing: 0.03em;
-  border-bottom: 1px solid rgba(10, 10, 10, 0.14);
-  padding-bottom: 0.25rem;
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(10, 10, 10, 0.08);
+  padding-bottom: 0.28rem;
+  margin-bottom: 0.3rem;
 }
 
 /* عناصر القائمة الجانبية (غير النشطة) */
@@ -2564,6 +2581,10 @@ html[data-preset='solar-noir'] aside nav button {
   background-color: transparent !important;
   border: 1px solid transparent !important;
   color: #0a0a0a !important;
+  transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
 html[data-preset='solar-noir'] aside nav button span {
@@ -2571,13 +2592,13 @@ html[data-preset='solar-noir'] aside nav button span {
   font-weight: 700 !important;
 }
 
-/* حاوية الأيقونة في القائمة الجانبية (أصفر خفيف + إطار أسود رفيع + أيقونة برتقالية واضحة) */
+/* حاوية الأيقونة في القائمة الجانبية (أصفر دافئ خفيف + خط أسود رفيع + أيقونة برتقالية واضحة) */
 html[data-preset='solar-noir'] aside nav button > div {
-  background: #fef9c3 !important;
+  background: #fefce8 !important;
   background-image: none !important;
-  border: 1px solid #0a0a0a !important;
+  border: 1px solid rgba(10, 10, 10, 0.14) !important;
   color: #c2410c !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgba(10, 10, 10, 0.03) !important;
 }
 
 html[data-preset='solar-noir'] aside nav button > div svg {
@@ -2587,13 +2608,15 @@ html[data-preset='solar-noir'] aside nav button > div svg {
 
 /* حالة المرور بالمؤشر في القائمة الجانبية */
 html[data-preset='solar-noir'] aside nav button:hover {
-  background-color: #fef9c3 !important;
-  border-color: #0a0a0a !important;
+  background-color: #fefce8 !important;
+  border-color: rgba(10, 10, 10, 0.18) !important;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.06) !important;
 }
 
 html[data-preset='solar-noir'] aside nav button:hover > div {
-  background: #ea580c !important;
-  border-color: #0a0a0a !important;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  border-color: rgba(10, 10, 10, 0.22) !important;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.24) !important;
 }
 
 html[data-preset='solar-noir'] aside nav button:hover > div svg {
@@ -2601,15 +2624,16 @@ html[data-preset='solar-noir'] aside nav button:hover > div svg {
   stroke: #ffffff !important;
 }
 
-/* العنصر النشط في القائمة الجانبية */
+/* العنصر النشط في القائمة الجانبية — إضاءة دافئة هادئة + شريط برتقالي أنيق */
 html[data-preset='solar-noir'] aside nav button[aria-current='page'] {
-  background-color: #fef08a !important;
-  border: 1.5px solid #ea580c !important;
-  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.16) !important;
+  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%) !important;
+  border: 1px solid rgba(234, 88, 12, 0.45) !important;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.1) !important;
 }
 
 html[data-preset='solar-noir'] aside nav button[aria-current='page'] > span:first-child {
-  background-color: #ea580c !important;
+  background: linear-gradient(180deg, #f97316 0%, #c2410c 100%) !important;
+  width: 3px !important;
 }
 
 html[data-preset='solar-noir'] aside nav button[aria-current='page'] > span:last-of-type {
@@ -2618,10 +2642,9 @@ html[data-preset='solar-noir'] aside nav button[aria-current='page'] > span:last
 }
 
 html[data-preset='solar-noir'] aside nav button[aria-current='page'] > div {
-  background: #ea580c !important;
-  background-image: none !important;
-  border: 1px solid #0a0a0a !important;
-  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3) !important;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  border: 1px solid rgba(10, 10, 10, 0.22) !important;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.28) !important;
 }
 
 html[data-preset='solar-noir'] aside nav button[aria-current='page'] > div svg {
@@ -2629,16 +2652,20 @@ html[data-preset='solar-noir'] aside nav button[aria-current='page'] > div svg {
   stroke: #ffffff !important;
 }
 
-/* 3. الشريط العلوي (Header) — خلفية بيضاء/صفراء خفيفة + خط سفلي أسود + أيقونات واضحة */
+/* 3. الشريط العلوي (Header) — زجاجي أبيض هادئ + خط علوي برتقالي رفيع + حد سفلي أسود أنيق */
 html[data-preset='solar-noir'] header {
-  background-color: #ffffff !important;
-  border-bottom: 1.5px solid #0a0a0a !important;
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(10px);
+  border-top: 2px solid #f97316 !important;
+  border-bottom: 1px solid rgba(10, 10, 10, 0.16) !important;
+  box-shadow: 0 2px 12px rgba(10, 10, 10, 0.03) !important;
   color: #0a0a0a !important;
 }
 
 html[data-preset='solar-noir'].dark header {
-  background-color: #fefce8 !important;
-  border-bottom: 1.5px solid #0a0a0a !important;
+  background-color: rgba(255, 253, 245, 0.95) !important;
+  border-top: 2px solid #f97316 !important;
+  border-bottom: 1px solid rgba(10, 10, 10, 0.18) !important;
 }
 
 html[data-preset='solar-noir'] header button,
@@ -2648,15 +2675,28 @@ html[data-preset='solar-noir'] header svg {
 }
 
 html[data-preset='solar-noir'] header button:hover {
-  background-color: #fef9c3 !important;
-  border-color: #0a0a0a !important;
+  background-color: #fefce8 !important;
+  border-color: rgba(10, 10, 10, 0.2) !important;
 }
 
 html[data-preset='solar-noir'] header button:hover svg {
   color: #c2410c !important;
 }
 
-/* 4. توحيد ألوان الأيقونات داخل المحتوى (منع أي أيقونة صفراء باهتة غير مقروءة) */
+/* 4. البطاقات واللوحات — طفو ناعم على خلفية دافئة + حواف سوداء رفيعة راقية */
+html[data-preset='solar-noir'] #main-content .rounded-2xl,
+html[data-preset='solar-noir'] #main-content .rounded-3xl,
+html[data-preset='solar-noir'] #main-content .rounded-xl {
+  box-shadow: 0 1px 3px rgba(10, 10, 10, 0.04), 0 6px 18px rgba(234, 88, 12, 0.03);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+html[data-preset='solar-noir'] #main-content .rounded-2xl:hover,
+html[data-preset='solar-noir'] #main-content .rounded-3xl:hover {
+  box-shadow: 0 2px 6px rgba(10, 10, 10, 0.05), 0 10px 24px rgba(234, 88, 12, 0.06);
+}
+
+/* 5. توحيد ألوان الأيقونات داخل المحتوى (برتقالي راقي أو أسود واضح — صفر أصفر باهت) */
 html[data-preset='solar-noir'] #main-content svg.text-yellow-300,
 html[data-preset='solar-noir'] #main-content svg.text-yellow-400,
 html[data-preset='solar-noir'] #main-content svg.text-yellow-500,
@@ -2672,46 +2712,49 @@ html[data-preset='solar-noir'] #main-content svg.text-slate-300,
 html[data-preset='solar-noir'] #main-content svg.text-slate-400,
 html[data-preset='solar-noir'] #main-content svg.text-gray-300,
 html[data-preset='solar-noir'] #main-content svg.text-gray-400 {
-  color: #171717 !important;
+  color: rgba(10, 10, 10, 0.72) !important;
 }
 
-/* 5. الجداول — ترويسة صفراء خفيفة + خطوط سوداء + نص أسود واضح */
+/* 6. الجداول المحاسبية — ترويسة صفراء هادئة + خطوط شبكية سوداء رفيعة جداً ومريحة */
 html[data-preset='solar-noir'] table thead,
 html[data-preset='solar-noir'] table thead th {
-  background-color: #fef9c3 !important;
+  background: linear-gradient(180deg, #fefce8 0%, #fef9c3 100%) !important;
   color: #0a0a0a !important;
-  border-color: #0a0a0a !important;
+  border-color: rgba(10, 10, 10, 0.22) !important;
   font-weight: 800 !important;
 }
 
 html[data-preset='solar-noir'] table tbody tr {
   background-color: #ffffff !important;
   color: #0a0a0a !important;
+  transition: background-color 140ms ease;
 }
 
 html[data-preset='solar-noir'] table tbody tr:nth-child(even) {
-  background-color: #fefce8 !important;
+  background-color: #fffef7 !important;
 }
 
 html[data-preset='solar-noir'] table tbody tr:hover {
-  background-color: #fef9c3 !important;
+  background-color: #fefce8 !important;
 }
 
 html[data-preset='solar-noir'] table td {
-  border-color: rgba(10, 10, 10, 0.22) !important;
+  border-color: rgba(10, 10, 10, 0.1) !important;
   color: #0a0a0a !important;
 }
 
-/* 6. الأزرار الأساسية — برتقالي احترافي بنص أبيض نقي وإطار أسود رفيع */
+/* 7. الأزرار الأساسية — تدرّج برتقالي راقٍ بنص أبيض وحافة سوداء رفيعة + ظل دافئ */
 html[data-preset='solar-noir'] button.bg-blue-600,
 html[data-preset='solar-noir'] button.bg-indigo-600,
 html[data-preset='solar-noir'] button.bg-emerald-600,
 html[data-preset='solar-noir'] button.bg-orange-600,
 html[data-preset='solar-noir'] button.bg-orange-500,
 html[data-preset='solar-noir'] a.bg-blue-600 {
-  background-color: #ea580c !important;
+  background: linear-gradient(180deg, #f97316 0%, #ea580c 100%) !important;
   color: #ffffff !important;
-  border: 1px solid #0a0a0a !important;
+  border: 1px solid rgba(10, 10, 10, 0.22) !important;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.22) !important;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease !important;
 }
 
 html[data-preset='solar-noir'] button.bg-blue-600 *,
@@ -2728,34 +2771,43 @@ html[data-preset='solar-noir'] button.bg-indigo-600:hover,
 html[data-preset='solar-noir'] button.bg-emerald-600:hover,
 html[data-preset='solar-noir'] button.bg-orange-600:hover,
 html[data-preset='solar-noir'] button.bg-orange-500:hover {
-  background-color: #c2410c !important;
+  background: linear-gradient(180deg, #ea580c 0%, #c2410c 100%) !important;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3) !important;
+  transform: translateY(-1px);
 }
 
-/* 7. حقول الإدخال — خلفية بيضاء + نص وإطار أسود + تركيز برتقالي */
+/* 8. حقول الإدخال — بيضاء نقية بإطار أسود متوازن + هالة تركيز برتقالية ناعمة */
 html[data-preset='solar-noir'] input:not([type='checkbox']):not([type='radio']),
 html[data-preset='solar-noir'] select,
 html[data-preset='solar-noir'] textarea {
   background-color: #ffffff !important;
   color: #0a0a0a !important;
-  border: 1px solid #0a0a0a !important;
+  border: 1px solid rgba(10, 10, 10, 0.28) !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease !important;
+}
+
+html[data-preset='solar-noir'] input:hover:not(:focus),
+html[data-preset='solar-noir'] select:hover:not(:focus),
+html[data-preset='solar-noir'] textarea:hover:not(:focus) {
+  border-color: rgba(10, 10, 10, 0.5) !important;
 }
 
 html[data-preset='solar-noir'] input:focus,
 html[data-preset='solar-noir'] select:focus,
 html[data-preset='solar-noir'] textarea:focus {
   border-color: #ea580c !important;
-  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.14) !important;
   outline: none !important;
 }
 
-/* 8. شارات التفعيل والمؤشرات الزرقاء ← برتقالي متناسق */
+/* 9. شارات التفعيل والمؤشرات الزرقاء ← برتقالي متناسق وهادئ */
 html[data-preset='solar-noir'] .border-blue-500,
 html[data-preset='solar-noir'] .ring-blue-500\/20 {
   border-color: #ea580c !important;
 }
 
 html[data-preset='solar-noir'] .bg-blue-500 {
-  background-color: #ea580c !important;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
   color: #ffffff !important;
 }
 

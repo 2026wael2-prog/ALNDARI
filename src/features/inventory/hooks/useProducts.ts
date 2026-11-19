@@ -75,14 +75,12 @@ const useFilteredProducts = (
   searchTerm: string,
   limitNum?: number
 ): { products: Product[]; stats: { count: number; totalValue: number; lowStockCount: number } } => {
-  const filteredProducts = useMemo(() => {
+  // Pre-compute normalized search text once per data array instead of on every keystroke
+  const indexedProducts = useMemo(() => {
     const products = data ?? [];
-    if (searchTerm.trim() === '') return products;
-
-    const searchTokens = normalizeSearch(searchTerm).split(/\s+/).filter(Boolean);
-
-    return products.filter(p => {
-      const searchableText = normalizeSearch(
+    return products.map(p => ({
+      product: p,
+      searchableText: normalizeSearch(
         [
           p.name,
           p.name_ar,
@@ -96,11 +94,24 @@ const useFilteredProducts = (
         ]
           .filter(Boolean)
           .join(' ')
-      );
+      ),
+    }));
+  }, [data]);
 
-      return searchTokens.every(token => searchableText.includes(token));
-    });
-  }, [data, searchTerm]);
+  const filteredProducts = useMemo(() => {
+    if (searchTerm.trim() === '') return data ?? [];
+
+    const searchTokens = normalizeSearch(searchTerm).split(/\s+/).filter(Boolean);
+
+    const matched: Product[] = [];
+    for (let i = 0; i < indexedProducts.length; i++) {
+      const entry = indexedProducts[i];
+      if (searchTokens.every(token => entry.searchableText.includes(token))) {
+        matched.push(entry.product);
+      }
+    }
+    return matched;
+  }, [data, indexedProducts, searchTerm]);
 
   const stats = useMemo(
     () => ({

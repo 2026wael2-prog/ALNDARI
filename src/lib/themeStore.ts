@@ -263,19 +263,19 @@ export const useThemeStore = create<ThemeState>()(
     (set, get) => ({
       mode: 'light',
       theme: 'light',
-      activePresetId: 'classic-golden-erp',
-      accentColor: '#164F85',
+      activePresetId: 'obsidian-pro',
+      accentColor: '#0f172a',
       font: 'Cairo',
-      radius: 0.125,
+      radius: 0.5,
       fontSize: 14,
       shadowStrength: 0.05,
       glassBlur: 10,
       glassOpacity: 0.1,
       uiLayout: 'auto',
       draftSettings: {
-        accentColor: '#164F85',
+        accentColor: '#0f172a',
         font: 'Cairo',
-        radius: 0.125,
+        radius: 0.5,
         fontSize: 14,
         shadowStrength: 0.05,
         glassBlur: 10,
@@ -457,6 +457,20 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'al-zahra-appearance-storage',
+      version: 2,
+      migrate: (persistedState: unknown, version: number) => {
+        const state = (persistedState ?? {}) as Record<string, unknown>;
+        if (version < 2) {
+          return {
+            ...state,
+            mode: 'light',
+            activePresetId: 'obsidian-pro',
+            accentColor: '#0f172a',
+            radius: 0.5,
+          };
+        }
+        return state;
+      },
       partialize: state => ({
         mode: state.mode,
         activePresetId: state.activePresetId,

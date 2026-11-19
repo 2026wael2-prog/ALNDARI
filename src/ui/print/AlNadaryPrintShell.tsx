@@ -1,6 +1,7 @@
 import React from 'react';
 import { ALNADARY_PRINT_CSS } from './alNadaryPrintStyles';
 import { AlNadaryPrintHeader, type AlNadaryPrintHeaderProps } from './AlNadaryPrintHeader';
+import { usePrintTemplateStore } from './printTemplateStore';
 
 export interface AlNadaryPrintShellProps extends AlNadaryPrintHeaderProps {
   children: React.ReactNode;
@@ -10,54 +11,56 @@ export interface AlNadaryPrintShellProps extends AlNadaryPrintHeaderProps {
   terms?: readonly string[];
   /** تسميات التوقيعات الثلاثة في التذييل */
   signatures?: readonly [string, string, string];
+  /** إخفاء التذييل بالكامل (مثل وضع عرض الترويسة فقط على الشاشة) */
+  hideFooter?: boolean;
   className?: string;
 }
 
-const DEFAULT_TERMS: readonly string[] = [
-  '* البضاعة لا ترد ولا تستبدل بعد خروجها من المحل',
-  '* أتعهد بدفع المبلغ عند الطلب',
-];
-
-const DEFAULT_SIGNATURES: readonly [string, string, string] = [
-  'توقيع المستلم',
-  'توقيع المحاسب',
-  'الختم والاعتماد',
-];
-
 /**
  * القالب الموحد المركزي للطباعة (Unified Print Template) لشركة النظاري.
- * يجمع الأنماط الرسمية (A4 RTL) + الهيدر الموحد + المحتوى + الشروط والتوقيعات.
+ * يجمع الأنماط الرسمية (A4 RTL) + الهيدر الموحد القابل للتعديل + المحتوى + الشروط والتوقيعات.
  */
 export const AlNadaryPrintShell: React.FC<AlNadaryPrintShellProps> = ({
   children,
   showDefaultTerms = true,
-  terms = DEFAULT_TERMS,
-  signatures = DEFAULT_SIGNATURES,
+  terms,
+  signatures,
+  hideFooter = false,
   className = '',
   ...headerProps
 }) => {
+  const tpl = usePrintTemplateStore(s => s.config);
+  const resolvedTerms = terms ?? tpl.terms.filter(Boolean);
+  const resolvedSignatures = signatures ?? tpl.signatures;
+  const shouldShowTerms = showDefaultTerms && tpl.showTerms && resolvedTerms.length > 0;
+  const shouldShowSignatures = tpl.showSignatures && resolvedSignatures.length > 0;
+
   return (
     <div className={`alnadary-print-sheet ${className}`} dir="rtl">
       <style>{ALNADARY_PRINT_CSS}</style>
       <AlNadaryPrintHeader {...headerProps} />
       <main>{children}</main>
-      <footer className="alnadary-footer">
-        {showDefaultTerms && terms.length > 0 && (
-          <div className="alnadary-terms-row">
-            {terms.map((term, idx) => (
-              <span key={idx}>{term}</span>
-            ))}
-          </div>
-        )}
-        <div className="alnadary-signatures-row">
-          {signatures.map((sig, idx) => (
-            <div key={idx}>
-              <div>{sig}</div>
-              <div className="alnadary-sig-line" />
+      {!hideFooter && (shouldShowTerms || shouldShowSignatures) && (
+        <footer className="alnadary-footer">
+          {shouldShowTerms && (
+            <div className="alnadary-terms-row">
+              {resolvedTerms.map((term, idx) => (
+                <span key={idx}>{term}</span>
+              ))}
             </div>
-          ))}
-        </div>
-      </footer>
+          )}
+          {shouldShowSignatures && (
+            <div className="alnadary-signatures-row">
+              {resolvedSignatures.map((sig, idx) => (
+                <div key={idx}>
+                  <div>{sig}</div>
+                  <div className="alnadary-sig-line" />
+                </div>
+              ))}
+            </div>
+          )}
+        </footer>
+      )}
     </div>
   );
 };

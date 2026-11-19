@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import {
   ALNADARY_DEFAULT_ADDRESS,
   ALNADARY_DEFAULT_LOGO,
@@ -7,6 +8,8 @@ import {
   resolveAlNadaryIdentity,
 } from '@/core/utils/alNadaryIdentity';
 import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
+import { usePrintTemplateStore } from './printTemplateStore';
+import { PrintTemplateEditorModal } from './PrintTemplateEditorModal';
 
 export interface AlNadaryHeaderCompany {
   nameAr?: string | null | undefined;
@@ -61,6 +64,10 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   company,
 }) => {
   const { branchName: activeBranchName } = useBranchFilter();
+  // اشتراك تفاعلي لتحديث الترويسة فور تعديل القالب
+  usePrintTemplateStore(s => s.config);
+  const [editorOpen, setEditorOpen] = useState(false);
+
   const identity = resolveAlNadaryIdentity({
     ...company,
     branchName: company?.branchName ?? activeBranchName,
@@ -69,7 +76,18 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   const formattedDate = documentDate ? documentDate.replace(/-/g, '/') : '';
 
   return (
-    <header className="alnadary-header-wrapper">
+    <header className="alnadary-header-wrapper relative">
+      {/* زر تعديل القالب — يظهر على الشاشة فقط ويُخفى تماماً عند الطباعة */}
+      <button
+        type="button"
+        onClick={() => setEditorOpen(true)}
+        className="no-print absolute left-0 top-0 z-10 inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white/95 px-2 py-1 text-[11px] font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 hover:text-slate-950"
+        title="تعديل وتخصيص الترويسة والقالب"
+      >
+        <SlidersHorizontal size={12} />
+        <span>تعديل القالب</span>
+      </button>
+
       {/* الصف العلوي ثلاثي الأعمدة: يمين (الاسم + الأحمر) | منتصف (الشعار) | يسار (العنوان + الهاتف + التاريخ) */}
       <div className="alnadary-header-grid">
         <div className="alnadary-header-right">
@@ -89,17 +107,19 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
         </div>
 
         <div className="alnadary-header-center">
-          <img
-            src={identity.logoUrl}
-            alt="شعار شركة النظاري"
-            className="alnadary-logo-img"
-            onError={e => {
-              const target = e.currentTarget;
-              if (target.src !== window.location.origin + ALNADARY_DEFAULT_LOGO) {
-                target.src = ALNADARY_DEFAULT_LOGO;
-              }
-            }}
-          />
+          {identity.showLogo && (
+            <img
+              src={identity.logoUrl}
+              alt="شعار شركة النظاري"
+              className="alnadary-logo-img"
+              onError={e => {
+                const target = e.currentTarget;
+                if (target.src !== window.location.origin + ALNADARY_DEFAULT_LOGO) {
+                  target.src = ALNADARY_DEFAULT_LOGO;
+                }
+              }}
+            />
+          )}
         </div>
 
         <div className="alnadary-header-left">
@@ -115,6 +135,8 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
           )}
         </div>
       </div>
+
+      <PrintTemplateEditorModal isOpen={editorOpen} onClose={() => setEditorOpen(false)} />
 
       <hr className="alnadary-solid-divider" />
 

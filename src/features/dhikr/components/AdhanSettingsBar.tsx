@@ -147,7 +147,7 @@ const CityGpsBar: React.FC<CityGpsBarProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<string | null>(null);
-  const displayCity = typeof city === 'string' && city.length > 0 ? city : 'الرياض';
+  const displayCity = typeof city === 'string' && city.length > 0 ? city : 'الغيظة - المهرة';
 
   const handleGps = async (): Promise<void> => {
     setIsLocating(true);

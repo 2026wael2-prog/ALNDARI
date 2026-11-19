@@ -119,35 +119,46 @@ export const StatementPrintSheet: React.FC<StatementPrintSheetProps> = ({
 
   const partyDisplay = partyPhone ? `${partyName || '—'}   ${partyPhone}` : (partyName || '—');
 
+  const commonHeaderProps = {
+    documentTitle: docTitle,
+    documentDate: currentDate,
+    documentNumber: partyCode || undefined,
+    documentNumberLabel: 'رقم الحساب',
+    company: {
+      nameAr: company.nameAr,
+      logoUrl: company.logoUrl,
+      address: company.address,
+      phone: company.phone,
+    },
+    rightMeta: [
+      { label: isCustomer ? 'اسم العميل' : 'اسم المورد', value: partyDisplay },
+      {
+        label: 'الرصيد الافتتاحي',
+        value: `${formatNum(summary.openingBalance)} ${currencyUnit}`,
+      },
+    ],
+    leftMeta: [
+      { label: 'الفترة الزمنية', value: summary.periodText },
+      { label: 'العملة', value: currency === 'ALL' ? 'جميع العملات' : currencyUnit },
+    ],
+  };
+
   return (
-    <div className="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm print:m-0 print:rounded-none print:border-none print:shadow-none">
-      <AlNadaryPrintShell
-        documentTitle={docTitle}
-        documentDate={currentDate}
-        documentNumber={partyCode || undefined}
-        documentNumberLabel="رقم الحساب"
-        company={{
-          nameAr: company.nameAr,
-          logoUrl: company.logoUrl,
-          address: company.address,
-          phone: company.phone,
-        }}
-        rightMeta={[
-          { label: isCustomer ? 'اسم العميل' : 'اسم المورد', value: partyDisplay },
-          {
-            label: 'الرصيد الافتتاحي',
-            value: `${formatNum(summary.openingBalance)} ${currencyUnit}`,
-          },
-        ]}
-        leftMeta={[
-          { label: 'الفترة الزمنية', value: summary.periodText },
-          { label: 'العملة', value: currency === 'ALL' ? 'جميع العملات' : currencyUnit },
-        ]}
-        showDefaultTerms={false}
-        signatures={['مطابقة العميل / المورد', 'المحاسب', 'الختم والاعتماد']}
-      >
-        {/* جدول الحركات المالية الرسمي — يظهر في الطباعة وتصدير PDF */}
-        <div className="hidden print:block">
+    <>
+      {/* عرض الشاشة: هيدر موحد بكامل عرض الشاشة مدمج أعلى كشف الحساب بدون تذييل منفصل */}
+      <div className="no-print mb-3 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+        <AlNadaryPrintShell {...commonHeaderProps} hideFooter>
+          <></>
+        </AlNadaryPrintShell>
+      </div>
+
+      {/* عرض الطباعة / PDF: كشف الحساب الرسمي الكامل في مستند A4 واحد متصل */}
+      <div className="hidden w-full bg-white print:block">
+        <AlNadaryPrintShell
+          {...commonHeaderProps}
+          showDefaultTerms={false}
+          signatures={['مطابقة العميل / المورد', 'المحاسب', 'الختم والاعتماد']}
+        >
           <table className="alnadary-table">
             <thead>
               <tr>
@@ -185,7 +196,6 @@ export const StatementPrintSheet: React.FC<StatementPrintSheetProps> = ({
             </tbody>
           </table>
 
-          {/* ملخص كشف الحساب الرسمي أسفل الجدول */}
           <div className="alnadary-totals-section">
             <div className="alnadary-inline-summary">
               <span>
@@ -209,9 +219,9 @@ export const StatementPrintSheet: React.FC<StatementPrintSheetProps> = ({
               </div>
             </div>
           </div>
-        </div>
-      </AlNadaryPrintShell>
-    </div>
+        </AlNadaryPrintShell>
+      </div>
+    </>
   );
 };
 

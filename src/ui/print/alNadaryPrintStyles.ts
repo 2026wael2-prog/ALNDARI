@@ -6,9 +6,9 @@
 export const ALNADARY_PRINT_CSS = `
   .alnadary-print-sheet {
     width: 100%;
-    max-width: 210mm;
-    margin: 0 auto;
-    padding: 12px 14px;
+    max-width: none;
+    margin: 0;
+    padding: 14px 18px;
     background-color: #ffffff !important;
     color: #000000 !important;
     font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif !important;
@@ -24,26 +24,27 @@ export const ALNADARY_PRINT_CSS = `
     color: #000000;
   }
 
-  /* ── 1. الهيدر الموحد ثلاثي الأعمدة ── */
+  /* ── 1. الهيدر الموحد ثلاثي الأعمدة (كامل العرض، متوازن وراقي) ── */
   .alnadary-header-grid {
     display: grid;
-    grid-template-columns: 1.3fr 0.72fr 1.28fr;
+    grid-template-columns: 1.35fr auto 1.35fr;
     align-items: center;
-    gap: 8px;
-    padding-bottom: 6px;
+    gap: 16px;
+    padding: 4px 0 8px 0;
   }
 
   .alnadary-header-right {
     text-align: center;
+    padding-inline-end: 6px;
   }
 
   .alnadary-company-title {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 900;
     color: #000000 !important;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     line-height: 1.15;
-    margin: 0 0 4px 0;
+    margin: 0 0 3px 0;
   }
 
   .alnadary-tagline {
@@ -64,12 +65,13 @@ export const ALNADARY_PRINT_CSS = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 0 8px;
   }
 
   .alnadary-logo-img {
-    height: 82px;
+    height: 86px;
     width: auto;
-    max-width: 115px;
+    max-width: 112px;
     object-fit: contain;
     display: block;
   }
@@ -78,26 +80,31 @@ export const ALNADARY_PRINT_CSS = `
     text-align: center;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
     gap: 6px;
+    padding-inline-start: 6px;
   }
 
   .alnadary-address-block {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 700;
     color: #000000 !important;
-    line-height: 1.55;
+    line-height: 1.6;
   }
 
   .alnadary-date-row {
-    display: flex;
-    justify-content: flex-start;
+    display: inline-flex;
+    justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 12px;
     font-weight: 800;
-    padding-top: 4px;
-    padding-inline-start: 10px;
+    padding: 2px 10px;
+    border: 1px solid #000000;
+    background-color: #f9fafb !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .alnadary-solid-divider {

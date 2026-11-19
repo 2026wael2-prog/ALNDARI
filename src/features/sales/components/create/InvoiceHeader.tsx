@@ -99,7 +99,7 @@ const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({ company, documentTypeTitl
           <span className="text-slate-600">|</span>
           <div className="flex items-center gap-1 text-[10px] font-bold text-slate-300">
             <ShieldCheck size={13} className="text-blue-400" />
-            <span>متوافق مع هيئة الزكاة والضريبة</span>
+            <span>الجمهورية اليمنية - نظام محاسبي معتمد</span>
           </div>
         </div>
 

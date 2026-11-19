@@ -175,7 +175,7 @@ export const LocalizationSettings: React.FC = () => {
                             onChange={(e) => { handleUpdate({ timezone: e.target.value }); }}
                             className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         >
-                            <option value="Asia/Riyadh">الرياض (GMT+3)</option>
+                            <option value="Asia/Aden">الجمهورية اليمنية - المهرة / عدن (GMT+3)</option>
                             <option value="Asia/Dubai">دبي (GMT+4)</option>
                             <option value="Asia/Kuwait">الكويت (GMT+3)</option>
                             <option value="Asia/Qatar">قطر (GMT+3)</option>

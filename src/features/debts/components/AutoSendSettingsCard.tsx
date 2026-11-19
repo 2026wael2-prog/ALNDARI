@@ -193,7 +193,7 @@ interface SaveRowProps {
 const AutomationSaveRow: React.FC<SaveRowProps> = ({ isSaving, dirty, onSave }) => (
   <div className="flex items-center justify-between gap-2">
     <p className="text-[10px] leading-relaxed text-[var(--app-text-secondary)]">
-      نافذة الهدوء تُحترم بتوقيت الرياض؛ الرسائل التي تصادف وقت الهدوء تُؤجَّل ولا تُلغى.
+      نافذة الهدوء تُحترم بتوقيت الجمهورية اليمنية؛ الرسائل التي تصادف وقت الهدوء تُؤجَّل ولا تُلغى.
     </p>
     <button
       type="button"

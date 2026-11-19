@@ -1,8 +1,9 @@
 import { useAuthStore } from '@/features/auth/store';
 import { useBranchFilterStore } from '@/features/branches/store';
 import { queryClient } from '@/lib/queryClient';
+import { usePrintTemplateStore } from '@/ui/print/printTemplateStore';
 
-export const ALNADARY_DEFAULT_LOGO = '/assets/alnadary-print-logo.png';
+export const ALNADARY_DEFAULT_LOGO = '/assets/alnadary-print-logo.svg';
 export const ALNADARY_DEFAULT_NAME = 'النظــــاري';
 export const ALNADARY_DEFAULT_PLAIN_NAME = 'النظاري لبيع قطع غيار السيارات';
 export const ALNADARY_DEFAULT_TAGLINE: readonly string[] = [
@@ -30,6 +31,7 @@ export interface ResolvedAlNadaryIdentity {
   logoUrl: string;
   address: string;
   phone: string;
+  showLogo: boolean;
 }
 
 interface CachedBranchRecord {
@@ -41,6 +43,20 @@ interface CachedBranchRecord {
 }
 
 const cleanStr = (val: string | null | undefined): string => (val ?? '').trim();
+
+/** يستبعد العناوين الافتراضية القديمة المرتبطة بالسعودية لضمان عرض عنوان الجمهورية اليمنية دائماً. */
+const sanitizeAddress = (val: string | null | undefined): string => {
+  const s = cleanStr(val);
+  if (!s) return '';
+  if (
+    s.includes('المملكة العربية السعودية') ||
+    s.includes('السعودية') ||
+    s.toLowerCase().includes('saudi arabia')
+  ) {
+    return '';
+  }
+  return s;
+};
 
 /**
  * يقرأ بيانات الفرع النشط (الاسم، الهاتف، العنوان) من حالة التطبيق والكاش المحلي
@@ -68,7 +84,6 @@ export function getActiveBranchIdentity(): CachedBranchRecord | null {
 
     if (!effectiveBranchId) return null;
 
-    // البحث في كاش React Query عن السجل الكامل للفرع (الهاتف والعنوان)
     const cachedLists = queryClient.getQueriesData<CachedBranchRecord[]>({
       queryKey: ['branches'],
     });
@@ -94,35 +109,57 @@ export function getActiveBranchIdentity(): CachedBranchRecord | null {
 }
 
 /**
- * يوحّد هوية شركة النظاري مع التخصيص التلقائي لكل فرع:
- * - نفس القالب والشعار والعبارات الرسمية دائماً
- * - يتغيّر اسم الفرع وأرقام الهواتف والعنوان تلقائياً حسب الفرع النشط
+ * يوحّد هوية شركة النظاري مع التخصيص التلقائي لكل فرع + التعديلات المحفوظة في محرر القالب.
  */
 export function resolveAlNadaryIdentity(
   override?: AlNadaryIdentityOverride | null
 ): ResolvedAlNadaryIdentity {
   const activeBranch = getActiveBranchIdentity();
-  const branchName = cleanStr(override?.branchName) || cleanStr(activeBranch?.name) || null;
+  const tpl = usePrintTemplateStore.getState().config;
+  const branchOverride = activeBranch?.id ? tpl.branchOverrides[activeBranch.id] : undefined;
 
-  // أولوية العنوان والهاتف: بيانات الفرع النشط ← إعدادات الشركة الممرّرة ← الثوابت الرسمية
+  const branchName =
+    cleanStr(branchOverride?.branchName) ||
+    cleanStr(override?.branchName) ||
+    cleanStr(activeBranch?.name) ||
+    null;
+
   const address =
-    cleanStr(activeBranch?.address) || cleanStr(override?.address) || ALNADARY_DEFAULT_ADDRESS;
+    sanitizeAddress(branchOverride?.address) ||
+    sanitizeAddress(activeBranch?.address) ||
+    sanitizeAddress(override?.address) ||
+    sanitizeAddress(tpl.defaultAddress) ||
+    ALNADARY_DEFAULT_ADDRESS;
+
   const phone =
-    cleanStr(activeBranch?.phone) || cleanStr(override?.phone) || ALNADARY_DEFAULT_PHONE;
-  const logoUrl = cleanStr(override?.logoUrl) || ALNADARY_DEFAULT_LOGO;
+    cleanStr(branchOverride?.phone) ||
+    cleanStr(activeBranch?.phone) ||
+    cleanStr(override?.phone) ||
+    cleanStr(tpl.defaultPhone) ||
+    ALNADARY_DEFAULT_PHONE;
+
+  const logoUrl =
+    cleanStr(branchOverride?.logoUrl) ||
+    cleanStr(override?.logoUrl) ||
+    cleanStr(tpl.logoUrl) ||
+    ALNADARY_DEFAULT_LOGO;
+
   const taglineLines =
     override?.taglineLines && override.taglineLines.length > 0
       ? override.taglineLines
-      : ALNADARY_DEFAULT_TAGLINE;
+      : tpl.taglineLines.filter(Boolean).length > 0
+        ? tpl.taglineLines
+        : ALNADARY_DEFAULT_TAGLINE;
 
   return {
-    companyTitle: ALNADARY_DEFAULT_NAME,
+    companyTitle: cleanStr(tpl.companyTitle) || ALNADARY_DEFAULT_NAME,
     plainCompanyName: ALNADARY_DEFAULT_PLAIN_NAME,
     branchName,
     taglineLines,
     logoUrl,
     address,
     phone,
+    showLogo: tpl.showLogo,
   };
 }
 

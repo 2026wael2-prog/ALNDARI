@@ -188,12 +188,12 @@ const DhikrTicker: React.FC = () => {
           <button
             type="button"
             onClick={() => void detectGpsLocation()}
-            title={`الموقع: ${city || 'الرياض'} (اضغط لتحديث GPS)`}
+            title={`الموقع: ${city || 'الغيظة - المهرة'} (اضغط لتحديث GPS)`}
             className="h-5.5 hidden items-center gap-1 rounded-md border border-slate-200 bg-white/60 px-1.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 sm:flex"
           >
             <MapPin size={10} className="text-emerald-600" />
             <span className="max-w-[75px] truncate">
-              {city ? city.replace(' (تلقائي)', '') : 'الرياض'}
+              {city ? city.replace(' (تلقائي)', '') : 'الغيظة - المهرة'}
             </span>
           </button>
 

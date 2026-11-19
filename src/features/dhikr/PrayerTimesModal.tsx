@@ -94,7 +94,7 @@ export const PrayerTimesModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 الواحة الإيمانية ومواقيت الصلاة والأذكار
               </h2>
               <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                <span>{city || 'الرياض (تلقائي)'}</span>
+                <span>{city || 'الغيظة - المهرة (تلقائي)'}</span>
                 <span className="text-emerald-500">•</span>
                 <span>تقويم أم القرى</span>
                 <span className="text-emerald-500">•</span>

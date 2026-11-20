@@ -3,7 +3,6 @@ import { useAuth } from '../../features/auth/hooks';
 import { useAuthStore } from '../../features/auth/store';
 import { useCommandPalette } from '../../features/command/hooks';
 import { useI18nStore } from '../../lib/i18nStore';
-import { notificationService } from '../../features/notifications/service';
 import { useLocalizationSettings } from '../../features/settings/settingsStore';
 import { useSoundStore } from '../../features/notifications/store';
 import { initAPM } from '../utils/initAPM';
@@ -78,14 +77,23 @@ export const useSystemInitialization = () => {
   useEffect(() => {
     if (!user?.company_id) return;
 
+    const runHealthCheck = async () => {
+      try {
+        const { notificationService } = await import('../../features/notifications/service');
+        await notificationService.checkSystemHealth(user.company_id!, user.branch_id);
+      } catch {
+        // Silent fallback for network or background interruption
+      }
+    };
+
     const bootTimer = setTimeout(() => {
-      notificationService.checkSystemHealth(user.company_id!, user.branch_id);
+      void runHealthCheck();
     }, 10000);
 
     // Run interval checks every 10 minutes
     const interval = setInterval(
       () => {
-        notificationService.checkSystemHealth(user.company_id!, user.branch_id);
+        void runHealthCheck();
       },
       1000 * 60 * 10
     );

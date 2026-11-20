@@ -46,21 +46,28 @@ interface CompanySignal {
   maxDaysLate: number;
 }
 
-const isServiceCaller = (authHeader: string, cronSecret: string): boolean => {
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (cronSecret !== '' && token === cronSecret) return true;
-  const envKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (envKey !== '' && token === envKey) return true;
-  const parts = token.split('.');
-  if (parts.length !== 3) return false;
-  try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as {
-      role?: string;
-    };
-    return payload.role === 'service_role';
-  } catch {
-    return false;
+async function safeEqual(a: string, b: string): Promise<boolean> {
+  if (a === '' || b === '') return false;
+  const enc = new TextEncoder();
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ]);
+  const va = new Uint8Array(ha);
+  const vb = new Uint8Array(hb);
+  let diff = 0;
+  for (let i = 0; i < va.length; i += 1) {
+    diff |= va[i]! ^ vb[i]!;
   }
+  return diff === 0;
+}
+
+const isServiceCaller = async (authHeader: string, cronSecret: string): Promise<boolean> => {
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (await safeEqual(token, cronSecret)) return true;
+  const envKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  if (await safeEqual(token, envKey)) return true;
+  return false;
 };
 
 /** تاريخ اليوم بتوقيت UTC بصيغة ISO (تاريخ فقط). */
@@ -144,7 +151,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const authHeader = req.headers.get('authorization') ?? '';
   const headerSecret = req.headers.get('x-cron-secret') ?? '';
   const authorized =
-    isServiceCaller(authHeader, cronSecret) || (cronSecret !== '' && headerSecret === cronSecret);
+    (await isServiceCaller(authHeader, cronSecret)) || (await safeEqual(headerSecret, cronSecret));
   if (!authorized) return json({ error: 'unauthorized' }, 401);
 
   const publicKey = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';

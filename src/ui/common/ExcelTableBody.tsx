@@ -63,7 +63,7 @@ const CellContent = <T,>({ column, row }: CellContentProps<T>): React.ReactEleme
 
   return (
     <div
-      className="h-full min-h-[36px] w-full overflow-hidden text-ellipsis whitespace-nowrap p-2"
+      className="excel-cell-content h-full min-h-[36px] w-full overflow-hidden text-ellipsis p-2"
       title={titleText}
     >
       {content}

@@ -5,9 +5,9 @@ describe('shouldRetryQuery (regression guard against 5xx/timeout retry storms)',
   it.each([401, 403, 406, 408, 429, 500, 502, 503, 504, 'PGRST116', 'PGRST301'])(
     'does not retry deterministic or server-overload code %s',
     code => {
-      expect(shouldRetryQuery(0, { status: typeof code === 'number' ? code : undefined, code })).toBe(
-        false
-      );
+      expect(
+        shouldRetryQuery(0, typeof code === 'number' ? { status: code, code } : { code })
+      ).toBe(false);
     }
   );
 

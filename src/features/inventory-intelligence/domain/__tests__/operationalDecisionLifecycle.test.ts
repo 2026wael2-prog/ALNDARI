@@ -4,7 +4,7 @@ import {
   type InventoryIntelligenceSnapshot,
   type PersistedRecommendationRecord,
 } from '../../types';
-import type { DecisionLifecycleState, UnifiedDecision } from '../../types/autonomous';
+import type { DecisionLifecycleState } from '../../types/autonomous';
 import { buildLast12MonthKeys } from '../demandAnalytics';
 import { runIntelligenceEngine } from '../intelligenceEngine';
 import { runAiOrchestration } from '../orchestration/aiOrchestrationEngine';
@@ -108,13 +108,12 @@ function createLifecycleSimulationSnapshot(): InventoryIntelligenceSnapshot {
         supplier_id: 'sup_toyota',
         supplier_name: 'شركة عبد اللطيف جميل',
         purchase_tx_count: 8,
-        total_purchased_qty: 200,
-        avg_unit_cost: 120,
-        last_purchased_at: '2026-10-15',
-        last_purchased_price: 120,
-        days_since_last_purchase: 33,
-        price_trend: 'stable',
-        reliability_score: 95,
+        total_qty_supplied: 200,
+        avg_unit_price: 120,
+        last_unit_price: 120,
+        last_qty: 25,
+        last_purchase_date: '2026-10-15',
+        fulfillment_rate_pct: 95,
       },
     ],
     open_pos: [],
@@ -187,7 +186,6 @@ describe('Autonomous Operational Decision Lifecycle E2E Simulation', () => {
     // Simulate user approving the transfer
     const approvedDecisionRecord: PersistedRecommendationRecord = {
       id: 'rec_uuid_001',
-      company_id: 'company_alndari',
       rec_type: 'transfer',
       product_id: 'prod_brake_pad',
       from_branch_id: 'branch_main',
@@ -197,6 +195,7 @@ describe('Autonomous Operational Decision Lifecycle E2E Simulation', () => {
       approved_qty: 20,
       urgency: 'critical',
       confidence_score: 85,
+      model_version: 'v1.0',
       reason: 'تحويل داخلي لتغطية العجز الحرج في فرع غمدان من فائض الفرع الرئيسي',
       status: 'executed',
       decision_reason: 'تم الاعتماد من قبل مدير الفرع',
@@ -227,7 +226,6 @@ describe('Autonomous Operational Decision Lifecycle E2E Simulation', () => {
   it('Phase 4 Step 5: Post-Execution Outcome Verification & Closed-Loop Lifecycle', () => {
     const historicalRecord: PersistedRecommendationRecord = {
       id: 'rec_uuid_002',
-      company_id: 'company_alndari',
       rec_type: 'transfer',
       product_id: 'prod_brake_pad',
       from_branch_id: 'branch_main',
@@ -237,6 +235,7 @@ describe('Autonomous Operational Decision Lifecycle E2E Simulation', () => {
       approved_qty: 20,
       urgency: 'critical',
       confidence_score: 90,
+      model_version: 'v1.0',
       reason: 'تغطية عجز مؤكدة',
       status: 'executed',
       decision_reason: 'معتمد',
@@ -268,7 +267,7 @@ describe('Autonomous Operational Decision Lifecycle E2E Simulation', () => {
   it('Phase 4 Step 6: Failure & Stale Lock Timeout Simulation', () => {
     // Simulate state-transition machine logic
     const simulateTransition = (
-      currentState: DecisionLifecycleState,
+      currentState: DecisionLifecycleState | 'executing',
       toState: DecisionLifecycleState,
       attempts: number,
       maxAttempts = 3
@@ -434,7 +433,6 @@ describe('Three-Branch Inventory Reconciliation (Company-Wide)', () => {
     // (indicating reversal / void). The orchestrator must NOT upgrade lifecycle to 'verified'.
     const reversedRecord: PersistedRecommendationRecord = {
       id: 'rec_uuid_reversed',
-      company_id: 'company_alndari',
       rec_type: 'transfer',
       product_id: 'prod_brake_pad',
       from_branch_id: 'branch_main',
@@ -444,6 +442,7 @@ describe('Three-Branch Inventory Reconciliation (Company-Wide)', () => {
       approved_qty: 20,
       urgency: 'critical',
       confidence_score: 85,
+      model_version: 'v1.0',
       reason: 'تحويل سبق تنفيذه ثم أُلغي',
       status: 'executed',
       decision_reason: 'تم التنفيذ ثم العكس',
@@ -466,6 +465,6 @@ describe('Three-Branch Inventory Reconciliation (Company-Wide)', () => {
     // lifecycle must NOT be 'verified' — it should remain 'executed' or 'failed'
     expect(reconciledDecision?.lifecycleState).not.toBe('verified');
     // outcomeVerification must NOT claim success without a transfer document
-    expect(reconciledDecision?.outcomeVerification?.verified).not.toBe(true);
+    expect(reconciledDecision?.outcomeVerification.verified).not.toBe(true);
   });
 });

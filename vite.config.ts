@@ -113,7 +113,9 @@ export default defineConfig({
           if (
             id.includes('node_modules/@supabase') ||
             id.includes('node_modules/@tanstack') ||
-            id.includes('node_modules/zustand')
+            id.includes('node_modules/zustand') ||
+            id.includes('node_modules/zod') ||
+            id.includes('node_modules/@hookform')
           ) {
             return 'vendor-data';
           }

@@ -1,17 +1,10 @@
-import { inventoryService } from '../../features/inventory/service';
-import { salesService } from '../../features/sales/service';
-import { expensesService } from '../../features/expenses/service';
-import { purchasesService, purchasesApi } from '../../features/purchases/service';
-import { accountsService } from '../../features/accounting/services/accountsService';
-import { inventoryApi } from '../../features/inventory/api';
-import { partiesService } from '../../features/parties/service';
-import { bondsService } from '../../features/bonds/service';
-import { journalService } from '../../features/accounting/services/journalService';
 import type { PartyType } from '../../features/parties/types';
 
 /**
  * Resolver for background sync mutations.
  * Maps mutation keys to their respective service calls.
+ * All feature services are imported dynamically on-demand so they never bloat
+ * the critical initial application bundle.
  */
 
 /** Type-only cast helper — runtime-identical to `as any`, but grep-able and explicit. */
@@ -28,6 +21,8 @@ export const processSyncMutation = async (
 
   // Inventory Sync
   if (feature === 'products' && action === 'save') {
+    const { inventoryApi } = await import('../../features/inventory/api');
+    const { inventoryService } = await import('../../features/inventory/service');
     const { id, company_id, user_id, ...data } = vars;
 
     if (typeof id === 'string' && id !== '') {
@@ -57,12 +52,14 @@ export const processSyncMutation = async (
   }
 
   if (feature === 'inventory' && action === 'transfer') {
+    const { inventoryService } = await import('../../features/inventory/service');
     return inventoryService.createTransfer(
       cast<Parameters<typeof inventoryService.createTransfer>[0]>(vars)
     );
   }
 
   if (feature === 'inventory' && action === 'start_audit') {
+    const { inventoryService } = await import('../../features/inventory/service');
     const { company_id, user_id, ...data } = vars;
     return inventoryService.startAudit(
       cast<Parameters<typeof inventoryService.startAudit>[0]>(data),
@@ -72,6 +69,7 @@ export const processSyncMutation = async (
   }
 
   if (feature === 'inventory' && (action === 'save_audit_progress' || action === 'audit')) {
+    const { inventoryService } = await import('../../features/inventory/service');
     const items = Array.isArray(variables) ? variables : vars.items;
     return inventoryService.saveAuditProgress(
       cast<Parameters<typeof inventoryService.saveAuditProgress>[0]>(items)
@@ -80,6 +78,7 @@ export const processSyncMutation = async (
 
   // Parties Sync
   if (feature === 'parties' && action === 'save') {
+    const { partiesService } = await import('../../features/parties/service');
     const { company_id, id, branch_id, branchId, ...data } = vars;
     const effectiveBranchId = (branch_id ?? branchId ?? null) as string | null;
     return partiesService.saveParty(
@@ -91,6 +90,7 @@ export const processSyncMutation = async (
   }
 
   if (feature === 'parties' && action === 'save_category') {
+    const { partiesService } = await import('../../features/parties/service');
     const { company_id, name, type, id } = vars;
     return partiesService.saveCategory(
       company_id as string,
@@ -101,6 +101,7 @@ export const processSyncMutation = async (
 
   // Sales Sync
   if (feature === 'sales' && action === 'create') {
+    const { salesService } = await import('../../features/sales/service');
     const { company_id, user_id, ...data } = vars;
     return salesService.processNewSale(
       company_id as string,
@@ -111,6 +112,7 @@ export const processSyncMutation = async (
 
   // Expenses Sync
   if (feature === 'expenses' && action === 'create') {
+    const { expensesService } = await import('../../features/expenses/service');
     const { company_id, user_id, ...data } = vars;
     return expensesService.processNewExpense(
       cast<Parameters<typeof expensesService.processNewExpense>[0]>(data),
@@ -121,6 +123,7 @@ export const processSyncMutation = async (
 
   // Purchases Sync
   if (feature === 'purchases' && action === 'create') {
+    const { purchasesService } = await import('../../features/purchases/service');
     const { company_id, user_id, ...data } = vars;
     return purchasesService.processPurchase(
       cast<Parameters<typeof purchasesService.processPurchase>[0]>(data),
@@ -130,6 +133,7 @@ export const processSyncMutation = async (
   }
 
   if (feature === 'purchases' && action === 'payment') {
+    const { purchasesApi } = await import('../../features/purchases/service');
     const { company_id, user_id, ...data } = vars;
     return purchasesApi.createSupplierPayment(
       cast<Parameters<typeof purchasesApi.createSupplierPayment>[0]>(data),
@@ -140,6 +144,7 @@ export const processSyncMutation = async (
 
   // Accounting Sync
   if (feature === 'accounting' && action === 'create_account') {
+    const { accountsService } = await import('../../features/accounting/services/accountsService');
     const { company_id, ...data } = vars;
     return accountsService.createAccount(
       cast<Parameters<typeof accountsService.createAccount>[0]>(data),
@@ -148,6 +153,7 @@ export const processSyncMutation = async (
   }
 
   if (feature === 'accounting' && action === 'journal') {
+    const { journalService } = await import('../../features/accounting/services/journalService');
     const { companyId, company_id, userId, user_id, branchId, branch_id, data } = vars;
     const effectiveBranchId = (branchId ?? branch_id ?? null) as string | null;
     return journalService.createJournal(
@@ -159,6 +165,7 @@ export const processSyncMutation = async (
   }
 
   if (feature === 'bonds' && action === 'create') {
+    const { bondsService } = await import('../../features/bonds/service');
     const { company_id, user_id, branch_id, branchId, ...data } = vars;
     const effectiveBranchId = (branchId ?? branch_id) as string | undefined;
     return bondsService.createBond(

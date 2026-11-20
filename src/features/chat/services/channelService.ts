@@ -1,7 +1,59 @@
+import type { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '../../../lib/supabaseClient';
 import { logger } from '../../../core/utils/logger';
 import { parseError } from '../../../core/utils/errorUtils';
 import type { ChatChannel, ChatMessage, MessageType } from '../types';
+
+type UntypedRpcFn = (
+  fn: string,
+  args: Record<string, unknown>
+) => PromiseLike<{ data: unknown; error: PostgrestError | null }>;
+
+const callUntypedRpc = (
+  fn: string,
+  args: Record<string, unknown>
+): PromiseLike<{ data: unknown; error: PostgrestError | null }> =>
+  (supabase.rpc as unknown as UntypedRpcFn)(fn, args);
+
+interface LegacyChannelMemberRow {
+  user_id: string;
+  last_read_message_id: string | null;
+  profiles: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  } | null;
+}
+
+interface LegacyChannelRow {
+  id: string;
+  company_id: string;
+  type: ChatChannel['type'];
+  name: string;
+  description: string | null;
+  branch_id: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  is_private: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+  branches: { id: string; name: string } | null;
+  chat_channel_members: LegacyChannelMemberRow[] | null;
+}
+
+interface LegacyEmployeeRow {
+  user_id: string;
+  role: string;
+  profiles: {
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+  branches: {
+    name: string | null;
+  } | null;
+}
 
 export interface RpcChannelsMetaRow {
   id: string;
@@ -120,7 +172,7 @@ export const channelService = {
    */
   getChannels: async (companyId: string, userId: string): Promise<ChatChannel[]> => {
     try {
-      const { data, error } = await (supabase.rpc as any)('rpc_get_channels_with_meta', {
+      const { data, error } = await callUntypedRpc('rpc_get_channels_with_meta', {
         p_company_id: companyId,
       });
 
@@ -151,7 +203,7 @@ export const channelService = {
       if (error) {
         logger.error('ChannelService', 'rpc_get_channels_with_meta failed, using fallback', error);
       }
-      return channelService.getChannelsLegacy(companyId, userId);
+      return await channelService.getChannelsLegacy(companyId, userId);
     } catch (err) {
       logger.error('ChannelService', 'Error fetching chat channels', err);
       throw parseError(err);
@@ -202,9 +254,9 @@ export const channelService = {
       if (error) throw error;
       if (!data) return [];
 
-      return (data as any[]).map(ch => {
+      return (data as unknown as LegacyChannelRow[]).map(ch => {
         const members = ch.chat_channel_members || [];
-        const otherMember = members.find((m: any) => m.user_id !== userId);
+        const otherMember = members.find(m => m.user_id !== userId);
 
         let directUser: ChatChannel['direct_user'] = null;
         let displayName = ch.name;
@@ -253,7 +305,7 @@ export const channelService = {
    */
   markAsRead: async (channelId: string, lastMessageId?: string): Promise<void> => {
     try {
-      await (supabase.rpc as any)('rpc_mark_channel_read', {
+      await callUntypedRpc('rpc_mark_channel_read', {
         p_channel_id: channelId,
         p_last_message_id: lastMessageId || null,
       });
@@ -267,11 +319,12 @@ export const channelService = {
    */
   getOrCreateDirectChannel: async (companyId: string, targetUserId: string): Promise<string> => {
     try {
-      const data = await (supabase.rpc as any)('rpc_get_or_create_direct_channel', {
+      const { data, error } = await callUntypedRpc('rpc_get_or_create_direct_channel', {
         p_company_id: companyId,
         p_target_user_id: targetUserId,
       });
-      return String(data ?? '');
+      if (error) throw error;
+      return typeof data === 'string' ? data : '';
     } catch (err) {
       logger.error('ChannelService', 'Error creating direct channel', err);
       throw err;
@@ -288,13 +341,14 @@ export const channelService = {
     channelName: string
   ): Promise<string> => {
     try {
-      const data = await (supabase.rpc as any)('rpc_get_or_create_contextual_channel', {
+      const { data, error } = await callUntypedRpc('rpc_get_or_create_contextual_channel', {
         p_company_id: companyId,
         p_reference_type: referenceType,
         p_reference_id: referenceId,
         p_channel_name: channelName,
       });
-      return String(data ?? '');
+      if (error) throw error;
+      return typeof data === 'string' ? data : '';
     } catch (err) {
       logger.error('ChannelService', 'Error creating contextual channel', err);
       throw err;
@@ -380,7 +434,7 @@ export const channelService = {
       if (error) throw error;
       if (!data) return [];
 
-      return (data as any[]).map(item => ({
+      return (data as unknown as LegacyEmployeeRow[]).map(item => ({
         id: item.user_id,
         full_name: item.profiles?.full_name || 'موظف',
         avatar_url: item.profiles?.avatar_url || null,

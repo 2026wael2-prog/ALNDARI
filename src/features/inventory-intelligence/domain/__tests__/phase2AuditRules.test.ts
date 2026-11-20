@@ -5,7 +5,7 @@ import {
   type InventoryIntelligenceSnapshot,
   type RawProductSnapshot,
 } from '../../types';
-import { buildLast12MonthKeys, classifyDemandPattern, classifyMovement } from '../demandAnalytics';
+import { buildLast12MonthKeys, classifyDemandPattern } from '../demandAnalytics';
 import { classifyQualityGrade } from '../productIntelligence';
 import { runIntelligenceEngine } from '../intelligenceEngine';
 
@@ -67,22 +67,26 @@ describe('Phase 2 Audit Rules — Isolated Verification Suite', () => {
 
     const out = runIntelligenceEngine(snapshot, DEFAULT_ENGINE_CONFIG);
     const prod = out.products[0];
-    const b1 = prod.branchMetrics.find(b => b.branchId === 'b1')!;
-    const b2 = prod.branchMetrics.find(b => b.branchId === 'b2')!;
+    const b1 = prod.branchMetrics.find(b => b.branchId === 'b1');
+    const b2 = prod.branchMetrics.find(b => b.branchId === 'b2');
 
-    expect(b1.physicalStock).toBe(50);
-    expect(b1.reservedStock).toBe(10);
-    expect(b1.damagedStock).toBe(5);
-    expect(b1.availableStock).toBe(35);
-    expect(b1.pendingTransferOut).toBe(8);
-    expect(b1.projectedPosition).toBe(35 - 8); // 27 (company-wide POs stay at company level)
-    expect(b1.availabilityDataLimited).toBe(false);
+    expect(b1).toMatchObject({
+      physicalStock: 50,
+      reservedStock: 10,
+      damagedStock: 5,
+      availableStock: 35,
+      pendingTransferOut: 8,
+      projectedPosition: 27,
+      availabilityDataLimited: false,
+    });
     expect(prod.companyMetrics.incomingStock).toBe(20);
     expect(prod.companyMetrics.projectedPosition).toBe(43 + 20); // 43 avail + 20 incoming POs
 
-    expect(b2.availableStock).toBe(8);
-    expect(b2.pendingTransferIn).toBe(8);
-    expect(b2.projectedPosition).toBe(16);
+    expect(b2).toMatchObject({
+      availableStock: 8,
+      pendingTransferIn: 8,
+      projectedPosition: 16,
+    });
   });
 
   it('2. Separates Japanese and Korean aftermarket classifications and flags uncertain items for review', () => {
@@ -135,14 +139,14 @@ describe('Phase 2 Audit Rules — Isolated Verification Suite', () => {
 
     const out = runIntelligenceEngine(snapshot, DEFAULT_ENGINE_CONFIG);
     const prod = out.products[0];
-    expect(prod.branchForecasts['b1'].dailyRate).toBeCloseTo(10 / 30, 1);
-    expect(prod.branchForecasts['b2'].dailyRate).toBeCloseTo(20 / 30, 1);
-    expect(prod.branchForecasts['b3'].dailyRate).toBe(0);
+    expect(prod.branchForecasts.b1.dailyRate).toBeCloseTo(10 / 30, 1);
+    expect(prod.branchForecasts.b2.dailyRate).toBeCloseTo(20 / 30, 1);
+    expect(prod.branchForecasts.b3.dailyRate).toBe(0);
 
     const po = out.purchaseRecommendations.find(r => r.productId === 'p_branch_fc');
     expect(po).toBeDefined();
-    expect(po!.calculationBreakdown.branchForecastUsed).toBe(true);
-    expect(po!.calculationBreakdown.branchShortageBreakdown).toHaveLength(3);
+    expect(po?.calculationBreakdown.branchForecastUsed).toBe(true);
+    expect(po?.calculationBreakdown.branchShortageBreakdown).toHaveLength(3);
   });
 
   it('4. Protects newly stocked products from being misclassified as dead_stock', () => {
@@ -228,12 +232,12 @@ describe('Phase 2 Audit Rules — Isolated Verification Suite', () => {
     const out = runIntelligenceEngine(snapshot, DEFAULT_ENGINE_CONFIG);
     const po = out.purchaseRecommendations.find(r => r.productId === 'p_pkg');
     expect(po).toBeDefined();
-    expect(po!.recommendedQty % 6).toBe(0);
-    expect(po!.recommendedQty).toBeGreaterThanOrEqual(12);
-    expect(po!.calculationBreakdown.packageMultipleApplied).toBe(6);
-    expect(po!.calculationBreakdown.packageConstraintVerified).toBe(true);
-    expect(po!.recommendedSupplier?.isLeadTimeEstimated).toBe(false);
-    expect(po!.recommendedSupplier?.fulfillmentRatePct).toBe(96);
+    expect((po?.recommendedQty ?? -1) % 6).toBe(0);
+    expect(po?.recommendedQty).toBeGreaterThanOrEqual(12);
+    expect(po?.calculationBreakdown.packageMultipleApplied).toBe(6);
+    expect(po?.calculationBreakdown.packageConstraintVerified).toBe(true);
+    expect(po?.recommendedSupplier?.isLeadTimeEstimated).toBe(false);
+    expect(po?.recommendedSupplier?.fulfillmentRatePct).toBe(96);
   });
 
   it('6. Rejects seasonal classification when history is insufficient (< 10 active months)', () => {

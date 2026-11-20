@@ -12,7 +12,7 @@ import { usePOSCheckout } from '../hooks';
 import { usePOSSearch } from '../hooks/usePOSSearch';
 import { posSearchService } from '../services/searchService';
 import { useBreakpoint } from '../../../lib/hooks/useBreakpoint';
-import { formatCurrency, convertCurrency } from '../../../core/utils';
+import { formatCurrency, convertCurrency, getDefaultExchangeOperator } from '../../../core/utils';
 import type { Product } from '../../inventory/types';
 import { buildProductFromSearchResult } from '../utils/buildProductFromResult';
 import { SuspendedOrdersModal } from '../components/SuspendedOrdersModal';
@@ -24,6 +24,59 @@ import { createIdempotencyKey } from '../../../core/utils/idempotency';
 import { QuickDrawerExpenseModal } from '../../reconciliation/components/QuickDrawerExpenseModal';
 import { useBranches } from '../../settings/hooks';
 import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
+
+type POSSearchResultItem = ReturnType<typeof usePOSSearch>['results'][number];
+type WarehouseItem = ReturnType<typeof useWarehousesWithBranches>['warehouses'][number];
+
+const hasText = (val: string | null | undefined): val is string =>
+  val !== null && val !== undefined && val !== '';
+
+const isWarehousePrimary = (warehouse: WarehouseItem): boolean =>
+  Boolean((warehouse as { is_primary?: boolean }).is_primary);
+
+const findBranchTargetWarehouse = (
+  warehouses: Array<WarehouseItem>,
+  branchId: string | null
+): WarehouseItem | undefined => {
+  if (hasText(branchId)) {
+    return (
+      warehouses.find(w => w.branch_id === branchId && isWarehousePrimary(w)) ??
+      warehouses.find(w => w.branch_id === branchId)
+    );
+  }
+  return warehouses.find(isWarehousePrimary) ?? warehouses[0];
+};
+
+const convertDiscountToPaymentCurrency = (params: {
+  discountAmount: number;
+  currency: string;
+  exchangeRate: number;
+  finalCurrency: string;
+  finalRate: number;
+}): number => {
+  if (params.finalCurrency === params.currency) {
+    return params.discountAmount;
+  }
+  const cartRate = params.exchangeRate > 0 ? params.exchangeRate : 1;
+  const baseDiscount =
+    params.currency === 'SAR'
+      ? params.discountAmount
+      : convertCurrency(
+          params.discountAmount,
+          cartRate,
+          'toBase',
+          getDefaultExchangeOperator(params.currency)
+        );
+  if (params.finalCurrency === 'SAR') {
+    return baseDiscount;
+  }
+  return convertCurrency(
+    baseDiscount,
+    params.finalRate,
+    'fromBase',
+    getDefaultExchangeOperator(params.finalCurrency)
+  );
+};
 
 const POSPage: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -46,20 +99,18 @@ const POSPage: React.FC = () => {
   const { data: branches = [] } = useBranches();
   const currentBranchId = activeBranchId ?? user?.branch_id ?? null;
   const currentBranch = branches.find(b => b.id === currentBranchId);
-  const isInventoryOnly = (currentBranch as any)?.integration_mode === 'inventory_only';
+  const isInventoryOnly =
+    (currentBranch as { integration_mode?: string } | undefined)?.integration_mode ===
+    'inventory_only';
 
   const prevBranchIdRef = useRef(currentBranchId);
   useEffect(() => {
     if (warehouses.length === 0) return;
     const branchChanged = prevBranchIdRef.current !== currentBranchId;
     prevBranchIdRef.current = currentBranchId;
-    const exists = selectedWarehouseId ? warehouses.some(w => w.id === selectedWarehouseId) : false;
-    if (!selectedWarehouseId || !exists || branchChanged) {
-      const target = currentBranchId
-        ? warehouses.find(
-            w => w.branch_id === currentBranchId && (w as { is_primary?: boolean }).is_primary
-          ) ?? warehouses.find(w => w.branch_id === currentBranchId)
-        : warehouses.find(w => (w as { is_primary?: boolean }).is_primary) ?? warehouses[0];
+    const exists = hasText(selectedWarehouseId) && warehouses.some(w => w.id === selectedWarehouseId);
+    if (!hasText(selectedWarehouseId) || !exists || branchChanged) {
+      const target = findBranchTargetWarehouse(warehouses, currentBranchId);
       const nextId = target?.id ?? '';
       if (nextId !== selectedWarehouseId) {
         setSelectedWarehouseId(nextId);
@@ -86,47 +137,47 @@ const POSPage: React.FC = () => {
   const checkoutIdempotencyKeyRef = useRef(createIdempotencyKey('pos'));
 
   const handleBarcodeScanned = useCallback(
-    async (code: string) => {
+    async (code: string): Promise<void> => {
       setIsScannerOpen(false);
-      const { user } = useAuthStore.getState();
-      if (!user?.company_id) return;
+      const { user: currentUser } = useAuthStore.getState();
+      if (!hasText(currentUser?.company_id)) return;
 
       const result = await posSearchService.searchByBarcode(
-        user.company_id,
+        currentUser.company_id,
         code,
         currentBranchId,
         selectedWarehouseId
       );
       if (result) {
-        const product = buildProductFromSearchResult(result, user.company_id);
+        const product = buildProductFromSearchResult(result, currentUser.company_id);
         addProductToCart(product);
       } else {
         search.setQuery(code);
       }
     },
-    [addProductToCart, search, currentBranchId]
+    [addProductToCart, search, currentBranchId, selectedWarehouseId]
   );
 
   const handleSearchSelect = useCallback(
-    (result: (typeof search.results)[number]) => {
-      const { user } = useAuthStore.getState();
-      if (!user?.company_id) return;
-      const product = buildProductFromSearchResult(result, user.company_id);
+    (result: POSSearchResultItem): void => {
+      const { user: currentUser } = useAuthStore.getState();
+      if (!hasText(currentUser?.company_id)) return;
+      const product = buildProductFromSearchResult(result, currentUser.company_id);
       search.selectResult(result);
       addProductToCart(product);
     },
     [addProductToCart, search]
   );
 
-  const handleViewDetails = useCallback((result: (typeof search.results)[number]) => {
-    const { user } = useAuthStore.getState();
-    const product = buildProductFromSearchResult(result, user?.company_id ?? '');
+  const handleViewDetails = useCallback((result: POSSearchResultItem): void => {
+    const { user: currentUser } = useAuthStore.getState();
+    const product = buildProductFromSearchResult(result, currentUser?.company_id ?? '');
     setDetailProduct(product);
   }, []);
 
   // Keyboard shortcut: Ctrl+B opens barcode scanner
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
         setIsScannerOpen(true);
@@ -150,54 +201,66 @@ const POSPage: React.FC = () => {
   }, [isProcessing, validCartItems.length]);
 
   const selectedWarehouse = warehouses.find(w => w.id === selectedWarehouseId);
-  const isCrossBranch = Boolean(
-    selectedWarehouse?.branch_id &&
-      currentBranchId &&
-      selectedWarehouse.branch_id !== currentBranchId
-  );
+  const isCrossBranch =
+    hasText(selectedWarehouse?.branch_id) &&
+    hasText(currentBranchId) &&
+    selectedWarehouse.branch_id !== currentBranchId;
 
   const handlePayConfirm = useCallback(
     (result: POSPaymentResult) => {
       if (isProcessing) return;
 
-      const finalCurrency = result.paymentCurrency || currency || 'SAR';
+      const finalCurrency = hasText(result.paymentCurrency)
+        ? result.paymentCurrency
+        : hasText(currency)
+          ? currency
+          : 'SAR';
+      const fallbackRate = exchangeRate > 0 ? exchangeRate : 410;
       const finalRate =
         finalCurrency === 'SAR'
           ? 1
-          : result.exchangeRate || (exchangeRate > 0 ? exchangeRate : 410);
+          : (result.exchangeRate ?? 0) > 0
+            ? (result.exchangeRate ?? fallbackRate)
+            : fallbackRate;
 
       const needConversion = finalCurrency !== currency;
 
       const processedItems = validCartItems.map(i => {
         let unitPrice = i.price;
         if (needConversion) {
-          if (finalCurrency === 'YER') {
-            unitPrice = convertCurrency(i.basePrice, finalRate, 'fromBase', 'divide');
-          } else if (finalCurrency === 'SAR') {
-            unitPrice = i.basePrice;
-          }
+          unitPrice =
+            finalCurrency === 'SAR'
+              ? i.basePrice
+              : convertCurrency(
+                  i.basePrice,
+                  finalRate,
+                  'fromBase',
+                  getDefaultExchangeOperator(finalCurrency)
+                );
         }
         return {
           ...i,
           unitPrice,
           costPrice: i.costPrice || 0,
           maxStock: 0,
-          ...(selectedWarehouseId ? { warehouseId: selectedWarehouseId } : {}),
+          ...(hasText(selectedWarehouseId) ? { warehouseId: selectedWarehouseId } : {}),
         };
       });
 
-      const convertedDiscount = needConversion
-        ? finalCurrency === 'YER'
-          ? convertCurrency(summary.discountAmount || 0, finalRate, 'fromBase', 'divide')
-          : convertCurrency(summary.discountAmount || 0, finalRate, 'toBase', 'multiply')
-        : summary.discountAmount || 0;
+      const convertedDiscount = convertDiscountToPaymentCurrency({
+        discountAmount: summary.discountAmount || 0,
+        currency,
+        exchangeRate,
+        finalCurrency,
+        finalRate,
+      });
 
       processPayment(
         {
-          partyId: selectedCustomer?.id || null,
+          partyId: hasText(selectedCustomer?.id) ? selectedCustomer.id : null,
           idempotencyKey: checkoutIdempotencyKeyRef.current,
           type: 'sale',
-          isCrossBranch: !!isCrossBranch,
+          isCrossBranch,
           items: processedItems,
           discount: convertedDiscount,
           currency: finalCurrency,
@@ -289,7 +352,7 @@ const POSPage: React.FC = () => {
               onPay={handleOpenPayment}
               onSuspend={handleSuspend}
               isProcessing={isProcessing}
-              isCrossBranch={!!isCrossBranch}
+              isCrossBranch={isCrossBranch}
             />
           </div>
 
@@ -318,7 +381,7 @@ const POSPage: React.FC = () => {
               setDetailProduct(p);
             }}
             selectedWarehouseId={selectedWarehouseId}
-            isCrossBranch={!!isCrossBranch}
+            isCrossBranch={isCrossBranch}
             isInventoryOnly={isInventoryOnly}
             requesterBranchId={currentBranchId ?? null}
           />
@@ -353,7 +416,9 @@ const POSPage: React.FC = () => {
 
       {isScannerOpen && (
         <ScannerOverlay
-          onScan={code => handleBarcodeScanned(code)}
+          onScan={code => {
+            void handleBarcodeScanned(code);
+          }}
           onClose={() => {
             setIsScannerOpen(false);
           }}
@@ -382,8 +447,12 @@ const POSPage: React.FC = () => {
               useSalesStore.setState({
                 items: res.items,
                 selectedCustomer: res.customer,
-                ...(resumed.currency ? { currency: resumed.currency } : {}),
-                ...(resumed.exchangeRate ? { exchangeRate: resumed.exchangeRate } : {}),
+                ...(resumed.currency !== undefined && resumed.currency !== ''
+                  ? { currency: resumed.currency }
+                  : {}),
+                ...(resumed.exchangeRate !== undefined && resumed.exchangeRate > 0
+                  ? { exchangeRate: resumed.exchangeRate }
+                  : {}),
               });
               useSalesStore.getState().calculateTotals();
             }

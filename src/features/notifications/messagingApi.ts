@@ -90,8 +90,8 @@ export const messagingApi = {
     if (!data) return null;
     const masked: MessagingConfigRow = { ...(data as unknown as MessagingConfig) };
     // 🔒 القناع مبني على علم الوجود — لا مفتاح خام يُنقل عبر الشبكة.
-    masked.whatsapp_api_key = data.has_whatsapp_key ? MASKED_SECRET : '';
-    masked.telegram_bot_token = data.has_telegram_token ? MASKED_SECRET : '';
+    masked.whatsapp_api_key = data.has_whatsapp_key === true ? MASKED_SECRET : '';
+    masked.telegram_bot_token = data.has_telegram_token === true ? MASKED_SECRET : '';
     // توافق الحقل للسندات لتفادي uncontrolled input وخطأ 400
     const bondVal = (data as { notify_on_payment_bond?: boolean }).notify_on_payment_bond ?? true;
     masked.notify_on_bond = bondVal;
@@ -106,31 +106,33 @@ export const messagingApi = {
    * Validates columns against real schema to prevent PostgREST 400 Bad Request.
    */
   saveConfig: async (config: MessagingConfig): Promise<{ error: PostgrestError | null }> => {
-    // بناء حمولة نقية متوافقة تماماً مع نوع Update في قاعدة البيانات
     const cleanPayload: MessagingConfigUpdate = {
       updated_at: new Date().toISOString(),
-      telegram_enabled: Boolean(config.telegram_enabled),
-      telegram_chat_id: String(config.telegram_chat_id ?? '').trim(),
-      whatsapp_enabled: Boolean(config.whatsapp_enabled),
-      whatsapp_api_url: String(config.whatsapp_api_url ?? '').trim(),
-      whatsapp_phone: String(config.whatsapp_phone ?? '').trim(),
-      notify_on_sale: config.notify_on_sale ?? true,
-      notify_on_purchase: config.notify_on_purchase ?? true,
-      notify_on_payment_bond: config.notify_on_payment_bond ?? config.notify_on_bond ?? true,
-      notify_on_expense: config.notify_on_expense ?? true,
-      notify_on_stock_transfer: config.notify_on_stock_transfer ?? true,
-      notify_on_low_stock: config.notify_on_low_stock ?? true,
+      telegram_enabled: config.telegram_enabled,
+      telegram_chat_id: config.telegram_chat_id.trim(),
+      whatsapp_enabled: config.whatsapp_enabled,
+      whatsapp_api_url: config.whatsapp_api_url.trim(),
+      whatsapp_phone: config.whatsapp_phone.trim(),
+      notify_on_sale: config.notify_on_sale,
+      notify_on_purchase: config.notify_on_purchase,
+      notify_on_payment_bond:
+        typeof config.notify_on_payment_bond === 'boolean'
+          ? config.notify_on_payment_bond
+          : typeof config.notify_on_bond === 'boolean'
+            ? config.notify_on_bond
+            : true,
+      notify_on_expense: config.notify_on_expense,
+      notify_on_stock_transfer: config.notify_on_stock_transfer,
+      notify_on_low_stock: config.notify_on_low_stock,
     };
 
-    // لا تُرسل المفاتيح السرية إلا إذا تم تعديلها وليست القناع
-    if (config.whatsapp_api_key && config.whatsapp_api_key !== MASKED_SECRET) {
+    if (config.whatsapp_api_key !== '' && config.whatsapp_api_key !== MASKED_SECRET) {
       cleanPayload.whatsapp_api_key = config.whatsapp_api_key.trim();
     }
-    if (config.telegram_bot_token && config.telegram_bot_token !== MASKED_SECRET) {
+    if (config.telegram_bot_token !== '' && config.telegram_bot_token !== MASKED_SECRET) {
       cleanPayload.telegram_bot_token = config.telegram_bot_token.trim();
     }
 
-    // تحديث أولاً ثم إدراج لتفادي مشاكل onConflict 400 في PostgREST
     const { data: updated, error: updateError } = await supabase
       .from('messaging_config')
       .update(cleanPayload)
@@ -142,7 +144,7 @@ export const messagingApi = {
       return { error: updateError };
     }
 
-    if (!updated || updated.length === 0) {
+    if (updated.length === 0) {
       const insertPayload: MessagingConfigInsert = {
         company_id: config.company_id,
         ...cleanPayload,
@@ -177,13 +179,14 @@ export const messagingApi = {
         data: { session },
       } = await supabase.auth.getSession();
 
+      const accessToken = session?.access_token ?? '';
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-notification`,
+        `${String(import.meta.env.VITE_SUPABASE_URL)}/functions/v1/send-notification`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token || ''}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             company_id: companyId,
@@ -194,17 +197,83 @@ export const messagingApi = {
         }
       );
 
-      const result = await response.json();
+      const result = (await response.json().catch(() => null)) as {
+        results?: Array<{ channel?: string; success?: boolean; error?: string }>;
+      } | null;
 
       if (!response.ok) {
         logger.error('messagingApi', '[MessagingAPI] Edge function error:', result);
         return { success: false };
       }
 
-      return { success: true, results: result.results };
+      return { success: true, results: result?.results ?? [] };
     } catch (error) {
       logger.error('messagingApi', '[MessagingAPI] Send notification error:', error);
       return { success: false };
+    }
+  },
+
+  /**
+   * إرسال رسالة واتساب مباشرة (نص أو صورة) لعميل محدد عبر دالة الخادم send-notification
+   * دون كشف مفاتيح البوابة للمتصفح.
+   */
+  sendDirectWhatsApp: async (params: {
+    companyId: string;
+    toPhone: string;
+    message: string;
+    eventType?: string;
+    referenceId?: string;
+    imageBase64?: string;
+  }): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.access_token === undefined || session.access_token === '') {
+        return { ok: false, error: 'الجلسة منتهية، يرجى إعادة تسجيل الدخول' };
+      }
+
+      const response = await fetch(
+        `${String(import.meta.env.VITE_SUPABASE_URL)}/functions/v1/send-notification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            company_id: params.companyId,
+            event_type: params.eventType ?? 'share',
+            message: params.message,
+            recipient_phone: params.toPhone,
+            ...(params.referenceId !== undefined ? { reference_id: params.referenceId } : {}),
+            ...(params.imageBase64 !== undefined ? { image_base64: params.imageBase64 } : {}),
+          }),
+        }
+      );
+
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        results?: Array<{ channel?: string; success?: boolean; error?: string }>;
+      } | null;
+
+      if (!response.ok) {
+        return { ok: false, error: result?.error ?? `HTTP ${String(response.status)}` };
+      }
+
+      const whatsappResult = result?.results?.find(r => r.channel === 'whatsapp');
+      if (!whatsappResult) {
+        return { ok: false, error: result?.message ?? 'بوابة واتساب غير مفعّلة في الإعدادات' };
+      }
+      if (whatsappResult.success !== true) {
+        return { ok: false, error: whatsappResult.error ?? 'فشل الإرسال عبر بوابة واتساب' };
+      }
+      return { ok: true };
+    } catch (error) {
+      logger.error('messagingApi', '[MessagingAPI] Direct WhatsApp error:', error);
+      return { ok: false, error: error instanceof Error ? error.message : 'تعذر الاتصال بالبوابة' };
     }
   },
 
@@ -225,6 +294,6 @@ export const messagingApi = {
       logger.error('messagingApi', '[MessagingAPI] Error fetching log:', error);
       return [];
     }
-    return (data || []) as NotificationLogEntry[];
+    return data as Array<NotificationLogEntry>;
   },
 };

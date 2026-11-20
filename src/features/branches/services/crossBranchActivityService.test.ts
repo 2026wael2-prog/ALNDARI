@@ -50,7 +50,7 @@ describe('crossBranchActivityService', () => {
 
     await broadcastCrossBranchActivity('comp_1', activity);
 
-    expect(supabase.channel).toHaveBeenCalledWith('cross-branch-broadcast-comp_1');
+    expect(supabase.channel).toHaveBeenCalledWith('cross-branch-activity-comp_1');
     const channel = (supabase.channel as any).mock.results[0].value;
     expect(channel.send).toHaveBeenCalledWith({
       type: 'broadcast',

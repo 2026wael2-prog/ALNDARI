@@ -63,7 +63,7 @@ export class StockMovementUsecase {
       case 'ADJUSTMENT':
         return quantity > 0 ? 'adj_in' : 'adj_out';
       case 'RETURN':
-        return quantity > 0 ? 'purchase_return' : 'sale_return';
+        return quantity > 0 ? 'purchase_return' : 'sales_return';
       default:
         return type; // already a valid DB value
     }

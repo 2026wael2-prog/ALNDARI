@@ -51,14 +51,14 @@ describe('computeDebtAgingData — خصم السندات والمرتجعات و
     expect(result.criticalCount).toBe(0);
   });
 
-  it('deducts unpaid credit sales returns and converts foreign currency (YER) via toBaseCurrency', () => {
+  it('treats YER invoice and return amounts as already stored in base currency (no double conversion)', () => {
     const result = computeDebtAgingData(
       [
         {
           id: 'inv-yer',
           issue_date: '2026-11-01',
           due_date: '2026-11-01',
-          total_amount: 41000, // 100 SAR at rate 410
+          total_amount: 100, // stored in SAR (YER document amount x rate)
           paid_amount: 0,
           party_id: 'c2',
           parties: { name: 'عميل 2', type: 'both' },
@@ -70,7 +70,7 @@ describe('computeDebtAgingData — خصم السندات والمرتجعات و
         creditReturns: [
           {
             party_id: 'c2',
-            total_amount: 20500, // 50 SAR at rate 410
+            total_amount: 50, // stored in SAR
             paid_amount: 0,
             currency_code: 'YER',
             exchange_rate: 410,

@@ -43,11 +43,16 @@ const buildAccountTree = (accounts: Account[]): AccountNode[] => {
   });
 
   accounts.forEach(acc => {
-    if (acc.parent_id && map.has(acc.parent_id)) {
-      map.get(acc.parent_id)!.children.push(map.get(acc.id)!);
-    } else {
-      roots.push(map.get(acc.id)!);
+    const node = map.get(acc.id);
+    if (!node) return;
+    if (acc.parent_id !== null && acc.parent_id !== undefined && acc.parent_id !== '') {
+      const parent = map.get(acc.parent_id);
+      if (parent) {
+        parent.children.push(node);
+        return;
+      }
     }
+    roots.push(node);
   });
 
   // Function to recursively calculate total balance for parent accounts
@@ -72,9 +77,10 @@ const AccountTreeRow: React.FC<{
   node: AccountNode;
   level: number;
   onToggle: (id: string) => void;
-  isExpanded: boolean;
+  expandedIds: Set<string>;
   onDelete: (id: string, isSystem: boolean) => void;
-}> = ({ node, level, onToggle, isExpanded, onDelete }) => {
+}> = ({ node, level, onToggle, expandedIds, onDelete }) => {
+  const isExpanded = expandedIds.has(node.id);
   const navigate = useNavigate();
   return (
     <Fragment>
@@ -165,7 +171,7 @@ const AccountTreeRow: React.FC<{
             node={child}
             level={level + 1}
             onToggle={onToggle}
-            isExpanded={isExpanded}
+            expandedIds={expandedIds}
             onDelete={onDelete}
           />
         ))}
@@ -194,7 +200,7 @@ const AccountsTable: React.FC = () => {
     return buildAccountTree(accounts);
   }, [accounts]);
 
-  const toggleNode = (id: string) => {
+  const toggleNode = (id: string): void => {
     setExpandedNodes(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) newSet.delete(id);
@@ -203,11 +209,11 @@ const AccountsTable: React.FC = () => {
     });
   };
 
-  const handleAddNew = () => {
+  const handleAddNew = (): void => {
     setIsModalOpen(true);
   };
 
-  const handleCreate = (data: AccountFormData) => {
+  const handleCreate = (data: AccountFormData): void => {
     createAccount(data, {
       onSuccess: () => {
         setIsModalOpen(false);
@@ -215,7 +221,7 @@ const AccountsTable: React.FC = () => {
     });
   };
 
-  const handleDelete = (id: string, isSystem: boolean) => {
+  const handleDelete = (id: string, isSystem: boolean): void => {
     if (isSystem) {
       showToast('لا يمكن حذف حساب نظام', 'warning');
       return;
@@ -223,7 +229,7 @@ const AccountsTable: React.FC = () => {
     setDeleteConfirm({ id, isSystem });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = (): void => {
     if (deleteConfirm) {
       deleteAccount(
         { id: deleteConfirm.id, isSystem: deleteConfirm.isSystem },
@@ -320,7 +326,7 @@ const AccountsTable: React.FC = () => {
                 node={node}
                 level={0}
                 onToggle={toggleNode}
-                isExpanded={expandedNodes.has(node.id)}
+                expandedIds={expandedNodes}
                 onDelete={handleDelete}
               />
             ))}
@@ -364,18 +370,24 @@ const AccountsTable: React.FC = () => {
 // ==========================================
 // 4. Helper Functions for Styling
 // ==========================================
-function getTypeLabel(type: string) {
-  const map: Record<string, string> = {
-    asset: 'أصول',
-    liability: 'خصوم',
-    equity: 'حقوق ملكية',
-    revenue: 'إيرادات',
-    expense: 'مصروفات',
-  };
-  return map[type] || type;
+function getTypeLabel(type: string): string {
+  switch (type) {
+    case 'asset':
+      return 'أصول';
+    case 'liability':
+      return 'خصوم';
+    case 'equity':
+      return 'حقوق ملكية';
+    case 'revenue':
+      return 'إيرادات';
+    case 'expense':
+      return 'مصروفات';
+    default:
+      return type;
+  }
 }
 
-function getTypeColor(type: string) {
+function getTypeColor(type: string): string {
   switch (type) {
     case 'asset':
       return 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900';

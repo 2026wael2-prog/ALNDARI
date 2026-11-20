@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' *.supabase.co *.vercel.app https://vercel.com; script-src 'self' 'unsafe-inline' *.google.com *.googleapis.com *.gstatic.com *.vercel.live https://vercel.com; style-src 'self' 'unsafe-inline' *.googleapis.com; font-src 'self' *.gstatic.com *.googleapis.com data:; img-src 'self' data: blob: *.supabase.co *.google.com *.googleusercontent.com *.vercel.com; media-src 'self' data: blob: https://cdn.islamic.network https://*.islamic.network https://*.archive.org https://archive.org *.supabase.co; connect-src 'self' https://zzthamxjxnxzzpswllid.supabase.co wss://zzthamxjxnxzzpswllid.supabase.co *.supabase.co wss://*.supabase.co https://cdn.islamic.network https://*.islamic.network https://*.archive.org https://archive.org https://api.deepseek.com https://openrouter.ai https://*.openrouter.ai *.google.com *.googleapis.com *.vercel.live *.vercel-analytics.com https://vpic.nhtsa.dot.gov; frame-src 'self' *.google.com https://vercel.com; object-src 'none';"
+      content="default-src 'self' *.supabase.co *.vercel.app https://vercel.com; script-src 'self' 'unsafe-inline' *.google.com *.googleapis.com *.gstatic.com *.vercel.live https://vercel.com; style-src 'self' 'unsafe-inline' *.googleapis.com; font-src 'self' *.gstatic.com *.googleapis.com data:; img-src 'self' data: blob: *.supabase.co *.google.com *.googleusercontent.com *.vercel.com; media-src 'self' data: blob: https://cdn.islamic.network https://*.islamic.network https://*.archive.org https://archive.org *.supabase.co; connect-src 'self' *.supabase.co wss://*.supabase.co https://cdn.islamic.network https://*.islamic.network https://*.archive.org https://archive.org https://api.deepseek.com https://openrouter.ai https://*.openrouter.ai *.google.com *.googleapis.com *.vercel.live *.vercel-analytics.com https://vpic.nhtsa.dot.gov; frame-src 'self' *.google.com https://vercel.com; object-src 'none';"
     />
 
     <!-- Primary Meta Tags -->
@@ -70,8 +70,6 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <link rel="preconnect" href="https://zzthamxjxnxzzpswllid.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://zzthamxjxnxzzpswllid.supabase.co" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -88,14 +86,41 @@
     </noscript>
     <script>
       // Theme initialization to prevent flicker
-      if (
-        localStorage.getItem('theme') === 'dark' ||
-        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
-      ) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      (function () {
+        var resolvedDark = false;
+        try {
+          var raw = localStorage.getItem('al-zahra-appearance-storage');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            var st = parsed && parsed.state ? parsed.state : null;
+            if (st && typeof st.activePresetId === 'string' && st.activePresetId) {
+              document.documentElement.setAttribute('data-preset', st.activePresetId);
+            }
+            var mode = st && st.mode ? st.mode : 'system';
+            if (mode === 'dark') {
+              resolvedDark = true;
+            } else if (mode === 'light') {
+              resolvedDark = false;
+            } else {
+              resolvedDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+          } else {
+            resolvedDark =
+              localStorage.getItem('theme') === 'dark' ||
+              (!('theme' in localStorage) &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches);
+          }
+        } catch (e) {
+          resolvedDark =
+            localStorage.getItem('theme') === 'dark' ||
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        if (resolvedDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
 
       // Auto-recover from stale deployment chunks or stylesheets
       window.addEventListener(

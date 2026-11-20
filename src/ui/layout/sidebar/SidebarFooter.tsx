@@ -24,7 +24,7 @@ const SidebarFooter: React.FC<SidebarFooterProps> = ({ isCollapsed }) => {
   const initial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U';
   const name = user?.full_name || user?.email?.split('@')[0] || 'User';
   const role = user?.role || 'Staff';
-  const isManager = user?.role === 'owner' || user?.role === 'admin';
+  const isManager = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
 
   return (
     <div className="mt-auto space-y-3 border-t border-[var(--app-border)] p-4">

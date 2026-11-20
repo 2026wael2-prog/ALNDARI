@@ -42,9 +42,11 @@ Deno.serve(async (req) => {
 
     // Get query parameters
     const url = new URL(req.url);
-    const limit = parseInt(url.searchParams.get('limit') || '50');
-    const offset = parseInt(url.searchParams.get('offset') || '0');
-    const search = url.searchParams.get('search') || '';
+    const rawLimit = Number.parseInt(url.searchParams.get('limit') || '50', 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50;
+    const rawOffset = Number.parseInt(url.searchParams.get('offset') || '0', 10);
+    const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
+    const search = (url.searchParams.get('search') || '').trim();
 
     // Build query
     let query = supabaseClient
@@ -55,9 +57,10 @@ Deno.serve(async (req) => {
       .range(offset, offset + limit - 1)
       .order('created_at', { ascending: false });
 
-    // Add search filter if provided
+    // Add search filter if provided (PostgREST-quoted to prevent operator injection)
     if (search) {
-      query = query.or(`name_ar.ilike.%${search}%,sku.ilike.%${search}%,part_number.ilike.%${search}%,brand.ilike.%${search}%`);
+      const safeSearch = `"%${search.replace(/["\\]/g, '')}%"`;
+      query = query.or(`name_ar.ilike.${safeSearch},sku.ilike.${safeSearch},part_number.ilike.${safeSearch},brand.ilike.${safeSearch}`);
     }
 
     const { data, error, count } = await query;

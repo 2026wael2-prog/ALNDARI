@@ -7,50 +7,63 @@ const DENSITY_PADDING_Y: Record<TableSettings['density'], string> = {
   comfortable: '12px',
 };
 
+const resolveOptionalCssVars = (settings: TableSettings): Record<string, string> => {
+  const entries: Array<[string, string | undefined]> = [
+    ['--tbl-header-bg', settings.headerBg],
+    ['--tbl-header-fg', settings.headerText],
+    ['--tbl-zebra-bg', settings.zebraBg],
+    ['--tbl-border', settings.borderColor],
+    ['--tbl-hover-bg', settings.hoverBg],
+    ['--tbl-font-family', settings.fontFamily !== 'inherit' ? settings.fontFamily : undefined],
+  ];
+  const validEntries = entries.filter(
+    (pair): pair is [string, string] => pair[1] !== undefined && pair[1] !== ''
+  );
+  return Object.fromEntries(validEntries);
+};
+
 /**
  * يحوّل إعدادات الجدول إلى متغيرات CSS محلية تُطبّق على حاوية الجدول مباشرة
  * بأداء فوري وصفر إعادة رسم ثقيلة للصفوف.
  */
 export function buildTableCustomStyle(settings: TableSettings): React.CSSProperties {
-  const vars: Record<string, string> = {
-    '--tbl-font-size': `${settings.fontSize}px`,
+  const zoomFactor = Number.isFinite(settings.zoom) && settings.zoom > 0 ? settings.zoom : 1;
+  const scaledFontSize = Math.round(settings.fontSize * zoomFactor * 10) / 10;
+  const baseVars: Record<string, string> = {
+    '--tbl-font-size': `${String(scaledFontSize)}px`,
+    '--tbl-zoom': String(zoomFactor),
     '--tbl-font-weight': settings.fontWeight,
     '--tbl-row-py': DENSITY_PADDING_Y[settings.density],
     '--tbl-white-space': settings.wrapText ? 'normal' : 'nowrap',
   };
 
-  if (settings.fontFamily && settings.fontFamily !== 'inherit') {
-    vars['--tbl-font-family'] = settings.fontFamily;
-  }
-  if (settings.headerBg) vars['--tbl-header-bg'] = settings.headerBg;
-  if (settings.headerText) vars['--tbl-header-fg'] = settings.headerText;
-  if (settings.zebraBg) vars['--tbl-zebra-bg'] = settings.zebraBg;
-  if (settings.borderColor) vars['--tbl-border'] = settings.borderColor;
-  if (settings.hoverBg) vars['--tbl-hover-bg'] = settings.hoverBg;
-
   return {
-    ...(vars as React.CSSProperties),
+    ...baseVars,
+    ...resolveOptionalCssVars(settings),
     fontVariantNumeric: settings.tabularNums ? 'tabular-nums' : 'normal',
   };
 }
 
+const hasStructuralCustomization = (settings: TableSettings): boolean =>
+  settings.hiddenColumns.length > 0 ||
+  settings.columnOrder.length > 0 ||
+  settings.customColumns.length > 0 ||
+  settings.zoom !== 1 ||
+  settings.fontSize !== 12 ||
+  settings.density !== 'normal' ||
+  settings.wrapText;
+
+const hasVisualCustomization = (settings: TableSettings): boolean =>
+  settings.fontFamily !== 'inherit' ||
+  settings.fontWeight !== '600' ||
+  !settings.tabularNums ||
+  Boolean(settings.headerBg) ||
+  Boolean(settings.headerText) ||
+  Boolean(settings.zebraBg) ||
+  Boolean(settings.borderColor) ||
+  Boolean(settings.hoverBg);
+
 /** هل توجد إعدادات مخصّصة فعالة على هذا الجدول؟ */
 export function hasActiveTableCustomization(settings: TableSettings): boolean {
-  return (
-    settings.hiddenColumns.length > 0 ||
-    settings.columnOrder.length > 0 ||
-    settings.customColumns.length > 0 ||
-    settings.zoom !== 1 ||
-    settings.fontSize !== 12 ||
-    settings.density !== 'normal' ||
-    settings.wrapText ||
-    settings.fontFamily !== 'inherit' ||
-    settings.fontWeight !== '600' ||
-    !settings.tabularNums ||
-    Boolean(settings.headerBg) ||
-    Boolean(settings.headerText) ||
-    Boolean(settings.zebraBg) ||
-    Boolean(settings.borderColor) ||
-    Boolean(settings.hoverBg)
-  );
+  return hasStructuralCustomization(settings) || hasVisualCustomization(settings);
 }

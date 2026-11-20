@@ -23,6 +23,7 @@ import {
 import { ROUTES } from '../../../core/routes/paths';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { cn } from '../../../core/utils';
+import { prefetchRoute } from '../../../core/utils/routePrefetcher';
 import BottomSheet from '../../base/BottomSheet';
 
 interface MobileBottomNavProps {
@@ -111,6 +112,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             <button
               key={item.path}
               onClick={() => handleNavigate(item.path)}
+              onTouchStart={() => prefetchRoute(item.path)}
+              onMouseEnter={() => prefetchRoute(item.path)}
               aria-label={item.label}
               className={cn(
                 'flex h-full flex-1 flex-col items-center justify-center transition-all duration-300 active:scale-90',
@@ -169,6 +172,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             return (
               <button
                 key={item.path}
+                onTouchStart={() => prefetchRoute(item.path)}
+                onMouseEnter={() => prefetchRoute(item.path)}
                 onClick={() => {
                   handleNavigate(item.path);
                   onCloseMoreSheet();

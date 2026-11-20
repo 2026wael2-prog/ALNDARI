@@ -24,9 +24,9 @@ const PRODUCTION_ORIGINS = [
   'https://alzhra-erp.vercel.app',
   'https://alzhra-erp.netlify.app',
   'https://alzhra-2030karim2-devs-projects.vercel.app',
-  // Supabase project origins (old + current) — used when the app is served
+  // Supabase project origins (current + previous) — used when the app is served
   // from the project domain itself (storage / preview builds).
-  'https://zzthamxjxnxzzpswllid.supabase.co',
+  'https://dagfjncoullstrhbjssr.supabase.co',
   'https://orxlyiokccaodypindye.supabase.co',
 ];
 

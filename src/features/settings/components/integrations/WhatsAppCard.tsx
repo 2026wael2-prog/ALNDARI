@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, complexity */
 import React, { useState } from 'react';
 import {
   CheckCircle,
@@ -22,7 +23,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { useFeedbackStore } from '@/features/feedback/store';
 import { WhatsAppSessionModal } from '@/features/debts/components/agent/WhatsAppSessionModal';
 
-const WhatsAppIcon = () => (
+const WhatsAppIcon = (): React.ReactElement => (
   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
   </svg>
@@ -33,47 +34,64 @@ interface Props {
   onUpdate: (updates: Partial<MessagingConfig>) => void;
 }
 
-const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
+const useWhatsAppCardHandlers = (
+  config: MessagingConfig,
+  onUpdate: (updates: Partial<MessagingConfig>) => void
+): {
+  isTesting: boolean;
+  copiedWebhook: boolean;
+  copiedChatwootUrl: boolean;
+  webhookUrl: string;
+  chatwootWidgetUrl: string;
+  tokenMatch: RegExpExecArray | null;
+  handleCopyWebhook: () => void;
+  handleCopyChatwootUrl: () => void;
+  handleSeparateTokenAndPhone: () => void;
+  handleApplyPresetEvolution: () => void;
+  handleApplyPresetUltraMsg: () => void;
+  handleApplyPresetWasender: () => void;
+  handleTest: () => Promise<void>;
+} => {
   const [isTesting, setIsTesting] = useState(false);
-  const [showToken, setShowToken] = useState(false);
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedChatwootUrl, setCopiedChatwootUrl] = useState(false);
   const companyId = useAuthStore(s => s.user?.company_id);
   const { showToast } = useFeedbackStore();
 
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://alzhra-smart.vercel.app'}/functions/v1/whatsapp-inbound-webhook`;
+  const supabaseBase =
+    (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? 'https://alzhra-smart.vercel.app';
+  const webhookUrl = `${supabaseBase}/functions/v1/whatsapp-inbound-webhook`;
   const chatwootWidgetUrl = `${window.location.origin}/#/chatwoot-widget`;
+  const tokenMatch = /^(\d{9,12})([a-zA-Z0-9]{10,})$/.exec(config.whatsapp_api_key || '');
 
-  const handleCopyWebhook = () => {
+  const handleCopyWebhook = (): void => {
     void navigator.clipboard.writeText(webhookUrl);
     setCopiedWebhook(true);
     showToast('تم نسخ رابط الـ Webhook للرد الآلي بنجاح 📋', 'success');
-    setTimeout(() => setCopiedWebhook(false), 2500);
+    setTimeout(() => {
+      setCopiedWebhook(false);
+    }, 2500);
   };
 
-  const handleCopyChatwootUrl = () => {
+  const handleCopyChatwootUrl = (): void => {
     void navigator.clipboard.writeText(chatwootWidgetUrl);
     setCopiedChatwootUrl(true);
     showToast('تم نسخ رابط ودجت شات ووت بنجاح 📋', 'success');
-    setTimeout(() => setCopiedChatwootUrl(false), 2500);
+    setTimeout(() => {
+      setCopiedChatwootUrl(false);
+    }, 2500);
   };
 
-  // فحص إذا كان المفتاح يحتوي على رقم هاتف ملتصق بالمفتاح (مثل 779816860mkojxebwykcncp10)
-  const tokenMatch = (config.whatsapp_api_key || '').match(/^(\d{9,12})([a-zA-Z0-9]{10,})$/);
-
-  const handleSeparateTokenAndPhone = () => {
+  const handleSeparateTokenAndPhone = (): void => {
     if (!tokenMatch) return;
-    const phonePart = tokenMatch[1];
-    const keyPart = tokenMatch[2];
     onUpdate({
-      whatsapp_api_key: keyPart,
-      whatsapp_phone: config.whatsapp_phone ? config.whatsapp_phone : phonePart,
+      whatsapp_api_key: tokenMatch[2],
+      whatsapp_phone: config.whatsapp_phone ? config.whatsapp_phone : tokenMatch[1],
     });
     showToast('تم فصل المفتاح عن رقم الهاتف بنجاح ✅', 'success');
   };
 
-  const handleApplyPresetEvolution = () => {
+  const handleApplyPresetEvolution = (): void => {
     onUpdate({
       whatsapp_enabled: true,
       whatsapp_api_url: 'http://localhost:8080/message/sendText/alzhra',
@@ -82,17 +100,17 @@ const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
     showToast('تم ضبط إعدادات خادم Evolution API الافتراضية بنجاح ⚡', 'success');
   };
 
-  const handleApplyPresetUltraMsg = () => {
+  const handleApplyPresetUltraMsg = (): void => {
     onUpdate({
       whatsapp_enabled: true,
-      whatsapp_api_url: 'https://api.ultramsg.com/instance196299/',
-      whatsapp_api_key: 'mkojxebwykcncp10',
-      whatsapp_phone: '967771147694',
+      whatsapp_api_url: 'https://api.ultramsg.com/instanceXXXX/',
+      whatsapp_api_key: '',
+      whatsapp_phone: '',
     });
-    showToast('تم ضبط إعدادات بوابة UltraMsg الخاصة بالمؤسسة بنجاح ✅', 'success');
+    showToast('تم تجهيز قالب بوابة UltraMsg — أدخل رقم الجلسة والمفتاح من لوحة البوابة ثم احفظ', 'info');
   };
 
-  const handleApplyPresetWasender = () => {
+  const handleApplyPresetWasender = (): void => {
     onUpdate({
       whatsapp_enabled: true,
       whatsapp_api_url: 'http://localhost:3000/api/send-message',
@@ -101,13 +119,12 @@ const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
     showToast('تم ضبط إعدادات بوابة WASender الافتراضية بنجاح ✅', 'success');
   };
 
-  const handleTest = async () => {
+  const handleTest = async (): Promise<void> => {
     if (!config.whatsapp_api_url || !config.whatsapp_api_key || !config.whatsapp_phone) {
       showToast('يرجى ملء جميع حقول WhatsApp (الرابط، المفتاح، ورقم الهاتف) أولاً', 'error');
       return;
     }
-
-    if (!companyId) return;
+    if (companyId === undefined || companyId === '') return;
 
     try {
       setIsTesting(true);
@@ -116,18 +133,54 @@ const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
         'test_connection',
         'اختبار اتصال Al-Jaafari Smart ERP مع WhatsApp ناجح! 🚀'
       );
-
-      if (res.success) {
-        showToast('تم إرسال رسالة الاختبار بنجاح إلى WhatsApp!', 'success');
-      } else {
-        showToast('فشل اختبار الاتصال، تأكد من صحة المفاتيح والرابط', 'error');
-      }
+      showToast(
+        res.success
+          ? 'تم إرسال رسالة الاختبار بنجاح إلى WhatsApp!'
+          : 'فشل اختبار الاتصال، تأكد من صحة المفاتيح والرابط',
+        res.success ? 'success' : 'error'
+      );
     } catch {
       showToast('حدث خطأ أثناء اختبار الاتصال', 'error');
     } finally {
       setIsTesting(false);
     }
   };
+
+  return {
+    isTesting,
+    copiedWebhook,
+    copiedChatwootUrl,
+    webhookUrl,
+    chatwootWidgetUrl,
+    tokenMatch,
+    handleCopyWebhook,
+    handleCopyChatwootUrl,
+    handleSeparateTokenAndPhone,
+    handleApplyPresetEvolution,
+    handleApplyPresetUltraMsg,
+    handleApplyPresetWasender,
+    handleTest,
+  };
+};
+
+const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
+  const [showToken, setShowToken] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const {
+    isTesting,
+    copiedWebhook,
+    copiedChatwootUrl,
+    webhookUrl,
+    chatwootWidgetUrl,
+    tokenMatch,
+    handleCopyWebhook,
+    handleCopyChatwootUrl,
+    handleSeparateTokenAndPhone,
+    handleApplyPresetEvolution,
+    handleApplyPresetUltraMsg,
+    handleApplyPresetWasender,
+    handleTest,
+  } = useWhatsAppCardHandlers(config, onUpdate);
 
   return (
     <Card className="overflow-hidden border border-[var(--app-border)]">
@@ -165,7 +218,7 @@ const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
               type="button"
               onClick={handleApplyPresetUltraMsg}
               className="flex items-center gap-1 rounded-lg border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-bold text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
-              title="تعبئة بيانات بوابة UltraMsg الخاصة بمؤسسة الجعفري تلقائياً"
+              title="تعبئة قالب بوابة UltraMsg"
             >
               <Sparkles size={12} />
               <span>تعبئة UltraMsg</span>
@@ -237,7 +290,7 @@ const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
                   onChange={e => {
                     onUpdate({ whatsapp_api_url: e.target.value.trim() });
                   }}
-                  placeholder="https://api.ultramsg.com/instance196299/"
+                  placeholder="https://api.ultramsg.com/instanceXXXX/"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   dir="ltr"
                 />
@@ -263,7 +316,7 @@ const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
                     onChange={e => {
                       onUpdate({ whatsapp_api_key: e.target.value.trim() });
                     }}
-                    placeholder="mkojxebwykcncp10"
+                    placeholder="أدخل مفتاح API / Token"
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                     dir="ltr"
                   />
@@ -281,7 +334,7 @@ const WhatsAppCard: React.FC<Props> = ({ config, onUpdate }) => {
                   onChange={e => {
                     onUpdate({ whatsapp_phone: e.target.value.trim() });
                   }}
-                  placeholder="967771147694"
+                  placeholder="9677XXXXXXXX"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   dir="ltr"
                 />

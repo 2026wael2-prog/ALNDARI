@@ -23,6 +23,7 @@ interface NotificationRequest {
     event_type: string;
     message: string;
     reference_id?: string;
+    recipient_phone?: string;
     image_base64?: string; // NEW: base64 PNG for sending images
     document_base64?: string; // base64 XLSX/PDF for sending study documents
     document_name?: string;
@@ -401,7 +402,7 @@ Deno.serve(async (req: Request) => {
             });
         }
 
-        const { company_id, event_type, message, reference_id, image_base64, document_base64, document_name, mime_type } = JSON.parse(bodyText) as NotificationRequest;
+        const { company_id, event_type, message, reference_id, recipient_phone, image_base64, document_base64, document_name, mime_type } = JSON.parse(bodyText) as NotificationRequest;
 
         if (!company_id || !event_type || !message) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -482,7 +483,12 @@ Deno.serve(async (req: Request) => {
             low_stock: 'notify_on_low_stock',
         };
 
-        if (event_type !== 'test' && event_type !== 'share') {
+        const explicitRecipient =
+            typeof recipient_phone === 'string' && recipient_phone.trim() !== ''
+                ? recipient_phone.trim()
+                : '';
+
+        if (event_type !== 'test' && event_type !== 'share' && !explicitRecipient) {
             const toggleField = eventToggleMap[event_type];
             if (toggleField && !config[toggleField]) {
                 return new Response(JSON.stringify({ message: `Notifications disabled for ${event_type}` }), {
@@ -495,7 +501,9 @@ Deno.serve(async (req: Request) => {
         const results: { channel: string; success: boolean; error?: string }[] = [];
 
         // ===== TELEGRAM =====
-        if (config.telegram_enabled && config.telegram_bot_token && config.telegram_chat_id) {
+        // When sending a direct customer WhatsApp message (explicitRecipient set),
+        // never broadcast customer statements/debt reminders to the internal Telegram group.
+        if (!explicitRecipient && config.telegram_enabled && config.telegram_bot_token && config.telegram_chat_id) {
             let telegramResult;
             if (document_base64) {
                 telegramResult = await sendTelegramDocument(
@@ -529,13 +537,19 @@ Deno.serve(async (req: Request) => {
         }
 
         // ===== WHATSAPP =====
-        if (config.whatsapp_enabled && config.whatsapp_api_url && config.whatsapp_phone) {
+        const whatsappTargetPhone = explicitRecipient || config.whatsapp_phone;
+        if (explicitRecipient && (!config.whatsapp_enabled || !config.whatsapp_api_url || !config.whatsapp_api_key)) {
+            results.push({
+                channel: 'whatsapp',
+                success: false,
+                error: 'WhatsApp gateway is not configured or disabled for this company',
+            });
+        } else if (config.whatsapp_enabled && config.whatsapp_api_url && config.whatsapp_api_key && whatsappTargetPhone) {
             let whatsappResult;
-            // Also decrypt / or use API key directly (assuming we haven't implemented Vault yet for Phase 2)
             if (image_base64) {
-                whatsappResult = await sendWhatsAppImage(config.whatsapp_api_url, config.whatsapp_api_key, config.whatsapp_phone, image_base64, message);
+                whatsappResult = await sendWhatsAppImage(config.whatsapp_api_url, config.whatsapp_api_key, whatsappTargetPhone, image_base64, message);
             } else {
-                whatsappResult = await sendWhatsAppText(config.whatsapp_api_url, config.whatsapp_api_key, config.whatsapp_phone, message, reference_id);
+                whatsappResult = await sendWhatsAppText(config.whatsapp_api_url, config.whatsapp_api_key, whatsappTargetPhone, message, reference_id);
             }
             results.push({ channel: 'whatsapp', success: whatsappResult.ok, error: whatsappResult.error });
 

@@ -53,13 +53,16 @@ export interface UltraMsgCheckContactResult {
   error?: string | undefined;
 }
 
-export const DEFAULT_ULTRAMSG_URL = 'https://api.ultramsg.com/instance196299/';
-export const DEFAULT_ULTRAMSG_TOKEN = 'mkojxebwykcncp10';
-export const DEFAULT_ULTRAMSG_PHONE = '967771147694';
+export const DEFAULT_ULTRAMSG_URL = '';
+export const DEFAULT_ULTRAMSG_TOKEN = '';
+export const DEFAULT_ULTRAMSG_PHONE = '';
 
-function resolveEndpoint(path: string, credentials?: UltraMsgCredentials | undefined): { url: string; token: string } {
+function resolveEndpoint(path: string, credentials?: UltraMsgCredentials): { url: string; token: string } {
   const rawUrl = credentials?.url && credentials.url.trim() !== '' ? credentials.url.trim() : DEFAULT_ULTRAMSG_URL;
   const token = credentials?.token && credentials.token.trim() !== '' ? credentials.token.trim() : DEFAULT_ULTRAMSG_TOKEN;
+  if (!rawUrl || !token) {
+    throw new Error('إعدادات بوابة UltraMsg (الرابط والمفتاح) غير مكتملة');
+  }
   const cleanUrl = rawUrl.replace(/\/+$/, '');
   const finalPath = path.replace(/^\/+/, '');
   return {
@@ -81,18 +84,18 @@ export const ultraMsgService = {
   },
 
   /**
-   * Extracts instance ID (e.g. instance196299) from API URL.
+   * Extracts instance ID (e.g. instanceXXXX) from API URL.
    */
-  extractInstanceId(url?: string | undefined): string {
-    if (!url) return 'instance196299';
-    const match = url.match(/instance\d+/i);
-    return match ? match[0] : 'instance196299';
+  extractInstanceId(url?: string): string {
+    if (!url) return 'غير مهيأ';
+    const match = /instance\d+/i.exec(url);
+    return match ? match[0] : 'غير مهيأ';
   },
 
   /**
    * Queries instance connection status (e.g. authenticated, standby, qr).
    */
-  async getStatus(credentials?: UltraMsgCredentials | undefined): Promise<UltraMsgStatusResult> {
+  async getStatus(credentials?: UltraMsgCredentials): Promise<UltraMsgStatusResult> {
     try {
       const { url, token } = resolveEndpoint('instance/status', credentials);
       const res = await fetch(`${url}?token=${encodeURIComponent(token)}`, {
@@ -140,7 +143,7 @@ export const ultraMsgService = {
   /**
    * Returns information about the connected WhatsApp account (or error if not connected).
    */
-  async getMe(credentials?: UltraMsgCredentials | undefined): Promise<UltraMsgMeResult> {
+  async getMe(credentials?: UltraMsgCredentials): Promise<UltraMsgMeResult> {
     try {
       const { url, token } = resolveEndpoint('instance/me', credentials);
       const res = await fetch(`${url}?token=${encodeURIComponent(token)}`, {
@@ -178,7 +181,7 @@ export const ultraMsgService = {
   /**
    * Returns live QR code image URL for scanning and pairing.
    */
-  getQrImageUrl(credentials?: UltraMsgCredentials | undefined): string {
+  getQrImageUrl(credentials?: UltraMsgCredentials): string {
     const { url, token } = resolveEndpoint('instance/qr', credentials);
     return `${url}?token=${encodeURIComponent(token)}&t=${Date.now()}`;
   },
@@ -186,7 +189,7 @@ export const ultraMsgService = {
   /**
    * Restarts the WhatsApp instance session.
    */
-  async restartInstance(credentials?: UltraMsgCredentials | undefined): Promise<{ ok: boolean; error?: string | undefined }> {
+  async restartInstance(credentials?: UltraMsgCredentials): Promise<{ ok: boolean; error?: string | undefined }> {
     try {
       const { url, token } = resolveEndpoint('instance/restart', credentials);
       const params = new URLSearchParams({ token });
@@ -208,7 +211,7 @@ export const ultraMsgService = {
   /**
    * Checks whether a phone number is registered on WhatsApp.
    */
-  async checkContact(rawPhone: string, credentials?: UltraMsgCredentials | undefined): Promise<UltraMsgCheckContactResult> {
+  async checkContact(rawPhone: string, credentials?: UltraMsgCredentials): Promise<UltraMsgCheckContactResult> {
     const clean = this.formatToPhone(rawPhone);
     if (!clean) return { ok: false, isWhatsApp: false, error: 'رقم هاتف غير صالح' };
 
@@ -269,7 +272,7 @@ export const ultraMsgService = {
         error?: string;
       } | null;
 
-      const isSent = Boolean(res.ok && (data?.sent === 'true' || data?.sent === true));
+      const isSent = res.ok && (data?.sent === 'true' || data?.sent === true);
       return {
         ok: res.ok,
         sent: isSent,

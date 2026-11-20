@@ -483,7 +483,7 @@ export const useThemeStore = create<ThemeState>()(
         glassOpacity: state.glassOpacity,
         uiLayout: state.uiLayout,
       }),
-      onRehydrateStorage: persistedState => {
+      onRehydrateStorage: () => persistedState => {
         if (persistedState) {
           const theme = applyTheme(persistedState.mode);
           applyAccent(persistedState.accentColor);

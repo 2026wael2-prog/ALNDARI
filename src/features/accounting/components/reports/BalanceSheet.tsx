@@ -147,10 +147,14 @@ const BalanceSheet: React.FC<Props> = ({ dateRange }) => {
           <ReportSection
             title="حقوق الملكية"
             icon={Layers}
-            items={[
-              ...equity,
-              { name: 'صافي أرباح/خسائر الفترة', net_balance: netIncome, code: '3999' },
-            ]}
+            items={
+              equity.some(i => i.code === '3999')
+                ? equity
+                : [
+                    ...equity,
+                    { name: 'صافي أرباح/خسائر الفترة', net_balance: netIncome, code: '3999' },
+                  ]
+            }
             total={totalEquity}
             color="emerald"
           />

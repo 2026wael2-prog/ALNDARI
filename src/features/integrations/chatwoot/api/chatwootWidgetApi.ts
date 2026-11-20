@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/core/database.types';
+import { buildOrValue } from '@/core/utils/postgrestFilter';
 
 interface ChatwootPartyInfo {
   id: string;
@@ -55,16 +56,20 @@ const DEFAULT_PROMISE_NOTE = 'وعد سداد مسجل عبر ودجت خدمة 
 /**
  * البحث عن الطرف (عميل أو مورد) برقم الهاتف أو الاسم
  */
-const findMatchingParty = async (trimmed: string): Promise<ChatwootPartyInfo | null> => {
+const findMatchingParty = async (trimmed: string, companyId: string): Promise<ChatwootPartyInfo | null> => {
+  if (!companyId) return null;
   const cleanDigits = trimmed.replace(/[^0-9]/g, '');
   let queryBuilder = supabase
     .from('parties')
     .select('id, company_id, name, phone, type, tax_number, credit_limit')
+    .eq('company_id', companyId)
     .is('deleted_at', null);
 
   if (cleanDigits.length >= 6) {
     const clean9 = cleanDigits.slice(-9);
-    queryBuilder = queryBuilder.or(`phone.ilike.%${clean9}%,name.ilike.%${trimmed}%`);
+    queryBuilder = queryBuilder.or(
+      `phone.ilike.${buildOrValue(`%${clean9}%`)},name.ilike.${buildOrValue(`%${trimmed}%`)}`
+    );
   } else {
     queryBuilder = queryBuilder.ilike('name', `%${trimmed}%`);
   }
@@ -94,10 +99,11 @@ const fetchPartyBalances = async (party: ChatwootPartyInfo): Promise<ChatwootCur
 /**
  * آخر الفواتير الصادرة
  */
-const fetchRecentInvoices = async (partyId: string): Promise<ChatwootInvoiceBrief[]> => {
+const fetchRecentInvoices = async (partyId: string, companyId: string): Promise<ChatwootInvoiceBrief[]> => {
   const { data } = await supabase
     .from('invoices')
     .select('id, invoice_number, issue_date, total_amount, paid_amount, currency_code, status')
+    .eq('company_id', companyId)
     .eq('party_id', partyId)
     .is('deleted_at', null)
     .order('issue_date', { ascending: false })
@@ -118,10 +124,11 @@ const fetchRecentInvoices = async (partyId: string): Promise<ChatwootInvoiceBrie
 /**
  * وعود السداد المعلقة
  */
-const fetchPendingPromises = async (partyId: string): Promise<ChatwootPromiseBrief[]> => {
+const fetchPendingPromises = async (partyId: string, companyId: string): Promise<ChatwootPromiseBrief[]> => {
   const { data } = await supabase
     .from('debt_payment_promises')
     .select('id, amount, currency_code, promise_date, status, notes')
+    .eq('company_id', companyId)
     .eq('party_id', partyId)
     .eq('status', 'pending')
     .order('promise_date', { ascending: true })
@@ -149,16 +156,16 @@ export const chatwootWidgetApi = {
   /**
    * البحث عن الطرف (عميل أو مورد) برقم الهاتف أو الاسم
    */
-  async findParty(query: string): Promise<ChatwootPartySummary | null> {
+  async findParty(query: string, companyId: string): Promise<ChatwootPartySummary | null> {
     const trimmed = query.trim();
-    if (trimmed.length < 2) return null;
+    if (trimmed.length < 2 || !companyId) return null;
 
-    const party = await findMatchingParty(trimmed);
+    const party = await findMatchingParty(trimmed, companyId);
     if (party === null) return null;
 
     const balances = await fetchPartyBalances(party);
-    const recentInvoices = await fetchRecentInvoices(party.id);
-    const pendingPromises = await fetchPendingPromises(party.id);
+    const recentInvoices = await fetchRecentInvoices(party.id, party.company_id);
+    const pendingPromises = await fetchPendingPromises(party.id, party.company_id);
 
     return {
       party,
@@ -171,17 +178,19 @@ export const chatwootWidgetApi = {
   /**
    * توافقية مع الاستدعاء برقم الهاتف فقط
    */
-  findPartyByPhone(rawPhone: string): Promise<ChatwootPartySummary | null> {
-    return this.findParty(rawPhone);
+  findPartyByPhone(rawPhone: string, companyId: string): Promise<ChatwootPartySummary | null> {
+    return this.findParty(rawPhone, companyId);
   },
 
   /**
    * جلب قائمة سريعة بأحدث العملاء للاختيار السريع
    */
-  async getRecentParties(): Promise<ChatwootQuickParty[]> {
+  async getRecentParties(companyId: string): Promise<ChatwootQuickParty[]> {
+    if (!companyId) return [];
     const { data } = await supabase
       .from('parties')
       .select('id, name, phone, type')
+      .eq('company_id', companyId)
       .is('deleted_at', null)
       .not('phone', 'is', null)
       .order('updated_at', { ascending: false })

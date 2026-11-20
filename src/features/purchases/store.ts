@@ -2,7 +2,7 @@ import { create, type StoreApi } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Product } from '../inventory/types';
 import { useDiscountStore } from '../settings/taxDiscountStore';
-import { convertCurrency } from '../../core/utils/currencyUtils';
+import { convertCurrency, getDefaultExchangeOperator } from '../../core/utils/currencyUtils';
 import { formatLocalDate } from '../../core/utils/dateUtils';
 import { logger } from '../../core/utils/logger';
 import { STORAGE_KEYS } from '../../core/constants';
@@ -149,25 +149,31 @@ const createItemActions = (set: PurchaseStoreSet, get: PurchaseStoreGet): Purcha
   },
 });
 
+const computeConvertedRowCost = (costPrice: number, currency: string, rate: number): number | null => {
+  if (currency === 'SAR') return costPrice;
+  try {
+    return convertCurrency(costPrice, rate, 'fromBase', getDefaultExchangeOperator(currency));
+  } catch {
+    logger.error('store', 'PurchaseStore: Invalid exchange rate for setProductForRow', {
+      rate,
+      currency,
+    });
+    return null;
+  }
+};
+
 const createProductActions = (
   set: PurchaseStoreSet,
   get: PurchaseStoreGet
 ): Pick<PurchaseActions, 'setProductForRow' | 'addItem' | 'removeItem'> => ({
   setProductForRow: (index, product) => {
     set(state => {
-      const rate = state.exchangeRate;
-      let convertedCost = product.cost_price;
-      if (state.currency !== 'SAR') {
-        try {
-          convertedCost = convertCurrency(product.cost_price, rate, 'fromBase');
-        } catch {
-          logger.error('store', 'PurchaseStore: Invalid exchange rate for setProductForRow', {
-            rate,
-            currency: state.currency,
-          });
-          return state;
-        }
-      }
+      const convertedCost = computeConvertedRowCost(
+        product.cost_price,
+        state.currency,
+        state.exchangeRate
+      );
+      if (convertedCost === null) return state;
       return {
         items: state.items.map((item, itemIndex) =>
           itemIndex === index
@@ -222,6 +228,38 @@ const createCalculationActions = (set: PurchaseStoreSet): PurchaseCalculationAct
   },
 });
 
+const STRING_METADATA_FIELDS = new Set([
+  'invoiceNumber',
+  'issueDate',
+  'warehouseId',
+  'invoiceType',
+  'cashboxId',
+  'notes',
+]);
+
+const buildMetadataPatch = (
+  field: string,
+  value: unknown,
+  currentCurrency: string
+): Partial<PurchaseState> | null => {
+  if (field === 'currency') {
+    const newCurrency = String(value);
+    return newCurrency === 'SAR'
+      ? { currency: 'SAR', exchangeRate: 1 }
+      : { currency: newCurrency };
+  }
+  if (STRING_METADATA_FIELDS.has(field)) {
+    return { [field]: String(value) };
+  }
+  if (field === 'exchangeRate') {
+    return { exchangeRate: currentCurrency === 'SAR' ? 1 : Number(value) };
+  }
+  if (field === 'paidAmount') {
+    return { paidAmount: Math.max(0, readNumber(value)) };
+  }
+  return null;
+};
+
 const createMetadataActions = (
   set: PurchaseStoreSet,
   get: PurchaseStoreGet
@@ -230,33 +268,8 @@ const createMetadataActions = (
     set({ supplier });
   },
   setMetadata: (field, value) => {
-    if (
-      field === 'invoiceNumber' ||
-      field === 'issueDate' ||
-      field === 'currency' ||
-      field === 'warehouseId' ||
-      field === 'invoiceType' ||
-      field === 'cashboxId' ||
-      field === 'notes'
-    ) {
-      if (field === 'currency') {
-        const newCurrency = String(value);
-        if (newCurrency === 'SAR') {
-          set({ currency: 'SAR', exchangeRate: 1 });
-        } else {
-          set({ currency: newCurrency });
-        }
-      } else {
-        set({ [field]: String(value) });
-      }
-    }
-    if (field === 'exchangeRate') {
-      const currentCurrency = get().currency;
-      set({ exchangeRate: currentCurrency === 'SAR' ? 1 : Number(value) });
-    }
-    if (field === 'paidAmount') {
-      set({ paidAmount: Math.max(0, readNumber(value)) });
-    }
+    const patch = buildMetadataPatch(field, value, get().currency);
+    if (patch !== null) set(patch);
   },
   toggleColumn: _field => {
     set(state => ({ showDiscount: !state.showDiscount }));
@@ -320,7 +333,7 @@ export const usePurchaseStore = create<PurchaseState>()(
         showDiscount: state.showDiscount,
       }),
       onRehydrateStorage: () => state => {
-        if (state && state.currency === 'SAR') {
+        if (state?.currency === 'SAR') {
           state.exchangeRate = 1;
         }
       },

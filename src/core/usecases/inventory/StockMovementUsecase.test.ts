@@ -108,4 +108,28 @@ describe('StockMovementUsecase', () => {
       message: 'DB Error',
     });
   });
+
+  it('should map RETURN movements to sales_return / purchase_return matching DB trigger types', async () => {
+    (inventoryApi.createInventoryTransactions as ReturnType<typeof vi.fn>).mockResolvedValue({
+      error: null,
+    });
+
+    await StockMovementUsecase.execute({ ...mockParams, type: 'RETURN', quantity: -3 });
+    expect(inventoryApi.createInventoryTransactions).toHaveBeenCalledWith([
+      expect.objectContaining({
+        product_id: 'prod-123',
+        quantity: -3,
+        transaction_type: 'sales_return',
+      }),
+    ]);
+
+    await StockMovementUsecase.execute({ ...mockParams, type: 'RETURN', quantity: 3 });
+    expect(inventoryApi.createInventoryTransactions).toHaveBeenCalledWith([
+      expect.objectContaining({
+        product_id: 'prod-123',
+        quantity: 3,
+        transaction_type: 'purchase_return',
+      }),
+    ]);
+  });
 });

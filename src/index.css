@@ -3173,18 +3173,25 @@ html[data-preset='obsidian-sun'].dark button[class*='bg-rose-600'] * {
 /* ==========================================================================
    UNIFIED TABLE CUSTOMIZATION ENGINE (تخصيص الأعمدة والحجم والألوان والخطوط لكل جدول)
    ========================================================================== */
-[data-table-customized='true'] table {
+[data-table-customized='true'] table,
+[data-table-customized='true'] table td {
   font-family: var(--tbl-font-family, inherit) !important;
   font-size: var(--tbl-font-size, inherit) !important;
   font-weight: var(--tbl-font-weight, inherit);
 }
 
 [data-table-customized='true'] table th {
+  font-family: var(--tbl-font-family, inherit) !important;
+  font-size: calc(var(--tbl-font-size, 12px) * 0.92) !important;
   background-color: var(--tbl-header-bg, inherit) !important;
   color: var(--tbl-header-fg, inherit) !important;
   border-color: var(--tbl-border, inherit) !important;
   padding-top: var(--tbl-row-py, 6px) !important;
   padding-bottom: var(--tbl-row-py, 6px) !important;
+}
+
+.excel-cell-content {
+  white-space: var(--tbl-white-space, nowrap);
 }
 
 [data-table-customized='true'] table td {

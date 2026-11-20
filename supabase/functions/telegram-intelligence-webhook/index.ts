@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
       if ((action === 'approve' || action === 'postpone') && recId) {
         const nextStatus = action === 'approve' ? 'approved' : 'postponed';
         const { error: updErr } = await supabase
-          .from('inventory_intelligence_recommendations')
+          .from('inv_intelligence_recommendations')
           .update({ status: nextStatus, decided_at: new Date().toISOString() })
           .eq('id', recId)
           .eq('company_id', companyId);
@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
     const text = String(message?.text ?? '').trim();
     if (text.startsWith('/summary')) {
       const { count: pendingCount } = await supabase
-        .from('inventory_intelligence_recommendations')
+        .from('inv_intelligence_recommendations')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId)
         .eq('status', 'pending');
@@ -108,7 +108,7 @@ Deno.serve(async (req: Request) => {
       );
     } else if (text.startsWith('/buy')) {
       const { data: recs } = await supabase
-        .from('inventory_intelligence_recommendations')
+        .from('inv_intelligence_recommendations')
         .select('id, product_name, recommended_qty, urgency')
         .eq('company_id', companyId)
         .eq('rec_type', 'purchase')
@@ -131,12 +131,13 @@ Deno.serve(async (req: Request) => {
       if (!query || query.length < 2) {
         await replyTelegram(botToken, rawChatId, 'يرجى كتابة اسم الصنف أو رقمه بعد الأمر، مثال: <code>/part 1200</code>');
       } else {
+        const safeQuery = `"%${query.replace(/["\\]/g, '')}%"`;
         const { data: prods } = await supabase
           .from('products')
           .select('id, name_ar, sku, part_number, brand')
           .eq('company_id', companyId)
           .is('deleted_at', null)
-          .or(`name_ar.ilike.%${query}%,sku.ilike.%${query}%,part_number.ilike.%${query}%`)
+          .or(`name_ar.ilike.${safeQuery},sku.ilike.${safeQuery},part_number.ilike.${safeQuery}`)
           .limit(5);
 
         const lines = (prods ?? []).map(

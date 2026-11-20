@@ -8,6 +8,18 @@ import { queryClient } from '../../lib/queryClient';
 import { persister } from '../../lib/persister';
 import { logger } from '../../core/utils/logger';
 import { useBranchFilterStore } from '../branches/store';
+import { teardownAllRealtimeSync } from '../../lib/hooks/useRealtimeSync';
+import { syncStore } from '../../core/lib/sync-store';
+import { useWorkspaceTabStore } from '../../core/store/workspaceTabStore';
+
+function clearSessionClientState(): void {
+  teardownAllRealtimeSync();
+  queryClient.clear();
+  useBranchFilterStore.getState().ensureCompany(null);
+  useWorkspaceTabStore.getState().closeAllTabs();
+  Promise.resolve(syncStore.clear()).catch(() => undefined);
+  Promise.resolve(persister.removeClient()).catch(() => undefined);
+}
 
 interface AuthState {
   user: AuthUser | null;
@@ -62,10 +74,8 @@ export const useAuthStore = create<AuthState>()(
         } catch (err) {
           logger.error('Auth', 'Sign out error', err);
         } finally {
-          // Clear all React Query cache + IndexedDB persisted data + branch filter on logout
-          queryClient.clear();
-          useBranchFilterStore.getState().ensureCompany(null);
-          Promise.resolve(persister.removeClient()).catch(() => undefined);
+          // Clear all realtime channels, React Query cache, sync queue, workspace tabs, IndexedDB persisted data & branch filter on logout
+          clearSessionClientState();
           set({ user: null, isAuthenticated: false, isLoading: false, isReady: true });
         }
       },
@@ -255,8 +265,7 @@ export const useAuthStore = create<AuthState>()(
                 }
 
                 if (event === 'SIGNED_OUT' || !session) {
-                  queryClient.clear();
-                  Promise.resolve(persister.removeClient()).catch(() => undefined);
+                  clearSessionClientState();
                   set({ user: null, isAuthenticated: false, isLoading: false, isReady: true });
                   return;
                 }

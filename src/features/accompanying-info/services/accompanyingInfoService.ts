@@ -1,4 +1,10 @@
 import { supabase } from '../../../lib/supabaseClient';
+import {
+  convertCurrency,
+  getDefaultExchangeOperator,
+  resolveAutoExchangeRate,
+} from '../../../core/utils/currencyUtils';
+import { buildIlikeOrFilter } from '../../../core/utils/postgrestFilter';
 import type {
   PartyCompanionData,
   InvoiceCompanionData,
@@ -50,12 +56,24 @@ export const accompanyingInfoService = {
       .eq('journal_entries.status', 'posted')
       .is('journal_entries.deleted_at', null);
 
-    // 3. جلب الأرصدة الافتتاحية إن وجدت
-    const { data: openingRows } = await supabase
-      .from('party_opening_balances')
-      .select('currency_code, amount, direction')
-      .eq('company_id', companyId)
-      .eq('party_id', partyId);
+    // 3. جلب الأرصدة الافتتاحية وأسعار الصرف للتحويل للعملة الأساسية
+    const [{ data: openingRows }, { data: exchangeRateRows }] = await Promise.all([
+      supabase
+        .from('party_opening_balances')
+        .select('currency_code, amount, direction')
+        .eq('company_id', companyId)
+        .eq('party_id', partyId),
+      supabase
+        .from('exchange_rates')
+        .select('currency_code, rate_to_base')
+        .eq('company_id', companyId)
+        .order('effective_date', { ascending: false }),
+    ]);
+
+    const ratesList = (exchangeRateRows || []).map(r => ({
+      currency_code: r.currency_code || '',
+      rate_to_base: r.rate_to_base || 0,
+    }));
 
     // تجميع الحركات حسب كل عملة
     const currencyMap = new Map<string, { debit: number; credit: number }>();
@@ -64,8 +82,8 @@ export const accompanyingInfoService = {
     // تجميع أسطر القيود
     (journalRows || []).forEach(row => {
       const curr = (row.currency_code || 'SAR').toUpperCase().trim();
-      const debit = Number(row.debit_amount) || 0;
-      const credit = Number(row.credit_amount) || 0;
+      const debit = row.debit_amount || 0;
+      const credit = row.credit_amount || 0;
 
       // بالعملة الأساسية
       baseCurrencyTotals.debit += debit;
@@ -88,17 +106,22 @@ export const accompanyingInfoService = {
       currencyMap.set(curr, existing);
     });
 
-    // تجميع الأرصدة الافتتاحية
+    // تجميع الأرصدة الافتتاحية مع تحويل العملات غير الأساسية إلى SAR
     (openingRows || []).forEach(row => {
       const curr = (row.currency_code || 'SAR').toUpperCase().trim();
-      const amount = Number(row.amount) || 0;
+      const amount = row.amount || 0;
+      const rate = curr === 'SAR' ? 1 : resolveAutoExchangeRate(curr, ratesList);
+      const baseAmount =
+        curr === 'SAR'
+          ? amount
+          : convertCurrency(amount, rate, 'toBase', getDefaultExchangeOperator(curr));
       const existing = currencyMap.get(curr) || { debit: 0, credit: 0 };
       if (row.direction === 'debit') {
         existing.debit += amount;
-        baseCurrencyTotals.debit += amount;
+        baseCurrencyTotals.debit += baseAmount;
       } else {
         existing.credit += amount;
-        baseCurrencyTotals.credit += amount;
+        baseCurrencyTotals.credit += baseAmount;
       }
       currencyMap.set(curr, existing);
     });
@@ -156,15 +179,15 @@ export const accompanyingInfoService = {
       email: undefined,
       address: undefined,
       city: undefined,
-      credit_limit: party.credit_limit ? Number(party.credit_limit) : undefined,
-      payment_terms_days: party.payment_terms_days ? Number(party.payment_terms_days) : undefined,
+      credit_limit: party.credit_limit ? party.credit_limit : undefined,
+      payment_terms_days: party.payment_terms_days ? party.payment_terms_days : undefined,
       currencies,
       recent_invoices: (recentInvoices || []).map(inv => ({
         id: inv.id,
         invoice_number: inv.invoice_number || '',
         issue_date: inv.issue_date,
-        total_amount: Number(inv.total_amount) || 0,
-        paid_amount: Number(inv.paid_amount) || 0,
+        total_amount: inv.total_amount || 0,
+        paid_amount: inv.paid_amount || 0,
         status: inv.status,
       })),
     };
@@ -232,9 +255,9 @@ export const accompanyingInfoService = {
     let totalCost = 0;
 
     items.forEach(it => {
-      const q = Number(it.quantity) || 0;
+      const q = it.quantity || 0;
       totalQty += q;
-      totalCost += q * (Number(it.cost_price) || 0);
+      totalCost += q * (it.cost_price || 0);
     });
 
     // جلب اسم المستودع من حركة المخزون المرتبطة بالفاتورة أو المستودع الافتراضي للشركة
@@ -263,10 +286,10 @@ export const accompanyingInfoService = {
       }
     }
 
-    const netTotal = Number(inv.total_amount) || 0;
-    const discountAmount = Number(inv.discount_amount) || 0;
-    const taxAmount = Number(inv.tax_amount) || 0;
-    const paidAmount = Number(inv.paid_amount) || 0;
+    const netTotal = inv.total_amount || 0;
+    const discountAmount = inv.discount_amount || 0;
+    const taxAmount = inv.tax_amount || 0;
+    const paidAmount = inv.paid_amount || 0;
     const subtotal = netTotal + discountAmount - taxAmount;
     const remainingAmount = Math.max(0, netTotal - paidAmount);
 
@@ -283,7 +306,7 @@ export const accompanyingInfoService = {
       warehouse_name: warehouseName,
       issue_date: inv.issue_date,
       currency_code: inv.currency_code || 'SAR',
-      exchange_rate: Number(inv.exchange_rate) || 1,
+      exchange_rate: inv.exchange_rate || 1,
       payment_method: inv.payment_method === 'credit' ? 'آجل' : 'نقدي',
       notes: inv.notes || undefined,
       customer_ref: undefined,
@@ -361,19 +384,19 @@ export const accompanyingInfoService = {
 
     let totalStock = 0;
     const warehousesStock = rawStock.map(st => {
-      const q = Number(st.quantity) || 0;
+      const q = st.quantity || 0;
       totalStock += q;
       return {
         warehouse_id: st.warehouse_id,
         warehouse_name: st.warehouses?.name_ar || 'مستودع',
         branch_name: st.warehouses?.branches?.name || undefined,
         quantity: q,
-        min_stock_level: p.min_stock_level ? Number(p.min_stock_level) : undefined,
+        min_stock_level: p.min_stock_level ? p.min_stock_level : undefined,
       };
     });
 
-    const salePrice = Number(p.sale_price) || 0;
-    const costPrice = Number(p.cost_price) || Number(p.purchase_price) || 0;
+    const salePrice = p.sale_price || 0;
+    const costPrice = p.cost_price || p.purchase_price || 0;
     const minAllowedPrice = Math.round(salePrice * 0.7 * 100) / 100;
 
     let profitMargin = undefined;
@@ -400,8 +423,8 @@ export const accompanyingInfoService = {
       description: p.description || undefined,
       unit: p.unit || 'حبة',
       sale_price: salePrice,
-      purchase_price: Number(p.purchase_price) || 0,
-      cost_price: p.cost_price ? Number(p.cost_price) : undefined,
+      purchase_price: p.purchase_price || 0,
+      cost_price: p.cost_price ? p.cost_price : undefined,
       min_allowed_price: minAllowedPrice,
       total_stock: Math.round(totalStock * 100) / 100,
       profit_margin_percent: profitMargin,
@@ -440,7 +463,7 @@ export const accompanyingInfoService = {
       .select('id, name, type, phone')
       .eq('company_id', companyId)
       .is('deleted_at', null)
-      .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
+      .or(buildIlikeOrFilter(['name', 'phone'], query))
       .limit(4);
 
     (parties || []).forEach(p => {
@@ -458,7 +481,7 @@ export const accompanyingInfoService = {
       .select('id, name_ar, sku, part_number')
       .eq('company_id', companyId)
       .is('deleted_at', null)
-      .or(`name_ar.ilike.%${query}%,sku.ilike.%${query}%,part_number.ilike.%${query}%`)
+      .or(buildIlikeOrFilter(['name_ar', 'sku', 'part_number'], query))
       .limit(4);
 
     (products || []).forEach(pr => {

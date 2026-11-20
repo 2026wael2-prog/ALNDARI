@@ -142,11 +142,13 @@ async function analyzeCustomerMessageWithAI(params: {
   messageText: string;
   balanceSummary: string;
 }): Promise<AiAnalysisResult | null> {
-  const openRouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('DEEPSEEK_API_KEY');
-  if (!openRouterKey) return null;
+  const deepSeekKey = Deno.env.get('DEEPSEEK_API_KEY');
+  const openRouterKey = Deno.env.get('OPENROUTER_API_KEY');
+  const isDeepSeek = Boolean(deepSeekKey);
+  const activeApiKey = deepSeekKey || openRouterKey;
+  if (!activeApiKey) return null;
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const isDeepSeek = Boolean(Deno.env.get('DEEPSEEK_API_KEY'));
   const apiUrl = isDeepSeek ? 'https://api.deepseek.com/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
   const modelName = isDeepSeek ? 'deepseek-chat' : 'google/gemini-2.0-flash-001';
 
@@ -178,7 +180,7 @@ async function analyzeCustomerMessageWithAI(params: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${openRouterKey}`,
+        Authorization: `Bearer ${activeApiKey}`,
         'HTTP-Referer': 'https://alzhra-erp.vercel.app',
         'X-Title': 'Al Zhra Inbound AI',
       },
@@ -355,11 +357,27 @@ Deno.serve(async (req: Request) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 3. البحث عن العميل في المنظومة بمطابقة آخر 9 أرقام من هاتفه
+    // 3. حصر البحث ضمن المنشآت المفعّلة للواتساب فقط (عزل المستأجرين) ثم مطابقة آخر 9 أرقام من الهاتف
+    const { data: enabledConfigs } = await supabaseAdmin
+      .from('messaging_config')
+      .select('company_id')
+      .eq('whatsapp_enabled', true);
+
+    const enabledCompanyIds = (enabledConfigs ?? [])
+      .map((c: { company_id: string }) => c.company_id)
+      .filter(Boolean);
+
+    if (enabledCompanyIds.length === 0) {
+      return new Response(JSON.stringify({ ok: true, ignored: true, reason: 'no_enabled_company' }), {
+        headers: { ...cors, 'Content-Type': 'application/json' },
+      });
+    }
+
     const clean9 = senderPhone.slice(-9);
     const { data: matchedParties, error: partyError } = await supabaseAdmin
       .from('parties')
       .select('id, name, company_id, currency_code, phone')
+      .in('company_id', enabledCompanyIds)
       .is('deleted_at', null)
       .ilike('phone', `%${clean9}%`)
       .limit(1);
@@ -430,10 +448,10 @@ Deno.serve(async (req: Request) => {
       .eq('company_id', party.company_id)
       .maybeSingle();
 
-    const instanceUrl = config?.whatsapp_api_url || 'https://api.ultramsg.com/instance196299/';
-    const apiKey = config?.whatsapp_api_key || 'mkojxebwykcncp10';
+    const instanceUrl = config?.whatsapp_api_url || '';
+    const apiKey = config?.whatsapp_api_key || '';
 
-    if (aiAnalysis?.reply_to_customer && instanceUrl) {
+    if (aiAnalysis?.reply_to_customer && config?.whatsapp_enabled && instanceUrl && apiKey) {
       await sendWhatsAppReply(instanceUrl, apiKey, senderPhone, aiAnalysis.reply_to_customer);
     }
 

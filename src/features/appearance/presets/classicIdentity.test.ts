@@ -446,8 +446,14 @@ describe('Mizan night slate bridge', () => {
     expectRatio(hexFromTriplet(MIZAN_NIGHT_SLATE['--slate-500']), card, 3, 'dark:text-slate-500');
   });
 
-  it('confines the warm scale to the al-mizan-classic preset alone', () => {
-    const others = THEME_PRESETS.filter(preset => preset.id !== 'al-mizan-classic');
+  it('confines the warm scale to the al-mizan-classic and warm premium presets alone', () => {
+    const allowedSlateBridgeIds = new Set([
+      'al-mizan-classic',
+      'solar-noir',
+      'obsidian-pro',
+      'obsidian-sun',
+    ]);
+    const others = THEME_PRESETS.filter(preset => !allowedSlateBridgeIds.has(preset.id));
     expect(others.length, 'expected other presets to exist').toBeGreaterThan(0);
     for (const preset of others) {
       for (const vars of [preset.light, preset.dark, preset.cssVars]) {

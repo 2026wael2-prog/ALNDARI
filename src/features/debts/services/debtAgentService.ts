@@ -83,8 +83,8 @@ export const debtAgentService = {
       // 2. حالة بوابة UltraMsg
       const channelConfig = await debtMessageApi.getChannelConfig(companyId);
       let gatewayStatus: 'connected' | 'disconnected' | 'unconfigured' = 'unconfigured';
-      const storePhone = channelConfig.whatsapp_phone || '967771147694';
-      let instanceId = 'instance196299';
+      const storePhone = channelConfig.whatsapp_phone || '';
+      let instanceId = 'غير مهيأ';
 
       if (channelConfig.whatsapp_api_url) {
         const match = /instance\d+/.exec(channelConfig.whatsapp_api_url);
@@ -122,15 +122,26 @@ export const debtAgentService = {
         .eq('status', 'queued');
       if (branchId) qQuery = qQuery.eq('parties.branch_id', branchId);
 
-      const [messagesRes, promisesRes, queueRes] = await Promise.all([
+      let inboundQuery = supabase
+        .from('customer_activities')
+        .select(branchId ? 'id, parties!inner(branch_id)' : 'id', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('activity_type', 'whatsapp')
+        .ilike('subject', '%واتساب%')
+        .gte('created_at', startOfDay);
+      if (branchId) inboundQuery = inboundQuery.eq('parties.branch_id', branchId);
+
+      const [messagesRes, promisesRes, queueRes, inboundRes] = await Promise.all([
         msgQuery,
         promQuery,
         qQuery,
+        inboundQuery,
       ]);
 
       const sentToday = messagesRes.count ?? 0;
       const promisesDetected = promisesRes.count ?? 0;
       const pendingQueue = queueRes.count ?? 0;
+      const inboundReplies = inboundRes.count ?? 0;
 
       // حساب المبالغ المحصلة المنسوبة للوعود
       let recoveredSAR = 0;
@@ -167,7 +178,7 @@ export const debtAgentService = {
         quietHoursWindow: { start: quietStart, end: quietEnd },
         metrics: {
           sentToday,
-          inboundReplies: Math.max(0, Math.floor(sentToday * 0.4)), // نسبة الردود التقديرية الحية
+          inboundReplies,
           promisesDetected,
           pendingQueue,
           recoveredSAR,
@@ -177,13 +188,13 @@ export const debtAgentService = {
     } catch (err) {
       logger.error('debtAgentService', '[debtAgentService] Error fetching telemetry:', err);
       return {
-        status: 'active',
+        status: 'offline',
         isQuietHours: false,
-        autoSendEnabled: true,
-        gatewayStatus: 'connected',
-        storePhone: '967771147694',
-        instanceId: 'instance196299',
-        currentHour: 19,
+        autoSendEnabled: false,
+        gatewayStatus: 'disconnected',
+        storePhone: '',
+        instanceId: 'غير مهيأ',
+        currentHour: (new Date().getUTCHours() + 3) % 24,
         quietHoursWindow: { start: 21, end: 8 },
         metrics: {
           sentToday: 0,

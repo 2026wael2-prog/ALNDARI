@@ -339,7 +339,7 @@ function ExcelTable<T>({
       if (editingCell) {
         const nextCol = e.shiftKey
           ? Math.max(0, editingCell.col - 1)
-          : Math.min(columns.length - 1, editingCell.col + 1);
+          : Math.min(effectiveColumns.length - 1, editingCell.col + 1);
         const nextRow =
           nextCol !== editingCell.col
             ? editingCell.row
@@ -366,12 +366,12 @@ function ExcelTable<T>({
       return;
     }
     if (processedData.length === 0) return;
-    const exportHeaders = columns
+    const exportHeaders = effectiveColumns
       .map(c => c.header)
       .filter(h => typeof h === 'string' && h.trim() !== '');
 
     const exportRows = processedData.map(row => {
-      return columns
+      return effectiveColumns
         .filter(c => typeof c.header === 'string' && c.header.trim() !== '')
         .map(col => {
           if (col.accessorKey) {
@@ -398,7 +398,7 @@ function ExcelTable<T>({
       rows: exportRows,
       colorTheme,
     });
-  }, [onExport, processedData, columns, title, subtitle, colorTheme]);
+  }, [onExport, processedData, effectiveColumns, title, subtitle, colorTheme]);
 
   return (
     <FullscreenContainer
@@ -446,10 +446,14 @@ function ExcelTable<T>({
           className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm"
           style={{
             ...(tableCustomProps.style ?? {}),
-            ...(customSize.width ? { width: customSize.width } : {}),
-            ...(customSize.height ? { maxHeight: customSize.height } : {}),
+            ...(customSize.width !== undefined && customSize.width !== ''
+              ? { width: customSize.width }
+              : {}),
+            ...(customSize.height !== undefined && customSize.height !== ''
+              ? { maxHeight: customSize.height }
+              : {}),
             ...(position.x !== 0 || position.y !== 0
-              ? { transform: `translate(${position.x}px, ${position.y}px)` }
+              ? { transform: `translate(${String(position.x)}px, ${String(position.y)}px)` }
               : {}),
             ...(isDragging ? { cursor: 'grabbing', opacity: 0.9 } : {}),
           }}
@@ -473,8 +477,10 @@ function ExcelTable<T>({
           >
             <table
               role="table"
-              aria-label={title || 'جدول البيانات'}
-              style={{ fontSize: `${Math.round(zoomLevel * (tableSettings.fontSize || 11))}px` }}
+              aria-label={title !== undefined && title !== '' ? title : 'جدول البيانات'}
+              style={{
+                fontSize: `${String(Math.round(zoomLevel * (tableSettings.fontSize || 11)))}px`,
+              }}
               className={cn(
                 'w-full min-w-[640px] table-fixed border-collapse border-l border-t border-[var(--app-border)] md:min-w-[800px]',
                 isRTL ? 'text-right' : 'text-left'
@@ -486,7 +492,7 @@ function ExcelTable<T>({
                 {effectiveColumns.map((col, idx) => {
                   const savedWidth = indexedColWidths[String(idx)];
                   const colStyle = savedWidth
-                    ? { width: `${savedWidth}px` }
+                    ? { width: `${String(savedWidth)}px` }
                     : col.width
                       ? { width: col.width }
                       : {};

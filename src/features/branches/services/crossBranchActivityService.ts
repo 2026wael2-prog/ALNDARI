@@ -62,7 +62,7 @@ export const broadcastCrossBranchActivity = async (
 ): Promise<void> => {
   if (!companyId) return;
   try {
-    const channelName = `cross-branch-broadcast-${companyId}`;
+    const channelName = `cross-branch-activity-${companyId}`;
     const channel = supabase.channel(channelName);
     
     // Mark as processed locally before sending to prevent self-echo

@@ -16,26 +16,59 @@ import { cn } from '../../core/utils';
  *  - pending sync → amber badge with counter (offline operations awaiting sync)
  * ─────────────────────────────────────────────────────────────
  */
-const RealtimeStatusIndicator: React.FC = () => {
-  const realtimeStatus = useConnectionStore(s => s.realtimeStatus);
-  const { pendingCount: queuePendingCount, isSyncing } = useOfflineQueueStatus();
+type SyncDisplayStatus = 'connected' | 'connecting' | 'disconnected';
+
+interface StatusVisualConfig {
+  dot: string;
+  pulse: boolean;
+  label: string;
+  title: string;
+}
+
+const getStatusConfig = (status: SyncDisplayStatus): StatusVisualConfig => {
+  switch (status) {
+    case 'connected':
+      return {
+        dot: 'bg-emerald-500',
+        pulse: true,
+        label: 'مباشر',
+        title: 'المزامنة المباشرة متصلة — البيانات تُحدَّث لحظيًا',
+      };
+    case 'connecting':
+      return {
+        dot: 'bg-amber-400',
+        pulse: true,
+        label: 'جارٍ الاتصال',
+        title: 'جارٍ الاتصال بقناة المزامنة المباشرة…',
+      };
+    case 'disconnected':
+      return {
+        dot: 'bg-rose-500',
+        pulse: false,
+        label: 'تحديث دوري',
+        title: 'المزامنة المباشرة منقطعة — يتم تحديث البيانات كل 60 ثانية تلقائيًا',
+      };
+  }
+};
+
+const useSyncStorePendingCount = (): number => {
   const [syncStorePending, setSyncStorePending] = useState(0);
 
   useEffect(() => {
     let active = true;
-    const refresh = () => {
+    const refresh = (): void => {
       syncStore
         .getPending()
         .then(items => {
           if (active) setSyncStorePending(items.length);
         })
-        .catch(() => {});
+        .catch(() => undefined);
     };
 
     refresh();
     window.addEventListener(SYNC_STORE_CHANGED_EVENT, refresh);
     window.addEventListener('online', refresh);
-    const onVisibility = () => {
+    const onVisibility = (): void => {
       if (document.visibilityState === 'visible') refresh();
     };
     document.addEventListener('visibilitychange', onVisibility);
@@ -48,30 +81,29 @@ const RealtimeStatusIndicator: React.FC = () => {
     };
   }, []);
 
-  const pendingCount = queuePendingCount + syncStorePending;
+  return syncStorePending;
+};
 
-  const config = {
-    connected: {
-      dot: 'bg-emerald-500',
-      pulse: true,
-      label: 'مباشر',
-      title: 'المزامنة المباشرة متصلة — البيانات تُحدَّث لحظيًا',
-    },
-    connecting: {
-      dot: 'bg-amber-400',
-      pulse: true,
-      label: 'جارٍ الاتصال',
-      title: 'جارٍ الاتصال بقناة المزامنة المباشرة…',
-    },
-    disconnected: {
-      dot: 'bg-rose-500',
-      pulse: false,
-      label: 'تحديث دوري',
-      title: 'المزامنة المباشرة منقطعة — يتم تحديث البيانات كل 60 ثانية تلقائيًا',
-    },
-  } as const;
+const PendingSyncBadge: React.FC<{ count: number; isSyncing: boolean }> = ({ count, isSyncing }) => {
+  if (count <= 0) return null;
+  const countText = String(count);
+  return (
+    <div
+      className="animate-in fade-in flex select-none items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold text-amber-600 dark:text-amber-400"
+      title={`يوجد ${countText} عملية مخزنة محلياً في انتظار المزامنة مع الخادم`}
+    >
+      <RefreshCw size={10} className={cn('shrink-0', isSyncing && 'animate-spin')} />
+      <span>{countText} قيد المزامنة</span>
+    </div>
+  );
+};
 
-  const { dot, pulse, label, title } = config[realtimeStatus];
+const RealtimeStatusIndicator: React.FC = () => {
+  const realtimeStatus = useConnectionStore(s => s.realtimeStatus);
+  const { pendingCount: queuePendingCount, isSyncing } = useOfflineQueueStatus();
+  const syncStorePending = useSyncStorePendingCount();
+  const pendingCount = Math.max(queuePendingCount, syncStorePending);
+  const { dot, pulse, label, title } = getStatusConfig(realtimeStatus);
 
   return (
     <div className="flex items-center gap-1.5">
@@ -106,16 +138,7 @@ const RealtimeStatusIndicator: React.FC = () => {
         </span>
       </div>
 
-      {/* Offline Pending Operations Indicator */}
-      {pendingCount > 0 && (
-        <div
-          className="animate-in fade-in flex select-none items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold text-amber-600 dark:text-amber-400"
-          title={`يوجد ${pendingCount} عملية مخزنة محلياً في انتظار المزامنة مع الخادم`}
-        >
-          <RefreshCw size={10} className={cn('shrink-0', isSyncing && 'animate-spin')} />
-          <span>{pendingCount} قيد المزامنة</span>
-        </div>
-      )}
+      <PendingSyncBadge count={pendingCount} isSyncing={isSyncing} />
     </div>
   );
 };

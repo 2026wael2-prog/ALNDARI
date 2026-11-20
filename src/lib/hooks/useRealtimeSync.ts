@@ -105,6 +105,26 @@ const stopFallbackPolling = (channelId: string): void => {
   }
 };
 
+/**
+ * تنظيف كافة قنوات البث اللحظي ومؤقتات الاستطلاع البديل عند تسجيل الخروج
+ * لضمان عدم بقاء أي اشتراك لمستخدم سابق في الذاكرة.
+ */
+export const teardownAllRealtimeSync = (): void => {
+  if (typeof window === 'undefined') return;
+  if (registryRef.__ALZ_CHANNELS__) {
+    for (const channel of registryRef.__ALZ_CHANNELS__.values()) {
+      void supabase.removeChannel(channel).catch(() => undefined);
+    }
+    registryRef.__ALZ_CHANNELS__.clear();
+  }
+  if (registryRef.__ALZ_FALLBACK_INTERVALS__) {
+    for (const state of registryRef.__ALZ_FALLBACK_INTERVALS__.values()) {
+      clearInterval(state.interval);
+    }
+    registryRef.__ALZ_FALLBACK_INTERVALS__.clear();
+  }
+};
+
 // Map database tables to invalidation presets.
 const TABLE_PRESET_MAP = new Map<string, InvalidationPreset>([
   ['invoices', 'sale'],

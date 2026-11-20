@@ -19,7 +19,7 @@ import { useDebtTemplates, useDebtFollowupConfig, useDebtChannelConfig } from '.
 import { useDebtMutations } from '../hooks/useDebtMutations';
 import { debtsService } from '../services/debtService';
 import { debtAiService, type ReminderTone } from '../services/debtAiService';
-import { ultraMsgService } from '../services/ultraMsgService';
+import { messagingApi } from '../../notifications/messagingApi';
 import { WhatsAppSessionModal } from './agent/WhatsAppSessionModal';
 import { buildWhatsAppLink, buildWhatsAppWebLink } from '../lib/whatsapp';
 import { createIdempotencyKey } from '../../../core/utils/idempotency';
@@ -167,19 +167,22 @@ export const ReminderModal: React.FC<ReminderModalProps> = ({ isOpen, onClose, r
       return;
     }
 
+    if (!user?.company_id) {
+      showToast('تعذر تحديد المنشأة الحالية', 'error');
+      return;
+    }
+
     setIsSendingDirect(true);
     try {
-      const sendRes = await ultraMsgService.sendChatMessage({
-        to: cleanTo,
-        body: message,
-        priority: 5,
+      const sendRes = await messagingApi.sendDirectWhatsApp({
+        companyId: user.company_id,
+        toPhone: cleanTo,
+        message,
+        eventType: 'share',
         referenceId: row.party_id,
-        credentials: {
-          url: channelConfig?.whatsapp_api_url,
-        },
       });
 
-      if (sendRes.sent) {
+      if (sendRes.ok) {
         showToast('تم إرسال تذكير المديونية مباشرة إلى واتساب العميل بنجاح! 🚀', 'success');
         recordReminder(
           {

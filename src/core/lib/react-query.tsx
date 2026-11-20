@@ -16,7 +16,6 @@ import {
 import { useNetworkStatus } from '../../lib/hooks/useNetworkStatus';
 import { syncStore } from './sync-store';
 import { logger } from '../utils/logger';
-import { processSyncMutation } from './sync-registry';
 
 // ------------------------------------------
 // Query Keys
@@ -146,6 +145,7 @@ const useSyncQueue = (queryClient: QueryClient): void => {
     isProcessingRef.current = true;
     logger.info('SyncModule', `Starting sync for ${String(pending.length)} pending operations...`);
     try {
+      const { processSyncMutation } = await import('./sync-registry');
       for (const mutation of pending) {
         if (mutation.retryCount >= MAX_SYNC_RETRIES) {
           logger.error(

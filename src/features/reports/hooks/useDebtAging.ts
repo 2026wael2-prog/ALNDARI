@@ -52,14 +52,10 @@ export function computeDebtAgingData(
   for (const inv of invoices) {
     const dueKey = inv.due_date || inv.issue_date;
     const daysDiff = daysDiffLocal(dueKey, todayLocal);
-    const remainingRaw = (inv.total_amount || 0) - (inv.paid_amount || 0);
-    if (remainingRaw <= 0) continue;
-
-    const remaining = toBaseCurrency({
-      amount: remainingRaw,
-      currency_code: inv.currency_code ?? null,
-      exchange_rate: inv.exchange_rate ?? null,
-    });
+    // invoices.total_amount / paid_amount are stored in base currency (SAR) already;
+    // re-converting with exchange_rate would apply the rate twice.
+    const remaining = (inv.total_amount || 0) - (inv.paid_amount || 0);
+    if (remaining <= 0) continue;
 
     const partyId = inv.party_id ?? '';
     const partyName = inv.parties?.name || 'غير محدد';
@@ -103,13 +99,9 @@ export function computeDebtAgingData(
 
   for (const ret of credits.creditReturns) {
     if (!ret.party_id) continue;
-    const remRaw = Math.max(0, (ret.total_amount || 0) - (ret.paid_amount || 0));
-    if (remRaw <= 0.01) continue;
-    const baseCredit = toBaseCurrency({
-      amount: remRaw,
-      currency_code: ret.currency_code ?? null,
-      exchange_rate: ret.exchange_rate ?? null,
-    });
+    // Return invoices are also stored in base currency (SAR).
+    const baseCredit = Math.max(0, (ret.total_amount || 0) - (ret.paid_amount || 0));
+    if (baseCredit <= 0.01) continue;
     partyCredits.set(ret.party_id, (partyCredits.get(ret.party_id) ?? 0) + baseCredit);
   }
 

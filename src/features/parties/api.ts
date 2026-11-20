@@ -1,4 +1,5 @@
 /* eslint-disable complexity, max-lines-per-function, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-optional-chain, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/consistent-type-definitions, @typescript-eslint/no-explicit-any */
+import type { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabaseClient';
 import type { PartyFormData, PartyType } from './types';
 import { mapToInsert, mapToUpdate } from '../../core/utils/supabaseMappers';
@@ -18,16 +19,19 @@ async function fetchPartyCurrencies(
   companyId: string
 ): Promise<Map<string, Array<{ currency: string; balance: number; transaction_count?: number }>>> {
   // Single-call JSONB RPC bypasses PostgREST's 1,000-row cap (1 round-trip instead of 4 sequential scans).
-  let rows: Record<string, unknown>[] | null = null;
-  const { data: jsonData, error: jsonError } = await (supabase.rpc as any)(
-    'get_party_currencies_by_company_json',
-    { p_company_id: companyId }
-  );
+  let rows: Array<Record<string, unknown>> | null = null;
+  type JsonRpcFn = (
+    fn: string,
+    args: Record<string, unknown>
+  ) => PromiseLike<{ data: unknown; error: PostgrestError | null }>;
+  const { data: jsonData, error: jsonError } = await (
+    supabase.rpc as unknown as JsonRpcFn
+  )('get_party_currencies_by_company_json', { p_company_id: companyId });
 
   if (!jsonError && Array.isArray(jsonData)) {
-    rows = jsonData as Record<string, unknown>[];
+    rows = jsonData as Array<Record<string, unknown>>;
   } else {
-    const { data } = await fetchAllRpcPages<Record<string, unknown>>(
+    const { data } = await fetchAllRpcPages(
       supabase,
       'get_party_currencies_by_company',
       { p_company_id: companyId },
@@ -66,14 +70,14 @@ async function fetchPartyCurrencies(
   return map;
 }
 
-const PARTIES_PAGE_SIZE = 3000;
+const PARTIES_PAGE_SIZE = 1000;
 
 async function fetchAllParties(
   companyId: string,
   typeFilter: string[],
   branchId?: string | null
-): Promise<{ data: Record<string, any>[]; error: any }> {
-  const allRows: Record<string, any>[] = [];
+): Promise<{ data: Array<Record<string, unknown>>; error: PostgrestError | null }> {
+  const allRows: Array<Record<string, unknown>> = [];
   let from = 0;
 
   while (true) {
@@ -115,9 +119,12 @@ export const partiesApi = {
           : [type, 'both'];
 
     // جلب متزامن للأطراف (بجميع الصفحات دون اقتطاع حد الـ 1000) والأرصدة والعملات
-    const fetchBalances = async () => {
+    const fetchBalances = async (): Promise<{
+      data: Array<Record<string, unknown>> | null;
+      error: unknown;
+    }> => {
       try {
-        return await fetchAllRpcPages<Record<string, unknown>>(
+        return await fetchAllRpcPages(
           supabase,
           'get_party_balances_by_company',
           { p_company_id: companyId },
@@ -128,11 +135,16 @@ export const partiesApi = {
       }
     };
 
-    const fetchCurrencies = async () => {
+    const fetchCurrencies = async (): Promise<
+      Map<string, Array<{ currency: string; balance: number; transaction_count?: number }>>
+    > => {
       try {
         return await fetchPartyCurrencies(companyId);
       } catch {
-        return new Map<string, Array<{ currency: string; balance: number; transaction_count?: number }>>();
+        return new Map<
+          string,
+          Array<{ currency: string; balance: number; transaction_count?: number }>
+        >();
       }
     };
 
@@ -146,20 +158,23 @@ export const partiesApi = {
     const partiesData = partiesRes.data || [];
     if (partiesData.length === 0) return { data: [], error: null };
 
-    const balancesMap = new Map();
+    const balancesMap = new Map<string, Record<string, unknown>>();
     if (balancesRes && !balancesRes.error && Array.isArray(balancesRes.data)) {
-      balancesRes.data.forEach((b: any) => {
-        if (b && b.party_id) {
+      balancesRes.data.forEach(b => {
+        if (typeof b.party_id === 'string' && b.party_id.length > 0) {
           balancesMap.set(b.party_id, b);
         }
       });
     }
 
-    const mergedData = partiesData.map((p: Record<string, any>) => ({
-      ...p,
-      party_balances: balancesMap.has(p.id) ? [balancesMap.get(p.id)] : [],
-      balances_by_currency: currencyMap.get(p.id) ?? [],
-    }));
+    const mergedData = partiesData.map(p => {
+      const partyId = typeof p.id === 'string' ? p.id : '';
+      return {
+        ...p,
+        party_balances: balancesMap.has(partyId) ? [balancesMap.get(partyId)] : [],
+        balances_by_currency: currencyMap.get(partyId) ?? [],
+      };
+    });
 
     return { data: mergedData, error: null };
   },

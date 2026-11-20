@@ -37,20 +37,26 @@ const digits = (value: string | null | undefined): string => (value ?? '').repla
  *  - an opaque secret key equal to the SUPABASE_SERVICE_ROLE_KEY env value
  * (the project is migrating to the sb_secret_/sb_publishable_ key system).
  */
-const isServiceCaller = (authHeader: string): boolean => {
+async function safeEqual(a: string, b: string): Promise<boolean> {
+  if (a === '' || b === '') return false;
+  const enc = new TextEncoder();
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ]);
+  const va = new Uint8Array(ha);
+  const vb = new Uint8Array(hb);
+  let diff = 0;
+  for (let i = 0; i < va.length; i += 1) {
+    diff |= va[i]! ^ vb[i]!;
+  }
+  return diff === 0;
+}
+
+const isServiceCaller = async (authHeader: string): Promise<boolean> => {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   const envKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (envKey !== '' && token === envKey) return true;
-  const parts = token.split('.');
-  if (parts.length !== 3) return false;
-  try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as {
-      role?: string;
-    };
-    return payload.role === 'service_role';
-  } catch {
-    return false;
-  }
+  return safeEqual(token, envKey);
 };
 
 /** WhatsApp: Meta Cloud API endpoint, UltraMsg, or CallMeBot. */
@@ -189,7 +195,7 @@ Deno.serve(async (req: Request) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const admin = createClient(url, serviceKey);
 
-    const isService = isServiceCaller(authHeader);
+    const isService = await isServiceCaller(authHeader);
     let companyId: string | null = null;
     let limit = 20;
 

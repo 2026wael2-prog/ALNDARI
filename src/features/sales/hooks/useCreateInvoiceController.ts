@@ -343,12 +343,33 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
       invoice_number: nextInvoiceNumber || '...',
       issue_date: formatLocalDate(),
       party_name: selectedCustomer?.name || 'عميل نقدي',
+      party_phone: selectedCustomer?.phone || undefined,
       items: items.filter(i => i.name),
-      total_amount: summary.totalAmount,
+      subtotal: summary.subtotal,
+      subtotal_document_amount: summary.subtotal,
+      discount_amount: summary.discountAmount,
       tax_amount: 0,
+      total_amount: summary.totalAmount,
+      total_document_amount: summary.totalAmount,
+      paid_amount: invoiceType === 'credit' ? paidAmount || 0 : summary.totalAmount,
+      payment_method: invoiceType,
+      notes: notes.trim() || undefined,
       currency_code: currency || 'SAR',
     }),
-    [company, nextInvoiceNumber, selectedCustomer?.name, items, summary.totalAmount, currency]
+    [
+      company,
+      nextInvoiceNumber,
+      selectedCustomer?.name,
+      selectedCustomer?.phone,
+      items,
+      summary.subtotal,
+      summary.discountAmount,
+      summary.totalAmount,
+      invoiceType,
+      paidAmount,
+      notes,
+      currency,
+    ]
   );
 
   const confirmModalItems = useMemo(

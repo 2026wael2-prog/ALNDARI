@@ -49,10 +49,11 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const headerConfig = useDocumentHeaderSettings();
 
-  const printRef = useRef<HTMLDivElement>(null);
+  const directPrintRef = useRef<HTMLDivElement>(null);
+  const pdfCaptureRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
+    contentRef: directPrintRef,
     documentTitle: `فاتورة_مشتريات_${invoice?.invoice_number ?? ''}`,
   });
 
@@ -78,12 +79,15 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
   const handleExportPDF = async () => {
     setIsExporting(true);
     await new Promise(resolve => setTimeout(resolve, 50));
-    if (!printRef.current || !invoice) {
+    if (!pdfCaptureRef.current || !invoice) {
       setIsExporting(false);
       return;
     }
     try {
-      await exportToPDF(printRef.current, `فاتورة-مشتريات-${invoice.invoice_number ?? invoice.id}`);
+      await exportToPDF(
+        pdfCaptureRef.current,
+        `فاتورة-مشتريات-${invoice.invoice_number ?? invoice.id}`
+      );
       showToast('تم تصدير الفاتورة إلى PDF بنجاح', 'success');
     } catch (error) {
       logger.error('PurchaseDetailsModal', 'Export PDF failed', error);
@@ -91,6 +95,21 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const resolveExcelTotals = (inv: PurchaseDetailInvoice) => {
+    const raw = inv as unknown as Record<string, unknown>;
+    const isForeign = (inv.currency_code ?? 'SAR').toUpperCase() !== 'SAR';
+    const docTotal = Number(raw.total_document_amount) || 0;
+    const docSubtotal = Number(raw.subtotal_document_amount) || 0;
+    const displayTotal = isForeign && docTotal > 0 ? docTotal : inv.total_amount;
+    const displaySubtotal =
+      isForeign && docSubtotal > 0
+        ? docSubtotal
+        : isForeign && docTotal > 0
+          ? docTotal
+          : (inv.subtotal ?? inv.total_amount);
+    return { subtotal: displaySubtotal, totalAmount: displayTotal };
   };
 
   const handleExportExcel = async () => {
@@ -104,6 +123,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
         unitPrice: item.unit_price,
         total: item.total,
       }));
+      const excelTotals = resolveExcelTotals(invoice);
 
       await exportInvoiceToExcel({
         companyName,
@@ -114,8 +134,8 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
         customerName: invoice.party?.name ?? 'مورد عام',
         issuedBy: issuedByName,
         items,
-        subtotal: invoice.subtotal ?? invoice.total_amount,
-        totalAmount: invoice.total_amount,
+        subtotal: excelTotals.subtotal,
+        totalAmount: excelTotals.totalAmount,
       });
 
       showToast('تم تصدير ملف Excel بنجاح', 'success');
@@ -138,6 +158,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
         unitPrice: item.unit_price,
         total: item.total,
       }));
+      const excelTotals = resolveExcelTotals(invoice);
 
       const blob = await generateInvoiceExcelBlob({
         companyName,
@@ -148,8 +169,8 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
         customerName: invoice.party?.name ?? 'مورد عام',
         issuedBy: issuedByName,
         items,
-        subtotal: invoice.subtotal ?? invoice.total_amount,
-        totalAmount: invoice.total_amount,
+        subtotal: excelTotals.subtotal,
+        totalAmount: excelTotals.totalAmount,
       });
 
       const waHeader = headerConfig?.whatsapp
@@ -178,8 +199,8 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
             customerName: invoice.party?.name ?? 'مورد عام',
             issuedBy: issuedByName,
             items,
-            subtotal: invoice.subtotal ?? invoice.total_amount,
-            totalAmount: invoice.total_amount,
+            subtotal: excelTotals.subtotal,
+            totalAmount: excelTotals.totalAmount,
           }),
       });
       showToast('تمت مشاركة الفاتورة بنجاح', 'success');
@@ -330,9 +351,16 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
               </div>
             )}
 
+            {/* Always-mounted isolated print sheet for react-to-print */}
+            <div style={{ display: 'none' }} aria-hidden="true">
+              <div ref={directPrintRef}>
+                <PurchaseInvoicePrintTemplate invoice={invoice} />
+              </div>
+            </div>
+
             {/* Off-screen capture host for PDF export (only mounted when exporting) */}
             {isExporting && (
-              <PdfCaptureHost innerRef={printRef}>
+              <PdfCaptureHost innerRef={pdfCaptureRef}>
                 <PurchaseInvoicePrintTemplate invoice={invoice} />
               </PdfCaptureHost>
             )}

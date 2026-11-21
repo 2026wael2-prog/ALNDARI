@@ -1,9 +1,11 @@
 import React, { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
 import Modal from '../../../ui/base/Modal';
 import Button from '../../../ui/base/Button';
 import { currencySymbol, resolveSummaryCurrency, type CurrencyCashRow } from '../services/reconciliationService';
 import { formatCurrency } from '../../../core/utils';
+import { resolveAlNadaryIdentity } from '../../../core/utils/alNadaryIdentity';
 import type { DailyDrawerSummary } from '../types';
 
 interface ReconciliationPrintModalProps {
@@ -256,10 +258,9 @@ const ReceiptPrintStyles: React.FC = () => (
               visibility: visible !important;
             }
             #reconciliation-print-receipt {
-              position: fixed !important;
-              left: 0 !important;
-              top: 0 !important;
+              position: static !important;
               width: 80mm !important;
+              max-width: 80mm !important;
               margin: 0 auto !important;
               padding: 4mm !important;
               box-shadow: none !important;
@@ -300,18 +301,21 @@ export const ReconciliationPrintModal: React.FC<ReconciliationPrintModalProps> =
   actualCard,
   floatRetained,
   cashToOwner,
-  shopName = 'المنشأة',
+  shopName,
   cashBreakdown,
 }) => {
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: printAreaRef,
+    documentTitle: `مطابقة_الصندوق_${summary.date}`,
+  });
 
   if (!isOpen) return null;
 
-  const currency = currencySymbol(resolveSummaryCurrency(summary));
-
-  const handlePrint = (): void => {
-    window.print();
-  };
+  const baseCurrencyCode = resolveSummaryCurrency(summary);
+  const currency = currencySymbol(baseCurrencyCode);
+  const resolvedShopName =
+    shopName && shopName !== 'المنشأة' ? shopName : resolveAlNadaryIdentity().plainCompanyName;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="طباعة إيصال إقفال اليومية">
@@ -323,9 +327,9 @@ export const ReconciliationPrintModal: React.FC<ReconciliationPrintModalProps> =
           ref={printAreaRef}
           className="mx-auto max-w-[340px] rounded-lg border border-dashed border-gray-300 bg-white p-4 font-mono text-xs text-gray-900 shadow-sm print:m-0 print:w-full print:border-none print:p-0"
         >
-          <ReceiptHeader shopName={shopName} date={summary.date} />
+          <ReceiptHeader shopName={resolvedShopName} date={summary.date} />
           <EmployeeBreakdownSection summary={summary} />
-          <CashBreakdownSection rows={cashBreakdown} baseCurrency={currency} />
+          <CashBreakdownSection rows={cashBreakdown} baseCurrency={baseCurrencyCode} />
           <SalesTotalsSection summary={summary} currency={currency} />
           <DrawerSection summary={summary} actualCash={actualCash} actualCard={actualCard} />
           <PayoutSection
@@ -336,7 +340,12 @@ export const ReconciliationPrintModal: React.FC<ReconciliationPrintModalProps> =
           <SignatureSection />
         </div>
 
-        <ReceiptActionsSection onClose={onClose} onPrint={handlePrint} />
+        <ReceiptActionsSection
+          onClose={onClose}
+          onPrint={() => {
+            handlePrint();
+          }}
+        />
       </div>
     </Modal>
   );

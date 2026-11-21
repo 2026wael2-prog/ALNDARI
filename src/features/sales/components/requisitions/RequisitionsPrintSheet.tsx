@@ -160,11 +160,11 @@ export const RequisitionsPrintSheet: React.FC<RequisitionsPrintSheetProps> = ({
           <thead>
             <tr>
               <th style={{ width: '5%', textAlign: 'center' }}>#</th>
-              <th style={{ width: '40%' }}>اسم القطعة المطلوبة</th>
-              <th style={{ width: '22%' }}>رقم القطعة (Part No.)</th>
-              <th style={{ width: '18%' }}>الشركة الصانعة</th>
+              <th style={{ width: '36%' }}>اسم القطعة المطلوبة</th>
+              <th style={{ width: '20%' }}>رقم القطعة (Part No.)</th>
+              <th style={{ width: '16%' }}>الشركة الصانعة</th>
               <th style={{ width: '8%', textAlign: 'center' }}>الكمية</th>
-              <th style={{ width: '17%' }}>ملاحظات</th>
+              <th style={{ width: '15%' }}>ملاحظات</th>
             </tr>
           </thead>
           <tbody>

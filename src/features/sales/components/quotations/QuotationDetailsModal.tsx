@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { FC } from 'react';
 import { FileText } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 import Modal from '@/ui/base/Modal';
 import { useAuthStore } from '@/features/auth/store';
 import { useFeedbackStore } from '@/features/feedback/store';
@@ -90,6 +91,7 @@ const useQuotationShareFor = (quotation: QuotationDetailRow | null): ShareResult
 const useInitialAction = (
   quotation: QuotationDetailRow | null,
   share: ShareResult,
+  onPrint: () => void,
   initialAction?: QuotationRowAction
 ): void => {
   const handled = useRef<boolean>(false);
@@ -100,7 +102,7 @@ const useInitialAction = (
     handled.current = true;
     if (initialAction === 'print') {
       timer.current = setTimeout(() => {
-        window.print();
+        onPrint();
       }, 350);
       return;
     }
@@ -109,7 +111,7 @@ const useInitialAction = (
       return;
     }
     share.shareWhatsApp();
-  }, [initialAction, quotation, share]);
+  }, [initialAction, quotation, share, onPrint]);
 
   useEffect(
     () => (): void => {
@@ -129,6 +131,11 @@ export const QuotationDetailsModal: FC<QuotationDetailsModalProps> = ({
   const { quotation, loading, error, reload } = useQuotationDetails(quotationId);
   const share = useQuotationShareFor(quotation);
   const pdf = useQuotationPdf(quotation);
+  const directPrintRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: directPrintRef,
+    documentTitle: `عرض_سعر_${quotation?.quotation_number ?? ''}`,
+  });
   const { busy, run } = useQuotationAction({
     quotation,
     onClose,
@@ -136,7 +143,7 @@ export const QuotationDetailsModal: FC<QuotationDetailsModalProps> = ({
     ...(onConvertToInvoice !== undefined ? { onConvertToInvoice } : {}),
     reload,
   });
-  useInitialAction(quotation, share, initialAction);
+  useInitialAction(quotation, share, handlePrint, initialAction);
 
   return (
     <Modal
@@ -161,9 +168,11 @@ export const QuotationDetailsModal: FC<QuotationDetailsModalProps> = ({
         quotation={quotation}
         errorText={error}
         onRetry={reload}
+        onPrint={handlePrint}
         exportPdf={pdf.exportPdf}
         isExporting={pdf.isExporting}
         printRef={pdf.printRef}
+        directPrintRef={directPrintRef}
       />
     </Modal>
   );

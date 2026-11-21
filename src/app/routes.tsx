@@ -290,16 +290,18 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.DAILY_RECONCILIATION}
           element={
-            <FeatureBoundary name="daily-reconciliation">
-              <DailyReconciliationPage />
-            </FeatureBoundary>
+            <PermissionGuard permission="accounting:read" label="المطابقة اليومية">
+              <FeatureBoundary name="daily-reconciliation">
+                <DailyReconciliationPage />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         <Route
           path={ROUTES.DASHBOARD.VIN}
           element={
             <FeatureBoundary name="vin-intelligence">
-              <FeatureFlagGate flag="vin_intelligence" label="ذكاء الشاصي VIN">
+              <FeatureFlagGate flag="vin_intelligence" label="ذكاء الشاصي (VIN)">
                 <VINPage />
               </FeatureFlagGate>
             </FeatureBoundary>
@@ -328,7 +330,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.BONDS}
           element={
-            <PermissionGuard permission="bonds:read" label="السندات">
+            <PermissionGuard permission="bonds:read" label="السندات المالية">
               <FeatureBoundary name="bonds">
                 <BondsPage />
               </FeatureBoundary>
@@ -432,9 +434,11 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.EMPLOYEES}
           element={
-            <FeatureBoundary name="employees">
-              <PartiesPage partyType="employee" title="إدارة الموظفين" />
-            </FeatureBoundary>
+            <PermissionGuard permission="customers:read" label="الموظفون">
+              <FeatureBoundary name="employees">
+                <PartiesPage partyType="employee" title="الموظفون" />
+              </FeatureBoundary>
+            </PermissionGuard>
           }
         />
         {/* Legacy /parties/* routes → redirect to the unified /clients & /suppliers */}
@@ -475,7 +479,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path={ROUTES.DASHBOARD.DEBTS}
           element={
-            <PermissionGuard permission="debts:read" label="إدارة الديون والتحصيل">
+            <PermissionGuard permission="debts:read" label="الديون والتحصيل">
               <FeatureBoundary name="debts">
                 <DebtsLayout />
               </FeatureBoundary>

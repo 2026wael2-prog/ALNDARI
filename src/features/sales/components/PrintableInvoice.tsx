@@ -8,6 +8,7 @@ import { useInvoicePrintState } from './print/invoice/useInvoicePrintState';
 interface PrintableInvoiceProps {
   /** الفاتورة جاهزة الطباعة؛ `null`/`undefined` يعني أن البيانات لم تُجهّز بعد. */
   invoice?: PrintableInvoiceSource | null | undefined;
+  onPrint?: (() => void) | undefined;
   onExportPDF?: (() => void) | undefined;
   isExporting?: boolean | undefined;
 }
@@ -21,6 +22,7 @@ interface PrintableInvoiceProps {
  */
 const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
   invoice,
+  onPrint,
   onExportPDF,
   isExporting = false,
 }) => {
@@ -39,6 +41,7 @@ const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
         accentColor={printState.accentColor}
         showQrCode={printState.showQrCode}
         isExporting={isExporting}
+        onPrint={onPrint}
         onExportPDF={onExportPDF}
         onLayoutChange={printState.setLayoutMode}
         onAccentColorChange={printState.setAccentColor}

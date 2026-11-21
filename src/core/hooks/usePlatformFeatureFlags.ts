@@ -38,6 +38,7 @@ export const usePlatformFeatureFlags = () => {
     gcTime: 2 * 60_000,
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
+    retry: false,
   });
 };
 

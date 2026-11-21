@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { Printer, X, FileText, CheckCircle2 } from 'lucide-react';
 import Modal from '../../../ui/base/Modal';
 import Button from '../../../ui/base/Button';
 import { formatCurrency } from '../../../core/utils';
+import { formatLocalDate } from '../../../core/utils/dateUtils';
+import { tafqeet } from '../../../core/utils/tafqeet';
+import { ALNADARY_DEFAULT_PLAIN_NAME } from '../../../core/utils/alNadaryIdentity';
 import type { PublicPortalContext } from '../types';
 import { UniversalDocumentHeader } from '@/ui/common/UniversalDocumentHeader';
 
@@ -40,30 +44,48 @@ interface Props {
   context: PublicPortalContext | null;
 }
 
+const currencyUnitOf = (code: string): string => {
+  switch (code.toUpperCase()) {
+    case 'SAR':
+      return 'ريال سعودي';
+    case 'YER':
+      return 'ريال يمني';
+    case 'OMR':
+      return 'ريال عماني';
+    case 'USD':
+      return 'دولار أمريكي';
+    default:
+      return code;
+  }
+};
+
 export const SupplierQuotationPrintModal: React.FC<Props> = ({
   isOpen,
   onClose,
   quotation,
   context,
 }) => {
+  const printRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `عرض_سعر_مورد_${quotation?.quotation_number ?? ''}`,
+  });
+
   if (!isOpen || !quotation || !context) return null;
 
   const { company, supplier } = context;
   const currency = quotation.currency_code || 'SAR';
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const calculatedSubtotal = (quotation.items || []).reduce((acc, item) => {
     return acc + Number(item.quantity || 0) * Number(item.unit_price || 0);
   }, 0);
+  const calculatedDiscount = Math.max(0, calculatedSubtotal - Number(quotation.total_amount || 0));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="" size="xl">
       <div className="space-y-4 text-right" dir="rtl">
         {/* Action Controls (Hidden on paper print) */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 print:hidden">
+        <div className="no-print flex items-center justify-between border-b border-slate-800 pb-3 print:hidden">
           <div className="flex items-center gap-2 text-emerald-400">
             <FileText size={18} />
             <h3 className="text-sm font-black text-white">وثيقة عرض السعر الرسمية</h3>
@@ -73,7 +95,9 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
               type="button"
               variant="primary"
               size="sm"
-              onClick={handlePrint}
+              onClick={() => {
+                handlePrint();
+              }}
               className="flex items-center gap-1.5 bg-emerald-600 font-bold hover:bg-emerald-500"
             >
               <Printer size={15} />
@@ -90,12 +114,17 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
         </div>
 
         {/* Printable Document Paper Sheet */}
-        <div className="rounded-2xl border border-slate-700 bg-white p-6 text-slate-900 shadow-xl print:border-none print:p-0 print:shadow-none">
+        <div
+          id="supplier-quotation-printable"
+          ref={printRef}
+          dir="rtl"
+          className="rounded-2xl border border-slate-700 bg-white p-6 text-right text-slate-900 shadow-xl print:border-none print:p-0 print:shadow-none"
+        >
           {/* Document Header */}
           <div className="mb-4">
             <UniversalDocumentHeader
               company={{
-                name: company.name_ar ?? 'مؤسسة الجعفري لقطع الغيار',
+                name: company.name_ar ?? ALNADARY_DEFAULT_PLAIN_NAME,
                 phone: company.phone ?? undefined,
                 address: company.address ?? undefined,
                 tax_number: company.tax_number ?? undefined,
@@ -105,30 +134,19 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
               documentTitle="عرض سعر توريد معتمد"
               documentNumber={quotation.quotation_number}
               documentDate={quotation.issue_date}
-              statusBadge={quotation.status === 'accepted' ? 'معتمد' : quotation.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
+              statusBadge={
+                quotation.status === 'accepted'
+                  ? 'معتمد'
+                  : quotation.status === 'rejected'
+                    ? 'مرفوض'
+                    : 'قيد المراجعة'
+              }
             />
           </div>
 
-          {/* Supplier Info & Meta Card */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-            <div>
-              <span className="font-bold text-slate-500">مقدم العرض (المورد): </span>
-              <span className="font-black text-slate-900">{supplier.name}</span>
-              {Boolean(supplier.phone) && (
-                <span className="mr-3 font-mono text-slate-600" dir="ltr">({supplier.phone})</span>
-              )}
-            </div>
-            {Boolean(quotation.valid_until) && (
-              <div className="text-slate-600">
-                <span className="font-bold text-slate-500">صالح لغاية: </span>
-                <span className="font-bold text-amber-700" dir="ltr">{quotation.valid_until}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Supplier Info Badge */}
+          {/* Unified Supplier Info & Validity Card */}
           <div className="my-3 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
-            <div>
+            <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-slate-500">
                 بيانات المورد المقدم للعرض:
               </span>
@@ -136,6 +154,14 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
               {supplier.commercial_registration && (
                 <p className="font-mono text-[10px] text-slate-600">
                   س.ت: {supplier.commercial_registration}
+                </p>
+              )}
+              {Boolean(quotation.valid_until) && (
+                <p className="text-[11px] text-slate-600">
+                  <span className="font-bold text-slate-500">صالح لغاية: </span>
+                  <span className="font-bold text-amber-700" dir="ltr">
+                    {quotation.valid_until}
+                  </span>
                 </p>
               )}
             </div>
@@ -231,10 +257,19 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
                 <span>المجموع الفرعي:</span>
                 <span className="font-bold">{formatCurrency(calculatedSubtotal, currency)}</span>
               </div>
+              {calculatedDiscount > 0.01 && (
+                <div className="flex justify-between text-rose-600">
+                  <span>إجمالي الخصم:</span>
+                  <span className="font-bold">-{formatCurrency(calculatedDiscount, currency)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-slate-300 pt-1.5 text-sm font-black text-emerald-800">
                 <span>المجموع الإجمالي النهائي:</span>
                 <span>{formatCurrency(quotation.total_amount, currency)}</span>
               </div>
+              <p className="pt-1 font-sans text-[11px] font-bold text-slate-700">
+                فقط: {tafqeet(quotation.total_amount, currencyUnitOf(currency))}
+              </p>
             </div>
           </div>
 
@@ -244,7 +279,7 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
               <CheckCircle2 size={13} className="text-emerald-600" />
               <span>تم إنشاء هذا المستند إلكترونياً وموثق برقم تسلسلي عبر بوابة الموردين</span>
             </div>
-            <span>تاريخ الطباعة: {new Date().toLocaleDateString('ar-SA')}</span>
+            <span dir="ltr">تاريخ الطباعة: {formatLocalDate()}</span>
           </div>
         </div>
       </div>

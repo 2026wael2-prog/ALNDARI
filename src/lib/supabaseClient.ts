@@ -113,6 +113,13 @@ const customFetch = async (
     return (headers as Record<string, string> | undefined)?.['x-skip-network-retry'] === '1';
   })();
 
+  const method = (options.method ?? 'GET').toUpperCase();
+  const urlStr = typeof url === 'string' ? url : (url as URL).toString();
+  const isSafeTransientRetry =
+    method === 'GET' ||
+    method === 'HEAD' ||
+    (method === 'POST' && /\/rest\/v1\/rpc\/(get_|report_|search_|list_|calculate_)/i.test(urlStr));
+
   for (let i = 0; i <= MAX_RETRIES; i++) {
     const timeoutController = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -164,6 +171,20 @@ const customFetch = async (
           useConnectionStore.getState().reportFailure();
         }
         reportNetworkFailure();
+
+        // Retry transient 502/503/504 (e.g., PostgREST PGRST002 schema cache reload)
+        // for idempotent GET/read-only RPC calls before surfacing an error to the caller.
+        if (
+          i < MAX_RETRIES &&
+          !skipRetry &&
+          !isCircuitOpen() &&
+          isSafeTransientRetry &&
+          (response.status === 502 || response.status === 503 || response.status === 504)
+        ) {
+          const backoff = (i + 1) * 700 + Math.random() * 300;
+          await new Promise(resolve => setTimeout(resolve, backoff));
+          continue;
+        }
       } else {
         // Notify store of success only on non-5xx responses
         useConnectionStore.getState().reportSuccess();
@@ -299,11 +320,13 @@ export const supabase: ReturnType<typeof createClient<Database>> = (() => {
       db: {
         schema: 'public',
       },
-      // Realtime channel subscribe timeout. A shorter timeout lets a dead socket
-      // surface as CHANNEL_ERROR faster, so fallback polling starts sooner
-      // instead of leaving users staring at stale data for 45s.
+      // Realtime channel configuration: stable heartbeat + bounded reconnect backoff
+      // so transient network drops recover cleanly without connection storms.
       realtime: {
-        timeout: 15000,
+        timeout: 20000,
+        heartbeatIntervalMs: 25000,
+        reconnectAfterMs: (tries: number) =>
+          [2000, 5000, 10000, 20000, 30000][Math.min(Math.max(tries - 1, 0), 4)] ?? 30000,
       },
     });
   }

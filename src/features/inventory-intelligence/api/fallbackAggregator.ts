@@ -1,4 +1,5 @@
 import type { BranchInfo, InventoryIntelligenceSnapshot } from '../types';
+import { computeEffectiveLineCost } from '../../../core/utils/profitCalculation';
 
 export interface FallbackRawInputs {
   branchesRaw: Array<{ id: string; name: string; code: string; is_main: boolean }>;
@@ -60,6 +61,11 @@ export function aggregateFallbackSnapshot(inputs: FallbackRawInputs): InventoryI
     category_name: null,
     stock_by_warehouse: stockByProd.get(p.id as string) ?? [],
   }));
+
+  const prodCostMap = new Map<string, number>();
+  for (const p of mappedProducts) {
+    prodCostMap.set(p.id, p.cost_price > 0 ? p.cost_price : p.purchase_price > 0 ? p.purchase_price : 0);
+  }
 
   const now = Date.now();
   const salesAgg = new Map<
@@ -149,9 +155,18 @@ export function aggregateFallbackSnapshot(inputs: FallbackRawInputs): InventoryI
     if (!['sale', 'sale_return', 'sales_return'].includes(inv.type)) continue;
 
     const sign = inv.type === 'sale' ? 1 : -1;
-    const qty = (Number(item.quantity) || 0) * sign;
-    const rev = (Number(item.total) || 0) * sign;
-    const cogs = (Number(item.quantity) || 0) * (Number(item.cost_price) || 0) * sign;
+    const rawQty = Number(item.quantity) || 0;
+    const rawRev = Number(item.total) || 0;
+    const qty = rawQty * sign;
+    const rev = rawRev * sign;
+    const rawItemCost = Number(item.cost_price) || 0;
+    const effectiveUnitCost = rawItemCost > 0 ? rawItemCost : (prodCostMap.get(pid) ?? 0);
+    const lineCogs = computeEffectiveLineCost({
+      lineNetSaleAmount: Math.abs(rawRev),
+      quantity: Math.abs(rawQty),
+      unitCost: effectiveUnitCost,
+    }).cost;
+    const cogs = lineCogs * sign;
     const daysAgo = (now - new Date(inv.issue_date).getTime()) / 86400000;
 
     const key = `${pid}::${inv.branch_id ?? 'none'}`;

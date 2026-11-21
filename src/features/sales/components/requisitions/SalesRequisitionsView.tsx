@@ -145,11 +145,11 @@ export const SalesRequisitionsView: React.FC = () => {
       </div>
 
       {/* Hidden PDF/Print Template */}
-      <div className="fixed -left-[9999px] top-0 w-[820px] bg-white text-black" aria-hidden="true">
+      <div className="no-print fixed -left-[9999px] top-0 w-[820px] bg-white text-black" aria-hidden="true">
         <div ref={printRef}>
           <RequisitionsPrintSheet
             company={{
-              name: company?.name_ar || company?.name_en || 'مؤسسة الجعفري',
+              name: company?.name_ar || company?.name_en || 'النظاري لبيع قطع غيار السيارات',
               phone: company?.phone ?? undefined,
               address: company?.address ?? undefined,
               tax_number: company?.tax_number ?? undefined,

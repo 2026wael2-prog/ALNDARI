@@ -7,7 +7,11 @@ import { useAccounts, usePaymentAccounts } from '../../accounting/hooks/index';
 import { useParties } from '../../parties/hooks';
 import { useFeedbackStore } from '../../feedback/store';
 import { formatLocalDate } from '../../../core/utils';
-import { convertToBaseCurrency, ensureLatinDigits } from '../../../core/utils/currencyUtils';
+import {
+  convertFromBaseCurrency,
+  ensureLatinDigits,
+  getDefaultExchangeOperator,
+} from '../../../core/utils/currencyUtils';
 import { createIdempotencyKey } from '../../../core/utils/idempotency';
 import {
   buildOverAllocationMessage,
@@ -230,33 +234,47 @@ export function useBondForm(
         return;
       }
       setValue('invoice_id', inv.id);
-      const remaining = Number(inv.total_amount) - Number(inv.paid_amount || 0);
-      invoiceRemainingRef.current = Number.isFinite(remaining) ? remaining : null;
-      const invCurrency = inv.currency_code || inv.currency || 'SAR';
-      const invRate = Number(inv.exchange_rate) || (invCurrency === 'YER' ? 410 : 1);
+      // invoices.total_amount & paid_amount are stored in base currency (SAR).
+      const remainingBase = Math.max(
+        0,
+        Math.round((Number(inv.total_amount || 0) - Number(inv.paid_amount || 0)) * 100) / 100
+      );
+      invoiceRemainingRef.current = Number.isFinite(remainingBase) ? remainingBase : null;
+      const invCurrency = (inv.currency_code || inv.currency || 'SAR').toUpperCase();
+      const rawInvRate = Number(inv.exchange_rate);
+      const operator =
+        (currencyObj?.exchange_operator as 'multiply' | 'divide') ||
+        getDefaultExchangeOperator(invCurrency);
+      // Normalize stored fractional rate (e.g. 0.002439 for YER) to display market rate (e.g. 410) for divide currencies
+      const invRate =
+        rawInvRate > 0
+          ? operator === 'divide' && rawInvRate < 1
+            ? Math.round(1 / rawInvRate)
+            : rawInvRate
+          : invCurrency === 'YER'
+            ? 410
+            : 1;
 
       setValue('currency_code', invCurrency);
       setValue('exchange_rate', invRate);
       setRateInputStr(String(invRate));
 
       if (invCurrency !== 'SAR') {
-        setValue('foreign_amount', remaining);
-        setAmountInputStr(String(remaining));
-        const baseAmount = convertToBaseCurrency({
-          amount: remaining,
+        const foreignRemaining = convertFromBaseCurrency({
+          amount: remainingBase,
           currencyCode: invCurrency,
           exchangeRate: invRate,
-          exchangeOperator:
-            (currencyObj?.exchange_operator as 'multiply' | 'divide') ||
-            (invCurrency === 'YER' ? 'divide' : 'multiply'),
+          exchangeOperator: operator,
         });
-        setValue('amount', baseAmount);
-        setEquivalentSarInputStr(String(baseAmount));
+        setValue('foreign_amount', foreignRemaining);
+        setValue('amount', remainingBase);
+        setAmountInputStr(String(foreignRemaining));
+        setEquivalentSarInputStr(String(remainingBase));
       } else {
-        setValue('amount', remaining);
+        setValue('amount', remainingBase);
         setValue('foreign_amount', 0);
-        setAmountInputStr(String(remaining));
-        setEquivalentSarInputStr(String(remaining));
+        setAmountInputStr(String(remainingBase));
+        setEquivalentSarInputStr(String(remainingBase));
       }
 
       setValue(

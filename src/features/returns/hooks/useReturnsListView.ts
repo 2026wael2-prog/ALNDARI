@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { exportReturnsToExcel } from '../../../core/utils/returnsExcelExporter';
-import { toBaseCurrency } from '../../../core/utils/currencyUtils';
 
 export type SortField = 'issue_date' | 'total_amount' | 'party_name' | 'invoice_number';
 export type SortDirection = 'asc' | 'desc';
@@ -146,12 +145,8 @@ const exportDate = (row: ReturnsListRow): string =>
   new Date(row.issue_date ?? row.created_at).toLocaleDateString('ar-SA-u-nu-latn');
 const exportItems = (row: ReturnsListRow): number =>
   row.invoice_items === null ? 0 : row.invoice_items.length;
-const exportAmount = (row: ReturnsListRow): number =>
-  toBaseCurrency({
-    amount: Number(row.total_amount ?? 0),
-    currency_code: row.currency_code ?? 'SAR',
-    exchange_rate: Number(row.exchange_rate ?? 1),
-  });
+// invoices.total_amount is ALREADY stored in base currency (SAR)
+const exportAmount = (row: ReturnsListRow): number => Number(row.total_amount ?? 0);
 const toExportRow = (row: ReturnsListRow, type: 'sales' | 'purchase'): ExportReturnRow => {
   const names = exportNames(row, type);
   return {

@@ -1,12 +1,10 @@
 import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MENU_ITEMS } from '../../../core/constants';
 import { MenuItem } from '../../../core/types';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { cn } from '../../../core/utils';
-import { useAuthStore } from '../../../features/auth/store';
-import { useAllPermissions } from '../../../core/hooks/usePermission';
 import { prefetchRoute } from '../../../core/utils/routePrefetcher';
+import { useVisibleMenuItems } from '../useVisibleMenuItems';
 import { ITEM_THEMES, defaultTheme } from './sidebarThemes';
 
 interface SidebarNavProps {
@@ -15,24 +13,28 @@ interface SidebarNavProps {
 
 interface SidebarSection {
   id: string;
-  label: string;
+  labelKey: string;
+  fallbackLabel: string;
   ids: readonly string[];
 }
 
 const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
   {
     id: 'core',
-    label: 'العمليات الأساسية',
+    labelKey: 'sidebar_section_core',
+    fallbackLabel: 'العمليات الأساسية',
     ids: ['dashboard', 'sales', 'purchases', 'bonds', 'inventory', 'clients', 'suppliers', 'pos'],
   },
   {
     id: 'finance',
-    label: 'المالية والتحصيل',
+    labelKey: 'sidebar_section_finance',
+    fallbackLabel: 'المالية والتحصيل',
     ids: ['debts', 'expenses', 'accounting', 'daily_reconciliation', 'reports'],
   },
   {
     id: 'tools',
-    label: 'الأدوات والإدارة',
+    labelKey: 'sidebar_section_tools',
+    fallbackLabel: 'الأدوات والإدارة',
     ids: ['chat', 'customer_service', 'supplier_portal', 'vin', 'commissions', 'employees', 'settings'],
   },
 ];
@@ -41,21 +43,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { user } = useAuthStore();
-  const { permissions, isLoading } = useAllPermissions();
-
-  const isOwner = user?.role?.toLowerCase() === 'owner';
-
-  const filteredItems = useMemo(
-    () =>
-      MENU_ITEMS.filter(item => {
-        if (!item.requiredPermission) return true;
-        if (isOwner) return true;
-        if (isLoading) return false;
-        return permissions.includes(item.requiredPermission);
-      }),
-    [isOwner, isLoading, permissions]
-  );
+  const filteredItems = useVisibleMenuItems();
 
   const groupedSections = useMemo(() => {
     const byId = new Map(filteredItems.map(item => [item.id, item]));
@@ -70,7 +58,10 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
           assigned.add(id);
         }
       }
-      return { id: section.id, label: section.label, items };
+      const translated = t(section.labelKey);
+      const label =
+        translated && translated !== section.labelKey ? translated : section.fallbackLabel;
+      return { id: section.id, label, items };
     });
 
     const unassigned = filteredItems.filter(item => !assigned.has(item.id));
@@ -79,7 +70,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
     }
 
     return sections.filter(section => section.items.length > 0);
-  }, [filteredItems]);
+  }, [filteredItems, t]);
 
   const renderItem = (item: MenuItem) => {
     const isActive =

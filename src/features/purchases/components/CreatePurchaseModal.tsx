@@ -21,6 +21,9 @@ import {
   validatePurchase,
 } from './create/purchaseValidation';
 import { PurchaseTotalsSection } from './create/PurchaseTotalsSection';
+import PurchaseInvoicePrintTemplate, {
+  type PurchasePrintInvoice,
+} from './PurchaseInvoicePrintTemplate';
 
 interface Props {
   onSuccess: () => void;
@@ -213,6 +216,36 @@ const CreatePurchaseModal: React.FC<Props> = ({ onSuccess }) => {
     total: Math.max(0, item.quantity * item.costPrice - item.discount),
   }));
 
+  const draftPrintInvoice: PurchasePrintInvoice = {
+    invoice_number: hasText(invoiceNumber) ? invoiceNumber : 'مسودة',
+    issue_date: issueDate,
+    due_date: null,
+    type: 'purchase',
+    party: supplier ? { name: supplier.name, phone: null, address: null } : null,
+    invoice_items: filterValidPurchaseItems(items).map((item, idx) => ({
+      id: item.productId || String(idx + 1),
+      description: item.name,
+      quantity: item.quantity,
+      unit_price: item.costPrice,
+      total: Math.max(0, item.quantity * item.costPrice - item.discount),
+      product: {
+        name_ar: item.name,
+        sku: item.sku || null,
+        part_number: item.partNumber || null,
+        brand: item.brand || null,
+      },
+    })),
+    subtotal: totals.subTotal,
+    subtotal_document_amount: totals.subTotal,
+    discount_amount: totals.totalDiscount,
+    paid_amount: invoiceType === 'credit' ? paidAmount || 0 : totals.grandTotal,
+    currency_code: currency || 'SAR',
+    payment_method: invoiceType,
+    total_amount: totals.grandTotal,
+    total_document_amount: totals.grandTotal,
+    notes: hasText(notes.trim()) ? notes.trim() : null,
+  };
+
   return (
     <div className="animate-in fade-in mx-auto max-w-none space-y-2 px-1 pb-24 pt-1 duration-500 max-md:space-y-1.5 max-md:pb-12 max-md:pt-0 sm:space-y-3 sm:pt-2 md:px-2">
       <DraftStatusBanner
@@ -220,10 +253,7 @@ const CreatePurchaseModal: React.FC<Props> = ({ onSuccess }) => {
         onClearDraft={resetCart}
         entityName={supplier?.name}
       />
-      <div
-        ref={printRef}
-        className="flex flex-col overflow-hidden rounded-2xl border-2 bg-[var(--app-surface)] shadow-2xl dark:border-gray-100 dark:border-slate-800 max-md:border"
-      >
+      <div className="flex flex-col overflow-hidden rounded-2xl border-2 bg-[var(--app-surface)] shadow-2xl dark:border-gray-100 dark:border-slate-800 max-md:border">
         {company && (
           <div className="hidden md:block">
             <InvoiceHeader company={company} documentTypeTitle="فاتورة توريد مشتريات" />
@@ -240,6 +270,13 @@ const CreatePurchaseModal: React.FC<Props> = ({ onSuccess }) => {
             setMetadata('paidAmount', val);
           }}
         />
+      </div>
+
+      {/* Isolated official A4 purchase print template for react-to-print */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        <div ref={printRef}>
+          <PurchaseInvoicePrintTemplate invoice={draftPrintInvoice} />
+        </div>
       </div>
       <div className="flex flex-wrap justify-end gap-1.5 sm:gap-2 print:hidden">
         <Button

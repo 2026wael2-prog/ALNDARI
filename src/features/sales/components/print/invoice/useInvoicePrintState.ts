@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCompany } from '../../../../settings/hooks';
-import { useInvoiceSettings } from '../../../../settings/settingsStore';
+import { useInvoiceSettings, usePrintSettings } from '../../../../settings/settingsStore';
 import type { CompanyHeaderData, HeaderLayoutMode } from '../PrintDocumentHeader';
 import {
   EMPTY_COMPANY_HEADER,
@@ -30,10 +30,15 @@ export const useInvoicePrintState = (
 ): InvoicePrintState => {
   const { data: settingsCompany } = useCompany();
   const invoiceSettings = useInvoiceSettings();
+  const printSettings = usePrintSettings();
   const [layoutMode, setLayoutMode] = useState<HeaderLayoutMode>('modern-centered');
   const [accentColor, setAccentColor] = useState<string>('#1F4E78');
-  const [showQrCode, setShowQrCode] = useState<boolean>(true);
+  const [showQrCode, setShowQrCode] = useState<boolean>(printSettings.print_qr_code !== false);
   const [companyHeader, setCompanyHeader] = useState<InvoiceCompanyHeader>(EMPTY_COMPANY_HEADER);
+
+  useEffect(() => {
+    setShowQrCode(printSettings.print_qr_code !== false);
+  }, [printSettings.print_qr_code]);
 
   useEffect(() => {
     setCompanyHeader(previous =>

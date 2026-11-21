@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import {
   FileText,
   Printer,
@@ -30,6 +31,11 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
   const invoiceSettings = useInvoiceSettings();
   const headerConfig = useDocumentHeaderSettings();
 
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `سند_${bond?.payment_number || 'مالي'}`,
+  });
+
   if (!isOpen || !bond) return null;
 
   const company = {
@@ -41,7 +47,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
   };
 
   const isReceipt = bond.type === 'receipt';
-  const isPayment = bond.type === 'payment';
+  const isPayment = bond.type === 'payment' || (bond.type as string) === 'disbursement';
 
   const voucherTitle = isReceipt ? 'سند قبض' : isPayment ? 'سند صرف' : 'سند تحويل مالي';
   const personLabel = isReceipt
@@ -51,17 +57,34 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
       : 'تحويل لصالح:';
   const forWhatLabel = isReceipt ? 'وذلك مقابل:' : isPayment ? 'وذلك عن:' : 'الغرض من التحويل:';
 
+  const currencyCodeUpper = (bond.currency_code || 'SAR').toUpperCase();
   const currencySymbol =
-    bond.currency_code === 'SAR'
+    currencyCodeUpper === 'SAR'
       ? 'ريال سعودي'
-      : bond.currency_code === 'YER'
+      : currencyCodeUpper === 'YER'
         ? 'ريال يمني'
-        : bond.currency_code;
+        : currencyCodeUpper === 'OMR'
+          ? 'ريال عماني'
+          : currencyCodeUpper === 'USD'
+            ? 'دولار أمريكي'
+            : bond.currency_code;
   const tafqeetText = tafqeet(bond.amount, currencySymbol);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const paymentMethodLabel = (() => {
+    switch ((bond.payment_method ?? '').toLowerCase()) {
+      case 'bank':
+      case 'transfer':
+        return 'حوالة بنكية';
+      case 'card':
+      case 'network':
+        return 'بطاقة / شبكة';
+      case 'check':
+      case 'cheque':
+        return 'شيك';
+      default:
+        return 'نقداً';
+    }
+  })();
 
   const handleExportExcel = async () => {
     try {
@@ -94,7 +117,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
             slogan: headerConfig.details.sloganText || undefined,
           })
         : '';
-      const shareText = `${waHeader}مرفق ${voucherTitle} رقم ${bond.payment_number}\nالمبلغ: ${formatCurrency(bond.amount)} ${bond.currency_code}`;
+      const shareText = `${waHeader}مرفق ${voucherTitle} رقم ${bond.payment_number}\nالمبلغ: ${formatCurrency(bond.amount, bond.currency_code)}`;
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -170,7 +193,9 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
 
           <div className="flex items-center gap-1.5">
             <button
-              onClick={handlePrint}
+              onClick={() => {
+                handlePrint();
+              }}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
               title="طباعة السند"
             >
@@ -234,7 +259,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
                 { label: personLabel.replace(/:$/, ''), value: bond.party_name || bond.account_name || '—' },
               ]}
               leftMeta={[
-                { label: 'طريقة الدفع', value: bond.payment_method === 'bank' ? 'حوالة بنكية' : 'نقداً' },
+                { label: 'طريقة الدفع', value: paymentMethodLabel },
                 { label: 'العملة', value: currencySymbol },
               ]}
               showDefaultTerms={false}

@@ -48,6 +48,44 @@ describe('computeInvoiceTotals', () => {
       remaining: 0,
     });
   });
+
+  it('يحوّل المدفوع والخصم والضريبة من SAR إلى عملة المستند (YER) بلا خلط وحدات', () => {
+    // 100,000 YER paid in full -> stored in DB as total_amount=243.90 SAR, paid_amount=243.90 SAR
+    const totals = computeInvoiceTotals({
+      currency_code: 'YER',
+      exchange_rate: 1 / 410,
+      total_amount: 243.9,
+      total_document_amount: 100000,
+      subtotal: 243.9,
+      subtotal_document_amount: 100000,
+      tax_amount: 0,
+      discount_amount: 0,
+      paid_amount: 243.9,
+      payment_method: 'cash',
+    });
+    expect(totals.total).toBe(100000);
+    expect(totals.paid).toBe(100000);
+    expect(totals.remaining).toBe(0);
+  });
+
+  it('يحسب الدفعة الجزئية والخصم بعملة المستند (YER) بدقة', () => {
+    // 100,000 YER total, 41,000 YER paid (100 SAR), 4,100 YER discount (10 SAR)
+    const totals = computeInvoiceTotals({
+      currency_code: 'YER',
+      exchange_rate: 1 / 410,
+      total_amount: 243.9024,
+      total_document_amount: 100000,
+      subtotal_document_amount: 104100,
+      tax_amount: 0,
+      discount_amount: 10,
+      paid_amount: 100,
+      payment_method: 'credit',
+    });
+    expect(totals.total).toBe(100000);
+    expect(totals.discount).toBe(4100);
+    expect(totals.paid).toBe(41000);
+    expect(totals.remaining).toBe(59000);
+  });
 });
 
 describe('buildInvoiceDisplayItems', () => {
@@ -111,6 +149,19 @@ describe('buildInvoicePrintView', () => {
 
   it('يترجم رموز العملات المعروفة ويعيد غيرها كما هو', () => {
     expect(invoiceCurrencyUnit('SAR')).toBe('ريال سعودي');
+    expect(invoiceCurrencyUnit('OMR')).toBe('ريال عماني');
     expect(invoiceCurrencyUnit('USD')).toBe('USD');
+  });
+
+  it('يميّز return_sale وطرق الدفع البنكية والبطاقات', () => {
+    const view = buildInvoicePrintView({
+      type: 'return_sale',
+      payment_method: 'bank',
+      total_amount: 500,
+      currency_code: 'SAR',
+    });
+    expect(view.isReturn).toBe(true);
+    expect(view.paymentLabel).toBe('تحويل بنكي');
+    expect(view.documentMeta.badge).toBe('مرتجع مبيعات');
   });
 });

@@ -20,8 +20,10 @@ import { prefetchRoute } from '../../../core/utils/routePrefetcher';
 export const WorkspaceTabBar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { dir } = useTranslation();
+  const { t, dir, lang } = useTranslation();
   const isRTL = dir === 'rtl';
+  const tRef = useRef(t);
+  tRef.current = t;
 
   // ⚡ Selectors instead of a whole-store subscription: the tab bar no longer
   // re-renders when unrelated store slices change, and (more importantly) neither
@@ -48,7 +50,7 @@ export const WorkspaceTabBar: React.FC = () => {
     if (!isEnabled) return;
     const currentPath = location.pathname + location.search;
     const baseId = location.pathname;
-    const meta = getTabMeta(location.pathname);
+    const meta = getTabMeta(location.pathname, tRef.current);
 
     openTab({
       id: baseId,
@@ -57,7 +59,7 @@ export const WorkspaceTabBar: React.FC = () => {
       iconKey: meta.iconKey,
       isClosable: baseId !== '/',
     });
-  }, [location.pathname, location.search, isEnabled, openTab]);
+  }, [location.pathname, location.search, isEnabled, openTab, lang]);
 
   // التمرير التلقائي لجعل التبويب النشط مرئياً دائماً بدون حبس الـ DOM أو reflow
   useEffect(() => {
@@ -302,6 +304,11 @@ export const WorkspaceTabBar: React.FC = () => {
             <div className="custom-scrollbar max-h-60 space-y-0.5 overflow-y-auto">
               {QUICK_LAUNCH_ITEMS.map(item => {
                 const Icon = ICON_MAP[item.iconKey] || Layers;
+                const translatedTitle = t(item.labelKey);
+                const resolvedTitle =
+                  translatedTitle && translatedTitle !== item.labelKey
+                    ? translatedTitle
+                    : item.title;
                 return (
                   <button
                     key={item.path}
@@ -312,7 +319,7 @@ export const WorkspaceTabBar: React.FC = () => {
                       openTab({
                         id: item.path,
                         path: item.path,
-                        title: item.title,
+                        title: resolvedTitle,
                         iconKey: item.iconKey,
                         isClosable: true,
                       });
@@ -322,7 +329,7 @@ export const WorkspaceTabBar: React.FC = () => {
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--app-text)] transition-colors hover:bg-[var(--app-surface-hover)]"
                   >
                     <Icon size={14} className="text-blue-500" />
-                    <span>{item.title}</span>
+                    <span>{resolvedTitle}</span>
                   </button>
                 );
               })}

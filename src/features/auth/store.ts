@@ -270,6 +270,11 @@ export const useAuthStore = create<AuthState>()(
                   return;
                 }
 
+                // Keep Supabase Realtime WebSocket JWT synchronized on every token refresh / session recovery
+                if (session.access_token && typeof supabase.realtime?.setAuth === 'function') {
+                  void supabase.realtime.setAuth(session.access_token);
+                }
+
                 const currentUser = get().user;
                 // ⚡ تخطّي TOKEN_REFRESHED و INITIAL_SESSION إذا تم التحقق من نفس المستخدم للتو
                 // خلال initialize() لمنع جلب البروفايل مرتين متتاليتين وإبطال الكاش الشامل عند الإقلاع.

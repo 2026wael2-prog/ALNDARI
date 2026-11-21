@@ -1,6 +1,6 @@
 import React from 'react';
 import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
-import { formatCurrency, toBaseCurrency } from '../../../../core/utils';
+import { formatCurrency } from '../../../../core/utils';
 import type { ReportView, ReturnsType } from '../../hooks/useReturnsReport';
 import type { ReturnReportRow } from '../../hooks/returnsNormalizers';
 
@@ -50,22 +50,17 @@ const getReasonText = (reason: string): string => {
 const ReturnAmountCell: React.FC<{ item: ReturnReportRow }> = ({ item }) => {
   const code = item.currency_code;
   const isForeign = typeof code === 'string' && code !== '' && code !== 'SAR';
+  const baseSar = Number(item.total_amount ?? 0);
+  const rate = Number(item.exchange_rate ?? 1);
+  const docAmount = isForeign && rate > 0 && rate !== 1 ? Math.round((baseSar / rate) * 100) / 100 : baseSar;
   return (
     <>
       <span className="font-mono text-xs font-bold text-slate-800 dark:text-white">
-        {formatCurrency(Number(item.total_amount ?? 0), code ?? 'SAR')}
+        {formatCurrency(docAmount, code ?? 'SAR')}
       </span>
       {isForeign ? (
         <span className="block font-mono text-[10px] text-slate-400">
-          ≈{' '}
-          {formatCurrency(
-            toBaseCurrency({
-              amount: Number(item.total_amount ?? 0),
-              currency_code: code,
-              exchange_rate: Number(item.exchange_rate ?? 1),
-            }),
-            'SAR'
-          )}
+          ≈ {formatCurrency(baseSar, 'SAR')}
         </span>
       ) : null}
     </>

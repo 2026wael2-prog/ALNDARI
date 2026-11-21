@@ -39,6 +39,7 @@ const currencyUnitOf = (code?: string): string => {
   if (!code || code === 'ALL' || code === 'SAR') return 'ريال سعودي';
   if (code === 'YER') return 'ريال يمني';
   if (code === 'OMR') return 'ريال عماني';
+  if (code === 'USD') return 'دولار أمريكي';
   return code;
 };
 
@@ -75,8 +76,11 @@ export const StatementPrintSheet: React.FC<StatementPrintSheetProps> = ({
     const rows = movements.map(m => {
       const debit = Number(m.debit) || 0;
       const credit = Number(m.credit) || 0;
-      totalDebit += debit;
-      totalCredit += credit;
+      const isOpeningRow = m.is_bf === 1 || m.type === 'opening_balance';
+      if (!isOpeningRow) {
+        totalDebit += debit;
+        totalCredit += credit;
+      }
       running = m.balance !== undefined ? Number(m.balance) : running + debit - credit;
       return {
         ...m,

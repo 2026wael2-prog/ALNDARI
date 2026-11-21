@@ -5,7 +5,6 @@ import { useSalesReturns } from '../../sales/hooks/useSalesReturns';
 import { usePurchaseReturns } from '../../purchases/hooks/usePurchaseReturns';
 import { exportReturnsToExcel } from '../../../core/utils/returnsExcelExporter';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
-import { toBaseCurrency } from '../../../core/utils';
 import {
   normalizeSalesReturn,
   normalizePurchaseReturn,
@@ -190,13 +189,8 @@ export const useReturnsReport = () => {
     dateRange.endDate,
   ]);
 
-  const getRowBaseAmount = (r: ReturnReportRow): number => {
-    return toBaseCurrency({
-      amount: Number(r.total_amount) || 0,
-      currency_code: r.currency_code ?? null,
-      exchange_rate: Number(r.exchange_rate) || 1,
-    });
-  };
+  // invoices.total_amount is ALREADY stored in base currency (SAR)
+  const getRowBaseAmount = (r: ReturnReportRow): number => Number(r.total_amount) || 0;
 
   // Calculate statistics
   const stats = useMemo(() => {

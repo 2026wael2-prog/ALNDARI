@@ -55,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       ? location.pathname === item.path
       : location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
   );
-  const title = currentRoute ? t(currentRoute.labelKey) : 'الرئيسية';
+  const title = currentRoute ? t(currentRoute.labelKey) : t('overview');
 
   return (
     <div className="no-print sticky top-0 z-50 flex-shrink-0">
@@ -86,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               {title}
             </h1>
             <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--app-text-secondary)] md:hidden">
-              Al-Jaafari Smart ERP
+              {t('app_title')}
             </span>
           </div>
         </div>

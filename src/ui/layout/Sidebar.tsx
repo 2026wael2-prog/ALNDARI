@@ -109,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="bg-[var(--app-surface-hover)]/40 flex items-center justify-between border-b border-[var(--app-border)] px-4 py-3.5">
           <div className="flex flex-col">
             <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-              النظاري ERP
+              {t('app_title')}
             </span>
             <span className="text-[10px] font-bold text-[var(--app-text-secondary)]">
               القائمة الرئيسية

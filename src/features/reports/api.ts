@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import { fetchAllRpcPages } from '../../core/utils/dataFetching';
+import { toBaseCurrency } from '../../core/utils/currencyUtils';
 
 // Typed result shapes for Supabase queries
 interface AccountWithLines {
@@ -341,6 +342,7 @@ export const reportsApi = {
         .from('payment_allocations')
         .select('payment_id, amount')
         .eq('company_id', companyId)
+        .is('deleted_at', null)
         .in('payment_id', paymentIds);
 
       if (allocError) return { creditReturns: [], unallocatedReceipts: [], error: allocError };
@@ -350,13 +352,27 @@ export const reportsApi = {
       }
     }
 
+    // payments.amount is in DOCUMENT currency, whereas payment_allocations.amount is in BASE currency (SAR).
+    // Convert payment amount to SAR first before subtracting SAR allocations to prevent YER/SAR unit mismatch.
     const unallocatedReceipts = receiptRows
-      .map(r => ({
-        party_id: r.party_id,
-        unallocated_amount: Math.max(0, (r.amount || 0) - (allocMap.get(r.id) ?? 0)),
-        currency_code: r.currency_code,
-        exchange_rate: r.exchange_rate,
-      }))
+      .map(r => {
+        let paymentBaseSar = Number(r.amount || 0);
+        try {
+          paymentBaseSar = toBaseCurrency({
+            amount: r.amount || 0,
+            currency_code: r.currency_code ?? 'SAR',
+            exchange_rate: r.exchange_rate ?? 1,
+          });
+        } catch {
+          paymentBaseSar = Number(r.amount || 0);
+        }
+        return {
+          party_id: r.party_id,
+          unallocated_amount: Math.max(0, paymentBaseSar - (allocMap.get(r.id) ?? 0)),
+          currency_code: 'SAR' as string | null,
+          exchange_rate: 1 as number | null,
+        };
+      })
       .filter(r => r.unallocated_amount > 0.01);
 
     return {
@@ -383,7 +399,7 @@ export const reportsApi = {
     let query = supabase
       .from('invoices')
       .select(
-        'id, invoice_number, issue_date, total_amount, status, type, party_id, parties(name), exchange_rate, currency_code'
+        'id, invoice_number, issue_date, total_amount, total_document_amount, status, type, party_id, parties(name), exchange_rate, currency_code'
       )
       .eq('company_id', companyId)
       .in('type', ['sale', 'sale_return', 'return_sale'])
@@ -402,6 +418,7 @@ export const reportsApi = {
         invoice_number: string | null;
         issue_date: string;
         total_amount: number;
+        total_document_amount?: number | null;
         status: string;
         type: string;
         party_id: string | null;
@@ -424,7 +441,7 @@ export const reportsApi = {
         `
           id, debit_amount, credit_amount, description, branch_id,
           account:accounts!inner(id, code, name_ar, type),
-          journal:journal_entries!inner(id, entry_date, status, company_id, branch_id)
+          journal:journal_entries!inner(id, entry_date, status, company_id, branch_id, reference_type)
         `
       )
       .eq('journal.company_id', companyId)
@@ -440,6 +457,16 @@ export const reportsApi = {
       query = query.eq('journal.branch_id', branchId);
     }
 
-    return await query;
+    const res = await query;
+    if (res.error || !Array.isArray(res.data)) {
+      return res;
+    }
+    // Exclude year-end closing entries (NULL-safe) so closed fiscal years don't zero out operational expenses
+    return {
+      ...res,
+      data: res.data.filter(
+        (row: any) => row?.journal?.reference_type !== 'fiscal_year_closing'
+      ),
+    };
   },
 };

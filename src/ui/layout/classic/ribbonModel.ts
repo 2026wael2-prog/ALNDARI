@@ -187,13 +187,13 @@ export const CLASSIC_MENUS: readonly ClassicMenuSpec[] = [
       {
         id: 'dashboard',
         labelKey: 'menu_dashboard',
-        fallbackLabel: 'لوحة التحكم',
+        fallbackLabel: 'الرئيسية',
         path: ROUTES.DASHBOARD.ROOT,
       },
       {
         id: 'appearance',
         labelKey: 'menu_appearance',
-        fallbackLabel: 'المظهر والثيمات',
+        fallbackLabel: 'المظهر والسمات',
         path: ROUTES.DASHBOARD.APPEARANCE,
       },
       {
@@ -218,7 +218,7 @@ export const CLASSIC_MENUS: readonly ClassicMenuSpec[] = [
       {
         id: 'layout-auto',
         labelKey: 'menu_layout_auto',
-        fallbackLabel: 'شكل الواجهة: تلقائي (يتبع الثيم)',
+        fallbackLabel: 'شكل الواجهة: تلقائي (يتبع السمة)',
         action: 'layout-auto',
       },
       {

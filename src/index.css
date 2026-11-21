@@ -3208,3 +3208,130 @@ html[data-preset='obsidian-sun'].dark button[class*='bg-rose-600'] * {
 [data-table-customized='true'] table tbody tr:hover td {
   background-color: var(--tbl-hover-bg, inherit) !important;
 }
+
+/* ==========================================================================
+   PRINT & PDF SURFACE ISOLATION — حماية قوالب الطباعة من تسرب ألوان الثيمات
+   يمنع تلوين الجداول والترويسات والخلفيات من ثيمات (classic-golden-erp,
+   al-mizan-pro, solar-noir, obsidian-pro/sun) عند المعاينة والطباعة وتصدير PDF.
+   ========================================================================== */
+html[data-preset] :is(
+  .alnadary-print-sheet,
+  .pdf-capture-host,
+  .printable-invoice-container,
+  .quotation-print-root,
+  .requisitions-print-wrapper,
+  #bond-printable-voucher,
+  #supplier-quotation-printable,
+  #reconciliation-print-receipt,
+  .thermal-receipt-print
+) {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+html[data-preset] :is(
+  .alnadary-print-sheet,
+  .pdf-capture-host,
+  .printable-invoice-container,
+  .quotation-print-root,
+  .requisitions-print-wrapper,
+  #bond-printable-voucher,
+  #supplier-quotation-printable
+) header {
+  background: transparent !important;
+  background-image: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+html[data-preset] .alnadary-print-sheet header span,
+html[data-preset] .alnadary-print-sheet header div,
+html[data-preset] .alnadary-print-sheet header h1,
+html[data-preset] .alnadary-print-sheet main {
+  background-color: transparent !important;
+}
+
+html[data-preset] .alnadary-print-sheet .alnadary-tagline,
+html[data-preset] .alnadary-print-sheet .alnadary-tagline-line {
+  color: #b91c1c !important;
+}
+
+html[data-preset] .alnadary-print-sheet table thead,
+html[data-preset] .alnadary-print-sheet table thead tr th {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+html[data-preset] .alnadary-print-sheet table tbody tr,
+html[data-preset] .alnadary-print-sheet table tbody tr:nth-child(even),
+html[data-preset] .alnadary-print-sheet table tbody tr td,
+html[data-preset] .alnadary-print-sheet table tbody tr td:first-child {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+html[data-preset] :is(.alnadary-print-sheet, .pdf-capture-host, #reconciliation-print-receipt, .thermal-receipt-print) .bg-white {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+html[data-preset] .alnadary-print-sheet .alnadary-total-bar-label {
+  background-color: #f3f4f6 !important;
+  color: #000000 !important;
+}
+
+html[data-preset] .alnadary-print-sheet .alnadary-date-row {
+  background-color: #f9fafb !important;
+  color: #000000 !important;
+}
+
+@media print {
+  html[data-preset],
+  html[data-preset] body,
+  html[data-preset] main,
+  html[data-preset] div[data-theme-scope='app'] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  html[data-preset] table thead,
+  html[data-preset] table thead tr th {
+    background: #f1f5f9 !important;
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+
+  html[data-preset] .alnadary-print-sheet table thead,
+  html[data-preset] .alnadary-print-sheet table thead tr th {
+    background: #e5e7eb !important;
+    background-color: #e5e7eb !important;
+    color: #000000 !important;
+  }
+
+  html[data-preset] table tbody tr,
+  html[data-preset] table tbody tr:nth-child(even),
+  html[data-preset] table tbody tr td,
+  html[data-preset] table tbody tr td:first-child {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  html[data-preset] .alnadary-print-sheet table tbody tr td {
+    color: #000000 !important;
+  }
+
+  html[data-preset] .quotation-print-root .quotation-th {
+    color: #ffffff !important;
+  }
+
+  html[data-preset] .requisitions-print-wrapper table thead th {
+    background-color: #1F4E78 !important;
+    color: #ffffff !important;
+  }
+}

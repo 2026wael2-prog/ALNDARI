@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { FileText, Loader2, RotateCcw, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 import Modal from '@/ui/base/Modal';
 import PrintableInvoice from '../PrintableInvoice';
 import { useInvoiceDetails } from '../../hooks/index';
@@ -31,6 +32,12 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
 
   const paymentInfo = useInvoicePaymentStatus(invoice);
   const issuedByName = user?.full_name || user?.email || 'غير محدد';
+  const directPrintRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: directPrintRef,
+    documentTitle: `فاتورة_${invoice?.invoice_number || ''}`,
+  });
 
   const {
     printRef,
@@ -67,7 +74,7 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
           invoice={invoice}
           onClose={onClose}
           onPrint={() => {
-            window.print();
+            handlePrint();
           }}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
@@ -175,12 +182,22 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
                 <div className="w-full max-w-4xl shrink-0 rounded-xl border border-slate-300 bg-white p-2 shadow-lg">
                   <PrintableInvoice
                     invoice={fullInvoiceData}
+                    onPrint={() => {
+                      handlePrint();
+                    }}
                     onExportPDF={handleExportPDF}
                     isExporting={isExporting}
                   />
                 </div>
               </div>
             )}
+
+            {/* Always-mounted isolated print sheet for react-to-print (works from both tabs) */}
+            <div style={{ display: 'none' }} aria-hidden="true">
+              <div ref={directPrintRef}>
+                <PrintableInvoice invoice={fullInvoiceData} />
+              </div>
+            </div>
 
             {/* Off-screen capture host for PDF export */}
             {isExporting && (

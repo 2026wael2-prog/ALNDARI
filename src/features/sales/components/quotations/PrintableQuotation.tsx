@@ -28,16 +28,19 @@ import {
 
 interface PrintableQuotationProps {
   quotation: QuotationDetailRow;
+  onPrint?: (() => void) | undefined;
   onExportPDF?: (() => void) | undefined;
   isExporting?: boolean | undefined;
 }
 
 const currencyUnitLabel = (code: string): string => {
-  switch (code) {
+  switch (code.toUpperCase()) {
     case 'SAR':
       return 'ريال سعودي';
     case 'YER':
       return 'ريال يمني';
+    case 'OMR':
+      return 'ريال عماني';
     case 'USD':
       return 'دولار أمريكي';
     default:
@@ -102,8 +105,8 @@ const PrintStyles = ({ accentColor }: { accentColor: string }): ReactElement => 
         box-shadow: none !important; border: none !important;
       }
       @page { margin: 8mm; size: A4 portrait; }
-      tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-      .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .quotation-print-root tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .quotation-print-root .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
     }
     .quotation-page-box {
       max-width: 210mm; margin: auto; padding: 8mm 10mm;
@@ -295,6 +298,7 @@ const TermsBlock = ({ data }: { data: QuotationPrintData }): ReactElement => (
 
 const PrintableQuotation: FC<PrintableQuotationProps> = ({
   quotation,
+  onPrint,
   onExportPDF,
   isExporting = false,
 }) => {
@@ -319,9 +323,12 @@ const PrintableQuotation: FC<PrintableQuotationProps> = ({
         onChangeLayout={setLayoutMode}
         accentColor={accentColor}
         onChangeAccentColor={setAccentColor}
-        onPrint={() => {
-          window.print();
-        }}
+        onPrint={
+          onPrint ??
+          (() => {
+            window.print();
+          })
+        }
         {...(onExportPDF !== undefined ? { onExportPDF } : {})}
         isExporting={isExporting}
       />

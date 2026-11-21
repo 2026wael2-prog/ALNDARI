@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { useSalesStore } from '../../sales/store';
 import {
   useCashPaymentAccounts,
@@ -6,7 +7,9 @@ import {
   usePaymentAccounts,
 } from '../../accounting/hooks/usePaymentAccounts';
 import { useCurrencies } from '../../settings/hooks';
-import { resolveAutoExchangeRate } from '../../../core/utils/currencyUtils';
+import { formatCurrency, resolveAutoExchangeRate } from '../../../core/utils/currencyUtils';
+import { formatLocalDate } from '../../../core/utils/dateUtils';
+import { resolveAlNadaryIdentity } from '../../../core/utils/alNadaryIdentity';
 import { cn } from '../../../core/utils';
 import type { POSPaymentResult, POSPaymentMethod, PaymentAccount } from './payment';
 
@@ -57,6 +60,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const receiptPrintRef = useRef<HTMLDivElement>(null);
+  const handlePrintReceipt = useReactToPrint({
+    contentRef: receiptPrintRef,
+    documentTitle: `ايصال_نقطة_بيع_${formatLocalDate()}`,
+  });
   const { items, exchangeRate: storeExchangeRate } = useSalesStore();
   const validItems = items.filter(i => i.productId);
 
@@ -178,6 +186,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           total={total}
           currency={currency}
           validItems={validItems}
+          onPrint={() => {
+            handlePrintReceipt();
+          }}
           onClose={onClose}
         />
 
@@ -325,6 +336,56 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           onClose={onClose}
           onConfirm={handleConfirm}
         />
+
+        {/* Isolated 80mm thermal POS receipt for react-to-print */}
+        <div style={{ display: 'none' }} aria-hidden="true">
+          <div
+            ref={receiptPrintRef}
+            dir="rtl"
+            className="thermal-receipt-print bg-white p-3 font-mono text-[11px] text-black"
+          >
+            <style>{`@media print { @page { size: 80mm auto; margin: 2mm; } }`}</style>
+            <div className="border-b border-dashed border-black pb-2 text-center">
+              <div className="text-sm font-black">{resolveAlNadaryIdentity().plainCompanyName}</div>
+              <div className="text-[10px] font-bold">إيصال نقطة بيع</div>
+              <div className="text-[10px]" dir="ltr">
+                {formatLocalDate()}
+              </div>
+            </div>
+            <div className="my-2 space-y-1 border-b border-dashed border-black pb-2">
+              {validItems.map((item, idx) => (
+                <div key={item.id || idx} className="flex justify-between gap-2">
+                  <span className="truncate font-bold">
+                    {item.name} × {item.quantity}
+                  </span>
+                  <span dir="ltr">{formatCurrency(item.price * item.quantity, currency)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between font-black">
+                <span>الإجمالي:</span>
+                <span dir="ltr">{formatCurrency(payableTotal, paymentCurrency)}</span>
+              </div>
+              {method === 'cash' && receivedNum > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span>المدفوع:</span>
+                    <span dir="ltr">{formatCurrency(receivedNum, paymentCurrency)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>المتبقي للعميل:</span>
+                    <span dir="ltr">{formatCurrency(Math.max(0, change), paymentCurrency)}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between text-[10px]">
+                <span>طريقة الدفع:</span>
+                <span>{method === 'exchange' ? 'صرافة / تحويل' : 'نقداً'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

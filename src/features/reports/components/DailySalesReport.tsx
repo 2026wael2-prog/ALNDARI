@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store';
 import { reportsApi } from '../api';
-import { formatCurrency, cn, formatLocalDate, toBaseCurrency } from '../../../core/utils';
+import { formatCurrency, cn, formatLocalDate } from '../../../core/utils';
 import { useContainerReady } from '../../../core/hooks/useContainerReady';
 import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
 import {
@@ -32,6 +32,7 @@ interface DailyInvoice {
   type?: string;
   status?: string;
   total_amount?: number | null;
+  total_document_amount?: number | null;
   paid_amount?: number | null;
   exchange_rate?: number | null;
   currency_code?: string | null;
@@ -70,13 +71,8 @@ const useDailySalesReport = (days = 30) => {
         const date = inv.issue_date?.split('T')[0] || inv.issue_date;
         if (!dailyMap[date]) dailyMap[date] = { date, total: 0, count: 0 };
 
-        // التحويل المالي المعتمد للعملة الأساسية (SAR) باستخدام toBaseCurrency
-        // لمنع تضخيم العملات ذات المعامل العكسي (مثل الريال اليمني YER)
-        const convertedAmount = toBaseCurrency({
-          total_amount: inv.total_amount,
-          currency_code: inv.currency_code,
-          exchange_rate: inv.exchange_rate,
-        });
+        // invoices.total_amount مخزن بالعملة الأساسية (SAR) مسبقاً — لا نعيد تحويله لمنع القسمة المزدوجة
+        const convertedAmount = Number(inv.total_amount) || 0;
 
         const isReturn = inv.type === 'sale_return' || inv.type === 'return_sale';
         if (isReturn) {
@@ -104,11 +100,7 @@ const useDailySalesReport = (days = 30) => {
         invoices: (invoices || [])
           .filter(inv => inv.status !== 'void' && inv.status !== 'draft')
           .map(inv => {
-            const convertedAmount = toBaseCurrency({
-              total_amount: inv.total_amount,
-              currency_code: inv.currency_code,
-              exchange_rate: inv.exchange_rate,
-            });
+            const convertedAmount = Number(inv.total_amount) || 0;
             const isReturn = inv.type === 'sale_return' || inv.type === 'return_sale';
             return {
               ...inv,
@@ -203,7 +195,16 @@ const DailySalesReport: React.FC = () => {
               </span>
               {isForeign && (
                 <span dir="ltr" className="font-mono text-[10px] text-gray-400">
-                  ({formatCurrency(Number(row.total_amount) || 0, row.currency_code || undefined)})
+                  (
+                  {formatCurrency(
+                    Number(row.total_document_amount) > 0
+                      ? Number(row.total_document_amount)
+                      : Number(row.exchange_rate) > 0 && Number(row.exchange_rate) !== 1
+                        ? Math.round((Number(row.total_amount || 0) / Number(row.exchange_rate)) * 100) / 100
+                        : Number(row.total_amount || 0),
+                    row.currency_code || undefined
+                  )}
+                  )
                 </span>
               )}
             </div>

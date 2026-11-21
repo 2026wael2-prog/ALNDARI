@@ -62,18 +62,27 @@ export const computePageSlices = (
 /** Collects the bottom edge of table rows (and explicit markers) as page-break candidates. */
 const collectBreakpointsMm = (
   element: HTMLElement,
-  ratio: number,
+  contentWidthMm: number,
+  fallbackRatio: number,
   selector = 'tr, [data-pdf-break]'
 ): number[] => {
   if (typeof element.getBoundingClientRect !== 'function') return [];
   const rootRect = element.getBoundingClientRect();
   if (!Number.isFinite(rootRect.height) || rootRect.height <= 0) return [];
 
+  // DOM coordinates from getBoundingClientRect() are in 1x CSS pixels, whereas
+  // `canvas.width` is scaled by `scale` (e.g. 2x). Using `contentWidthMm / rootRect.width`
+  // keeps DOM breakpoints aligned 1:1 with the rendered PDF millimetres.
+  const domRatio =
+    Number.isFinite(rootRect.width) && rootRect.width > 0
+      ? contentWidthMm / rootRect.width
+      : fallbackRatio;
+
   const boundaries: number[] = [];
   element.querySelectorAll<HTMLElement>(selector).forEach(node => {
     const rect = node.getBoundingClientRect();
     if (!Number.isFinite(rect.bottom) || rect.bottom <= rootRect.top) return;
-    boundaries.push((rect.bottom - rootRect.top) * ratio);
+    boundaries.push((rect.bottom - rootRect.top) * domRatio);
   });
   return boundaries;
 };
@@ -88,7 +97,44 @@ const captureElement = async (element: HTMLElement, scale: number): Promise<HTML
     backgroundColor: '#ffffff', // Ensure white background
     windowWidth: element.scrollWidth,
     windowHeight: element.scrollHeight,
+    ignoreElements: el =>
+      Boolean(
+        el.classList &&
+          (el.classList.contains('no-print') || el.classList.contains('print:hidden'))
+      ),
   });
+};
+
+/**
+ * Crops a vertical slice `[sourceY, sourceY + sourceHeight]` (in mm) from a real
+ * HTMLCanvasElement into its own tightly bounded PNG so content never bleeds into
+ * PDF margins or duplicates rows from the next page. Returns `null` when running
+ * on a non-canvas mock (e.g. jsdom unit tests without a 2D context).
+ */
+const cropSliceToDataUrl = (
+  canvas: HTMLCanvasElement,
+  slice: PageSlice,
+  mmPerPx: number
+): string | null => {
+  if (typeof document === 'undefined' || mmPerPx <= 0) return null;
+  const isDrawableCanvas =
+    typeof HTMLCanvasElement !== 'undefined' && canvas instanceof HTMLCanvasElement;
+  if (!isDrawableCanvas) return null;
+
+  const srcY = Math.max(0, Math.round(slice.sourceY / mmPerPx));
+  const srcHeight = Math.max(1, Math.min(canvas.height - srcY, Math.round(slice.sourceHeight / mmPerPx)));
+  if (srcHeight <= 0) return null;
+
+  const pageCanvas = document.createElement('canvas');
+  pageCanvas.width = canvas.width;
+  pageCanvas.height = srcHeight;
+  const ctx = pageCanvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+  ctx.drawImage(canvas, 0, srcY, canvas.width, srcHeight, 0, 0, canvas.width, srcHeight);
+  return pageCanvas.toDataURL('image/png');
 };
 
 /** Lays the captured canvas out over standard pages (jsPDF is loaded on demand). */
@@ -114,7 +160,7 @@ const writeCanvasToPdf = async (
 
   // 3. Break long documents into standard pages instead of one overflowing page.
   const breakpoints =
-    options.breakpointsMm ?? collectBreakpointsMm(element, ratio, options.breakSelector);
+    options.breakpointsMm ?? collectBreakpointsMm(element, contentWidth, ratio, options.breakSelector);
   const slices = computePageSlices(scaledHeight, contentHeight, breakpoints);
   if (slices.length === 0) {
     // A display:none or unmounted capture source yields an empty canvas:
@@ -122,11 +168,18 @@ const writeCanvasToPdf = async (
     throw new Error('PDF export aborted: the captured element is empty');
   }
 
-  // 4. The same image is reused on every page, shifted up, so each page shows its own window.
-  const imgData = canvas.toDataURL('image/png');
+  // 4. Prefer exact per-page canvas cropping (prevents margin bleed and duplicated rows);
+  // fall back to shifted full-image window when 2D canvas cropping isn't available.
+  let fallbackImgData: string | null = null;
   slices.forEach((slice, index) => {
     if (index > 0) pdf.addPage();
-    pdf.addImage(imgData, 'PNG', marginMm, marginMm - slice.sourceY, contentWidth, scaledHeight);
+    const cropped = cropSliceToDataUrl(canvas, slice, ratio);
+    if (cropped !== null) {
+      pdf.addImage(cropped, 'PNG', marginMm, marginMm, contentWidth, slice.sourceHeight);
+    } else {
+      fallbackImgData ??= canvas.toDataURL('image/png');
+      pdf.addImage(fallbackImgData, 'PNG', marginMm, marginMm - slice.sourceY, contentWidth, scaledHeight);
+    }
   });
 
   pdf.save(`${fileName}.pdf`);

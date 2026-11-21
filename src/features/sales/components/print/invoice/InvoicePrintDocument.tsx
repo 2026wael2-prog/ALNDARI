@@ -3,6 +3,7 @@ import type { CompanyHeaderData, HeaderLayoutMode } from '../PrintDocumentHeader
 import type { InvoiceCompanyHeader } from './companyHeader';
 import type { InvoicePrintView } from './invoicePrintModel';
 import { AlNadaryPrintShell } from '@/ui/print/AlNadaryPrintShell';
+import { ZatcaInvoiceQRCode } from '../ZatcaInvoiceQRCode';
 
 interface InvoicePrintDocumentProps {
   view: InvoicePrintView;
@@ -23,12 +24,18 @@ const formatNum = (val: number): string => {
 /**
  * قالب طباعة فاتورة المبيعات الموحد لشركة النظاري — مطابق للفاتورة المرجعية الرسمية.
  */
-const InvoicePrintDocument = ({ view, companyHeader }: InvoicePrintDocumentProps): ReactElement => {
+const InvoicePrintDocument = ({
+  view,
+  companyHeader,
+  accentColor,
+  showQrCode,
+}: InvoicePrintDocumentProps): ReactElement => {
   const customerDisplay = view.partyPhone
     ? `${view.partyName}   ${view.partyPhone}`
     : view.partyName;
 
   const docTitle = view.isReturn ? 'فاتورة مرتجع مبيعات' : 'فاتورة بيع المحل';
+  const hasCustomAccent = Boolean(accentColor) && accentColor !== '#1F4E78';
 
   return (
     <AlNadaryPrintShell
@@ -94,38 +101,87 @@ const InvoicePrintDocument = ({ view, companyHeader }: InvoicePrintDocumentProps
         </tbody>
       </table>
 
-      {/* الإجماليات والتفقيط أسفل الفاتورة — مطابقة لتوزيع الصورة المرجعية */}
-      <div className="alnadary-totals-section">
-        <div className="alnadary-total-bar">
-          <div className="alnadary-total-bar-label">الإجمالي</div>
-          <div className="alnadary-total-bar-words">{view.amountInWords}</div>
-          <div className="alnadary-total-bar-amount">{formatNum(view.totals.total)}</div>
-        </div>
-
-        <div className="alnadary-inline-summary">
-          {view.totals.discount > 0 && (
-            <span>
-              الخصم : <span dir="ltr">{formatNum(view.totals.discount)}</span>
-            </span>
-          )}
-          <span>
-            المدفوع / الدفعة : <span dir="ltr">{formatNum(view.totals.paid)}</span>
-          </span>
-          <span>العملة : {view.currencyUnit}</span>
-        </div>
-
-        <div className="alnadary-remaining-row">
-          <div style={{ fontWeight: 900 }}>المتبقي بالفاتورة :</div>
-          <div style={{ fontWeight: 900, textAlign: 'center' }} dir="ltr">
-            {formatNum(view.totals.remaining)}
+      {/* الإجماليات والتفقيط ورمز QR أسفل الفاتورة */}
+      <div
+        className="alnadary-totals-section"
+        style={
+          showQrCode
+            ? { display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'start' }
+            : undefined
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div
+            className="alnadary-total-bar"
+            style={hasCustomAccent ? { borderColor: accentColor, borderWidth: '1.5px' } : undefined}
+          >
+            <div
+              className="alnadary-total-bar-label"
+              style={hasCustomAccent ? { color: accentColor } : undefined}
+            >
+              الإجمالي
+            </div>
+            <div className="alnadary-total-bar-words">{view.amountInWords}</div>
+            <div
+              className="alnadary-total-bar-amount"
+              style={hasCustomAccent ? { color: accentColor } : undefined}
+            >
+              {formatNum(view.totals.total)}
+            </div>
           </div>
-          <div className="alnadary-remaining-words-box">{view.remainingInWords}</div>
+
+          <div className="alnadary-inline-summary">
+            {view.totals.discount !== 0 && (
+              <span>
+                الخصم : <span dir="ltr">{formatNum(view.totals.discount)}</span>
+              </span>
+            )}
+            {view.totals.tax > 0 && (
+              <span>
+                الضريبة : <span dir="ltr">{formatNum(view.totals.tax)}</span>
+              </span>
+            )}
+            <span>
+              المدفوع / الدفعة : <span dir="ltr">{formatNum(view.totals.paid)}</span>
+            </span>
+            <span>العملة : {view.currencyUnit}</span>
+          </div>
+
+          <div className="alnadary-remaining-row">
+            <div style={{ fontWeight: 900 }}>المتبقي بالفاتورة :</div>
+            <div style={{ fontWeight: 900, textAlign: 'center' }} dir="ltr">
+              {formatNum(view.totals.remaining)}
+            </div>
+            <div className="alnadary-remaining-words-box">{view.remainingInWords}</div>
+          </div>
+
+          {view.notes && (
+            <div className="alnadary-notes-box">
+              <span>ملاحظات : </span>
+              <span>{view.notes}</span>
+            </div>
+          )}
         </div>
 
-        {view.notes && (
-          <div className="alnadary-notes-box">
-            <span>ملاحظات : </span>
-            <span>{view.notes}</span>
+        {showQrCode && (
+          <div
+            style={{
+              border: '1px solid #000000',
+              padding: '4px',
+              backgroundColor: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ZatcaInvoiceQRCode
+              sellerName={companyHeader.nameAr || 'شركة النظاري'}
+              vatNumber={companyHeader.taxNumber || ''}
+              timestamp={view.zatcaTimestamp}
+              totalAmount={view.totals.total}
+              vatAmount={view.totals.tax}
+              size={84}
+            />
           </div>
         )}
       </div>

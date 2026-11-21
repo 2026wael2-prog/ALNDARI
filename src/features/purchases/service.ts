@@ -2,7 +2,6 @@ import { purchasesApi } from './api';
 import type { CreatePurchaseDTO, PurchaseInvoiceResponse, PurchaseStats } from './types';
 import { purchaseAccountingService } from './services/purchaseAccounting';
 import { messagingService } from '../notifications/messagingService';
-import { toBaseCurrency } from '../../core/utils/currencyUtils';
 import { validatePurchasePayload, assertValid } from '../../core/utils/validationUtils';
 import { logger } from '../../core/utils/logger';
 import { resolveStrictPaymentAccount, type RoutableAccount } from '../../core/utils/accountRouting';
@@ -33,22 +32,10 @@ export interface PurchaseStatsFilters {
 const isPurchaseReturn = (purchase: PurchaseListRow): boolean =>
   purchase.type === 'purchase_return';
 
-/** Converts a purchase amount to base currency without throwing on bad rates. */
+/** Returns base-currency (SAR) purchase amount directly since invoices.total_amount is stored in base SAR. */
 const safeToBase = (purchase: PurchaseListRow): number => {
-  try {
-    return toBaseCurrency({
-      amount: purchase.total_amount,
-      currency_code: purchase.currency_code,
-      exchange_rate: purchase.exchange_rate,
-    });
-  } catch (err) {
-    logger.warn('PurchaseService', 'Invalid exchange rate — purchase amount treated as 0', {
-      currency_code: purchase.currency_code,
-      exchange_rate: purchase.exchange_rate,
-      error: err,
-    });
-    return 0;
-  }
+  const amt = Number(purchase.total_amount);
+  return Number.isFinite(amt) ? amt : 0;
 };
 
 export { purchasesApi };
@@ -314,7 +301,7 @@ export const purchasesService = {
 
     let query = supabase
       .from('invoices')
-      .select('id, type, total_amount, issue_date, currency_code, exchange_rate, party_id')
+      .select('id, type, total_amount, total_document_amount, issue_date, currency_code, exchange_rate, party_id')
       .eq('company_id', companyId)
       .eq('type', 'purchase')
       .neq('status', 'void')
@@ -337,22 +324,17 @@ export const purchasesService = {
     const trendMap = new Map<string, number>();
 
     for (const r of invRows || []) {
-      const amt = r.total_amount ?? 0;
-      const rate = r.exchange_rate ?? 1;
-      let baseAmt = amt;
-      if (filters.currency && filters.currency !== 'ALL') {
-        baseAmt = amt;
-      } else {
-        try {
-          baseAmt = toBaseCurrency({
-            amount: amt,
-            currency_code: r.currency_code || 'SAR',
-            exchange_rate: rate,
-          });
-        } catch {
-          baseAmt = amt;
-        }
-      }
+      const amt = Number(r.total_amount) || 0;
+      const docAmt = Number((r as { total_document_amount?: number | null }).total_document_amount) || 0;
+      const curr = (r.currency_code || 'SAR').toUpperCase();
+      // invoices.total_amount is ALREADY in base currency (SAR) in the database;
+      // when filtered by a single foreign currency, use total_document_amount if present.
+      const baseAmt =
+        filters.currency && filters.currency !== 'ALL'
+          ? curr !== 'SAR' && docAmt > 0
+            ? docAmt
+            : amt
+          : amt;
 
       const partyId = r.party_id;
       if (partyId) {

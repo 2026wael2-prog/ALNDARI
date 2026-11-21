@@ -29,9 +29,11 @@ export interface QuotationBodyProps {
   quotation: QuotationDetailRow | null;
   errorText: string | null;
   onRetry: () => void | Promise<void>;
+  onPrint?: (() => void) | undefined;
   exportPdf: () => void | Promise<void>;
   isExporting: boolean;
   printRef: RefObject<HTMLDivElement | null>;
+  directPrintRef?: RefObject<HTMLDivElement | null> | undefined;
 }
 
 export const QuotationBody: FC<QuotationBodyProps> = ({
@@ -39,9 +41,11 @@ export const QuotationBody: FC<QuotationBodyProps> = ({
   quotation,
   errorText,
   onRetry,
+  onPrint,
   exportPdf,
   isExporting,
   printRef,
+  directPrintRef,
 }): ReactElement => {
   if (loading) {
     return (
@@ -64,6 +68,7 @@ export const QuotationBody: FC<QuotationBodyProps> = ({
         <div className="w-full max-w-4xl shrink-0 rounded-xl border border-slate-300 bg-white p-2 shadow-lg">
           <PrintableQuotation
             quotation={quotation}
+            onPrint={onPrint}
             onExportPDF={() => {
               void exportPdf();
             }}
@@ -71,6 +76,13 @@ export const QuotationBody: FC<QuotationBodyProps> = ({
           />
         </div>
       </div>
+      {directPrintRef !== undefined && (
+        <div style={{ display: 'none' }} aria-hidden="true">
+          <div ref={directPrintRef}>
+            <PrintableQuotation quotation={quotation} />
+          </div>
+        </div>
+      )}
       {isExporting && (
         <PdfCaptureHost innerRef={printRef}>
           <PrintableQuotation quotation={quotation} />

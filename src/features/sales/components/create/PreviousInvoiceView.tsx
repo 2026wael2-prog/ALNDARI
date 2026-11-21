@@ -111,20 +111,23 @@ export const PreviousInvoiceView: React.FC<PreviousInvoiceViewProps> = ({
 
   const items = invoice.invoice_items ?? [];
   const currencyCode = invoice.currency_code ?? 'SAR';
-  const totalAmount = invoice.total_amount ?? 0;
+  const rawInv = invoice as unknown as Record<string, unknown>;
+  const docTotal = Number(rawInv.total_document_amount) || 0;
+  const totalAmount =
+    currencyCode.toUpperCase() !== 'SAR' && docTotal > 0 ? docTotal : (invoice.total_amount ?? 0);
 
   const invoiceForPrint = {
+    ...invoice,
     company: company,
     invoice_number: invoice.invoice_number,
     issue_date: invoice.issue_date,
     party_name: invoice.parties?.name ?? 'عميل نقدي',
+    party_phone: invoice.parties?.phone ?? undefined,
     items: items.map((i: InvoiceDetailItem) => ({
+      ...i,
       name: getDisplayItemName(i),
-      quantity: i.quantity,
       price: i.unit_price,
     })),
-    total_amount: totalAmount,
-    tax_amount: 0,
     currency_code: currencyCode,
   };
 

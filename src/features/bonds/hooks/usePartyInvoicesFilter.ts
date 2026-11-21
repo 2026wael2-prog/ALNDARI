@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { toBaseCurrency } from '../../../core/utils';
 import { useUnpaidPartyInvoices } from '../hooks';
 
 export type SortField = 'issue_date' | 'total_amount' | 'remaining_amount' | 'invoice_number';
@@ -91,22 +90,12 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
   }, [invoices, searchQuery, statusFilter, sortField, sortOrder]);
 
   const totals = useMemo(() => {
-    const toBase = (amount: number, inv: any) => {
-      try {
-        return toBaseCurrency({
-          amount,
-          currency_code: inv.currency_code || 'SAR',
-          exchange_rate: inv.exchange_rate ?? 1,
-        });
-      } catch {
-        return amount;
-      }
-    };
+    // invoices.total_amount and paid_amount are ALREADY stored in base currency (SAR)
     return processedInvoices.reduce(
       (acc, curr) => {
-        acc.total += toBase(curr._total, curr);
-        acc.paid += toBase(curr._paid, curr);
-        acc.remaining += toBase(curr._remaining, curr);
+        acc.total += curr._total;
+        acc.paid += curr._paid;
+        acc.remaining += curr._remaining;
         return acc;
       },
       { total: 0, paid: 0, remaining: 0 }

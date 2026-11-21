@@ -187,4 +187,46 @@ describe('exportToPDF pagination', () => {
       });
     }
   );
+
+  it('uses 1x CSS pixel width for DOM row breakpoints even when canvas scale is 2x', async () => {
+    const root = document.createElement('div');
+    const row = document.createElement('tr');
+    root.appendChild(row);
+    // 1x CSS layout: width=794px, height=1500px; row bottom at 1000px (~264.5mm on 210mm width)
+    root.getBoundingClientRect = () =>
+      ({ top: 0, left: 0, right: 794, bottom: 1500, width: 794, height: 1500, x: 0, y: 0, toJSON: () => ({}) });
+    row.getBoundingClientRect = () =>
+      ({ top: 960, left: 0, right: 794, bottom: 1000, width: 794, height: 40, x: 0, y: 960, toJSON: () => ({}) });
+
+    // 2x scaled canvas: 1588px x 3000px (~396.7mm tall)
+    mocks.capture.mockResolvedValue({
+      width: 1588,
+      height: 3000,
+      toDataURL: () => 'data:image/png;base64,test',
+    });
+
+    await exportToPDF(root, 'scaled-doc', { scale: 2 });
+
+    const file = firstFile();
+    expect(file.images).toHaveLength(2);
+    // Page 2 must start at row bottom (~264.48mm), NOT at 132.24mm (half)!
+    const expectedBreakMm = (1000 * 210) / 794;
+    expect(file.images[1]?.offsetY).toBeCloseTo(-expectedBreakMm, 1);
+  });
+
+  it('ignores .no-print elements during html2canvas capture', async () => {
+    mocks.capture.mockResolvedValue(captureOfHeightMm(150));
+
+    await exportToPDF(document.createElement('div'), 'clean-doc');
+
+    const captureOptions = mocks.capture.mock.calls[0]?.[1] as {
+      ignoreElements?: (el: Element) => boolean;
+    };
+    expect(typeof captureOptions?.ignoreElements).toBe('function');
+    const toolbar = document.createElement('div');
+    toolbar.className = 'no-print';
+    const content = document.createElement('div');
+    expect(captureOptions.ignoreElements?.(toolbar)).toBe(true);
+    expect(captureOptions.ignoreElements?.(content)).toBe(false);
+  });
 });

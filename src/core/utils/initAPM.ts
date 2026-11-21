@@ -19,6 +19,7 @@
  */
 
 import { logger, type APMAdapter, type APMEvent } from './logger';
+import { APP_VERSION } from '../constants';
 
 // ── In-House Error Buffer (zero external dependencies) ──────────────────────
 
@@ -107,7 +108,7 @@ export function initAPM(options: InitAPMOptions = {}): void {
     userId: options.userId ?? 'anonymous',
     companyId: options.companyId ?? 'unknown',
     companyName: options.companyName ?? 'unknown',
-    appVersion: import.meta.env.VITE_APP_VERSION ?? '0.0.0',
+    appVersion: import.meta.env.VITE_APP_VERSION ?? APP_VERSION,
     env: import.meta.env.MODE,
   });
 

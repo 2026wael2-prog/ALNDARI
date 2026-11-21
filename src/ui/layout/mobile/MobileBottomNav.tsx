@@ -24,6 +24,7 @@ import { ROUTES } from '../../../core/routes/paths';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { cn } from '../../../core/utils';
 import { prefetchRoute } from '../../../core/utils/routePrefetcher';
+import { useVisibleMenuItems } from '../useVisibleMenuItems';
 import BottomSheet from '../../base/BottomSheet';
 
 interface MobileBottomNavProps {
@@ -35,6 +36,7 @@ interface MobileBottomNavProps {
 /**
  * Tactical mobile bottom navigation bar with primary ERP routes and an
  * organized "More" bottom sheet covering all core operational modules.
+ * Labels and visibility are unified with Sidebar & Classic Ribbon via `useVisibleMenuItems`.
  */
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   isMoreSheetOpen,
@@ -44,24 +46,26 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const visibleMenuItems = useVisibleMenuItems();
+  const visiblePaths = new Set(visibleMenuItems.map(i => i.path));
 
   const navItems = [
     { icon: LayoutDashboard, label: t('overview') || 'الرئيسية', path: ROUTES.DASHBOARD.ROOT },
-    { icon: ShoppingBag, label: t('invoices') || 'فواتير البيع', path: ROUTES.DASHBOARD.SALES },
+    { icon: ShoppingBag, label: t('invoices') || 'المبيعات', path: ROUTES.DASHBOARD.SALES },
     {
       icon: ShoppingCart,
-      label: t('purchases') || 'فواتير الشراء',
+      label: t('purchases') || 'المشتريات',
       path: ROUTES.DASHBOARD.PURCHASES,
     },
-    { icon: ReceiptText, label: t('receipts') || 'السندات', path: ROUTES.DASHBOARD.BONDS },
-    { icon: PackageOpen, label: t('products') || 'المنتجات', path: ROUTES.DASHBOARD.INVENTORY },
-  ];
+    { icon: ReceiptText, label: t('receipts') || 'السندات المالية', path: ROUTES.DASHBOARD.BONDS },
+    { icon: PackageOpen, label: t('products') || 'المخزون', path: ROUTES.DASHBOARD.INVENTORY },
+  ].filter(item => visiblePaths.has(item.path));
 
   const moreItems = [
     { icon: Users, label: t('customers') || 'العملاء', path: ROUTES.DASHBOARD.CLIENTS },
-    { icon: Truck, label: t('suppliers') || 'الموردين', path: ROUTES.DASHBOARD.SUPPLIERS },
+    { icon: Truck, label: t('suppliers') || 'الموردون', path: ROUTES.DASHBOARD.SUPPLIERS },
     { icon: Store, label: t('pos') || 'نقطة البيع', path: ROUTES.DASHBOARD.POS },
-    { icon: CreditCard, label: t('debts') || 'الديون', path: ROUTES.DASHBOARD.DEBTS },
+    { icon: CreditCard, label: t('debts') || 'الديون والتحصيل', path: ROUTES.DASHBOARD.DEBTS },
     { icon: Wallet, label: t('expenses') || 'المصروفات', path: ROUTES.DASHBOARD.EXPENSES },
     { icon: DollarSign, label: t('accounting') || 'المحاسبة', path: ROUTES.DASHBOARD.ACCOUNTING },
     { icon: BarChart3, label: t('reports') || 'التقارير', path: ROUTES.DASHBOARD.REPORTS },
@@ -77,12 +81,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     },
     {
       icon: Link2,
-      label: t('commission_assignments') || 'تعيين العمولات',
+      label: t('commission_assignments') || 'توزيعات المهندسين',
       path: ROUTES.DASHBOARD.COMMISSIONS_ASSIGNMENTS,
     },
     {
       icon: CalendarDays,
-      label: t('commission_periods') || 'فترات العمولات',
+      label: t('commission_periods') || 'دورة حياة الفترات',
       path: ROUTES.DASHBOARD.COMMISSIONS_PERIODS,
     },
     {
@@ -91,7 +95,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       path: ROUTES.DASHBOARD.COMMISSIONS_REPORTS,
     },
     { icon: Settings, label: t('settings') || 'الإعدادات', path: ROUTES.DASHBOARD.SETTINGS },
-  ];
+  ].filter(
+    item =>
+      visiblePaths.has(item.path) ||
+      (item.path.startsWith(ROUTES.DASHBOARD.COMMISSIONS) &&
+        visiblePaths.has(ROUTES.DASHBOARD.COMMISSIONS))
+  );
 
   const handleNavigate = (path: string) => {
     React.startTransition(() => {

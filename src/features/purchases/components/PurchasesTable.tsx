@@ -1,7 +1,7 @@
 import React from 'react';
 import ExcelTable from '../../../ui/common/ExcelTable';
 import MicroListItem from '../../../ui/common/MicroListItem';
-import { formatCurrency, toBaseCurrency } from '../../../core/utils';
+import { formatCurrency } from '../../../core/utils';
 import { Eye, Trash2, ArrowLeftRight, ShoppingCart, Printer, Package } from 'lucide-react';
 import { useDeletePurchase } from '../hooks';
 import type { MatchedInvoiceItem } from '@/core/types/invoiceSearch';
@@ -15,6 +15,7 @@ export interface PurchaseTableRow {
   status: string;
   payment_method: string | null;
   total_amount: number;
+  total_document_amount?: number | null;
   currency_code: string | null;
   exchange_rate: number | null;
   matched_items?: MatchedInvoiceItem[];
@@ -28,12 +29,15 @@ interface PurchasesTableProps {
 type DeletePurchase = (id: string) => void;
 
 const getSupplierName = (row: PurchaseTableRow): string => row.party?.name ?? 'مورد عام';
-const getBaseAmount = (row: PurchaseTableRow): number =>
-  toBaseCurrency({
-    amount: row.total_amount,
-    currency_code: row.currency_code ?? 'SAR',
-    exchange_rate: row.exchange_rate ?? 1,
-  });
+// invoices.total_amount is ALREADY in base currency (SAR); derive document amount when foreign
+const getBaseAmount = (row: PurchaseTableRow): number => Number(row.total_amount) || 0;
+const getDocumentAmount = (row: PurchaseTableRow): number => {
+  if (!hasForeignCurrency(row)) return getBaseAmount(row);
+  if (Number(row.total_document_amount) > 0) return Number(row.total_document_amount);
+  const rate = Number(row.exchange_rate);
+  if (rate > 0 && rate !== 1) return Math.round((getBaseAmount(row) / rate) * 100) / 100;
+  return getBaseAmount(row);
+};
 const hasForeignCurrency = (row: PurchaseTableRow): boolean =>
   row.currency_code !== null && row.currency_code !== '' && row.currency_code !== 'SAR';
 
@@ -141,12 +145,12 @@ const MobilePurchaseList = ({
                   <Trash2 size={15} />
                 </button>
                 <p dir="ltr" className="font-mono text-sm font-bold">
-                  {formatCurrency(item.total_amount, item.currency_code ?? undefined)}
+                  {formatCurrency(getDocumentAmount(item), item.currency_code ?? undefined)}
                 </p>
               </div>
               {hasForeignCurrency(item) && (
                 <p dir="ltr" className="text-xs font-bold text-blue-500">
-                  {formatCurrency(getBaseAmount(item))}
+                  {formatCurrency(getBaseAmount(item), 'SAR')}
                 </p>
               )}
             </div>
@@ -300,11 +304,11 @@ const totalColumn = {
         dir="ltr"
         className={`font-mono text-sm font-bold leading-none md:text-base ${row.type === 'purchase_return' ? 'text-rose-600' : 'text-emerald-600'}`}
       >
-        {formatCurrency(row.total_amount, row.currency_code ?? undefined)}
+        {formatCurrency(getDocumentAmount(row), row.currency_code ?? undefined)}
       </span>
       {hasForeignCurrency(row) && (
         <span dir="ltr" className="mt-1 text-xs font-bold text-blue-500">
-          {formatCurrency(getBaseAmount(row))}
+          {formatCurrency(getBaseAmount(row), 'SAR')}
         </span>
       )}
     </div>

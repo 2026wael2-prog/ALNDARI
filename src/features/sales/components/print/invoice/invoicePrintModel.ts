@@ -45,12 +45,16 @@ export interface PrintableInvoiceSource {
   party_address?: string | null | undefined;
   items?: InvoiceRawItem[] | null | undefined;
   subtotal?: number | string | null | undefined;
+  subtotal_document_amount?: number | string | null | undefined;
   discount_amount?: number | string | null | undefined;
   tax_amount?: number | string | null | undefined;
   total_amount?: number | string | null | undefined;
+  total_document_amount?: number | string | null | undefined;
   paid_amount?: number | string | null | undefined;
   currency_code?: string | null | undefined;
+  exchange_rate?: number | string | null | undefined;
   payment_method?: string | null | undefined;
+  status?: string | null | undefined;
   branch_name?: string | null | undefined;
   issuedBy?: string | null | undefined;
   type?: string | null | undefined;
@@ -148,41 +152,116 @@ export const buildInvoiceDisplayItems = (
   });
 
 
+const isReturnInvoiceType = (type: string | null | undefined): boolean =>
+  type === 'sale_return' || type === 'return_sale';
+
+const formatPaymentMethodLabel = (method: string | null | undefined): string => {
+  switch ((method ?? '').toLowerCase()) {
+    case 'credit':
+      return 'آجل';
+    case 'bank':
+    case 'transfer':
+      return 'تحويل بنكي';
+    case 'card':
+    case 'network':
+      return 'شبكة / بطاقة';
+    default:
+      return 'نقداً';
+  }
+};
+
 /**
- * إجماليات الفاتورة. تُحترم القيم المحفوظة في القاعدة إن وُجدت، وإلا تُشتق من
- * الإجمالي — بلا `Math.abs` وبلا قلب إشارة الخصم.
+ * إجماليات الفاتورة بعملة المستند الفعلية.
+ * - في قاعدة البيانات تُخزّن أعمدة (total_amount, subtotal, discount_amount, tax_amount, paid_amount)
+ *   بالعملة الأساسية (SAR)، بينما تُخزّن البنود و(total_document_amount, subtotal_document_amount)
+ *   بعملة المستند (YER/OMR/...).
+ * - عند اختلاف العملة عن SAR يُشتق معامل التحويل من الأساسية إلى عملة المستند لتوحيد كل الإجماليات
+ *   (بما فيها الخصم والضريبة والمدفوع والمتبقي) بعملة المستند نفسها بلا خلط وحدات.
  */
 export const computeInvoiceTotals = (source: PrintableInvoiceSource): InvoicePrintTotals => {
-  // [CURRENCY] للفواتير بعملة غير الريال: تُطبع الإجماليات بعملة الفاتورة
-  // (المبالغ الأصلية) لا بالعملة الأساسية، وإلا ظهر 350 ر.ي بدل 143,500 ر.ي.
-  const currency = String((source as { currency_code?: string | null }).currency_code ?? 'SAR');
+  const currency = firstNonEmpty(source.currency_code).toUpperCase() || 'SAR';
   const isForeign = currency !== 'SAR';
-  const docTotal = asNumber((source as { total_document_amount?: number | string | null }).total_document_amount);
-  const docSubtotal = asNumber(
-    (source as { subtotal_document_amount?: number | string | null }).subtotal_document_amount
-  );
+  const baseTotal = asNumber(source.total_amount);
+  const docTotal = asNumber(source.total_document_amount);
+  const docSubtotal = asNumber(source.subtotal_document_amount);
+  const rawRate = asNumber(source.exchange_rate);
 
-  const total = isForeign && docTotal > 0 ? docTotal : asNumber(source.total_amount);
+  // Determine conversion multiplier from base currency (SAR) -> document currency
+  let baseToDoc = 1;
+  if (isForeign) {
+    if (docTotal > 0 && baseTotal > 0 && Math.abs(docTotal - baseTotal) > 0.01) {
+      // Prefer exact `1 / exchange_rate` when consistent with `docTotal / baseTotal`
+      // so rounded `total_amount` (e.g. 243.9024 SAR) doesn't introduce 0.01 drift on partial payments.
+      const rateInverse = rawRate > 0 && Math.abs(rawRate - 1) > 1e-6 ? 1 / rawRate : 0;
+      if (rateInverse > 0 && Math.abs(baseTotal * rateInverse - docTotal) / docTotal < 0.02) {
+        baseToDoc = rateInverse;
+      } else {
+        baseToDoc = docTotal / baseTotal;
+      }
+    } else if (docTotal <= 0 && baseTotal > 0 && rawRate > 0 && Math.abs(rawRate - 1) > 1e-6) {
+      // Legacy foreign invoice missing total_document_amount: verify against item lines when available
+      const itemsSum = (source.items ?? []).reduce((sum, item) => {
+        const qty = asNumber(item.quantity, 1);
+        const unit = asNumber(item.price ?? item.unit_price);
+        return sum + asNumber(item.total, qty * unit);
+      }, 0);
+      const invertedTotal = baseTotal / rawRate;
+      if (itemsSum <= 0 || Math.abs(invertedTotal - itemsSum) / Math.max(itemsSum, 1) < 0.25) {
+        baseToDoc = 1 / rawRate;
+      }
+    }
+  }
+
+  const total =
+    isForeign && docTotal > 0
+      ? roundTwo(docTotal)
+      : baseToDoc !== 1
+        ? roundTwo(baseTotal * baseToDoc)
+        : baseTotal;
+
   // مطابق للسلوك السابق: `undefined` فقط يعني «اشتق»، أما `null` فيعني صفراً صريحاً.
   const tax =
     source.tax_amount !== undefined
-      ? asNumber(source.tax_amount)
+      ? roundTwo(asNumber(source.tax_amount) * baseToDoc)
       : roundTwo((total * VAT_RATE) / VAT_DENOMINATOR);
+
   const subtotal =
     isForeign && docSubtotal > 0
-      ? docSubtotal
+      ? roundTwo(docSubtotal)
       : source.subtotal !== undefined
-        ? asNumber(source.subtotal)
-        : total - tax;
-  const discount = asNumber(source.discount_amount);
-  const paid = asNumber(source.paid_amount);
-  return { subtotal, discount, tax, total, paid, remaining: Math.max(0, total - paid) };
+        ? roundTwo(asNumber(source.subtotal) * baseToDoc)
+        : roundTwo(total - tax);
+
+  const discount = roundTwo(asNumber(source.discount_amount) * baseToDoc);
+
+  const rawPaid = asNumber(source.paid_amount);
+  let paid =
+    baseToDoc !== 1 && rawPaid > 0 && Math.abs(rawPaid - baseTotal) <= 0.01
+      ? total
+      : roundTwo(rawPaid * baseToDoc);
+  // Snap tiny floating-point rounding drift when invoice is paid in full
+  if (baseToDoc !== 1 && paid > 0 && Math.abs(total - paid) <= Math.max(0.5, total * 0.0005)) {
+    paid = total;
+  }
+
+  return {
+    subtotal,
+    discount,
+    tax,
+    total,
+    paid,
+    remaining: roundTwo(Math.max(0, total - paid)),
+  };
 };
 
 /** العنوان والوعد والشارة المعروضة أعلى الفاتورة. */
 export const buildInvoiceDocumentMeta = (source: PrintableInvoiceSource): DocumentHeaderMeta => {
-  const isReturn = source.type === 'sale_return';
-  const badge = isReturn ? 'مرتجع مبيعات' : source.payment_method === 'credit' ? 'آجلة' : 'نقدية';
+  const isReturn = isReturnInvoiceType(source.type);
+  const badge = isReturn
+    ? 'مرتجع مبيعات'
+    : source.payment_method === 'credit'
+      ? 'آجلة'
+      : 'نقدية';
   return {
     titleAr: isReturn ? 'إشعار دائن (فاتورة مرتجع مبيعات)' : 'فاتورة ضريبية مبسطة',
     titleEn: isReturn ? 'Credit Note (Sales Return)' : 'Simplified Tax Invoice',
@@ -196,6 +275,7 @@ export const buildInvoiceDocumentMeta = (source: PrintableInvoiceSource): Docume
 export const invoiceCurrencyUnit = (currencyCode: string): string => {
   if (currencyCode === 'SAR') return 'ريال سعودي';
   if (currencyCode === 'YER') return 'ريال يمني';
+  if (currencyCode === 'OMR') return 'ريال عماني';
   return currencyCode;
 };
 
@@ -213,8 +293,8 @@ export const buildInvoicePrintView = (source: PrintableInvoiceSource): InvoicePr
     amountInWords: tafqeet(totals.total, currencyUnit),
     remainingInWords: totals.remaining > 0 ? tafqeet(totals.remaining, currencyUnit) : 'صفر لا غير',
     zatcaTimestamp: firstNonEmpty(source.issue_date) || new Date().toISOString(),
-    isReturn: source.type === 'sale_return',
-    paymentLabel: source.payment_method === 'credit' ? 'آجل' : 'نقداً',
+    isReturn: isReturnInvoiceType(source.type),
+    paymentLabel: formatPaymentMethodLabel(source.payment_method),
     partyName: firstNonEmpty(source.party_name) || 'عميل نقدي',
     partyTaxNumber: firstNonEmpty(source.party_tax_number),
     partyPhone: firstNonEmpty(source.party_phone),

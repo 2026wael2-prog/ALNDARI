@@ -8,6 +8,7 @@ import {
   resolveAlNadaryIdentity,
 } from '@/core/utils/alNadaryIdentity';
 import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
+import { usePrintSettings } from '@/features/settings/settingsStore';
 import { usePrintTemplateStore } from './printTemplateStore';
 import { PrintTemplateEditorModal } from './PrintTemplateEditorModal';
 
@@ -64,6 +65,7 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   company,
 }) => {
   const { branchName: activeBranchName } = useBranchFilter();
+  const printSettings = usePrintSettings();
   // اشتراك تفاعلي لتحديث الترويسة فور تعديل القالب
   usePrintTemplateStore(s => s.config);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -72,6 +74,7 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
     ...company,
     branchName: company?.branchName ?? activeBranchName,
   });
+  const shouldShowLogo = identity.showLogo && printSettings.print_logo !== false;
 
   const formattedDate = documentDate ? documentDate.replace(/-/g, '/') : '';
 
@@ -107,7 +110,7 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
         </div>
 
         <div className="alnadary-header-center">
-          {identity.showLogo && (
+          {shouldShowLogo && (
             <img
               src={identity.logoUrl}
               alt="شعار شركة النظاري"

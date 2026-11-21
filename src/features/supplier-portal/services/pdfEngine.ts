@@ -1,4 +1,7 @@
 import { formatCurrency } from '../../../core/utils';
+import { exportToPDF } from '../../../core/utils/pdfExporter';
+import { tafqeet } from '../../../core/utils/tafqeet';
+import { ALNADARY_DEFAULT_PLAIN_NAME } from '../../../core/utils/alNadaryIdentity';
 import type { QuotationItemDraft } from '../types';
 
 export interface PDFQuotationOptions {
@@ -22,156 +25,38 @@ export interface PDFQuotationOptions {
   notes?: string | null;
 }
 
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const currencyUnitOf = (code: string): string => {
+  switch (code.toUpperCase()) {
+    case 'SAR':
+      return 'ريال سعودي';
+    case 'YER':
+      return 'ريال يمني';
+    case 'OMR':
+      return 'ريال عماني';
+    case 'USD':
+      return 'دولار أمريكي';
+    default:
+      return code;
+  }
+};
+
+/**
+ * يصدّر عرض سعر المورد إلى ملف PDF عبر توليد مستند HTML عربي (RTL) مع رمز QR
+ * ثم التقاطه عبر `exportToPDF` لضمان ظهور النص العربي بخط سليم بدلاً من خط Helvetica
+ * الذي لا يدعم العربية في jsPDF.
+ */
 export const generateQuotationPDF = async (options: PDFQuotationOptions): Promise<void> => {
-  const [{ default: jsPDF }, QRCode] = await Promise.all([import('jspdf'), import('qrcode')]);
+  if (typeof document === 'undefined') return;
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 15;
-
-  // Header Banner
-  doc.setFillColor(79, 70, 229); // Indigo 600
-  doc.rect(0, 0, pageWidth, 24, 'F');
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.text('OFFICIAL VENDOR QUOTATION', pageWidth / 2, 12, { align: 'center' });
-  doc.setFontSize(10);
-  doc.text(`Doc #: ${options.quotationNumber} (Rev ${options.revisionNumber})`, pageWidth / 2, 18, {
-    align: 'center',
-  });
-
-  y = 35;
-  doc.setTextColor(30, 41, 59);
-
-  // Metadata Box (Company vs Supplier)
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(14, y, pageWidth - 28, 30, 2, 2, 'FD');
-
-  doc.setFontSize(10);
-  doc.setFont('Helvetica', 'bold');
-  doc.text('Client Organization:', 18, y + 8);
-  doc.setFont('Helvetica', 'normal');
-  doc.text(options.companyName || 'Al-Jaafari Smart ERP', 18, y + 14);
-  if (options.companyTaxNumber) {
-    doc.text(`Tax / VAT #: ${options.companyTaxNumber}`, 18, y + 20);
-  }
-
-  doc.setFont('Helvetica', 'bold');
-  doc.text('Supplier / Vendor:', pageWidth / 2 + 10, y + 8);
-  doc.setFont('Helvetica', 'normal');
-  doc.text(options.supplierName, pageWidth / 2 + 10, y + 14);
-  doc.text(
-    `Date: ${options.issueDate} | Valid: ${options.validUntil || '30 Days'}`,
-    pageWidth / 2 + 10,
-    y + 20
-  );
-  doc.text(
-    `Delivery: ${options.deliveryDays || 3} Days | Currency: ${options.currency}`,
-    pageWidth / 2 + 10,
-    y + 26
-  );
-
-  y += 38;
-
-  // Table Header
-  doc.setFillColor(30, 27, 75); // Navy
-  doc.rect(14, y, pageWidth - 28, 8, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('Helvetica', 'bold');
-
-  doc.text('#', 18, y + 5.5);
-  doc.text('Item Description', 30, y + 5.5);
-  doc.text('OEM / Part #', 95, y + 5.5);
-  doc.text('Qty', 130, y + 5.5);
-  doc.text('Unit Price', 150, y + 5.5);
-  doc.text('Total', pageWidth - 20, y + 5.5, { align: 'right' });
-
-  y += 8;
-  doc.setTextColor(51, 65, 85);
-  doc.setFont('Helvetica', 'normal');
-
-  options.items.forEach((item, index) => {
-    if (y > 250) {
-      doc.addPage();
-      y = 20;
-    }
-
-    const isEven = index % 2 === 0;
-    if (isEven) {
-      doc.setFillColor(248, 250, 252);
-      doc.rect(14, y, pageWidth - 28, 7, 'F');
-    }
-
-    doc.setFontSize(8);
-    doc.text(String(index + 1), 18, y + 5);
-    const itemName =
-      item.product_name.length > 32
-        ? item.product_name.substring(0, 32) + '...'
-        : item.product_name;
-    doc.text(itemName, 30, y + 5);
-    doc.text(item.oem_number || '---', 95, y + 5);
-    doc.text(`${item.quantity} ${item.unit_of_measure}`, 130, y + 5);
-    doc.text(formatCurrency(item.unit_price, options.currency), 150, y + 5);
-    doc.text(formatCurrency(item.total_price, options.currency), pageWidth - 20, y + 5, {
-      align: 'right',
-    });
-
-    y += 7;
-  });
-
-  y += 6;
-  if (y > 240) {
-    doc.addPage();
-    y = 20;
-  }
-
-  // Totals Breakdown
-  doc.setDrawColor(226, 232, 240);
-  doc.line(14, y, pageWidth - 14, y);
-  y += 6;
-
-  const summaryX = pageWidth - 70;
-  doc.setFontSize(9);
-  doc.text('Subtotal:', summaryX, y);
-  doc.text(formatCurrency(options.subtotal, options.currency), pageWidth - 20, y, {
-    align: 'right',
-  });
-  y += 5;
-
-  if (options.discountAmount > 0) {
-    doc.text('Discount:', summaryX, y);
-    doc.text(`-${formatCurrency(options.discountAmount, options.currency)}`, pageWidth - 20, y, {
-      align: 'right',
-    });
-    y += 5;
-  }
-
-  if (options.taxAmount > 0) {
-    doc.text('VAT / Tax:', summaryX, y);
-    doc.text(formatCurrency(options.taxAmount, options.currency), pageWidth - 20, y, {
-      align: 'right',
-    });
-    y += 5;
-  }
-
-  doc.setFillColor(241, 245, 249);
-  doc.roundedRect(summaryX - 5, y - 1, 61, 8, 1, 1, 'F');
-  doc.setFont('Helvetica', 'bold');
-  doc.setTextColor(15, 23, 42);
-  doc.text('Grand Total:', summaryX, y + 5);
-  doc.text(formatCurrency(options.totalAmount, options.currency), pageWidth - 20, y + 5, {
-    align: 'right',
-  });
-
-  // Generate QR verification code
+  const QRCode = await import('qrcode');
   const verificationPayload = JSON.stringify({
     quotation: options.quotationNumber,
     rev: options.revisionNumber,
@@ -181,27 +66,124 @@ export const generateQuotationPDF = async (options: PDFQuotationOptions): Promis
     date: options.issueDate,
   });
 
+  let qrDataUrl = '';
   try {
-    const qrDataUrl = await QRCode.toDataURL(verificationPayload, { width: 100, margin: 1 });
-    doc.addImage(qrDataUrl, 'PNG', 16, y - 12, 24, 24);
-    doc.setFontSize(7);
-    doc.setFont('Helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('Scan for Document Verification', 16, y + 15);
+    qrDataUrl = await QRCode.toDataURL(verificationPayload, { width: 120, margin: 1 });
   } catch {
-    // QR code fallback
+    qrDataUrl = '';
   }
 
-  // Footer notes / terms
-  if (options.terms || options.notes) {
-    y += 24;
-    doc.setFontSize(8);
-    doc.setFont('Helvetica', 'bold');
-    doc.text('Terms & Remarks:', 16, y);
-    doc.setFont('Helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(options.terms || options.notes || '', 16, y + 4, { maxWidth: pageWidth - 32 });
-  }
+  const companyName = escapeHtml(options.companyName || ALNADARY_DEFAULT_PLAIN_NAME);
+  const supplierName = escapeHtml(options.supplierName || 'مورد');
+  const quotationNumber = escapeHtml(options.quotationNumber || 'Quotation');
+  const currencyUnit = currencyUnitOf(options.currency || 'SAR');
+  const amountWords = escapeHtml(tafqeet(options.totalAmount, currencyUnit));
 
-  doc.save(`${options.quotationNumber || 'Quotation'}_Rev${options.revisionNumber}.pdf`);
+  const rowsHtml = options.items
+    .map(
+      (item, index) => `
+      <tr style="background:${index % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+        <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;">${index + 1}</td>
+        <td style="border:1px solid #cbd5e1;padding:6px;font-weight:700;">${escapeHtml(item.product_name || '---')}</td>
+        <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-family:monospace;" dir="ltr">${escapeHtml(item.oem_number || '---')}</td>
+        <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;">${item.quantity} ${escapeHtml(item.unit_of_measure || '')}</td>
+        <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-family:monospace;" dir="ltr">${escapeHtml(formatCurrency(item.unit_price, options.currency))}</td>
+        <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-family:monospace;font-weight:700;" dir="ltr">${escapeHtml(formatCurrency(item.total_price, options.currency))}</td>
+      </tr>`
+    )
+    .join('');
+
+  const host = document.createElement('div');
+  host.className = 'pdf-capture-host';
+  host.setAttribute('aria-hidden', 'true');
+  host.innerHTML = `
+    <div dir="rtl" style="width:794px;background:#ffffff;color:#0f172a;padding:24px;font-family:'Cairo','Tajawal',Tahoma,Arial,sans-serif;box-sizing:border-box;">
+      <div style="background:#1e293b;color:#ffffff;padding:16px 20px;border-radius:8px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:18px;font-weight:900;">عرض سعر مورد رسمي</div>
+        <div style="font-size:12px;margin-top:4px;opacity:0.9;" dir="ltr">${quotationNumber} (Rev ${options.revisionNumber})</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;">
+        <div>
+          <div style="font-weight:800;color:#475569;margin-bottom:4px;">الجهة الطالبة:</div>
+          <div style="font-weight:900;font-size:13px;">${companyName}</div>
+          ${options.companyAddress ? `<div>${escapeHtml(options.companyAddress)}</div>` : ''}
+          ${options.companyTaxNumber ? `<div dir="ltr" style="text-align:right;">الرقم الضريبي: ${escapeHtml(options.companyTaxNumber)}</div>` : ''}
+        </div>
+        <div>
+          <div style="font-weight:800;color:#475569;margin-bottom:4px;">المورد:</div>
+          <div style="font-weight:900;font-size:13px;">${supplierName}</div>
+          <div>التاريخ: <span dir="ltr">${escapeHtml(options.issueDate)}</span> | الصلاحية: ${escapeHtml(options.validUntil || '30 يوماً')}</div>
+          <div>التوريد: ${options.deliveryDays || 3} أيام | العملة: ${escapeHtml(currencyUnit)}</div>
+        </div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:16px;">
+        <thead>
+          <tr style="background:#1e1b4b;color:#ffffff;">
+            <th style="border:1px solid #1e1b4b;padding:7px;width:6%;">#</th>
+            <th style="border:1px solid #1e1b4b;padding:7px;text-align:right;width:36%;">بيان الصنف</th>
+            <th style="border:1px solid #1e1b4b;padding:7px;width:16%;">رقم القطعة</th>
+            <th style="border:1px solid #1e1b4b;padding:7px;width:12%;">الكمية</th>
+            <th style="border:1px solid #1e1b4b;padding:7px;width:15%;">سعر الوحدة</th>
+            <th style="border:1px solid #1e1b4b;padding:7px;width:15%;">الإجمالي</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;" data-pdf-break>
+        <div style="flex:1;font-size:11.5px;">
+          ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" style="width:88px;height:88px;border:1px solid #cbd5e1;padding:3px;border-radius:4px;" />` : ''}
+          ${
+            options.terms || options.notes
+              ? `<div style="margin-top:8px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;padding:8px;">
+                  <div style="font-weight:800;margin-bottom:2px;">الشروط والملاحظات:</div>
+                  <div>${escapeHtml(options.terms || options.notes || '')}</div>
+                </div>`
+              : ''
+          }
+        </div>
+        <div style="width:270px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;background:#f8fafc;font-size:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span>المجموع الفرعي:</span>
+            <strong dir="ltr">${escapeHtml(formatCurrency(options.subtotal, options.currency))}</strong>
+          </div>
+          ${
+            options.discountAmount > 0
+              ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#b91c1c;">
+                  <span>الخصم:</span>
+                  <strong dir="ltr">-${escapeHtml(formatCurrency(options.discountAmount, options.currency))}</strong>
+                </div>`
+              : ''
+          }
+          ${
+            options.taxAmount > 0
+              ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span>الضريبة:</span>
+                  <strong dir="ltr">${escapeHtml(formatCurrency(options.taxAmount, options.currency))}</strong>
+                </div>`
+              : ''
+          }
+          <div style="display:flex;justify-content:space-between;border-top:1px solid #94a3b8;padding-top:6px;margin-top:6px;font-size:13px;font-weight:900;color:#065f46;">
+            <span>الإجمالي النهائي:</span>
+            <span dir="ltr">${escapeHtml(formatCurrency(options.totalAmount, options.currency))}</span>
+          </div>
+          <div style="margin-top:6px;font-size:11px;font-weight:700;color:#334155;">فقط: ${amountWords}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(host);
+  try {
+    const target = host.firstElementChild as HTMLElement | null;
+    await exportToPDF(
+      target,
+      `${options.quotationNumber || 'Quotation'}_Rev${options.revisionNumber}`,
+      { pageSize: 'a4', orientation: 'p', marginMm: 8, scale: 2 }
+    );
+  } finally {
+    host.remove();
+  }
 };

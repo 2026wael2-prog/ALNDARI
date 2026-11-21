@@ -168,7 +168,36 @@ const TABLE_PRESET_MAP = new Map<string, InvalidationPreset>([
   ['debt_reminder_queue', 'debts'],
   ['debt_cadence_steps', 'debts'],
   ['debt_opt_outs', 'debts'],
+  ['daily_reconciliations', 'sale'],
 ]);
+
+/**
+ * Core company-scoped business tables subscribed on the main Realtime channel.
+ * Subscribing explicitly per table + `company_id=eq.${companyId}` avoids wildcard
+ * `schema: 'public'` subscriptions over 180+ tables (which caused WAL/RLS pressure
+ * and frequent CHANNEL_ERROR drops on slow/unstable networks).
+ */
+const REALTIME_SUBSCRIBED_TABLES: readonly string[] = [
+  'invoices',
+  'payments',
+  'expenses',
+  'journal_entries',
+  'accounts',
+  'products',
+  'product_stock',
+  'stock_transfers',
+  'stock_transfer_requests',
+  'audit_sessions',
+  'parties',
+  'warehouses',
+  'branches',
+  'exchange_rates',
+  'daily_reconciliations',
+  'incentive_periods',
+  'incentive_calculations',
+  'debt_payment_promises',
+  'customer_activities',
+];
 
 /**
  * تصنيف حدث الفاتورة إلى preset البيع/الشراء.
@@ -199,6 +228,7 @@ const applyInvoiceInvalidation = (
 
 const bindChannelListeners = (
   channel: RealtimeChannel,
+  companyId: string,
   queryClient: QueryClient
 ): RealtimeChannel => {
   // Per-preset coalesce timers so bursts on one table coalesce without dropping events on other tables.
@@ -234,7 +264,16 @@ const bindChannelListeners = (
     }
   };
 
-  return channel.on('postgres_changes', { event: '*', schema: 'public' }, handleChange);
+  const companyFilter = `company_id=eq.${companyId}`;
+  let boundChannel = channel;
+  for (const table of REALTIME_SUBSCRIBED_TABLES) {
+    boundChannel = boundChannel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table, filter: companyFilter },
+      handleChange
+    );
+  }
+  return boundChannel;
 };
 
 const setupCompanyRealtimeChannel = (companyId: string, queryClient: QueryClient): void => {
@@ -250,7 +289,7 @@ const setupCompanyRealtimeChannel = (companyId: string, queryClient: QueryClient
   logger.debug('Realtime', `🔌 Initializing semi-persistent channel for company [${companyId}]`);
   useConnectionStore.getState().setRealtimeStatus('connecting');
 
-  const channel = bindChannelListeners(supabase.channel(channelId), queryClient);
+  const channel = bindChannelListeners(supabase.channel(channelId), companyId, queryClient);
 
   channel.subscribe((status, err) => {
     const { setRealtimeStatus } = useConnectionStore.getState();

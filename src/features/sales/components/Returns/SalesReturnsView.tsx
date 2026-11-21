@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, RotateCcw } from 'lucide-react';
-import { formatCurrency, sumInBaseCurrency } from '../../../../core/utils';
+import { formatCurrency } from '../../../../core/utils';
 import { formatLocalDate } from '../../../../core/utils/dateUtils';
 import { logger } from '../../../../core/utils/logger';
 import { exportToPDF } from '../../../../core/utils/pdfExporter';
@@ -84,13 +84,9 @@ const SalesReturnsView: React.FC<SalesReturnsViewProps> = ({
     handleExportExcel,
     clearFilters,
     hasActiveFilters,
-  } = useReturnsListView(normalizedReturns, 'sales', filteredReturns => {
-    try {
-      return sumInBaseCurrency(filteredReturns as SalesReturnRow[]);
-    } catch {
-      return 0;
-    }
-  });
+  } = useReturnsListView(normalizedReturns, 'sales', filteredReturns =>
+    filteredReturns.reduce((sum, r) => sum + (Number(r.total_amount) || 0), 0)
+  );
 
   React.useEffect(() => {
     if (propSearchTerm) {

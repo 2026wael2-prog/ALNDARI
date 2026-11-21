@@ -4,6 +4,10 @@ import {
   getDefaultExchangeOperator,
   resolveAutoExchangeRate,
 } from '../../../core/utils/currencyUtils';
+import {
+  computeEffectiveLineCost,
+  computeEffectiveProductMarginPercent,
+} from '../../../core/utils/profitCalculation';
 import { buildIlikeOrFilter } from '../../../core/utils/postgrestFilter';
 import type {
   PartyCompanionData,
@@ -214,6 +218,7 @@ export const accompanyingInfoService = {
         exchange_rate,
         payment_method,
         total_amount,
+        total_document_amount,
         tax_amount,
         discount_amount,
         paid_amount,
@@ -227,7 +232,8 @@ export const accompanyingInfoService = {
           cost_price,
           discount_amount,
           tax_amount,
-          total
+          total,
+          product:products(cost_price, purchase_price)
         )
       `
       )
@@ -248,16 +254,49 @@ export const accompanyingInfoService = {
         discount_amount: number;
         tax_amount: number;
         total: number;
+        product?: { cost_price?: number | null; purchase_price?: number | null } | null;
       }>) || [];
+
+    const netTotal = inv.total_amount || 0;
+    const totalDocAmount = Number(inv.total_document_amount) || 0;
+    const invCurrency = (inv.currency_code || 'SAR').toUpperCase();
+    const rawRate = Number(inv.exchange_rate) || 1;
+    const docToBase =
+      invCurrency === 'SAR'
+        ? 1
+        : totalDocAmount > 0 && netTotal > 0
+          ? netTotal / totalDocAmount
+          : rawRate > 0 && rawRate < 1
+            ? rawRate
+            : rawRate > 1
+              ? 1 / rawRate
+              : 1;
 
     const itemsCount = items.length;
     let totalQty = 0;
     let totalCost = 0;
 
     items.forEach(it => {
-      const q = it.quantity || 0;
+      const q = Number(it.quantity) || 0;
       totalQty += q;
-      totalCost += q * (it.cost_price || 0);
+      const rawLineTotal = Number(it.total) || q * (Number(it.unit_price) || 0);
+      const lineTax = Number(it.tax_amount) || 0;
+      const lineNetBase = Math.max(0, rawLineTotal - lineTax) * docToBase;
+      const prodCost =
+        Number(it.product?.cost_price) || Number(it.product?.purchase_price) || 0;
+      const rawItemCost = Number(it.cost_price) || 0;
+      const unitCostBase =
+        rawItemCost > 0
+          ? invCurrency !== 'SAR' && q > 0 && rawItemCost * q > lineNetBase * 5
+            ? rawItemCost * docToBase
+            : rawItemCost
+          : prodCost;
+
+      totalCost += computeEffectiveLineCost({
+        lineNetSaleAmount: lineNetBase,
+        quantity: q,
+        unitCost: unitCostBase,
+      }).cost;
     });
 
     // جلب اسم المستودع من حركة المخزون المرتبطة بالفاتورة أو المستودع الافتراضي للشركة
@@ -286,7 +325,6 @@ export const accompanyingInfoService = {
       }
     }
 
-    const netTotal = inv.total_amount || 0;
     const discountAmount = inv.discount_amount || 0;
     const taxAmount = inv.tax_amount || 0;
     const paidAmount = inv.paid_amount || 0;
@@ -399,10 +437,8 @@ export const accompanyingInfoService = {
     const costPrice = p.cost_price || p.purchase_price || 0;
     const minAllowedPrice = Math.round(salePrice * 0.7 * 100) / 100;
 
-    let profitMargin = undefined;
-    if (salePrice > 0) {
-      profitMargin = Math.round(((salePrice - costPrice) / salePrice) * 100);
-    }
+    const profitMargin =
+      salePrice > 0 ? computeEffectiveProductMarginPercent(salePrice, costPrice) : undefined;
 
     let alternatives: string[] = [];
     if (Array.isArray(p.alternative_numbers)) {

@@ -13,6 +13,7 @@ import {
   computeStockoutAdjustedDailyDemand,
   detectDemandSpike,
 } from './patternClassifier';
+import { MISSING_COST_IMPLICIT_COST_RATIO } from '../../../../core/utils/profitCalculation';
 
 export function buildBranchMetrics(
   product: RawProductSnapshot,
@@ -69,7 +70,11 @@ export function buildBranchMetrics(
   const demandDaysCount = Number(salesRow?.demand_days_count) || 0;
   const returnedQty = Number(salesRow?.returned_qty) || 0;
   const revenue365d = Number(salesRow?.net_revenue_365) || 0;
-  const cogs365d = Number(salesRow?.net_cogs_365) || 0;
+  const rawCogs365d = Number(salesRow?.net_cogs_365) || 0;
+  const cogs365d =
+    rawCogs365d <= 0 && revenue365d > 0 && avgUnitCost <= 0
+      ? Math.round(revenue365d * MISSING_COST_IMPLICIT_COST_RATIO * 100) / 100
+      : rawCogs365d;
   const grossProfit365d = revenue365d - cogs365d;
   const grossMarginPct = revenue365d > 0 ? (grossProfit365d / revenue365d) * 100 : 0;
 

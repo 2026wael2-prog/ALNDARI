@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabaseClient';
-import { toBaseCurrency } from '@/core/utils/currencyUtils';
 import { logger } from '@/core/utils/logger';
 import {
   batchLookupParties,
@@ -249,22 +248,19 @@ export const analyticsApi = {
       }
     }
 
-    // 4. Calculate previous period metrics
+    // 4. Calculate previous period metrics (matching current period currency rules — no double conversion)
     let prevTotalSales = 0;
     let prevTotalReturns = 0;
     for (const pr of prevRows || []) {
-      const amt = pr.total_amount ?? 0;
-      const rate = pr.exchange_rate ?? 1;
+      const amt = Number(pr.total_amount) || 0;
+      const docAmt = Number(pr.total_document_amount) || 0;
       const curr = (pr.currency_code || 'SAR').toUpperCase();
       let baseAmt = amt;
       if (params.currency && params.currency !== 'ALL') {
-        baseAmt = amt;
+        baseAmt = curr !== 'SAR' && docAmt > 0 ? docAmt : amt;
       } else {
-        try {
-          baseAmt = toBaseCurrency({ amount: amt, currency_code: curr, exchange_rate: rate });
-        } catch {
-          baseAmt = amt;
-        }
+        // invoices.total_amount is ALREADY in base SAR — do not re-convert via toBaseCurrency
+        baseAmt = amt;
       }
       if (pr.type === 'sale') prevTotalSales += baseAmt;
       else if (pr.type === 'sale_return') prevTotalReturns += baseAmt;

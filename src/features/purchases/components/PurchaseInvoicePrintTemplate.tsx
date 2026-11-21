@@ -32,20 +32,27 @@ export interface PurchasePrintInvoice {
   invoice_number: string | null;
   issue_date: string;
   due_date: string | null;
+  type?: string | null;
   party: PurchasePrintParty | null;
   invoice_items: PurchasePrintItem[] | null;
   subtotal: number | null;
+  subtotal_document_amount?: number | null;
   discount_amount?: number | null;
+  tax_amount?: number | null;
   paid_amount?: number | null;
   currency_code?: string | null;
+  exchange_rate?: number | null;
   payment_method?: string | null;
   total_amount: number;
+  total_document_amount?: number | null;
   notes: string | null;
 }
 
 interface PurchaseInvoicePrintTemplateProps {
   invoice: PurchasePrintInvoice | null;
 }
+
+const roundTwo = (value: number): number => Math.round(value * 100) / 100;
 
 const formatNum = (val: number): string => {
   if (!Number.isFinite(val)) return '0';
@@ -55,10 +62,27 @@ const formatNum = (val: number): string => {
 };
 
 const currencyUnitOf = (code?: string | null): string => {
-  if (!code || code === 'SAR') return 'ريال سعودي';
-  if (code === 'YER') return 'ريال يمني';
-  if (code === 'OMR') return 'ريال عماني';
-  return code;
+  const upper = (code ?? 'SAR').toUpperCase();
+  if (upper === 'SAR') return 'ريال سعودي';
+  if (upper === 'YER') return 'ريال يمني';
+  if (upper === 'OMR') return 'ريال عماني';
+  if (upper === 'USD') return 'دولار أمريكي';
+  return code ?? 'ريال سعودي';
+};
+
+const paymentMethodLabelOf = (method?: string | null): string => {
+  switch ((method ?? '').toLowerCase()) {
+    case 'credit':
+      return 'آجل';
+    case 'bank':
+    case 'transfer':
+      return 'تحويل بنكي';
+    case 'card':
+    case 'network':
+      return 'شبكة / بطاقة';
+    default:
+      return 'نقداً';
+  }
 };
 
 const PurchaseInvoicePrintTemplate = React.forwardRef<
@@ -70,20 +94,63 @@ const PurchaseInvoicePrintTemplate = React.forwardRef<
 
   if (invoice === null) return null;
 
-  const currencyUnit = currencyUnitOf(invoice.currency_code);
-  const total = Number(invoice.total_amount) || 0;
-  const discount = Number(invoice.discount_amount) || 0;
-  const paid = Number(invoice.paid_amount) || 0;
-  const remaining = Math.max(0, total - paid);
+  const currencyCode = (invoice.currency_code || 'SAR').toUpperCase();
+  const isForeign = currencyCode !== 'SAR';
+  const currencyUnit = currencyUnitOf(currencyCode);
+
+  const baseTotal = Number(invoice.total_amount) || 0;
+  const docTotal = Number(invoice.total_document_amount) || 0;
+  const rawRate = Number(invoice.exchange_rate) || 0;
+  const itemsSum = (invoice.invoice_items ?? []).reduce(
+    (sum, item) => sum + (Number(item.total) || Number(item.quantity) * Number(item.unit_price) || 0),
+    0
+  );
+
+  let baseToDoc = 1;
+  if (isForeign) {
+    if (docTotal > 0 && baseTotal > 0 && Math.abs(docTotal - baseTotal) > 0.01) {
+      const rateInverse = rawRate > 0 && Math.abs(rawRate - 1) > 1e-6 ? 1 / rawRate : 0;
+      if (rateInverse > 0 && Math.abs(baseTotal * rateInverse - docTotal) / docTotal < 0.02) {
+        baseToDoc = rateInverse;
+      } else {
+        baseToDoc = docTotal / baseTotal;
+      }
+    } else if (docTotal <= 0 && baseTotal > 0 && rawRate > 0 && Math.abs(rawRate - 1) > 1e-6) {
+      const invertedTotal = baseTotal / rawRate;
+      if (itemsSum <= 0 || Math.abs(invertedTotal - itemsSum) / Math.max(itemsSum, 1) < 0.25) {
+        baseToDoc = 1 / rawRate;
+      }
+    }
+  }
+
+  const total =
+    isForeign && docTotal > 0
+      ? roundTwo(docTotal)
+      : baseToDoc !== 1
+        ? roundTwo(baseTotal * baseToDoc)
+        : baseTotal;
+  const discount = roundTwo((Number(invoice.discount_amount) || 0) * baseToDoc);
+  const tax = roundTwo((Number(invoice.tax_amount) || 0) * baseToDoc);
+  const rawPaid = Number(invoice.paid_amount) || 0;
+  let paid =
+    baseToDoc !== 1 && rawPaid > 0 && Math.abs(rawPaid - baseTotal) <= 0.01
+      ? total
+      : roundTwo(rawPaid * baseToDoc);
+  if (baseToDoc !== 1 && paid > 0 && Math.abs(total - paid) <= Math.max(0.5, total * 0.0005)) {
+    paid = total;
+  }
+  const remaining = roundTwo(Math.max(0, total - paid));
+
+  const isReturn = invoice.type === 'purchase_return' || invoice.type === 'return_purchase';
   const supplierDisplay = invoice.party?.phone
     ? `${invoice.party?.name ?? 'مورد عام'}   ${invoice.party.phone}`
     : (invoice.party?.name ?? 'مورد عام');
-  const paymentLabel = invoice.payment_method === 'credit' ? 'آجل' : 'نقداً';
+  const paymentLabel = paymentMethodLabelOf(invoice.payment_method);
 
   return (
     <div ref={ref} className="w-full bg-white text-black" dir="rtl">
       <AlNadaryPrintShell
-        documentTitle="فاتورة مشتريات"
+        documentTitle={isReturn ? 'فاتورة مرتجع مشتريات' : 'فاتورة مشتريات'}
         documentDate={invoice.issue_date}
         documentNumber={invoice.invoice_number ?? '---'}
         documentNumberLabel="رقم الفاتورة"
@@ -157,6 +224,11 @@ const PurchaseInvoicePrintTemplate = React.forwardRef<
             {discount > 0 && (
               <span>
                 الخصم : <span dir="ltr">{formatNum(discount)}</span>
+              </span>
+            )}
+            {tax > 0 && (
+              <span>
+                الضريبة : <span dir="ltr">{formatNum(tax)}</span>
               </span>
             )}
             <span>

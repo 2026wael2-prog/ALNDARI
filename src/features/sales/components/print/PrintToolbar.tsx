@@ -3,8 +3,8 @@ import { Printer, LayoutTemplate, Palette, QrCode, Download } from 'lucide-react
 import type { HeaderLayoutMode } from './PrintDocumentHeader';
 
 interface PrintToolbarProps {
-  layoutMode: HeaderLayoutMode;
-  onChangeLayout: (mode: HeaderLayoutMode) => void;
+  layoutMode?: HeaderLayoutMode | undefined;
+  onChangeLayout?: ((mode: HeaderLayoutMode) => void) | undefined;
   accentColor: string;
   onChangeAccentColor: (color: string) => void;
   /**
@@ -150,7 +150,9 @@ export const PrintToolbar: React.FC<PrintToolbarProps> = ({
     dir="rtl"
   >
     <div className="flex flex-wrap items-center gap-2">
-      <LayoutSelector layoutMode={layoutMode} onChangeLayout={onChangeLayout} />
+      {layoutMode !== undefined && onChangeLayout !== undefined && (
+        <LayoutSelector layoutMode={layoutMode} onChangeLayout={onChangeLayout} />
+      )}
       <AccentColorPicker accentColor={accentColor} onChangeAccentColor={onChangeAccentColor} />
       {onToggleQrCode !== undefined && (
         <QrToggle showQrCode={showQrCode} onToggleQrCode={onToggleQrCode} />

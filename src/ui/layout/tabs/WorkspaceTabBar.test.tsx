@@ -12,7 +12,7 @@ describe('WorkspaceTabBar Component', () => {
         {
           id: '/sales',
           path: '/sales',
-          title: 'المبيعات والفواتير',
+          title: 'المبيعات',
           iconKey: 'ShoppingBag',
           isClosable: true,
           isDirty: false,
@@ -31,7 +31,7 @@ describe('WorkspaceTabBar Component', () => {
     );
 
     expect(screen.getByText('الرئيسية')).toBeInTheDocument();
-    expect(screen.getByText('المبيعات والفواتير')).toBeInTheDocument();
+    expect(screen.getByText('المبيعات')).toBeInTheDocument();
   });
 
   it('shows close button for closable tabs and removes tab on click', () => {
@@ -41,7 +41,7 @@ describe('WorkspaceTabBar Component', () => {
       </MemoryRouter>
     );
 
-    const closeBtn = screen.getByLabelText('إغلاق تبويب المبيعات والفواتير');
+    const closeBtn = screen.getByLabelText('إغلاق تبويب المبيعات');
     expect(closeBtn).toBeInTheDocument();
 
     fireEvent.click(closeBtn);
@@ -57,7 +57,7 @@ describe('WorkspaceTabBar Component', () => {
         {
           id: '/sales',
           path: '/sales',
-          title: 'المبيعات والفواتير',
+          title: 'المبيعات',
           iconKey: 'ShoppingBag',
           isClosable: true,
           isDirty: true,

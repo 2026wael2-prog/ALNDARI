@@ -140,7 +140,7 @@ export const purchasesApi = {
       .from('invoices')
       .select(
         `
-      id, invoice_number, issue_date, total_amount, status, type, payment_method,
+      id, invoice_number, issue_date, total_amount, total_document_amount, subtotal_document_amount, status, type, payment_method,
       currency_code, exchange_rate, notes, return_reason, reference_invoice_id, created_at,
       reference_invoice:reference_invoice_id(id, invoice_number),
       party:party_id(name, phone),
@@ -322,7 +322,7 @@ export const purchasesApi = {
       .from('invoices')
       .select(
         `
-      id, invoice_number, issue_date, total_amount, status, type, payment_method, warehouse_id,
+      id, invoice_number, issue_date, total_amount, total_document_amount, subtotal_document_amount, status, type, payment_method,
       currency_code, exchange_rate, party:party_id(id, name),
       invoice_items(id, product_id, description, quantity, unit_price, total, cost_price, product:products!fk_invoice_items_company_product(id, name_ar, sku, part_number, brand))
     `

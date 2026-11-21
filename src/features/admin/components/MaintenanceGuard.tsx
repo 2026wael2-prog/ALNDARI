@@ -26,6 +26,7 @@ const useMaintenanceMode = (): UseQueryResult<MaintenanceModeConfig> => {
     gcTime: 10 * 60_000,
     refetchInterval: 5 * 60_000,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 };
 

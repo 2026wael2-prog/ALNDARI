@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, cn } from '../../../../core/utils';
 import { convertCurrency } from '../../../../core/utils/currencyUtils';
+import { computeEffectiveLineCost } from '../../../../core/utils/profitCalculation';
 import type { SalesCartItem } from '../../store';
 
 interface Props {
@@ -34,26 +35,44 @@ export const InvoiceProfitMarginCard: React.FC<Props> = ({
   if (validItems.length === 0) return null;
 
   // Calculate total cost in the invoice's active currency
-  const totalCost = validItems.reduce((sum, it) => {
-    const qty = Number(it.quantity) || 0;
-    const baseCost = Number(it.costPrice) || 0;
-    if (baseCost <= 0) return sum;
+  // Products without a recorded cost price fall back to 80% implied cost (20% profit)
+  let totalCost = 0;
+  let hasEstimatedItems = false;
 
-    let convertedUnitCost = baseCost;
-    if (currency !== 'SAR') {
-      try {
-        convertedUnitCost = convertCurrency(
-          baseCost,
-          exchangeRate || 410,
-          'fromBase',
-          exchangeOperator
-        );
-      } catch {
-        convertedUnitCost = baseCost;
+  for (const it of validItems) {
+    const qty = Number(it.quantity) || 0;
+    const price = Number(it.price) || 0;
+    const discount = Number(it.discount) || 0;
+    const lineNet = Math.max(0, qty * price - discount);
+    const baseCost = Number(it.costPrice) || 0;
+
+    let convertedUnitCost = 0;
+    if (baseCost > 0) {
+      convertedUnitCost = baseCost;
+      if (currency !== 'SAR') {
+        try {
+          convertedUnitCost = convertCurrency(
+            baseCost,
+            exchangeRate || 410,
+            'fromBase',
+            exchangeOperator
+          );
+        } catch {
+          convertedUnitCost = baseCost;
+        }
       }
     }
-    return sum + qty * convertedUnitCost;
-  }, 0);
+
+    const lineCost = computeEffectiveLineCost({
+      lineNetSaleAmount: lineNet,
+      quantity: qty,
+      unitCost: convertedUnitCost,
+    });
+    totalCost += lineCost.cost;
+    if (lineCost.isEstimated) {
+      hasEstimatedItems = true;
+    }
+  }
 
   const estimatedProfit = Math.round((totalAmount - totalCost) * 100) / 100;
   const profitMarginPercent =
@@ -96,6 +115,11 @@ export const InvoiceProfitMarginCard: React.FC<Props> = ({
           <span className="rounded bg-black/5 dark:bg-white/5 px-1.5 py-0.2 text-[10px] font-bold text-slate-500">
             داخلي للبائع
           </span>
+          {hasEstimatedItems && (
+            <span className="rounded bg-amber-500/15 px-1.5 py-0.2 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+              يشمل ربح تقديري 20% لأصناف بدون تكلفة
+            </span>
+          )}
         </div>
 
         {/* Toggle hide/show */}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Car } from 'lucide-react';
 import HeaderActions from '../header/HeaderActions';
 import ClassicQuickSearch from './ClassicQuickSearch';
+import { useTranslation } from '../../../lib/hooks/useTranslation';
 
 interface ClassicTitleBarProps {
   pageTitle: string;
@@ -10,26 +11,32 @@ interface ClassicTitleBarProps {
 /**
  * شريط عنوان النافذة الكلاسيكي: هوية المنشأة + عنوان الصفحة + بحث سريع + أدوات الحساب.
  */
-const ClassicTitleBar: React.FC<ClassicTitleBarProps> = ({ pageTitle }) => (
-  <div className="classic-titlebar flex h-9 items-center gap-2 px-2">
-    <div className="flex shrink-0 items-center gap-2">
-      <span className="classic-brand-mark">
-        <Car size={16} strokeWidth={2.25} />
-      </span>
-      <div className="flex flex-col leading-tight">
-        <span className="text-[11px] font-black tracking-tight text-[var(--app-text)]">
-          الجعفري ERP
+const ClassicTitleBar: React.FC<ClassicTitleBarProps> = ({ pageTitle }) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="classic-titlebar flex h-9 items-center gap-2 px-2">
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="classic-brand-mark">
+          <Car size={16} strokeWidth={2.25} />
         </span>
-        <span className="text-[10px] font-bold text-[var(--app-text-secondary)]">{pageTitle}</span>
+        <div className="flex flex-col leading-tight">
+          <span className="text-[11px] font-black tracking-tight text-[var(--app-text)]">
+            {t('app_title')}
+          </span>
+          <span className="text-[10px] font-bold text-[var(--app-text-secondary)]">
+            {pageTitle}
+          </span>
+        </div>
+      </div>
+
+      <ClassicQuickSearch />
+
+      <div className="ms-auto flex shrink-0 items-center gap-1">
+        <HeaderActions />
       </div>
     </div>
-
-    <ClassicQuickSearch />
-
-    <div className="ms-auto flex shrink-0 items-center gap-1">
-      <HeaderActions />
-    </div>
-  </div>
-);
+  );
+};
 
 export default ClassicTitleBar;

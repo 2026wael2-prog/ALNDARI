@@ -2,7 +2,6 @@ import { salesApi } from './api/index';
 import type { CreateInvoiceDTO, MatchedInvoiceItem } from './types';
 import { messagingService } from '../notifications/messagingService';
 import { notificationService } from '../notifications/service';
-import { toBaseCurrency } from '../../core/utils/currencyUtils';
 import { formatLocalDate } from '../../core/utils/dateUtils';
 import { netUnitPrices } from '../../core/utils/invoiceDiscount';
 import { validateSalePayload, assertValid } from '../../core/utils/validationUtils';
@@ -66,29 +65,17 @@ export const salesService = {
           partyPhone: _inv.party?.phone || null,
           date: formatLocalDate(_inv.issue_date),
           createdAt: _inv.created_at,
-          // [CURRENCY] سجل المبيعات: نعرض المبلغ بعملة الفاتورة، والمعادل بالريال محسوباً بدقة.
+          // [CURRENCY] سجل المبيعات: total_amount مخزّن بالعملة الأساسية (SAR) مسبقاً، ونعرض بعملة الفاتورة مع المعادل الدقيق.
           total: (() => {
             const base = Number(_inv.total_amount) || 0;
             const doc = Number(_inv.total_document_amount) || 0;
             const foreign = (_inv.currency_code || 'SAR') !== 'SAR';
-            return foreign && doc > 0 ? doc : base;
+            if (!foreign) return base;
+            if (doc > 0) return doc;
+            const rate = Number(_inv.exchange_rate) || 1;
+            return rate > 0 && rate !== 1 ? Math.round((base / rate) * 100) / 100 : base;
           })(),
-          baseTotal: (() => {
-            const doc = Number(_inv.total_document_amount) || 0;
-            const foreign = (_inv.currency_code || 'SAR') !== 'SAR';
-            if (foreign && doc > 0) {
-              return Number(_inv.total_amount) || 0;
-            }
-            try {
-              return toBaseCurrency({
-                total_amount: Number(_inv.total_amount) || 0,
-                currency_code: _inv.currency_code || 'SAR',
-                exchange_rate: Number(_inv.exchange_rate) || 1,
-              });
-            } catch {
-              return Number(_inv.total_amount) || 0;
-            }
-          })(),
+          baseTotal: Number(_inv.total_amount) || 0,
           status: _inv.status,
           type: _inv.type,
           paymentMethod: _inv.payment_method,
@@ -156,29 +143,17 @@ export const salesService = {
         partyPhone: r.party_phone,
         date: formatLocalDate(r.issue_date),
         createdAt: (r as any).created_at || r.issue_date,
-        // [CURRENCY] نفس القاعدة: المبلغ بعملة الفاتورة + المعادل بالريال المحسوب بدقة.
+        // [CURRENCY] total_amount مخزن بالعملة الأساسية (SAR) مسبقاً؛ نشتق مبلغ الوثيقة عند غياب total_document_amount
         total: (() => {
           const base = Number(r.total_amount) || 0;
           const doc = Number((r as { total_document_amount?: number | null }).total_document_amount) || 0;
           const foreign = (r.currency_code || 'SAR') !== 'SAR';
-          return foreign && doc > 0 ? doc : base;
+          if (!foreign) return base;
+          if (doc > 0) return doc;
+          const rate = Number(r.exchange_rate) || 1;
+          return rate > 0 && rate !== 1 ? Math.round((base / rate) * 100) / 100 : base;
         })(),
-        baseTotal: (() => {
-          const doc = Number((r as { total_document_amount?: number | null }).total_document_amount) || 0;
-          const foreign = (r.currency_code || 'SAR') !== 'SAR';
-          if (foreign && doc > 0) {
-            return Number(r.total_amount) || 0;
-          }
-          try {
-            return toBaseCurrency({
-              total_amount: Number(r.total_amount) || 0,
-              currency_code: r.currency_code || 'SAR',
-              exchange_rate: Number(r.exchange_rate) || 1,
-            });
-          } catch {
-            return Number(r.total_amount) || 0;
-          }
-        })(),
+        baseTotal: Number(r.total_amount) || 0,
         status: r.status as any,
         type: r.type as any,
         paymentMethod: r.payment_method,

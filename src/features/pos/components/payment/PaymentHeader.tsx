@@ -7,20 +7,25 @@ interface PaymentHeaderProps {
     total: number;
     currency: string;
     validItems: Array<{ name: string; quantity: number; price: number; productId: string }>;
+    onPrint?: (() => void) | undefined;
     onClose: () => void;
 }
 
 export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
-    itemCount, total, currency, validItems, onClose
+    itemCount, total, currency, validItems, onPrint, onClose
 }) => {
     const handleWhatsApp = () => {
-        const lines = validItems.map(i => `• ${i.name} ×${i.quantity} = ${formatCurrency(i.price * i.quantity)}`);
-        const msg = `🧾 *فاتورة نقطة المبيعات*\n━━━━━━━━━━━━━━\n${lines.join('\n')}\n━━━━━━━━━━━━━━\n💰 *الإجمالي:* ${formatCurrency(total)} ${currency}`;
+        const lines = validItems.map(i => `• ${i.name} ×${i.quantity} = ${formatCurrency(i.price * i.quantity, currency)}`);
+        const msg = `🧾 *فاتورة نقطة المبيعات*\n━━━━━━━━━━━━━━\n${lines.join('\n')}\n━━━━━━━━━━━━━━\n💰 *الإجمالي:* ${formatCurrency(total, currency)}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
     };
 
     const handlePrint = () => {
-        window.print();
+        if (onPrint) {
+            onPrint();
+        } else {
+            window.print();
+        }
     };
 
     return (

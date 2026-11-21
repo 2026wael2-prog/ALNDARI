@@ -84,6 +84,7 @@ export const productService = {
       sku: trimmedSku || `SKU-${Date.now()}`,
       sale_price: Number(data.selling_price) || 0,
       purchase_price: Number(data.cost_price) || 0,
+      cost_price: Number(data.cost_price) || 0,
       min_stock_level: Number(data.min_stock_level) || 0,
       is_core: Boolean(data.is_core),
       unit: data.unit || 'piece',
@@ -193,7 +194,11 @@ export const productService = {
 
       if (trimmedName) payload.name_ar = trimmedName;
       if (data.selling_price !== undefined) payload.sale_price = Number(data.selling_price) || 0;
-      if (data.cost_price !== undefined) payload.purchase_price = Number(data.cost_price) || 0;
+      if (data.cost_price !== undefined) {
+        const parsedCost = Number(data.cost_price) || 0;
+        payload.purchase_price = parsedCost;
+        payload.cost_price = parsedCost;
+      }
       if (data.min_stock_level !== undefined) {
         payload.min_stock_level = Number(data.min_stock_level) || 0;
       }

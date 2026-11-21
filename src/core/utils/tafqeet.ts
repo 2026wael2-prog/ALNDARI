@@ -49,10 +49,12 @@ const hundreds = [
   'تسعمئة',
 ] as const;
 
-/** الكسور العشرية بحسب العملة — بلا فرض «هللة» على الريال اليمني أو الدولار. */
+/** الكسور العشرية بحسب العملة — بلا فرض «هللة» على الريال اليمني أو العماني أو الدولار. */
 const subUnitOf = (currency: string): string => {
   const upper = currency.toUpperCase();
   if (upper.includes('YER') || currency.includes('يمني') || currency.trim() === 'ر.ي') return 'فلس';
+  if (upper.includes('OMR') || currency.includes('عماني') || currency.trim() === 'ر.ع') return 'بيسة';
+  if (upper.includes('AED') || currency.includes('إماراتي') || currency.trim() === 'د.إ') return 'فلس';
   if (upper.includes('USD') || currency.includes('دولار') || currency.trim() === '$') return 'سنت';
   if (
     upper.includes('SAR') ||

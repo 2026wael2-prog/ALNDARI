@@ -22,9 +22,18 @@ const buildExcelPayload = (
     comp?.name ||
     (comp as { company_name?: string }).company_name ||
     'الشركة') as string;
+  const rawInv = invoice as Record<string, unknown>;
+  const isForeign = (invoice.currency_code || 'SAR').toUpperCase() !== 'SAR';
+  const docTotal = Number(rawInv.total_document_amount) || 0;
+  const docSubtotal = Number(rawInv.subtotal_document_amount) || 0;
+  const displayTotal = isForeign && docTotal > 0 ? docTotal : invoice.total_amount;
+  const baseToDoc =
+    isForeign && docTotal > 0 && invoice.total_amount > 0 ? docTotal / invoice.total_amount : 1;
+  const taxInDoc = (Number(rawInv.tax_amount) || 0) * baseToDoc;
   const subtotal =
-    ((invoice as Record<string, unknown>).subtotal as number) ||
-    invoice.total_amount - (((invoice as Record<string, unknown>).tax_amount as number) || 0);
+    isForeign && docSubtotal > 0
+      ? docSubtotal
+      : (Number(rawInv.subtotal) || 0) * baseToDoc || displayTotal - taxInDoc;
 
   return {
     comp,
@@ -43,7 +52,7 @@ const buildExcelPayload = (
         total: i.total,
       })),
       subtotal,
-      totalAmount: invoice.total_amount,
+      totalAmount: displayTotal,
     },
   };
 };
@@ -148,6 +157,7 @@ export const useInvoiceExportActions = (
             ...invoice,
             company: company || {},
             party_name: invoice.parties?.name || 'عميل نقدي',
+            party_phone: invoice.parties?.phone || undefined,
             issuedBy: issuedByName,
             items: (invoice.invoice_items || []).map((i: InvoiceDetailItem) => ({
               ...i,

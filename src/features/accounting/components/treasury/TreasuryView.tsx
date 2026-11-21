@@ -10,7 +10,8 @@ import FxRevaluationModal from './FxRevaluationModal';
 import { useBondMutation } from '../../../bonds/hooks';
 import { useAccounts, useCashboxes, useExchangeCompanies } from '../../hooks/index';
 import { useTreasuryMutations } from '../../hooks/useTreasury';
-import { isTreasuryAccount } from '../../services/reportService';
+import { useBranchFilter } from '../../../branches/hooks/useBranchFilter';
+import { isBranchScopedTreasuryAccount } from '../../utils/branchTreasuryFilter';
 import type { BondType } from '../../../bonds/types';
 
 interface Props {
@@ -26,6 +27,7 @@ const TreasuryView: React.FC<Props> = ({ dateRange }) => {
   const { data: accounts } = useAccounts();
   const { data: cashboxes } = useCashboxes();
   const { data: exchanges } = useExchangeCompanies();
+  const { branchId } = useBranchFilter();
   const bondMutation = useBondMutation();
   const { revalueCurrency, isRevaluing } = useTreasuryMutations();
 
@@ -40,28 +42,45 @@ const TreasuryView: React.FC<Props> = ({ dateRange }) => {
     return ids;
   }, [cashboxes, exchanges]);
 
-  // اختيار أول صندوق/بنك تشغيلي برصيد فعلي (أو 101001/أول حساب خزنة متاح)
+  // اختيار أول صندوق/شركة صرافة تشغيلية تابعة للفرع النشط (وعند تبديل الفرع يتم التحديث تلقائياً)
   useEffect(() => {
-    if (!selectedAccountId && accounts && accounts.length > 0) {
-      const parentIds = new Set(accounts.map(c => c.parent_id).filter(Boolean));
-      const leafTreasuryAccounts = accounts.filter(
-        a => !parentIds.has(a.id) && isTreasuryAccount(a, linkedAccountIds, a.id)
-      );
-      const activeNonZero = [...leafTreasuryAccounts]
-        .filter(a => Math.abs(Number(a.balance) || 0) > 0.01)
-        .sort((a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0))[0];
+    if (!accounts || accounts.length === 0) return;
 
-      const defaultCashbox =
-        activeNonZero ||
-        accounts.find(a => a.code === '101001') ||
-        leafTreasuryAccounts.find(a => a.allow_posting) ||
-        leafTreasuryAccounts[0];
+    const parentIds = new Set(accounts.map(c => c.parent_id).filter(Boolean));
+    const leafTreasuryAccounts = accounts.filter(
+      a => !parentIds.has(a.id) && isBranchScopedTreasuryAccount(a, linkedAccountIds, branchId)
+    );
 
-      if (defaultCashbox) {
-        setSelectedAccountId(defaultCashbox.id);
+    const allowedIds = new Set<string>();
+    const byId = new Map(accounts.map(a => [a.id, a]));
+    const EXCLUDED_ROOTS = new Set(['1', '1000', 'MZ-1']);
+    for (const acc of leafTreasuryAccounts) {
+      allowedIds.add(acc.id);
+      let pid = acc.parent_id;
+      while (pid) {
+        const parent = byId.get(pid);
+        if (!parent || EXCLUDED_ROOTS.has(parent.code.trim().toUpperCase())) break;
+        allowedIds.add(parent.id);
+        pid = parent.parent_id;
       }
     }
-  }, [accounts, linkedAccountIds, selectedAccountId]);
+    if (selectedAccountId && allowedIds.has(selectedAccountId)) {
+      return;
+    }
+
+    const activeNonZero = [...leafTreasuryAccounts]
+      .filter(a => Math.abs(Number(a.balance) || 0) > 0.01)
+      .sort((a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0))[0];
+
+    const defaultCashbox =
+      activeNonZero ||
+      leafTreasuryAccounts.find(a => linkedAccountIds.has(a.id) && a.allow_posting) ||
+      leafTreasuryAccounts.find(a => a.allow_posting) ||
+      leafTreasuryAccounts[0] ||
+      null;
+
+    setSelectedAccountId(defaultCashbox ? defaultCashbox.id : null);
+  }, [accounts, linkedAccountIds, branchId, selectedAccountId]);
 
   const selectedAccount = useMemo(
     () => accounts?.find(a => a.id === selectedAccountId),

@@ -5,7 +5,7 @@
 
 export { useInvoices, useSalesStats } from './useInvoices';
 export { useInvoiceDetails } from './useInvoiceDetails';
-export { useCreateInvoice } from './useInvoices'; // useCreateInvoice was actually in useInvoices.ts originally
+export { useCreateInvoice, useUpdateInvoice } from './useInvoices'; // useCreateInvoice was actually in useInvoices.ts originally
 export { useNextInvoiceNumber } from './useNextInvoiceNumber';
 export { useDeleteInvoice } from './useDeleteInvoice';
 export { useProductSearch } from './useProductSearch';

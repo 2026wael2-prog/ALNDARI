@@ -182,6 +182,8 @@ const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({ notes, onNotesChange }) =
             <CustomerCreditAlertCard
               customer={selectedCustomer}
               invoiceCurrency={currency}
+              exchangeRate={exchangeRate}
+              exchangeOperator={exchangeOperator}
             />
           )}
 

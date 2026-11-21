@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus, Eye as EyeIcon } from 'lucide-react';
 import type { Product } from '../../../inventory/types';
 import type { ColumnConfig } from '../../hooks/useProductTableConfig';
+import { BranchStockAvailabilityCell } from '../../../inventory/components/products/BranchStockAvailabilityCell';
 
 interface ProductSelectionTableRowProps {
   product: Product;
@@ -50,14 +51,13 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
           <span className="block truncate font-bold opacity-60">{product.brand || '---'}</span>
         );
       case 'branch': {
-        const branchStock =
-          product.warehouse_distribution?.find(
-            w => (w as { branch_id?: string | null }).branch_id === effectiveBranchId
-          ) || product.warehouse_distribution?.[0];
         return (
-          <span className="block truncate text-xs opacity-80">
-            {branchStock?.warehouse_name || 'المستودع الرئيسي'}
-          </span>
+          <BranchStockAvailabilityCell
+            product={product}
+            activeBranchId={effectiveBranchId}
+            compact
+            maxVisiblePills={2}
+          />
         );
       }
       case 'stock': {

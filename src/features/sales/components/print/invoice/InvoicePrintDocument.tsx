@@ -43,6 +43,7 @@ const InvoicePrintDocument = ({
       documentDate={view.documentMeta.documentDate}
       documentNumber={view.documentMeta.documentNumber}
       documentNumberLabel="رقم الفاتورة"
+      hideLetterhead={false}
       company={{
         nameAr: companyHeader.nameAr,
         logoUrl: companyHeader.logoUrl,

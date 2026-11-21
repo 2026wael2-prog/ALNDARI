@@ -2,6 +2,32 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 /**
+ * بيانات المستخدم الدنيا المطلوبة لتحديد صلاحية التبديل بين الفروع.
+ */
+export interface BranchAccessUser {
+  role?: string | null;
+  branch_id?: string | null;
+  branch_name?: string | null;
+  company_id?: string | null;
+}
+
+/**
+ * العزل الصارم بين الفروع:
+ * فقط المالك (owner) أو المسؤول العام (admin) أو مدير غير مقيد بفرع (!branch_id)
+ * يملك صلاحية التبديل بين الفروع أو عرض "جميع الفروع".
+ * مدير الفرع المقيد بفرع (role === 'manager' مع branch_id) وأي موظف فرعي مقيدان
+ * بصرامة بفرعهما فقط (تطابقاً مع fn_has_all_branch_access في قاعدة البيانات).
+ */
+export const canUserSwitchBranches = (user: BranchAccessUser | null | undefined): boolean => {
+  if (!user) return false;
+  if (user.role === 'owner' || user.role === 'admin') return true;
+  if (user.role === 'manager' && (user.branch_id === null || user.branch_id === undefined || user.branch_id === '')) {
+    return true;
+  }
+  return false;
+};
+
+/**
  * useBranchFilterStore
  *
  * متجر مركزي لحالة "الفرع النشط" (Active Branch Context).

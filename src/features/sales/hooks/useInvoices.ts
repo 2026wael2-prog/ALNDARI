@@ -5,7 +5,8 @@ import { useFeedbackStore } from '@/features/feedback/store';
 import { invalidateByPreset } from '@/lib/invalidation';
 import { shouldRetryQuery } from '@/lib/queryClient';
 import { syncStore } from '@/core/lib/sync-store';
-import type { CreateInvoiceDTO } from '../types';
+import type { CreateInvoiceDTO, UpdateInvoicePayload } from '../types';
+import { invoicesApi } from '../api/invoicesApi';
 
 import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 
@@ -128,6 +129,34 @@ export const useCreateInvoice = () => {
       }
 
       showToast(err?.message || 'فشل في إصدار الفاتورة', 'error');
+    },
+  });
+};
+
+export const useUpdateInvoice = () => {
+  const queryClient = useQueryClient();
+  const { showToast } = useFeedbackStore();
+
+  return useMutation({
+    mutationFn: async (payload: UpdateInvoicePayload) => {
+      return await invoicesApi.updateInvoice(payload);
+    },
+    onSuccess: (_res, vars) => {
+      showToast('تم تعديل الفاتورة وتحديث القيود والمخزون بنجاح', 'success');
+      invalidateByPreset(queryClient, 'sale');
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      void queryClient.invalidateQueries({ queryKey: ['invoice_details', vars.invoiceId] });
+      void queryClient.invalidateQueries({ queryKey: ['party_statement_v4'] });
+      void queryClient.invalidateQueries({ queryKey: ['parties'] });
+      void queryClient.invalidateQueries({ queryKey: ['party_balances'] });
+      void queryClient.invalidateQueries({ queryKey: ['sales_stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['customer_credit_alert'] });
+      void queryClient.invalidateQueries({ queryKey: ['products'] });
+      void queryClient.invalidateQueries({ queryKey: ['product_stock'] });
+      void queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
+    },
+    onError: (error: any) => {
+      showToast(error?.message || 'فشل في تعديل الفاتورة', 'error');
     },
   });
 };

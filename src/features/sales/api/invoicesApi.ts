@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import { parseError } from '@/core/utils/errorUtils';
 import { formatLocalDate } from '@/core/utils/dateUtils';
-import type { CreateInvoicePayload, InvoiceResponse } from '../types';
+import type { CreateInvoicePayload, UpdateInvoicePayload, InvoiceResponse } from '../types';
 import { logger } from '@/core/utils/logger';
 import type { MatchedInvoiceItem, SearchInvoiceResultRow } from '@/core/types/invoiceSearch';
 import { optArg } from '@/core/utils/rpcArgs';
@@ -336,5 +336,44 @@ export const invoicesApi = {
     const { data, error } = await supabase.rpc('void_invoice', { p_invoice_id: id });
     if (error) throw parseError(error);
     return { data, error: null };
+  },
+
+  updateInvoice: async (
+    payload: UpdateInvoicePayload
+  ): Promise<InvoiceResponse> => {
+    if (payload.paymentMethod === 'credit' && !payload.partyId) {
+      throw new Error('يجب اختيار العميل للفاتورة الآجلة');
+    }
+
+    const rpcParams = {
+      p_invoice_id: payload.invoiceId,
+      ...(payload.partyId ? { p_party_id: payload.partyId } : {}),
+      p_invoice_date: payload.issueDate || formatLocalDate(),
+      p_due_date: resolveSaleInvoiceDueDate({
+        issueDate: payload.issueDate ?? null,
+        explicitDueDate: payload.dueDate ?? null,
+        paymentMethod: payload.paymentMethod,
+      }) as unknown as string,
+      p_items: payload.items.map(i => ({
+        product_id: i.productId,
+        quantity: i.quantity,
+        unit_price: i.unitPrice,
+        tax_rate: i.taxRate ?? 0,
+        warehouse_id: i.warehouseId ?? null,
+        discount_amount: i.discount ?? 0,
+      })),
+      p_payment_type: payload.paymentMethod || 'cash',
+      ...(payload.notes ? { p_notes: payload.notes } : {}),
+      p_currency_code: payload.currency || 'SAR',
+      p_exchange_rate: payload.exchangeRate ? payload.exchangeRate : 1,
+      ...(payload.branchId ? { p_branch_id: payload.branchId } : {}),
+      ...(payload.treasuryAccountId ? { p_payment_account_id: payload.treasuryAccountId } : {}),
+      p_paid_amount: payload.paymentMethod === 'credit' ? payload.paidAmount || 0 : 0,
+    };
+
+    const { data: result, error } = await supabase.rpc('update_sales_invoice_v2', rpcParams);
+    if (error) throw parseError(error);
+
+    return result as unknown as InvoiceResponse;
   },
 };

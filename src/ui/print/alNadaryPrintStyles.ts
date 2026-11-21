@@ -24,35 +24,41 @@ export const ALNADARY_PRINT_CSS = `
     color: #000000;
   }
 
-  /* ── 1. الهيدر الموحد ثلاثي الأعمدة (كامل العرض، متوازن وراقي) ── */
+  /* ── 1. الهيدر الموحد ثلاثي الأعمدة (كامل العرض، متوازن وراقي، متوافق 100% مع الطباعة و html2canvas) ── */
   .alnadary-header-grid {
-    display: grid;
-    grid-template-columns: 1.35fr auto 1.35fr;
-    align-items: center;
-    gap: 16px;
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
     padding: 4px 0 8px 0;
+    box-sizing: border-box;
+    border-collapse: collapse;
   }
 
   .alnadary-header-right {
+    display: table-cell !important;
+    vertical-align: middle !important;
+    width: 39% !important;
     text-align: center;
     padding-inline-end: 6px;
+    box-sizing: border-box;
   }
 
   .alnadary-company-title {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 900;
     color: #000000 !important;
-    letter-spacing: 0.6px;
-    line-height: 1.15;
+    letter-spacing: normal !important;
+    line-height: 1.25;
     margin: 0 0 3px 0;
+    word-break: keep-all;
   }
 
   .alnadary-tagline {
     margin: 0;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 800;
     color: #b91c1c !important;
-    line-height: 1.5;
+    line-height: 1.45;
   }
 
   .alnadary-tagline-line {
@@ -61,36 +67,38 @@ export const ALNADARY_PRINT_CSS = `
   }
 
   .alnadary-header-center {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0 8px;
+    display: table-cell !important;
+    vertical-align: middle !important;
+    width: 22% !important;
+    text-align: center;
+    padding: 0 4px;
+    box-sizing: border-box;
   }
 
   .alnadary-logo-img {
-    height: 86px;
+    height: 84px;
     width: auto;
-    max-width: 112px;
+    max-width: 110px;
     object-fit: contain;
     display: block;
+    margin: 0 auto;
   }
 
   .alnadary-header-left {
+    display: table-cell !important;
+    vertical-align: middle !important;
+    width: 39% !important;
     text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
     padding-inline-start: 6px;
+    box-sizing: border-box;
   }
 
   .alnadary-address-block {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     color: #000000 !important;
-    line-height: 1.6;
+    line-height: 1.55;
+    margin-bottom: 4px;
   }
 
   .alnadary-date-row {
@@ -98,7 +106,7 @@ export const ALNADARY_PRINT_CSS = `
     justify-content: center;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 800;
     padding: 2px 10px;
     border: 1px solid #000000;
@@ -129,11 +137,29 @@ export const ALNADARY_PRINT_CSS = `
   }
 
   .alnadary-meta-grid {
-    display: grid;
-    grid-template-columns: 1.55fr 1fr;
-    gap: 6px 14px;
-    font-size: 12.5px;
-    align-items: center;
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+    margin: 6px 0 4px 0;
+    font-size: 12px;
+    box-sizing: border-box;
+    border-collapse: collapse;
+  }
+
+  .alnadary-meta-col-right,
+  .alnadary-meta-grid > div:first-child {
+    display: table-cell !important;
+    width: 58% !important;
+    vertical-align: top !important;
+    text-align: right;
+  }
+
+  .alnadary-meta-col-left,
+  .alnadary-meta-grid > div:last-child {
+    display: table-cell !important;
+    width: 42% !important;
+    vertical-align: top !important;
+    text-align: right;
   }
 
   .alnadary-meta-item {
@@ -222,43 +248,49 @@ export const ALNADARY_PRINT_CSS = `
   }
 
   .alnadary-total-bar {
-    display: grid;
-    grid-template-columns: 110px 1fr 125px;
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
     border: 1px solid #000000;
     min-height: 28px;
-    align-items: stretch;
+    box-sizing: border-box;
+    border-collapse: collapse;
   }
 
   .alnadary-total-bar-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: table-cell !important;
+    vertical-align: middle !important;
+    width: 115px !important;
     font-weight: 800;
     background-color: #f3f4f6 !important;
     border-left: 1px solid #000000;
     padding: 4px 8px;
+    text-align: center;
+    box-sizing: border-box;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   .alnadary-total-bar-words {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: table-cell !important;
+    vertical-align: middle !important;
     font-weight: 700;
     padding: 4px 10px;
     text-align: center;
     border-left: 1px solid #000000;
+    box-sizing: border-box;
   }
 
   .alnadary-total-bar-amount {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: table-cell !important;
+    vertical-align: middle !important;
+    width: 130px !important;
     font-weight: 900;
     font-size: 13px;
     padding: 4px 8px;
+    text-align: center;
     direction: ltr;
+    box-sizing: border-box;
   }
 
   .alnadary-inline-summary {
@@ -271,10 +303,30 @@ export const ALNADARY_PRINT_CSS = `
   }
 
   .alnadary-remaining-row {
-    display: grid;
-    grid-template-columns: 135px 95px 1fr;
-    gap: 8px;
-    align-items: center;
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+    box-sizing: border-box;
+    border-collapse: collapse;
+  }
+
+  .alnadary-remaining-row > div:nth-child(1) {
+    display: table-cell !important;
+    width: 135px !important;
+    vertical-align: middle !important;
+    padding-inline-end: 6px;
+  }
+
+  .alnadary-remaining-row > div:nth-child(2) {
+    display: table-cell !important;
+    width: 95px !important;
+    vertical-align: middle !important;
+    padding-inline-end: 6px;
+  }
+
+  .alnadary-remaining-row > div:nth-child(3) {
+    display: table-cell !important;
+    vertical-align: middle !important;
   }
 
   .alnadary-remaining-words-box {
@@ -316,13 +368,23 @@ export const ALNADARY_PRINT_CSS = `
   }
 
   .alnadary-signatures-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
     text-align: center;
     margin-top: 10px;
     font-size: 11.5px;
     font-weight: 800;
+    box-sizing: border-box;
+    border-collapse: collapse;
+  }
+
+  .alnadary-signatures-row > div {
+    display: table-cell !important;
+    width: 33.333% !important;
+    vertical-align: top !important;
+    padding: 0 8px;
+    box-sizing: border-box;
   }
 
   .alnadary-sig-line {
@@ -357,6 +419,45 @@ export const ALNADARY_PRINT_CSS = `
       margin: 0 !important;
       box-shadow: none !important;
       border: none !important;
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    .alnadary-print-sheet .alnadary-header-wrapper {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      background: transparent !important;
+      color: #000000 !important;
+    }
+
+    .alnadary-print-sheet .alnadary-header-wrapper *:not(.alnadary-tagline):not(.alnadary-tagline-line) {
+      color: #000000 !important;
+    }
+
+    .alnadary-print-sheet .alnadary-tagline,
+    .alnadary-print-sheet .alnadary-tagline-line {
+      color: #b91c1c !important;
+    }
+
+    .alnadary-print-sheet .alnadary-header-grid {
+      display: table !important;
+      visibility: visible !important;
+      width: 100% !important;
+      table-layout: fixed !important;
+    }
+
+    .alnadary-print-sheet .alnadary-header-right,
+    .alnadary-print-sheet .alnadary-header-center,
+    .alnadary-print-sheet .alnadary-header-left {
+      display: table-cell !important;
+      vertical-align: middle !important;
+    }
+
+    .alnadary-print-sheet .alnadary-logo-img {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
   }
 `;

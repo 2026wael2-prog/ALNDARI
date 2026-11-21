@@ -170,7 +170,7 @@ export const useSettingsStore = create<SettingsState>()(
               ...state.print,
               print_logo: currentHeader.logo.showLogo,
               print_invoice_logo: currentHeader.logo.showLogo,
-              print_header: currentHeader.style.layout !== 'compact-minimal',
+              print_header: true,
             },
             invoice: {
               ...state.invoice,

@@ -40,7 +40,7 @@ export const AlNadaryPrintShell: React.FC<AlNadaryPrintShellProps> = ({
   const printSettings = usePrintSettings();
   const resolvedTerms = terms ?? tpl.terms.filter(Boolean);
   const resolvedSignatures = signatures ?? tpl.signatures;
-  const shouldShowHeader = printSettings.print_header !== false;
+  const hideLetterhead = printSettings.print_header === false;
   const shouldShowFooter = !hideFooter && printSettings.print_footer !== false;
   const shouldShowTerms = showDefaultTerms && tpl.showTerms && resolvedTerms.length > 0;
   const shouldShowSignatures = tpl.showSignatures && resolvedSignatures.length > 0;
@@ -57,7 +57,7 @@ export const AlNadaryPrintShell: React.FC<AlNadaryPrintShellProps> = ({
   return (
     <div className={`alnadary-print-sheet ${className}`} dir="rtl">
       <style>{`${ALNADARY_PRINT_CSS}\n${dynamicPageCss}`}</style>
-      {shouldShowHeader && <AlNadaryPrintHeader {...headerProps} />}
+      <AlNadaryPrintHeader {...headerProps} hideLetterhead={headerProps.hideLetterhead ?? hideLetterhead} />
       <main>{children}</main>
       {shouldShowFooter && (shouldShowTerms || shouldShowSignatures) && (
         <footer className="alnadary-footer">

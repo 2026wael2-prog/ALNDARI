@@ -11,12 +11,19 @@ import { getItemDisplayName } from '../../../returns/utils/returnHelpers';
 
 interface Props {
   invoice: Invoice;
-  onReturn: (invoice: Invoice, items: InvoiceItem[]) => void;
+  onReturn: (invoice: Invoice, items: InvoiceItem[]) => void | Promise<void>;
   onCancel: () => void;
   onAlert: (alert: { type: 'success' | 'warning' | 'error'; message: string }) => void;
+  isSubmitting?: boolean;
 }
 
-const ReturnWizard: React.FC<Props> = ({ invoice, onReturn, onCancel, onAlert }) => {
+const ReturnWizard: React.FC<Props> = ({
+  invoice,
+  onReturn,
+  onCancel,
+  onAlert,
+  isSubmitting = false,
+}) => {
   const [returnItems, setReturnItems] = useState<Record<string, number>>({});
 
   const updateReturnQuantity = (itemId: string, qty: number) => {
@@ -145,17 +152,21 @@ const ReturnWizard: React.FC<Props> = ({ invoice, onReturn, onCancel, onAlert })
         </div>
         <div className="mt-4 flex w-full gap-2">
           <button
+            type="button"
             onClick={onCancel}
-            className="w-1/3 rounded-lg bg-gray-200 px-4 py-2 font-bold text-gray-700 transition-colors hover:bg-gray-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+            disabled={isSubmitting}
+            className="w-1/3 rounded-lg bg-gray-200 px-4 py-2 font-bold text-gray-700 transition-colors hover:bg-gray-300 disabled:opacity-50 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
           >
             إلغاء
           </button>
           <button
+            type="button"
             onClick={handleReturnSubmit}
-            className="flex w-2/3 items-center justify-center gap-2 rounded-lg bg-rose-600 py-2 font-bold text-white transition-colors hover:bg-rose-500"
+            disabled={isSubmitting}
+            className="flex w-2/3 items-center justify-center gap-2 rounded-lg bg-rose-600 py-2 font-bold text-white transition-colors hover:bg-rose-500 disabled:opacity-50"
           >
-            <RotateCcw size={18} />
-            تأكيد الإرجاع
+            <RotateCcw size={18} className={isSubmitting ? 'animate-spin' : ''} />
+            <span>{isSubmitting ? 'جاري تنفيذ الإرجاع...' : 'تأكيد الإرجاع'}</span>
           </button>
         </div>
       </div>

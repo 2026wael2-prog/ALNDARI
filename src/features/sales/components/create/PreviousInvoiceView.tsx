@@ -259,8 +259,11 @@ export const PreviousInvoiceView: React.FC<PreviousInvoiceViewProps> = ({
         </div>
       </div>
 
-      {/* قسم الطباعة المخفي */}
-      <div style={{ display: 'none' }}>
+      {/* قسم الطباعة المركّب خارج الشاشة لتهيئة الشعار والترويسة قبل الطباعة */}
+      <div
+        className="pointer-events-none fixed -left-[10000px] top-0 w-[210mm] opacity-0"
+        aria-hidden="true"
+      >
         <div ref={printRef}>
           <PrintableInvoice invoice={invoiceForPrint} />
         </div>

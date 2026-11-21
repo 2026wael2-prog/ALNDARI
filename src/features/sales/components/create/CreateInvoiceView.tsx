@@ -123,8 +123,11 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
         />
       </div>
 
-      {/* [FIX #4] PrintableInvoice مخفي دائماً ومرتبط بـ ref للطباعة الصحيحة */}
-      <div style={{ display: 'none' }}>
+      {/* [FIX #4] PrintableInvoice مركّب خارج الشاشة (بلا display:none) لتهيئة الشعار والهيدر فوراً للطباعة */}
+      <div
+        className="pointer-events-none fixed -left-[10000px] top-0 w-[210mm] opacity-0"
+        aria-hidden="true"
+      >
         <div ref={printRef}>
           <PrintableInvoice invoice={invoiceForPrint} />
         </div>

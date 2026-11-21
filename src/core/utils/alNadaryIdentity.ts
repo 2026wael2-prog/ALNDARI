@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/features/auth/store';
-import { useBranchFilterStore } from '@/features/branches/store';
+import { canUserSwitchBranches, useBranchFilterStore } from '@/features/branches/store';
 import { queryClient } from '@/lib/queryClient';
 import { usePrintTemplateStore } from '@/ui/print/printTemplateStore';
 
@@ -67,16 +67,15 @@ export function getActiveBranchIdentity(): CachedBranchRecord | null {
     const user = useAuthStore.getState().user;
     const branchState = useBranchFilterStore.getState();
     const companyId = user?.company_id ?? branchState.activeCompanyId ?? null;
-    const isManager =
-      user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
+    const canSwitchBranches = canUserSwitchBranches(user);
 
-    const effectiveBranchId = isManager
+    const effectiveBranchId = canSwitchBranches
       ? branchState.allBranchesSelected
         ? null
         : (branchState.activeBranchId ?? user?.branch_id ?? null)
       : (user?.branch_id ?? null);
 
-    const effectiveBranchName = isManager
+    const effectiveBranchName = canSwitchBranches
       ? branchState.allBranchesSelected
         ? null
         : (branchState.activeBranchName ?? user?.branch_name ?? null)
@@ -151,8 +150,16 @@ export function resolveAlNadaryIdentity(
         ? tpl.taglineLines
         : ALNADARY_DEFAULT_TAGLINE;
 
+  const rawOverrideTitle = cleanStr(override?.nameAr);
+  const companyTitle =
+    (rawOverrideTitle &&
+    rawOverrideTitle !== 'اسم المنشأة التجارية' &&
+    rawOverrideTitle !== 'اسم الشركة'
+      ? rawOverrideTitle
+      : cleanStr(tpl.companyTitle)) || ALNADARY_DEFAULT_NAME;
+
   return {
-    companyTitle: cleanStr(tpl.companyTitle) || ALNADARY_DEFAULT_NAME,
+    companyTitle,
     plainCompanyName: ALNADARY_DEFAULT_PLAIN_NAME,
     branchName,
     taglineLines,

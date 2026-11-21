@@ -5,7 +5,8 @@ import {
   useCashboxes,
   useExchangeCompanies,
 } from '../../hooks/index';
-import { isTreasuryAccount } from '../../services/reportService';
+import { useBranchFilter } from '../../../branches/hooks/useBranchFilter';
+import { isBranchScopedTreasuryAccount } from '../../utils/branchTreasuryFilter';
 import { formatCurrency } from '../../../../core/utils';
 import { Wallet, Landmark, Loader2, Globe, ChevronRight, Building2 } from 'lucide-react';
 import { cn } from '../../../../core/utils';
@@ -162,6 +163,7 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
   const { data: accounts, isLoading } = useAccounts();
   const { data: cashboxes } = useCashboxes();
   const { data: exchanges } = useExchangeCompanies();
+  const { branchId } = useBranchFilter();
   const { migrateCashboxBalances, isMigratingCashbox } = useAccountMutations();
   const [treasuryModalType, setTreasuryModalType] = useState<'cashbox' | 'exchange' | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -197,7 +199,7 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
     const EXCLUDED_ROOTS = new Set(['1', '1000', 'MZ-1']);
 
     for (const acc of accounts) {
-      if (isTreasuryAccount(acc, linkedAccountIds, acc.id)) {
+      if (isBranchScopedTreasuryAccount(acc, linkedAccountIds, branchId)) {
         matchedIds.add(acc.id);
         let parentId = acc.parent_id;
         while (parentId) {
@@ -212,7 +214,7 @@ const TreasurySidebar: React.FC<Props> = ({ onSelectAccount, selectedAccountId }
     return accounts
       .filter(acc => matchedIds.has(acc.id))
       .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
-  }, [accounts, linkedAccountIds]);
+  }, [accounts, linkedAccountIds, branchId]);
 
   const treasuryTree = useMemo(() => {
     // Build Map

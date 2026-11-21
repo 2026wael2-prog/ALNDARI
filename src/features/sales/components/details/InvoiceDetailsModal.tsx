@@ -3,7 +3,8 @@ import { FileText, Loader2, RotateCcw, CheckCircle, AlertTriangle } from 'lucide
 import { useReactToPrint } from 'react-to-print';
 import Modal from '@/ui/base/Modal';
 import PrintableInvoice from '../PrintableInvoice';
-import { useInvoiceDetails } from '../../hooks/index';
+import { useInvoiceDetails, useCreateSalesReturn } from '../../hooks/index';
+import { formatLocalDate } from '@/core/utils/dateUtils';
 import { useCompany } from '@/features/settings/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { useInvoicePaymentStatus } from '../../hooks/useInvoicePaymentStatus';
@@ -13,22 +14,26 @@ import InvoiceItemsTable from './InvoiceItemsTable';
 import InvoiceActionButtons from './InvoiceActionButtons';
 import { ErrorBoundary } from '@/core/components/ErrorBoundary';
 import { PdfCaptureHost } from '@/core/components/PdfCaptureHost';
-import { cn } from '@/core/utils';
+import { cn, getDisplayItemName } from '@/core/utils';
 import { useInvoiceExportActions } from './useInvoiceExportActions';
 import { InvoiceDetailsSummaryCards } from './InvoiceDetailsSummaryCards';
+import EditInvoiceModal from '../edit/EditInvoiceModal';
 
 interface Props {
   invoiceId: string | null;
   onClose: () => void;
-  onReturn?: (invoice: Invoice, items: InvoiceItem[]) => void;
+  onReturn?: (invoice: Invoice, items: InvoiceItem[]) => void | Promise<void>;
 }
 
 const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) => {
   const { data: invoice, isLoading } = useInvoiceDetails(invoiceId);
+  const createSalesReturn = useCreateSalesReturn();
   const { data: company } = useCompany();
   const { user } = useAuthStore();
   const [showReturnSection, setShowReturnSection] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'preview'>('details');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
 
   const paymentInfo = useInvoicePaymentStatus(invoice);
   const issuedByName = user?.full_name || user?.email || 'غير محدد';
@@ -51,13 +56,44 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
     fullInvoiceData,
   } = useInvoiceExportActions(invoice, company, issuedByName);
 
-  const handleReturnSubmit = (invoiceData: Invoice, items: InvoiceItem[]) => {
-    if (onReturn) {
-      onReturn(invoiceData, items);
+  const handleReturnSubmit = async (invoiceData: Invoice, items: InvoiceItem[]) => {
+    setIsReturning(true);
+    try {
+      if (onReturn) {
+        await onReturn(invoiceData, items);
+      } else {
+        const invAny = invoiceData as any;
+        await createSalesReturn.mutateAsync({
+          invoiceId: invAny.id,
+          partyId: invAny.party?.id || invAny.parties?.id || invAny.party_id || undefined,
+          paymentMethod: invAny.payment_method || 'cash',
+          items: items.map((item: any) => ({
+            productId: item.product_id || item.productId || item.product?.id || item.id,
+            name: getDisplayItemName(item, 'صنف مرتجع'),
+            quantity: Number(item.quantity ?? item.returnQuantity ?? 1),
+            unitPrice: Number(item.unit_price ?? item.unitPrice ?? 0),
+            costPrice: Number(item.cost_price ?? item.costPrice ?? 0),
+          })),
+          returnReason: 'مرتجع مبيعات',
+          status: 'posted',
+          issueDate: formatLocalDate(),
+          currency: invAny.currency_code || invAny.currency || 'SAR',
+          exchangeRate: invAny.exchange_rate ?? 1,
+          notes: `مرتجع للفاتورة #${invAny.invoice_number || ''}`,
+        });
+        onClose();
+      }
+      setShowReturnSection(false);
       setTimeout(() => {
         setShowAlert(null);
       }, 3000);
-      setShowReturnSection(false);
+    } catch (err: any) {
+      handleAlert({
+        type: 'error',
+        message: err?.message || 'فشل في إنشاء مرتجع المبيعات',
+      });
+    } finally {
+      setIsReturning(false);
     }
   };
 
@@ -80,8 +116,13 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
           onExportExcel={handleExportExcel}
           onShare={handleShareWhatsApp}
           onToggleReturn={() => {
-            setShowReturnSection(!showReturnSection);
+            setShowReturnSection(prev => {
+              const next = !prev;
+              if (next) setActiveTab('details');
+              return next;
+            });
           }}
+          onEdit={() => setIsEditing(true)}
           isExporting={isExporting}
           issuedByName={issuedByName}
           printRef={printRef as React.RefObject<HTMLDivElement>}
@@ -172,6 +213,7 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
                       setShowReturnSection(false);
                     }}
                     onAlert={handleAlert}
+                    isSubmitting={isReturning || createSalesReturn.isPending}
                   />
                 ) : (
                   <InvoiceItemsTable invoice={invoice} />
@@ -192,8 +234,11 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
               </div>
             )}
 
-            {/* Always-mounted isolated print sheet for react-to-print (works from both tabs) */}
-            <div style={{ display: 'none' }} aria-hidden="true">
+            {/* Always-mounted off-screen print sheet for react-to-print (ensures logo & header render before clone) */}
+            <div
+              className="pointer-events-none fixed -left-[10000px] top-0 w-[210mm] opacity-0"
+              aria-hidden="true"
+            >
               <div ref={directPrintRef}>
                 <PrintableInvoice invoice={fullInvoiceData} />
               </div>
@@ -226,6 +271,18 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
           </div>
         )}
       </ErrorBoundary>
+
+      {isEditing && invoiceId && (
+        <EditInvoiceModal
+          invoiceId={invoiceId}
+          isOpen={true}
+          onClose={() => setIsEditing(false)}
+          onSuccess={() => {
+            setIsEditing(false);
+            onClose();
+          }}
+        />
+      )}
     </Modal>
   );
 };

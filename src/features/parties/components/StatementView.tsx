@@ -1,10 +1,11 @@
-import React from 'react';
-import { Building2, LayoutList } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, LayoutList, FileSpreadsheet, ListFilter } from 'lucide-react';
 import { useStatementController } from '../hooks/useStatementController';
 import type { PartyType } from '../types';
 import { StatementControls } from './statement/StatementControls';
 import { StatementDocumentModals } from './statement/StatementDocumentModals';
 import { StatementMovementsTable } from './statement/StatementMovementsTable';
+import { StatementExcelView } from './statement/StatementExcelView';
 import { StatementPrintSheet } from './statement/StatementPrintSheet';
 import { StatementSelectedActionsBar } from './statement/StatementSelectedActionsBar';
 import { StatementSummaryCards } from './statement/StatementSummaryCards';
@@ -17,6 +18,7 @@ interface StatementViewProps {
 }
 
 const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId }) => {
+  const [statementDisplayMode, setStatementDisplayMode] = useState<'standard' | 'excel'>('standard');
   const {
     parties,
     selectedParty,
@@ -135,33 +137,82 @@ const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId
                   }
                 />
 
-                <div className="no-print">
-                  <StatementToolbar
-                    selectedCurrency={selectedCurrency}
-                    setSelectedCurrency={setSelectedCurrency}
-                    availableCurrencies={availableCurrencies}
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                  />
+                <div className="no-print space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2 dark:border-slate-800">
+                    <StatementToolbar
+                      selectedCurrency={selectedCurrency}
+                      setSelectedCurrency={setSelectedCurrency}
+                      availableCurrencies={availableCurrencies}
+                      searchQuery={searchQuery}
+                      setSearchQuery={setSearchQuery}
+                    />
 
-                  <StatementMovementsTable
-                    filteredMovements={filteredMovements}
-                    selectedRowIds={selectedRowIds}
-                    expandedRowIds={expandedRowIds}
-                    rowColors={rowColors}
-                    activeColorPickerRowId={activeColorPickerRowId}
-                    isPrintingSelectedOnly={isPrintingSelectedOnly}
-                    partyName={selectedParty?.name || ''}
-                    isAllSelected={isAllSelected}
-                    onToggleSelectAll={handleToggleSelectAll}
-                    onToggleRowSelection={handleToggleRowSelection}
-                    onToggleRowExpand={handleToggleRowExpand}
-                    onOpenColorPicker={setActiveColorPickerRowId}
-                    onApplyColorToSingleRow={handleApplyColorToSingleRow}
-                    onPrintSingleTransaction={handlePrintSingleTransaction}
-                    onOpenInvoiceModal={setActiveInvoiceId}
-                    onOpenBondModal={handleOpenBondModal}
-                  />
+                    {/* طريقة العرض: كشف حساب اعتيادي أو جدول إكسل شامل */}
+                    <div className="flex items-center gap-1 rounded-xl border border-slate-200/90 bg-slate-100/80 p-1 dark:border-slate-800 dark:bg-slate-900/60">
+                      <button
+                        type="button"
+                        onClick={() => setStatementDisplayMode('standard')}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                          statementDisplayMode === 'standard'
+                            ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-800 dark:text-blue-300'
+                            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                        }`}
+                        title="العرض الاعتيادي لكشف الحساب"
+                      >
+                        <ListFilter size={13} />
+                        <span>العرض الافتراضي</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStatementDisplayMode('excel')}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                          statementDisplayMode === 'excel'
+                            ? 'bg-white text-emerald-700 shadow-sm dark:bg-slate-800 dark:text-emerald-300'
+                            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                        }`}
+                        title="عرض كشف الحساب كجدول إكسل متطور مع الألوان وتحديد المعاملات"
+                      >
+                        <FileSpreadsheet size={13} />
+                        <span>جدول إكسل ملون</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {statementDisplayMode === 'standard' ? (
+                    <StatementMovementsTable
+                      filteredMovements={filteredMovements}
+                      selectedRowIds={selectedRowIds}
+                      expandedRowIds={expandedRowIds}
+                      rowColors={rowColors}
+                      activeColorPickerRowId={activeColorPickerRowId}
+                      isPrintingSelectedOnly={isPrintingSelectedOnly}
+                      partyName={selectedParty?.name || ''}
+                      isAllSelected={isAllSelected}
+                      onToggleSelectAll={handleToggleSelectAll}
+                      onToggleRowSelection={handleToggleRowSelection}
+                      onToggleRowExpand={handleToggleRowExpand}
+                      onOpenColorPicker={setActiveColorPickerRowId}
+                      onApplyColorToSingleRow={handleApplyColorToSingleRow}
+                      onPrintSingleTransaction={handlePrintSingleTransaction}
+                      onOpenInvoiceModal={setActiveInvoiceId}
+                      onOpenBondModal={handleOpenBondModal}
+                    />
+                  ) : (
+                    <StatementExcelView
+                      filteredMovements={filteredMovements}
+                      selectedRowIds={selectedRowIds}
+                      rowColors={rowColors}
+                      activeColorPickerRowId={activeColorPickerRowId}
+                      partyName={selectedParty?.name || ''}
+                      onToggleSelectAll={handleToggleSelectAll}
+                      onToggleRowSelection={handleToggleRowSelection}
+                      onOpenColorPicker={setActiveColorPickerRowId}
+                      onApplyColorToSingleRow={handleApplyColorToSingleRow}
+                      onPrintSingleTransaction={handlePrintSingleTransaction}
+                      onOpenInvoiceModal={setActiveInvoiceId}
+                      onOpenBondModal={handleOpenBondModal}
+                    />
+                  )}
 
                   <StatementSummaryCards
                     movements={filteredMovements}

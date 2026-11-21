@@ -42,6 +42,8 @@ export interface AlNadaryPrintHeaderProps {
   leftMeta?: readonly AlNadaryMetaField[] | undefined;
   /** بيانات الشركة/الفرع الاختيارية (تُدمج تلقائياً مع الفرع النشط والقيم الرسمية لشركة النظاري) */
   company?: AlNadaryHeaderCompany | null | undefined;
+  /** إخفاء الترويسة العلوية فقط (للورق المطبوع مسبقاً) مع إبقاء عنوان المستند وبيانات العميل ورقم الفاتورة */
+  hideLetterhead?: boolean | undefined;
 }
 
 export {
@@ -63,6 +65,7 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   rightMeta = [],
   leftMeta = [],
   company,
+  hideLetterhead = false,
 }) => {
   const { branchName: activeBranchName } = useBranchFilter();
   const printSettings = usePrintSettings();
@@ -79,7 +82,7 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   const formattedDate = documentDate ? documentDate.replace(/-/g, '/') : '';
 
   return (
-    <header className="alnadary-header-wrapper relative">
+    <div role="banner" className="alnadary-header-wrapper relative">
       {/* زر تعديل القالب — يظهر على الشاشة فقط ويُخفى تماماً عند الطباعة */}
       <button
         type="button"
@@ -92,63 +95,69 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
       </button>
 
       {/* الصف العلوي ثلاثي الأعمدة: يمين (الاسم + الأحمر) | منتصف (الشعار) | يسار (العنوان + الهاتف + التاريخ) */}
-      <div className="alnadary-header-grid">
-        <div className="alnadary-header-right">
-          <h1 className="alnadary-company-title">{identity.companyTitle}</h1>
-          {identity.branchName && (
-            <div style={{ fontSize: '12px', fontWeight: 900, marginBottom: '3px', color: '#000' }}>
-              {identity.branchName}
+      {!hideLetterhead && (
+        <>
+          <div className="alnadary-header-grid">
+            <div className="alnadary-header-right">
+              <h1 className="alnadary-company-title">{identity.companyTitle}</h1>
+              {identity.branchName && (
+                <div style={{ fontSize: '12px', fontWeight: 900, marginBottom: '3px', color: '#000' }}>
+                  {identity.branchName}
+                </div>
+              )}
+              <p className="alnadary-tagline">
+                {identity.taglineLines.map((line, idx) => (
+                  <span key={idx} className="alnadary-tagline-line">
+                    {line}
+                  </span>
+                ))}
+              </p>
             </div>
-          )}
-          <p className="alnadary-tagline">
-            {identity.taglineLines.map((line, idx) => (
-              <span key={idx} className="alnadary-tagline-line">
-                {line}
-              </span>
-            ))}
-          </p>
-        </div>
 
-        <div className="alnadary-header-center">
-          {shouldShowLogo && (
-            <img
-              src={identity.logoUrl}
-              alt="شعار شركة النظاري"
-              className="alnadary-logo-img"
-              onError={e => {
-                const target = e.currentTarget;
-                if (target.src !== window.location.origin + ALNADARY_DEFAULT_LOGO) {
-                  target.src = ALNADARY_DEFAULT_LOGO;
-                }
-              }}
-            />
-          )}
-        </div>
+            <div className="alnadary-header-center">
+              {shouldShowLogo && (
+                <img
+                  src={identity.logoUrl}
+                  alt="شعار شركة النظاري"
+                  className="alnadary-logo-img"
+                  loading="eager"
+                  decoding="sync"
+                  onError={e => {
+                    const target = e.currentTarget;
+                    if (target.src !== window.location.origin + ALNADARY_DEFAULT_LOGO) {
+                      target.src = ALNADARY_DEFAULT_LOGO;
+                    }
+                  }}
+                />
+              )}
+            </div>
 
-        <div className="alnadary-header-left">
-          <div className="alnadary-address-block">
-            <div>{identity.address}</div>
-            <div>{identity.phone}</div>
+            <div className="alnadary-header-left">
+              <div className="alnadary-address-block">
+                <div>{identity.address}</div>
+                <div>{identity.phone}</div>
+              </div>
+              {formattedDate && (
+                <div className="alnadary-date-row">
+                  <span>التاريخ :</span>
+                  <span dir="ltr">{formattedDate}</span>
+                </div>
+              )}
+            </div>
           </div>
-          {formattedDate && (
-            <div className="alnadary-date-row">
-              <span>التاريخ :</span>
-              <span dir="ltr">{formattedDate}</span>
-            </div>
-          )}
-        </div>
-      </div>
+
+          <hr className="alnadary-solid-divider" />
+        </>
+      )}
 
       <PrintTemplateEditorModal isOpen={editorOpen} onClose={() => setEditorOpen(false)} />
-
-      <hr className="alnadary-solid-divider" />
 
       {/* عنوان المستند في المنتصف */}
       <div className="alnadary-doc-title">{documentTitle}</div>
 
       {/* بيانات العميل / المورد والرقم وطريقة الدفع */}
       <div className="alnadary-meta-grid">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className="alnadary-meta-col-right" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {rightMeta.map((field, idx) => (
             <div key={idx} className="alnadary-meta-item">
               <span className="alnadary-meta-label">{field.label} :</span>
@@ -159,7 +168,15 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div className="alnadary-meta-col-left" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {hideLetterhead && formattedDate && (
+            <div className="alnadary-meta-item">
+              <span className="alnadary-meta-label">التاريخ :</span>
+              <span className="alnadary-meta-value" dir="ltr">
+                {formattedDate}
+              </span>
+            </div>
+          )}
           {documentNumber && (
             <div className="alnadary-meta-item">
               <span className="alnadary-meta-label">{documentNumberLabel} :</span>
@@ -180,7 +197,7 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
       </div>
 
       <hr className="alnadary-dashed-divider" />
-    </header>
+    </div>
   );
 };
 

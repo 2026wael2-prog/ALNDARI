@@ -4,12 +4,15 @@ interface RawStock {
   quantity?: number | string;
   warehouse_id: string;
   warehouse_name?: string;
+  location?: string | null;
   branch_id?: string | null;
   branch_name?: string | null;
+  branch_code?: string | null;
   warehouses?: {
     name_ar?: string;
+    location?: string | null;
     branch_id?: string;
-    branches?: { id?: string; name?: string } | null;
+    branches?: { id?: string; name?: string; code?: string | null } | null;
   };
 }
 
@@ -83,7 +86,9 @@ export function mapRawProducts(
         warehouse_id: s.warehouse_id,
         warehouse_name: s.warehouse_name || s.warehouses?.name_ar || 'مستودع غير معروف',
         branch_id: getStockBranchId(s),
-        branch_name: s.branch_name || s.warehouses?.branches?.name,
+        branch_name: s.branch_name || s.warehouses?.branches?.name || undefined,
+        branch_code: s.branch_code || s.warehouses?.branches?.code || undefined,
+        location: s.location || s.warehouses?.location || undefined,
         quantity: Number(s.quantity) || 0,
       }));
 

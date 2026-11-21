@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, GitBranch, ShieldCheck } from 'lucide-react';
+import { LogOut, GitBranch, Lock, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '../../../features/auth/store';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { useLogout, useIsSuperAdmin } from '../../../features/auth/hooks';
 import LogoutConfirmModal from '../../../features/auth/components/LogoutConfirmModal';
 import BranchSwitcher from '../../../features/branches/components/BranchSwitcher';
+import { canUserSwitchBranches } from '../../../features/branches/store';
 import { cn } from '../../../core/utils';
 import { ROUTES } from '../../../core/routes/paths';
 
@@ -24,27 +25,30 @@ const SidebarFooter: React.FC<SidebarFooterProps> = ({ isCollapsed }) => {
   const initial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U';
   const name = user?.full_name || user?.email?.split('@')[0] || 'User';
   const role = user?.role || 'Staff';
-  const isManager = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
+  const canSwitchBranches = canUserSwitchBranches(user);
 
   return (
     <div className="mt-auto space-y-3 border-t border-[var(--app-border)] p-4">
-      {/* Branch Switcher — for managers */}
-      {isManager && <BranchSwitcher isCollapsed={isCollapsed} className="w-full" />}
+      {/* Branch Switcher — for company-wide owners/admins only */}
+      {canSwitchBranches && <BranchSwitcher isCollapsed={isCollapsed} className="w-full" />}
 
-      {/* Branch Badge — for restricted employees */}
-      {!isManager && user?.branch_name && (
+      {/* Locked Branch Badge — for branch-scoped managers & employees */}
+      {!canSwitchBranches && user?.branch_name && (
         <div
           className={cn(
             'flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-900/20',
             isCollapsed ? 'mx-auto h-10 w-10 justify-center p-0' : 'px-3 py-1.5'
           )}
-          title={user.branch_name}
+          title={`مقيد بالفرع الحالي: ${user.branch_name}`}
         >
           <GitBranch size={14} className="shrink-0 text-indigo-500" />
           {!isCollapsed && (
-            <span className="truncate text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
-              {user.branch_name}
-            </span>
+            <>
+              <span className="truncate text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                {user.branch_name}
+              </span>
+              <Lock size={11} className="mr-auto shrink-0 text-indigo-400" />
+            </>
           )}
         </div>
       )}

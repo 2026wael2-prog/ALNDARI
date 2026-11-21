@@ -15,6 +15,7 @@ import { useAccompanyingInfoStore } from '../../../accompanying-info';
 import InvoiceSearchToolbar from '../../../../ui/common/InvoiceSearchToolbar';
 import type { DatePreset } from '@/core/types/invoiceSearch';
 import { useInvoiceListColumns } from './useInvoiceListColumns';
+import EditInvoiceModal from '../edit/EditInvoiceModal';
 
 interface InvoiceListViewProps {
   viewType: InvoiceType;
@@ -38,6 +39,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   const [sortBy, setSortBy] = useState<'date' | 'total' | 'number'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [limit, setLimit] = useState(25);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchTerm !== undefined && searchTerm !== internalSearch) {
@@ -206,6 +208,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
     handleDelete,
     handleShareExcel,
     handlePrefetchDetails,
+    handleEditInvoice: (id: string) => setEditingInvoiceId(id),
     isDeleting,
   });
 
@@ -292,6 +295,17 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
         <EmptyState
           title="لا توجد فواتير"
           description="لم يتم العثور على أي فواتير أو قطع مطابقة لمعايير البحث المحددة."
+        />
+      )}
+      {editingInvoiceId && (
+        <EditInvoiceModal
+          invoiceId={editingInvoiceId}
+          isOpen={true}
+          onClose={() => setEditingInvoiceId(null)}
+          onSuccess={() => {
+            setEditingInvoiceId(null);
+            void refetch();
+          }}
         />
       )}
     </div>

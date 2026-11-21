@@ -6,7 +6,8 @@ import type { InsertDto } from '../../../core/database.helpers';
 import type { TableUpdate } from '@/core/types/supabase-helpers';
 import { logger } from '../../../core/utils/logger';
 import { parseError } from '../../../core/utils/errorUtils';
-import { useBranchFilterStore } from '../../branches/store';
+import { canUserSwitchBranches, useBranchFilterStore } from '../../branches/store';
+import { useAuthStore } from '../../auth/store';
 import { validateProductUniqueness } from './productValidation';
 import { productSearchService, type SearchResultProduct } from './productSearchService';
 import { productMovementsService } from './productMovementsService';
@@ -110,10 +111,15 @@ export const productService = {
 
       const initialQty = Number(data.stock_quantity) || 0;
       if (product && initialQty > 0) {
-        const activeBranchId =
-          (typeof data.branch_id === 'string' && data.branch_id.trim() !== ''
+        const currentUser = useAuthStore.getState().user;
+        const canSwitch = canUserSwitchBranches(currentUser);
+        const requestedBranchId =
+          typeof data.branch_id === 'string' && data.branch_id.trim() !== ''
             ? data.branch_id.trim()
-            : null) ?? useBranchFilterStore.getState().activeBranchId;
+            : null;
+        const activeBranchId = canSwitch
+          ? (requestedBranchId ?? useBranchFilterStore.getState().activeBranchId ?? currentUser?.branch_id ?? null)
+          : (currentUser?.branch_id ?? requestedBranchId);
         let targetWarehouseId: string | undefined =
           typeof data.warehouse_id === 'string' && data.warehouse_id.trim() !== ''
             ? data.warehouse_id.trim()

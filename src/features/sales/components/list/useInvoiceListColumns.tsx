@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowLeftRight, Eye, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, Eye, FileSpreadsheet, Trash2, Edit } from 'lucide-react';
 import { formatCurrency } from '../../../../core/utils';
 import type { InvoiceListItem } from '../../types';
 import { InvoiceItemsCell } from './InvoiceItemsCell';
@@ -10,6 +10,7 @@ interface UseInvoiceListColumnsParams {
   handleDelete: (e: React.MouseEvent, row: InvoiceListItem) => void;
   handleShareExcel: (e: React.MouseEvent, row: InvoiceListItem) => void;
   handlePrefetchDetails: (id: string) => void;
+  handleEditInvoice?: (id: string) => void;
   isDeleting: boolean;
 }
 
@@ -21,6 +22,7 @@ export const useInvoiceListColumns = ({
   handleDelete,
   handleShareExcel,
   handlePrefetchDetails,
+  handleEditInvoice,
   isDeleting,
 }: UseInvoiceListColumnsParams) =>
   useMemo(
@@ -155,6 +157,18 @@ export const useInvoiceListColumns = ({
               >
                 <FileSpreadsheet size={15} />
               </button>
+              {handleEditInvoice && !isInternal && row.type === 'sale' && row.status !== 'void' && (
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleEditInvoice(row.id);
+                  }}
+                  className="rounded p-1.5 text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                  title="تعديل الفاتورة"
+                >
+                  <Edit size={15} />
+                </button>
+              )}
               <button
                 onMouseEnter={() => {
                   handlePrefetchDetails(row.id);
@@ -186,5 +200,5 @@ export const useInvoiceListColumns = ({
         className: 'text-center',
       },
     ],
-    [handleViewDetails, handleDelete, handleShareExcel, handlePrefetchDetails, isDeleting]
+    [handleViewDetails, handleDelete, handleShareExcel, handlePrefetchDetails, handleEditInvoice, isDeleting]
   );

@@ -41,8 +41,9 @@ export const productsApi = {
                     warehouse_id,
                     warehouses(
                         name_ar,
+                        location,
                         branch_id,
-                        branches:branches(id, name)
+                        branches:branches(id, name, code)
                     )
                 )
             `

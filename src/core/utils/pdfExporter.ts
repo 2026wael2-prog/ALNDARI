@@ -87,16 +87,77 @@ const collectBreakpointsMm = (
   return boundaries;
 };
 
+/** Ensures all web fonts and embedded images (e.g. logos) are loaded before rasterizing. */
+const waitForCaptureReadiness = async (element: HTMLElement): Promise<void> => {
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Non-fatal font readiness check
+    }
+  }
+
+  if (typeof element.querySelectorAll === 'function') {
+    const images = Array.from(element.querySelectorAll('img'));
+    if (images.length > 0) {
+      await Promise.all(
+        images.map(img => {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          return new Promise<void>(resolve => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            setTimeout(resolve, 600);
+          });
+        })
+      );
+    }
+  }
+};
+
 /** Captures the DOM subtree as a high-resolution canvas (html2canvas is loaded on demand). */
 const captureElement = async (element: HTMLElement, scale: number): Promise<HTMLCanvasElement> => {
+  await waitForCaptureReadiness(element);
   const html2canvas = (await import('html2canvas')).default;
   return html2canvas(element, {
     scale, // Higher scale keeps text crisp when printed
     useCORS: true, // Allow loading cross-origin images
     logging: false,
     backgroundColor: '#ffffff', // Ensure white background
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
+    windowWidth: Math.max(element.scrollWidth || 0, 794),
+    windowHeight: Math.max(element.scrollHeight || 0, 1123),
+    onclone: (clonedDoc, clonedElement) => {
+      // In the cloned document used by html2canvas, reset any off-screen host positioning (-100000px)
+      // so canvas coordinates start cleanly at (0, 0) without negative translation or layout drift.
+      if (clonedElement && clonedElement.style) {
+        clonedElement.style.position = 'static';
+        clonedElement.style.left = '0px';
+        clonedElement.style.top = '0px';
+        clonedElement.style.margin = '0px';
+        clonedElement.style.visibility = 'visible';
+        clonedElement.style.opacity = '1';
+      }
+
+      let ancestor: HTMLElement | null = clonedElement?.parentElement ?? null;
+      while (ancestor && ancestor !== clonedDoc.body) {
+        if (ancestor.style) {
+          ancestor.style.position = 'static';
+          ancestor.style.left = '0px';
+          ancestor.style.top = '0px';
+          ancestor.style.margin = '0px';
+          ancestor.style.padding = '0px';
+          ancestor.style.transform = 'none';
+          ancestor.style.visibility = 'visible';
+          ancestor.style.opacity = '1';
+        }
+        ancestor = ancestor.parentElement;
+      }
+
+      if (clonedDoc?.body?.style) {
+        clonedDoc.body.style.margin = '0px';
+        clonedDoc.body.style.padding = '0px';
+        clonedDoc.body.style.overflow = 'visible';
+      }
+    },
     ignoreElements: el =>
       Boolean(
         el.classList &&

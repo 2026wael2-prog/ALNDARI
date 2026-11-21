@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GitBranch, ChevronUp, Globe, Check, Building2 } from 'lucide-react';
 import { useAuthStore } from '../../auth/store';
-import { useBranchFilterStore } from '../store';
+import { canUserSwitchBranches, useBranchFilterStore } from '../store';
 import { useBranches } from '../../settings/hooks';
 import { cn } from '../../../core/utils';
 import { BranchWarehouseList } from './BranchWarehouseList';
@@ -52,10 +52,9 @@ const BranchSwitcher: React.FC<BranchSwitcherProps> = ({
     };
   }, []);
 
-  // إظهار للمدير العام / المدير
-  const isManager =
-    user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
-  if (!isManager) return null;
+  // إظهار للمدير العام فقط (owner/admin أو مدير غير مقيد بفرع) — منع التبديل الصارم لمديري الفروع
+  const canSwitchBranches = canUserSwitchBranches(user);
+  if (!canSwitchBranches) return null;
 
   const activeBranches = (Array.isArray(branches) ? branches : []).filter(
     (b: any) => b.status === 'active'

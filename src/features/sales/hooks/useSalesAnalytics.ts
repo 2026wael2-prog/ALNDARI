@@ -160,8 +160,12 @@ export const useSalesAnalytics = (params: SalesAnalyticsParams) => {
     currency = 'ALL',
     paymentType = 'ALL',
   } = params;
-  const { branchId: contextBranchId } = useBranchFilter();
-  const effectiveBranchId = overrideBranchId !== undefined ? overrideBranchId : contextBranchId;
+  const { branchId: contextBranchId, canSwitchBranches } = useBranchFilter();
+  const effectiveBranchId = canSwitchBranches
+    ? overrideBranchId !== undefined
+      ? overrideBranchId
+      : contextBranchId
+    : contextBranchId;
 
   const queryKey = [
     'sales_analytics',

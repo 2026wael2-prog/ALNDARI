@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, FileSpreadsheet, RotateCcw, Loader2, Share2, X, Printer } from 'lucide-react';
+import { Download, FileSpreadsheet, RotateCcw, Loader2, Share2, X, Printer, Edit } from 'lucide-react';
 import type { InvoiceWithDetails } from '../../api';
 
 interface InvoiceActionButtonsProps {
@@ -10,6 +10,7 @@ interface InvoiceActionButtonsProps {
   onPrint?: (() => void) | undefined;
   onShare?: (() => void) | undefined;
   onToggleReturn: () => void;
+  onEdit?: () => void;
   isExporting: boolean;
   issuedByName: string;
   printRef: React.RefObject<HTMLDivElement>;
@@ -104,6 +105,7 @@ const InvoiceActionButtons: React.FC<InvoiceActionButtonsProps> = ({
   onPrint,
   onShare,
   onToggleReturn,
+  onEdit,
   isExporting,
 }) => {
   if (!invoice) return null;
@@ -124,6 +126,18 @@ const InvoiceActionButtons: React.FC<InvoiceActionButtonsProps> = ({
 
         {!invoice.invoice_number?.endsWith('-INT') && (
           <ReturnButton isReturn={isReturn} onToggleReturn={onToggleReturn} />
+        )}
+
+        {onEdit && invoice.type === 'sale' && invoice.status !== 'void' && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="flex items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+            title="تعديل بيانات وأصناف الفاتورة وتسوية القيود"
+          >
+            <Edit size={14} />
+            <span>تعديل الفاتورة</span>
+          </button>
         )}
       </div>
 

@@ -13789,6 +13789,23 @@ export type Database = {
         }
         Returns: string
       }
+      update_sales_invoice_v2: {
+        Args: {
+          p_branch_id?: string
+          p_currency_code?: string
+          p_due_date?: string
+          p_exchange_rate?: number
+          p_invoice_date?: string
+          p_invoice_id: string
+          p_items: Json
+          p_notes?: string
+          p_paid_amount?: number
+          p_party_id?: string
+          p_payment_account_id?: string
+          p_payment_type?: string
+        }
+        Returns: Json
+      }
       complete_debt_task: {
         Args: {
           p_activity_id: string

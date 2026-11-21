@@ -85,15 +85,16 @@ export const usePurchaseStats = (
 ): UseQueryResult<PurchaseStats | null> => {
   const { user } = useAuthStore();
   const companyId = user?.company_id;
-  const { branchId: contextBranchId } = useBranchFilter();
+  const { branchId: contextBranchId, canSwitchBranches } = useBranchFilter();
 
   const globalFilters = useAnalyticsFilterStore();
-  const effectiveBranchId =
-    customFilters?.branchId !== undefined
+  const effectiveBranchId = canSwitchBranches
+    ? customFilters?.branchId !== undefined
       ? customFilters.branchId
       : globalFilters.branchId !== null
         ? globalFilters.branchId
-        : contextBranchId;
+        : contextBranchId
+    : contextBranchId;
 
   const filters: PurchaseStatsFilters = {
     branchId: effectiveBranchId,
@@ -267,15 +268,16 @@ export const usePurchasesAnalytics = (
 ): UseQueryResult<PurchaseAnalytics | null> => {
   const { user } = useAuthStore();
   const companyId = user?.company_id;
-  const { branchId: contextBranchId } = useBranchFilter();
+  const { branchId: contextBranchId, canSwitchBranches } = useBranchFilter();
 
   const globalFilters = useAnalyticsFilterStore();
-  const effectiveBranchId =
-    customFilters?.branchId !== undefined
+  const effectiveBranchId = canSwitchBranches
+    ? customFilters?.branchId !== undefined
       ? customFilters.branchId
       : globalFilters.branchId !== null
         ? globalFilters.branchId
-        : contextBranchId;
+        : contextBranchId
+    : contextBranchId;
 
   const filters: PurchaseStatsFilters = {
     branchId: effectiveBranchId,

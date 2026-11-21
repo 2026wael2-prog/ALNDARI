@@ -117,6 +117,7 @@ export interface Product {
         warehouse_name: string;
         branch_id?: string | undefined;
         branch_name?: string | undefined;
+        branch_code?: string | undefined;
         quantity: number;
         location?: string | undefined;
       }>

@@ -13,7 +13,7 @@ import {
 
 export const useBranchNotifications = (): void => {
   const { user } = useAuthStore();
-  const { branchId: activeBranchId } = useBranchFilter();
+  const { branchId: activeBranchId, canSwitchBranches } = useBranchFilter();
   const { showToast } = useFeedbackStore();
   const { playNotificationSound } = useSoundStore();
   const { addNotification } = useNotificationStore();
@@ -34,6 +34,25 @@ export const useBranchNotifications = (): void => {
   const handleActivity = useCallback(
     (payload: CrossBranchActivityPayload) => {
       if (!user?.company_id) return;
+
+      // العزل الصارم بين الفروع: المستخدم المقيد بفرع لا يتلقى إشعارات عمليات الفروع الأخرى
+      if (!canSwitchBranches) {
+        const isTransferOrInternal =
+          payload.type === 'transfer_request' ||
+          payload.type === 'transfer_approved' ||
+          payload.type === 'transfer_rejected' ||
+          payload.type === 'internal_sale';
+
+        if (!activeBranchId) return;
+
+        if (isTransferOrInternal) {
+          const involvesMyBranch =
+            payload.branch_id === activeBranchId || payload.target_branch_id === activeBranchId;
+          if (!involvesMyBranch) return;
+        } else if (payload.branch_id !== activeBranchId) {
+          return;
+        }
+      }
 
       const branchName = payload.branch_name || resolveBranchName(payload.branch_id);
       const targetBranchName =
@@ -336,7 +355,15 @@ export const useBranchNotifications = (): void => {
           break;
       }
     },
-    [user?.company_id, activeBranchId, playNotificationSound, showToast, addNotification, resolveBranchName]
+    [
+      user?.company_id,
+      activeBranchId,
+      canSwitchBranches,
+      playNotificationSound,
+      showToast,
+      addNotification,
+      resolveBranchName,
+    ]
   );
 
   useEffect(() => {

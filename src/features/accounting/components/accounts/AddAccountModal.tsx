@@ -27,15 +27,43 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
     formState: { errors },
     reset,
     watch,
-  } = useForm<AccountFormData>();
+    setValue,
+  } = useForm<AccountFormData>({
+    defaultValues: {
+      type: 'asset',
+      currency_code: 'SAR',
+      parent_id: '',
+    },
+  });
   const selectedType = watch('type');
 
-  // Filter potential parents based on type (optional but good UX)
-  const potentialParents = accounts.filter(acc => !selectedType || acc.type === selectedType);
+  // العزل المحاسبي الصارم: السماح فقط باختيار حساب أب من نفس النوع وخالٍ من القيود المرحَّلة
+  const potentialParents = accounts.filter(acc => {
+    if (selectedType && acc.type !== selectedType) return false;
+    const hasPostings =
+      acc.allow_posting !== false &&
+      (Math.abs(acc.total_debit ?? 0) > 0 ||
+        Math.abs(acc.total_credit ?? 0) > 0 ||
+        Math.abs(acc.balance ?? 0) > 0);
+    return !hasPostings;
+  });
 
   React.useEffect(() => {
-    if (isOpen) reset();
+    if (isOpen) {
+      reset({
+        code: '',
+        name: '',
+        type: 'asset',
+        currency_code: 'SAR',
+        parent_id: '',
+      });
+    }
   }, [isOpen, reset]);
+
+  // إعادة ضبط الحساب الأب عند تغيير نوع الحساب لمنع ربط حساب بنوع مخالف
+  React.useEffect(() => {
+    setValue('parent_id', '');
+  }, [selectedType, setValue]);
 
   const footer = (
     <>

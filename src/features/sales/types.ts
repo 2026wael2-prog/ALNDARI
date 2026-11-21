@@ -49,6 +49,29 @@ export interface CreateInvoicePayload {
   idempotencyKey?: string;
 }
 
+export interface UpdateInvoicePayload {
+  invoiceId: string;
+  partyId: string | null;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    discount?: number | undefined;
+    taxRate?: number | undefined;
+    warehouseId?: string | undefined;
+  }>;
+  paymentMethod: 'cash' | 'credit';
+  issueDate?: string | undefined;
+  dueDate?: string | undefined;
+  notes?: string | undefined;
+  treasuryAccountId?: string | undefined;
+  discount?: number | undefined;
+  currency?: string | undefined;
+  exchangeRate?: number | undefined;
+  paidAmount?: number | undefined;
+  branchId?: string | null | undefined;
+}
+
 export interface CreateInvoiceDTO {
   partyId: string | null; // Null for cash customer
   type: InvoiceType;

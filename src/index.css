@@ -2293,11 +2293,13 @@ a:focus-visible {
   }
 
   /* Universal modal print isolation */
-  body:has(#bond-printable-voucher) > *:not(:has(#bond-printable-voucher)) {
+  body:has(#bond-printable-voucher) > *:not(:has(#bond-printable-voucher)),
+  body:has(#bond-printable-voucher-isolated) > *:not(:has(#bond-printable-voucher-isolated)) {
     display: none !important;
   }
 
-  #bond-printable-voucher {
+  #bond-printable-voucher,
+  #bond-printable-voucher-isolated {
     position: static !important;
     left: auto !important;
     top: auto !important;
@@ -2310,6 +2312,8 @@ a:focus-visible {
     color: #000000 !important;
     box-shadow: none !important;
     border: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 }
 
@@ -3244,11 +3248,24 @@ html[data-preset] :is(
   box-shadow: none !important;
 }
 
-html[data-preset] .alnadary-print-sheet header span,
+html[data-preset] .alnadary-print-sheet .alnadary-header-wrapper,
+html[data-preset] .alnadary-print-sheet header {
+  background: transparent !important;
+  background-image: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  color: #000000 !important;
+}
+
+html[data-preset] .alnadary-print-sheet .alnadary-header-wrapper span:not(.alnadary-tagline-line),
+html[data-preset] .alnadary-print-sheet .alnadary-header-wrapper div,
+html[data-preset] .alnadary-print-sheet .alnadary-header-wrapper h1,
+html[data-preset] .alnadary-print-sheet header span:not(.alnadary-tagline-line),
 html[data-preset] .alnadary-print-sheet header div,
 html[data-preset] .alnadary-print-sheet header h1,
 html[data-preset] .alnadary-print-sheet main {
   background-color: transparent !important;
+  color: #000000 !important;
 }
 
 html[data-preset] .alnadary-print-sheet .alnadary-tagline,

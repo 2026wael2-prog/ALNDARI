@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   Eye,
+  Edit,
   Palette,
   Printer,
   Square,
@@ -291,6 +292,31 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
                 <Printer size={13} />
               </button>
             )}
+            {(() => {
+              const opType = (
+                row.reference_type ||
+                row.operation_type ||
+                row.type ||
+                ''
+              ).toLowerCase();
+              const isEditableSalesInvoice =
+                Boolean(row.reference_id) &&
+                opType.includes('invoice') &&
+                !opType.includes('purchase') &&
+                !opType.includes('return') &&
+                !opType.includes('void');
+              if (!isEditableSalesInvoice) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={() => onOpenInvoiceModal(row.reference_id!)}
+                  title="تعديل الفاتورة وتسوية القيود والمخزون"
+                  className="rounded p-1 text-amber-600 transition-colors hover:bg-amber-50 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/40"
+                >
+                  <Edit size={13} />
+                </button>
+              );
+            })()}
             <button
               type="button"
               onClick={e => onToggleExpand(row.id, e)}

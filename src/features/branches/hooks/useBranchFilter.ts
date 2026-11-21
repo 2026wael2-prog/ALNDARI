@@ -1,20 +1,19 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '../../auth/store';
-import { useBranchFilterStore } from '../store';
+import { canUserSwitchBranches, useBranchFilterStore } from '../store';
 
 /**
  * useBranchFilter
  *
  * Hook مركزي يُعيد `branch_id` الصحيح للاستخدام في فلترة البيانات.
  *
- * السلوك:
- * - owner/admin بدون تحديد فرع → يعيد null (يرى جميع الفروع)
- * - owner/admin اختار فرعاً في BranchSwitcher → يعيد branch_id المحدد
- * - موظف مقيد بفرع → يُقيّد تلقائياً بـ branch_id الخاص به
+ * السلوك (العزل الصارم بين الفروع):
+ * - owner/admin (أو مدير عام غير مرتبط بفرع) → يمكنه التبديل بين الفروع أو اختيار "جميع الفروع"
+ * - مدير فرع مقيد بفرع (role === 'manager' + branch_id) أو أي موظف فرعي → يُقيّد تلقائياً وصارماً بـ branch_id الخاص به فقط
  *
  * [AUDIT C-1/M-6] لا كتابة في المتجر المُPersist من هذا الـhook:
- * - فرع الموظف يُقرأ من بيانات المصادقة مباشرة في كل استدعاء.
- * - الفرع المحفوظ للمدير يُهمل فوراً إذا كان يعود لشركة أخرى (قيمة قديمة)،
+ * - فرع الموظف/مدير الفرع يُقرأ من بيانات المصادقة مباشرة في كل استدعاء.
+ * - الفرع المحفوظ للمدير العام يُهمل فوراً إذا كان يعود لشركة أخرى (قيمة قديمة)،
  *   ويُعاد ضبط المتجر عبر ensureCompany.
  */
 export const useBranchFilter = () => {
@@ -29,8 +28,7 @@ export const useBranchFilter = () => {
   const setActiveWarehouse = useBranchFilterStore(s => s.setActiveWarehouse);
   const resetWarehouse = useBranchFilterStore(s => s.resetWarehouse);
 
-  const isManager =
-    user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
+  const canSwitchBranches = canUserSwitchBranches(user);
   const userBranchId = user?.branch_id ?? null;
   const userCompanyId = user?.company_id ?? null;
 
@@ -46,8 +44,8 @@ export const useBranchFilter = () => {
     ensureCompany(userCompanyId);
   }, [ensureCompany, userCompanyId]);
 
-  // المدير العام: «جميع الفروع» فقط عند اختيارها صراحةً، وإلا فرعه هو الافتراضي.
-  // الموظف: مقيد دائماً بفرعه.
+  // المدير العام (owner/admin): «جميع الفروع» فقط عند اختيارها صراحةً، وإلا فرعه هو الافتراضي.
+  // مدير الفرع والموظف الفرعي: مقيدان دائماً بفرعهما فقط.
   const managerEffectiveBranchId = allBranchesSelected
     ? null
     : (managerBranchId ?? userBranchId);
@@ -55,13 +53,15 @@ export const useBranchFilter = () => {
     ? null
     : (managerBranchId !== null ? managerBranchName : (user?.branch_name ?? null));
 
-  const effectiveBranchId = isManager ? managerEffectiveBranchId : userBranchId;
-  const effectiveBranchName = isManager ? managerEffectiveBranchName : (user?.branch_name ?? null);
-  const effectiveWarehouseId = isManager ? managerWarehouseId : null;
-  const effectiveWarehouseName = isManager ? managerWarehouseName : null;
+  const effectiveBranchId = canSwitchBranches ? managerEffectiveBranchId : userBranchId;
+  const effectiveBranchName = canSwitchBranches
+    ? managerEffectiveBranchName
+    : (user?.branch_name ?? null);
+  const effectiveWarehouseId = canSwitchBranches ? managerWarehouseId : null;
+  const effectiveWarehouseName = canSwitchBranches ? managerWarehouseName : null;
 
   return {
-    /** branch_id المُستخدم للفلترة — null يعني "جميع الفروع" */
+    /** branch_id المُستخدم للفلترة — null يعني "جميع الفروع" (للمدير العام فقط) */
     branchId: effectiveBranchId,
     branchName: effectiveBranchName,
     /** warehouse_id المُستخدم للفلترة — null يعني "جميع مستودعات الفرع" */
@@ -69,10 +69,14 @@ export const useBranchFilter = () => {
     warehouseName: effectiveWarehouseName,
     setActiveWarehouse,
     resetWarehouse,
-    /** هل المستخدم مدير يمكنه تبديل الفرع والمستودع؟ */
-    isManager,
+    /** هل المستخدم مدير عام يمكنه تبديل الفرع والمستودع؟ */
+    isManager: canSwitchBranches,
+    /** اسم صريح لصلاحية تبديل الفروع (تطابقاً مع العزل الصارم) */
+    canSwitchBranches,
+    /** هل المستخدم مقيد بصرامة بفرعه الحالي؟ */
+    isBranchLocked: !canSwitchBranches && userBranchId !== null && userBranchId !== '',
     /** هل يُعرض الكل (لا فلترة بفرع) */
-    showingAll: effectiveBranchId === null,
+    showingAll: canSwitchBranches && effectiveBranchId === null,
     /** هل يُعرض كل المستودعات (لا فلترة بمستودع محدد) */
     showingAllWarehouses: effectiveWarehouseId === null,
   };

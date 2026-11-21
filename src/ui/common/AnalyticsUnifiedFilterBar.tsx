@@ -14,6 +14,7 @@ import {
   type AnalyticsPaymentType,
 } from '../../core/store/analyticsFilterStore';
 import { useAuthStore } from '../../features/auth/store';
+import { canUserSwitchBranches } from '../../features/branches/store';
 import { useBranches } from '../../features/settings/hooks';
 import { cn } from '../../core/utils';
 
@@ -37,11 +38,7 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
   className,
 }) => {
   const { user } = useAuthStore();
-  const isManager =
-    user?.role === 'owner' ||
-    user?.role === 'admin' ||
-    user?.role === 'manager' ||
-    !user?.branch_id;
+  const isManager = canUserSwitchBranches(user);
 
   const {
     period,

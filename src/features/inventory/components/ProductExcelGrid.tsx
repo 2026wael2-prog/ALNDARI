@@ -7,6 +7,7 @@ import { useFeedbackStore } from '../../../features/feedback/store';
 import { ConfirmModal } from '../../../ui/base/ConfirmModal';
 import BulkActionsBar from './products/BulkActionsBar';
 import { getProductColumns } from './products/ProductTableColumns';
+import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
 import { useAccompanyingInfoStore } from '../../../features/accompanying-info';
 
 interface Props {
@@ -51,6 +52,7 @@ const ProductExcelGrid: React.FC<Props> = ({
   onToggleCore,
 }) => {
   const { saveProduct, bulkDeleteProducts, toggleCoreProduct } = useProductMutations();
+  const { branchId: activeBranchId } = useBranchFilter();
   const { showToast } = useFeedbackStore();
   const [deleteConfirm, setDeleteConfirm] = useState<{
     id: string | string[];
@@ -114,6 +116,7 @@ const ProductExcelGrid: React.FC<Props> = ({
     () =>
       getProductColumns({
         onEdit,
+        activeBranchId,
         onDeleteRequest: onDelete
           ? p => {
               setDeleteConfirm({ id: p.id, type: 'single' });
@@ -124,7 +127,7 @@ const ProductExcelGrid: React.FC<Props> = ({
         extraColumns,
         visibleColumns,
       }),
-    [onEdit, onDelete, onToggleCore, hideActions, extraColumns, visibleColumns]
+    [onEdit, activeBranchId, onDelete, onToggleCore, hideActions, extraColumns, visibleColumns]
   );
 
   if (isLoading) return <TableSkeleton rows={10} cols={6} />;

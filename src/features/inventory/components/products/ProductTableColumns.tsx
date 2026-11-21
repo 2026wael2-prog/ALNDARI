@@ -2,11 +2,13 @@ import { Edit, Trash2, Package, Star } from 'lucide-react';
 import type { Product } from '../../types';
 import { formatCurrency, formatNumberDisplay, cn } from '../../../../core/utils';
 import type { Column } from '../../../../ui/common/ExcelTable';
+import { BranchStockAvailabilityCell } from './BranchStockAvailabilityCell';
 
 interface GetProductColumnsProps {
   onEdit?: ((p: Product) => void) | undefined;
   onDeleteRequest?: ((p: Product) => void) | undefined;
   onToggleCore?: ((p: Product, newStatus: boolean) => void) | undefined;
+  activeBranchId?: string | null | undefined;
   hideActions?: boolean;
   extraColumns?: Array<Column<Product>>;
   visibleColumns?: string[] | undefined;
@@ -20,6 +22,7 @@ export const getProductColumns = ({
   onEdit,
   onDeleteRequest,
   onToggleCore,
+  activeBranchId,
   hideActions = false,
   extraColumns = [],
   visibleColumns,
@@ -123,13 +126,15 @@ export const getProductColumns = ({
       sortKey: 'category',
     },
     {
-      header: 'المخزن/الرف',
+      header: 'التوفر بالفروع',
       accessor: p => (
-        <span className="rounded border border-slate-100 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
-          {textOrDash(p.location)}
-        </span>
+        <BranchStockAvailabilityCell
+          product={p}
+          activeBranchId={activeBranchId}
+          maxVisiblePills={2}
+        />
       ),
-      width: 'w-48',
+      width: 'w-44',
       sortKey: 'location',
     },
     {

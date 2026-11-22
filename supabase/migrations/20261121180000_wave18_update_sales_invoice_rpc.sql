@@ -201,7 +201,7 @@ BEGIN
   v_base_subtotal := ROUND(v_base_total - v_base_tax, 2);
 
   -- 9. Determine payment status & amounts (respecting existing payment_allocations)
-  SELECT COALESCE(SUM(pa.allocated_amount), 0)
+  SELECT COALESCE(SUM(pa.amount), 0)
   INTO v_bond_allocated
   FROM public.payment_allocations pa
   WHERE pa.invoice_id = p_invoice_id

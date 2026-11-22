@@ -11,6 +11,7 @@ import {
   Star,
   BarChart3,
   TrendingUp,
+  GitMerge,
 } from 'lucide-react';
 
 export interface TabItem {
@@ -38,6 +39,7 @@ export const getInventoryTabGroups = (t: (key: string, params?: any) => string):
       { id: 'products', label: t('products'), icon: Box },
       { id: 'core_products', label: 'المنتجات الاستراتيجية', icon: Star },
       { id: 'categories', label: t('categories'), icon: Layers },
+      { id: 'duplicates', label: 'دمج المكررات', icon: GitMerge },
     ],
   },
   {
@@ -73,4 +75,5 @@ export const getInventoryTabs = (t: (key: string, params?: any) => string) => [
   { id: 'audit', label: t('audit'), icon: History },
   { id: 'bi_inventory', label: 'تحليلات المخزون والفروع', icon: BarChart3 },
   { id: 'bi_products', label: 'ربحية وركود الأصناف', icon: TrendingUp },
+  { id: 'duplicates', label: 'دمج المكررات', icon: GitMerge },
 ];

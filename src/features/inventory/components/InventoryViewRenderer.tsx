@@ -10,6 +10,7 @@ const WarehousesView = lazy(() => import('./WarehousesView'));
 const AuditLogView = lazy(() => import('./AuditLogView'));
 const CategoriesManagementView = lazy(() => import('./CategoriesManagementView'));
 const CoreProductsView = lazy(() => import('./CoreProductsView'));
+const DuplicateProductsMergeView = lazy(() => import('./DuplicateProductsMergeView'));
 const InventoryBiView = lazy(() =>
   import('../../reports/components/bi/InventoryBiView').then(m => ({
     default: m.InventoryBiView,
@@ -112,6 +113,12 @@ const InventoryViewRenderer: React.FC<InventoryViewRendererProps> = ({
           <div className="custom-scrollbar h-full overflow-y-auto p-3 pb-16">
             <InventoryBiView />
           </div>
+        </Suspense>
+      );
+    case 'duplicates':
+      return (
+        <Suspense fallback={null}>
+          <DuplicateProductsMergeView />
         </Suspense>
       );
     case 'bi_products':

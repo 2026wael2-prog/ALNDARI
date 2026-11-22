@@ -11,8 +11,22 @@ export interface SearchResultProduct {
   sku?: string | null;
   brand?: string | null;
   size?: string | null;
-  warehouse_distribution?: Array<{ warehouse_id: string; quantity: number }>;
+  warehouse_distribution?: Array<{
+    warehouse_id: string;
+    quantity: number;
+    warehouse_name?: string | undefined;
+    branch_id?: string | undefined;
+  }>;
   stock_quantity?: number;
+}
+
+interface RawSearchStockItem {
+  warehouse_id: string;
+  quantity: number | string;
+  warehouse_name?: string;
+  branch_id?: string;
+  branch_name?: string;
+  warehouses?: { branch_id?: string | null; name_ar?: string | null } | null;
 }
 
 interface SearchRow {
@@ -25,13 +39,25 @@ interface SearchRow {
   stock?: unknown;
 }
 
-function mapSearchRow(row: SearchRow): SearchResultProduct {
-  const stockList = Array.isArray(row.stock) ? row.stock : [];
-  const distribution = stockList.map(s => ({
+function mapSearchRow(row: SearchRow, branchId?: string | null): SearchResultProduct {
+  const rawStock = Array.isArray(row.stock) ? (row.stock as RawSearchStockItem[]) : [];
+
+  const getStockBranchId = (s: RawSearchStockItem): string | undefined =>
+    s.branch_id || s.warehouses?.branch_id || undefined;
+
+  const distribution = rawStock.map(s => ({
     warehouse_id: s.warehouse_id,
+    warehouse_name: s.warehouse_name || s.warehouses?.name_ar || undefined,
+    branch_id: getStockBranchId(s),
     quantity: Number(s.quantity) || 0,
   }));
-  const totalStock = distribution.reduce((sum, s) => sum + s.quantity, 0);
+
+  // عزل رصيد الفرع المحدد إن طُلب لتفادي تسريب كميات الفروع الأخرى
+  const relevantStock = branchId
+    ? rawStock.filter(s => getStockBranchId(s) === branchId)
+    : rawStock;
+
+  const totalStock = relevantStock.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
 
   return {
     id: row.id,
@@ -77,9 +103,9 @@ async function searchProductsFallback(
           warehouses?: { branch_id?: string | null } | null;
         }>
       ).filter(s => !s.warehouses || s.warehouses.branch_id === branchId);
-      return mapSearchRow({ ...row, stock: filteredStock });
+      return mapSearchRow({ ...row, stock: filteredStock }, branchId);
     }
-    return mapSearchRow(row);
+    return mapSearchRow(row, branchId);
   });
 }
 
@@ -109,7 +135,7 @@ export const productSearchService = {
         logger.warn('inventory', 'searchProducts RPC error, falling back to ILIKE:', error.message);
         return await searchProductsFallback(companyId, cleanTerm, 50, branchId);
       }
-      return (data as unknown as SearchRow[]).map(mapSearchRow);
+      return (data as unknown as SearchRow[]).map(r => mapSearchRow(r, branchId));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.warn('inventory', 'searchProducts failed, using fallback:', message);

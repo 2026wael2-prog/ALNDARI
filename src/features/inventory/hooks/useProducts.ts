@@ -383,10 +383,14 @@ export const useProductMutations = (): ProductMutations => {
   };
 };
 
-export const useSearchProducts = (searchTerm: string): UseQueryResult<Product[]> => {
+export const useSearchProducts = (
+  searchTerm: string,
+  explicitBranchId?: string | null
+): UseQueryResult<Product[]> => {
   const { user } = useAuthStore();
   const companyId = user?.company_id;
-  const { branchId } = useBranchFilter();
+  const { branchId: filterBranchId } = useBranchFilter();
+  const branchId = explicitBranchId !== undefined ? explicitBranchId : filterBranchId;
   // [PERF-FIX] كان مفتاح الاستعلام يستخدم النص الخام، فكل مسافة أو حرف زائد
   // يُنشئ مدخلاً جديداً في الكاش ويجعل القائمة تومض. الآن نستخدم النص بعد
   // trim، ونُبقي نتائج البحث السابق معروضة أثناء جلب التالي

@@ -48,10 +48,15 @@ const countedQuantityOf = (item: Record<string, unknown>): number | null => {
 
 /** الكمية المتوقّعة من توزيع المخازن أو من رصيد المنتج. */
 export const resolveExpectedQuantity = (product: Product, warehouseId: string | undefined): number => {
-  const distribution = product.warehouse_distribution;
-  if (distribution !== undefined && warehouseId !== undefined) {
-    const stock = distribution.find(w => w.warehouse_id === warehouseId);
-    if (stock !== undefined) return toNumber(stock.quantity);
+  if (warehouseId !== undefined && warehouseId !== '') {
+    const distribution = product.warehouse_distribution;
+    if (distribution !== undefined && Array.isArray(distribution)) {
+      const stock = distribution.find(w => w.warehouse_id === warehouseId);
+      if (stock !== undefined) return toNumber(stock.quantity);
+    }
+    // إذا حُدد مستودع معين ولم يُعثر على رصيد له، فالرصيد المتوقع في هذا المستودع 0
+    // ولا يجوز استخدام رصيد الفروع أو المستودعات الأخرى كبديل منعاً لتداخل الفروع.
+    return 0;
   }
   return toNumber(product.stock_quantity);
 };

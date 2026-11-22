@@ -119,7 +119,11 @@ const AuditSessionPage: React.FC = () => {
   });
 
   const [debouncedFilter] = useDebounce(actions.filter, 300);
-  const { data: searchResults, isLoading: isLoadingSearch } = useSearchProducts(debouncedFilter);
+  const sessionBranchId = (session as { branch_id?: string } | undefined)?.branch_id;
+  const { data: searchResults, isLoading: isLoadingSearch } = useSearchProducts(
+    debouncedFilter,
+    sessionBranchId
+  );
   const stats = useMemo(() => calculateAuditStats(statsItems), [statsItems]);
 
   const closeAddProduct = useCallback((): void => {

@@ -202,7 +202,7 @@ export const auditService = {
   getAuditSessionDetails: async (sessionId: string) => {
     const { data: sessionRaw, error: sError } = await supabase
       .from('audit_sessions')
-      .select('*, warehouses(name_ar)')
+      .select('*, warehouses(name_ar, branch_id)')
       .eq('id', sessionId)
       .single();
     if (sError) throw sError;
@@ -219,6 +219,7 @@ export const auditService = {
       session: {
         ...session,
         warehouse_name: (session?.warehouses as { name_ar?: string })?.name_ar,
+        branch_id: (session?.warehouses as { branch_id?: string })?.branch_id,
       } as Record<string, unknown>,
       items: (items || []).map((i: Record<string, unknown>) => {
         const pRaw = i.products as AuditProductRow | AuditProductRow[] | null | undefined;

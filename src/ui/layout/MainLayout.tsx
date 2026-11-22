@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useLayoutVariant } from './useLayoutVariant';
+import { prefetchCriticalRoutes } from '../../core/utils/routePrefetcher';
 
 const ClassicChrome = lazy(() => import('./classic/ClassicChrome'));
 import { WorkspaceTabBar, MultiViewContainer } from './tabs';
@@ -60,7 +61,10 @@ const MainLayout: React.FC = () => {
   const [mountSecondaryOverlays, setMountSecondaryOverlays] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setMountSecondaryOverlays(true), 2000);
+    const t = setTimeout(() => {
+      setMountSecondaryOverlays(true);
+      prefetchCriticalRoutes();
+    }, 2000);
     return () => clearTimeout(t);
   }, []);
   const { isOnline } = useNetworkStatus();
@@ -68,12 +72,28 @@ const MainLayout: React.FC = () => {
   const { deviceCategory, isIPad } = useDevice();
   const { isTabletLandscape, isTabletPortrait } = useOrientation();
 
-  const { dir } = useI18nStore();
+  const dir = useI18nStore(s => s.dir);
   const location = useLocation();
-  const { initializeTheme } = useThemeStore();
+  const initializeTheme = useThemeStore(s => s.initializeTheme);
   const { t } = useTranslation();
   // القشرة الكلاسيكية (قوائم + شريط أوامر) تُفعَّل من الثيم/التفضيل وعلى سطح المكتب فقط
   const isClassicShell = useLayoutVariant() === 'classic';
+
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed(prev => !prev);
+  }, []);
+  const handleCloseMobileSidebar = useCallback(() => {
+    setIsMobileSidebarOpen(false);
+  }, []);
+  const handleOpenMobileSidebar = useCallback(() => {
+    setIsMobileSidebarOpen(true);
+  }, []);
+  const handleOpenMoreSheet = useCallback(() => {
+    setIsMoreSheetOpen(true);
+  }, []);
+  const handleCloseMoreSheet = useCallback(() => {
+    setIsMoreSheetOpen(false);
+  }, []);
 
   // Dynamic sidebar width based on screen size and device
   const sidebarWidth = useMemo(
@@ -149,13 +169,9 @@ const MainLayout: React.FC = () => {
         <Sidebar
           className="no-print"
           isCollapsed={isSidebarCollapsed}
-          toggleSidebar={() => {
-            setIsSidebarCollapsed(!isSidebarCollapsed);
-          }}
+          toggleSidebar={handleToggleSidebar}
           isMobileOpen={isMobileSidebarOpen}
-          onCloseMobile={() => {
-            setIsMobileSidebarOpen(false);
-          }}
+          onCloseMobile={handleCloseMobileSidebar}
           sidebarWidth={sidebarWidth}
         />
       )}
@@ -181,11 +197,7 @@ const MainLayout: React.FC = () => {
               <ClassicChrome />
             </Suspense>
           ) : (
-            <Header
-              onMenuClick={() => {
-                setIsMobileSidebarOpen(true);
-              }}
-            />
+            <Header onMenuClick={handleOpenMobileSidebar} />
           )}
           {isDesktop && <WorkspaceTabBar />}
         </div>
@@ -204,8 +216,8 @@ const MainLayout: React.FC = () => {
 
         <MobileBottomNav
           isMoreSheetOpen={isMoreSheetOpen}
-          onOpenMoreSheet={() => setIsMoreSheetOpen(true)}
-          onCloseMoreSheet={() => setIsMoreSheetOpen(false)}
+          onOpenMoreSheet={handleOpenMoreSheet}
+          onCloseMoreSheet={handleCloseMoreSheet}
         />
 
         {/* Global Realtime Floating Chat & Collaboration Dock (deferred until main view settles) */}

@@ -76,45 +76,58 @@ export function prefetchRoute(path: string): void {
 
 /**
  * Prefetch commonly visited routes after the app is completely loaded and idle.
+ * Respects Save-Data / slow 2G connections so it never competes with active traffic.
  */
+let criticalPrefetchScheduled = false;
+
 export function prefetchCriticalRoutes(): void {
+  if (criticalPrefetchScheduled || typeof window === 'undefined') return;
+
+  const nav = navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+  };
+  if (
+    nav.connection?.saveData ||
+    nav.connection?.effectiveType === 'slow-2g' ||
+    nav.connection?.effectiveType === '2g'
+  ) {
+    return;
+  }
+
+  criticalPrefetchScheduled = true;
+
   // Only prefetch when browser is completely idle to preserve typing & rendering performance
   const startPrefetch = () => {
     const criticalRoutes = [
-      '/pos',
       '/sales',
       '/inventory',
-      '/purchases',
-      '/expenses',
-      '/bonds',
-      '/accounting',
+      '/pos',
       '/clients',
-      '/suppliers',
-      '/reports',
-      '/debts',
+      '/purchases',
+      '/accounting',
     ];
     criticalRoutes.forEach((path, index) => {
       setTimeout(
         () => {
-          if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+          if ('requestIdleCallback' in window) {
             window.requestIdleCallback(
               () => {
                 prefetchRoute(path);
               },
-              { timeout: 4000 }
+              { timeout: 5000 }
             );
           } else {
             prefetchRoute(path);
           }
         },
-        (index + 1) * 800
+        (index + 1) * 1200
       );
     });
   };
 
-  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-    window.requestIdleCallback(startPrefetch, { timeout: 5000 });
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(startPrefetch, { timeout: 6000 });
   } else {
-    setTimeout(startPrefetch, 3000);
+    setTimeout(startPrefetch, 4000);
   }
 }

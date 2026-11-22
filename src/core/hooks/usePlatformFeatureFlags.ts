@@ -8,7 +8,7 @@ export type { PlatformFeatureFlags };
 /**
  * usePlatformFeatureFlags — جلب مفاتيح الميزات العامة من قاعدة البيانات.
  * يعود بالقيم الافتراضية (كل شيء مفعل) عند فشل الجلب.
- * staleTime: 30 ثانية. Refetch: كل 60 ثانية عند فتح التبويب أو التركيز عليه.
+ * staleTime: 5 دقائق، وتحديث خلفي هادئ كل 5 دقائق دون إعادة جلب مزعجة عند كل تبديل نافذة.
  */
 export const usePlatformFeatureFlags = () => {
   return useQuery({
@@ -34,10 +34,10 @@ export const usePlatformFeatureFlags = () => {
         ...(value as unknown as Partial<PlatformFeatureFlags>),
       };
     },
-    staleTime: 30_000,
-    gcTime: 2 * 60_000,
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: false,
     retry: false,
   });
 };

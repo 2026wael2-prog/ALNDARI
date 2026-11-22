@@ -24,7 +24,26 @@ export const QUERY_PERSIST_BUSTER = 'alz-erp-v3';
  *    previously flooded the console with repeated
  *    `companies?id=eq.<stale-id>&select=*` 406 requests.
  */
-const NO_RETRY_CODES = [401, 403, 406, 408, 429, 500, 502, 503, 504, 'PGRST301', 'PGRST116'] as const;
+const NO_RETRY_CODES = [
+  400,
+  401,
+  403,
+  404,
+  406,
+  408,
+  422,
+  429,
+  500,
+  502,
+  503,
+  504,
+  'PGRST116',
+  'PGRST202',
+  'PGRST301',
+  '22P02',
+  '23514',
+  '42883',
+] as const;
 const NO_RETRY_FRAGMENTS = [
   'jwt expired',
   'refresh token',
@@ -70,8 +89,9 @@ export const queryClient = new QueryClient({
       // Always attempt offline mutations so the offline queue (syncStore) can
       // enqueue them on failure — networkMode 'online' would pause them forever.
       networkMode: 'always',
-      retry: 3,
-      retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // ⚡ Fail fast on mutations (retry: 0): retrying 400/404/validation errors 3×
+      // stalls the UI spinner for ~7s and risks duplicate financial writes.
+      retry: 0,
     },
   },
 });

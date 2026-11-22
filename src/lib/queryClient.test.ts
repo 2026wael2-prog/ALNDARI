@@ -1,8 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { shouldRetryQuery } from './queryClient';
+import { queryClient, shouldRetryQuery } from './queryClient';
 
-describe('shouldRetryQuery (regression guard against 5xx/timeout retry storms)', () => {
-  it.each([401, 403, 406, 408, 429, 500, 502, 503, 504, 'PGRST116', 'PGRST301'])(
+describe('shouldRetryQuery (regression guard against 4xx/5xx/timeout retry storms)', () => {
+  it.each([
+    400,
+    401,
+    403,
+    404,
+    406,
+    408,
+    422,
+    429,
+    500,
+    502,
+    503,
+    504,
+    'PGRST116',
+    'PGRST202',
+    'PGRST301',
+    '22P02',
+    '23514',
+    '42883',
+  ])(
     'does not retry deterministic or server-overload code %s',
     code => {
       expect(
@@ -28,5 +47,9 @@ describe('shouldRetryQuery (regression guard against 5xx/timeout retry storms)',
     expect(shouldRetryQuery(1, err)).toBe(true);
     expect(shouldRetryQuery(2, err)).toBe(true);
     expect(shouldRetryQuery(3, err)).toBe(false);
+  });
+
+  it('disables automatic retries on mutations to avoid duplicate writes and UI stalls', () => {
+    expect(queryClient.getDefaultOptions().mutations?.retry).toBe(0);
   });
 });

@@ -13,6 +13,7 @@ import Button from '../../../../ui/base/Button';
 import {
   DEFAULT_INTELLIGENCE_FILTERS,
   filterAndSortPurchaseRecommendations,
+  getProductMap,
   type IntelligenceFilterState,
 } from '../../domain/sorting/intelligenceSortAndFilter';
 import { PurchaseBreakdownModal } from '../modals/PurchaseBreakdownModal';
@@ -63,10 +64,7 @@ export const PurchaseRecommendationsTab: React.FC<Props> = React.memo(({
   const [page, setPage] = useState(1);
   const pageSize = 50;
 
-  const productMap = useMemo(
-    () => new Map(products.map(p => [p.identity.productId, p])),
-    [products]
-  );
+  const productMap = useMemo(() => getProductMap(products), [products]);
 
   const persistedMap = useMemo(() => {
     const map = new Map<string, RecommendationStatus>();

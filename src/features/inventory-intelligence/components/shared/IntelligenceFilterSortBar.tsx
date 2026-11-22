@@ -31,7 +31,7 @@ const SORT_OPTIONS: Array<{ value: IntelligenceSortField; label: string }> = [
   { value: 'stockValue', label: 'القيمة / التكلفة' },
 ];
 
-export const IntelligenceFilterSortBar: React.FC<IntelligenceFilterSortBarProps> = ({
+export const IntelligenceFilterSortBar: React.FC<IntelligenceFilterSortBarProps> = React.memo(({
   products,
   branches,
   filters,
@@ -216,4 +216,4 @@ export const IntelligenceFilterSortBar: React.FC<IntelligenceFilterSortBarProps>
       </div>
     </div>
   );
-};
+});

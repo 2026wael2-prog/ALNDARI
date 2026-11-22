@@ -76,28 +76,34 @@ export function useIntelligenceConfig() {
     queryFn: () => intelligenceService.getConfig(companyId),
     enabled: Boolean(companyId),
     initialData: DEFAULT_ENGINE_CONFIG,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
-export function useRecommendationHistory() {
+export function useRecommendationHistory(enabled = true) {
   const { user } = useAuthStore();
   const companyId = user?.company_id ?? '';
 
   return useQuery({
     queryKey: ['inventory_intelligence_history', companyId],
     queryFn: () => intelligenceService.getRecommendationHistory(companyId),
-    enabled: Boolean(companyId),
+    enabled: Boolean(companyId) && enabled,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
-export function useIntelligenceRuns() {
+export function useIntelligenceRuns(enabled = true) {
   const { user } = useAuthStore();
   const companyId = user?.company_id ?? '';
 
   return useQuery({
     queryKey: ['inventory_intelligence_runs', companyId],
     queryFn: () => intelligenceService.getRunHistory(companyId),
-    enabled: Boolean(companyId),
+    enabled: Boolean(companyId) && enabled,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

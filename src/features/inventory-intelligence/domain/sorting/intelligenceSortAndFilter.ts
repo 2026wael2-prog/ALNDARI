@@ -114,55 +114,90 @@ export function extractFilterOptions(products: ProductIntelligenceSummary[]) {
   return result;
 }
 
+const productMapCache = new WeakMap<
+  ProductIntelligenceSummary[],
+  Map<string, ProductIntelligenceSummary>
+>();
+
+export function getProductMap(
+  products: ProductIntelligenceSummary[]
+): Map<string, ProductIntelligenceSummary> {
+  const cached = productMapCache.get(products);
+  if (cached) return cached;
+  const map = new Map<string, ProductIntelligenceSummary>();
+  for (let i = 0; i < products.length; i++) {
+    const p = products[i];
+    map.set(p.identity.productId, p);
+  }
+  productMapCache.set(products, map);
+  return map;
+}
+
+const searchHaystackCache = new WeakMap<ProductIntelligenceSummary, string>();
+
+function getSearchHaystack(p: ProductIntelligenceSummary): string {
+  const cached = searchHaystackCache.get(p);
+  if (cached !== undefined) return cached;
+  let text = `${p.identity.name || ''} ${p.identity.partType || ''} ${p.identity.size || ''} ${p.identity.sku || ''} ${p.identity.partNumber || ''} ${p.identity.brand || ''}`;
+  if (p.suppliers.length > 0) {
+    for (let i = 0; i < p.suppliers.length; i++) {
+      text += ' ' + (p.suppliers[i].supplierName || '');
+    }
+  }
+  if (p.topCustomers.length > 0) {
+    for (let i = 0; i < p.topCustomers.length; i++) {
+      text += ' ' + (p.topCustomers[i].customerName || '');
+    }
+  }
+  const normalized = text.toLowerCase();
+  searchHaystackCache.set(p, normalized);
+  return normalized;
+}
+
 export function filterAndSortProducts(
   products: ProductIntelligenceSummary[],
   filters: IntelligenceFilterState
 ): ProductIntelligenceSummary[] {
   const q = filters.search.trim().toLowerCase();
+  const hasFilters =
+    q !== '' ||
+    filters.partType !== 'all' ||
+    filters.size !== 'all' ||
+    filters.supplierId !== 'all' ||
+    filters.customerId !== 'all' ||
+    filters.branchId !== 'all';
 
-  const filtered = products.filter(p => {
-    if (filters.partType !== 'all' && p.identity.partType !== filters.partType) return false;
-    if (filters.size !== 'all' && p.identity.size !== filters.size) return false;
+  const filtered = hasFilters
+    ? products.filter(p => {
+        if (filters.partType !== 'all' && p.identity.partType !== filters.partType) return false;
+        if (filters.size !== 'all' && p.identity.size !== filters.size) return false;
 
-    if (filters.supplierId !== 'all') {
-      const hasSupplier =
-        p.suppliers.some(s => s.supplierId === filters.supplierId) ||
-        p.lastSupplier?.supplierId === filters.supplierId;
-      if (!hasSupplier) return false;
-    }
+        if (filters.supplierId !== 'all') {
+          const hasSupplier =
+            p.suppliers.some(s => s.supplierId === filters.supplierId) ||
+            p.lastSupplier?.supplierId === filters.supplierId;
+          if (!hasSupplier) return false;
+        }
 
-    if (filters.customerId !== 'all') {
-      const hasCustomer = p.topCustomers.some(
-        c =>
-          c.customerId === filters.customerId &&
-          (filters.branchId === 'all' || !c.branchId || c.branchId === filters.branchId)
-      );
-      if (!hasCustomer) return false;
-    }
+        if (filters.customerId !== 'all') {
+          const hasCustomer = p.topCustomers.some(
+            c =>
+              c.customerId === filters.customerId &&
+              (filters.branchId === 'all' || !c.branchId || c.branchId === filters.branchId)
+          );
+          if (!hasCustomer) return false;
+        }
 
-    if (filters.branchId !== 'all') {
-      const bm = p.branchMetrics.find(b => b.branchId === filters.branchId);
-      if (!bm || (bm.physicalStock <= 0 && bm.qty365d <= 0)) return false;
-    }
+        if (filters.branchId !== 'all') {
+          const bm = p.branchMetrics.find(b => b.branchId === filters.branchId);
+          if (!bm || (bm.physicalStock <= 0 && bm.qty365d <= 0)) return false;
+        }
 
-    if (q) {
-      const text = [
-        p.identity.name,
-        p.identity.partType,
-        p.identity.size,
-        p.identity.sku,
-        p.identity.partNumber,
-        p.identity.brand,
-        ...p.suppliers.map(s => s.supplierName),
-        ...p.topCustomers.map(c => c.customerName),
-      ]
-        .join(' ')
-        .toLowerCase();
-      if (!text.includes(q)) return false;
-    }
+        if (q && !getSearchHaystack(p).includes(q)) return false;
 
-    return true;
-  });
+        return true;
+      })
+    : products;
 
   if (filters.sortBy === 'default') return filtered;
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useTransition } from 'react';
 import {
   Activity,
   Archive,
@@ -79,10 +79,20 @@ const EMPTY_RUNS: IntelligenceRunSummary[] = [];
 
 const InventoryIntelligencePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<IntelligenceTabId>('overview');
+  const [visualTab, setVisualTab] = useState<IntelligenceTabId>('overview');
+  const [isTabPending, startTabTransition] = useTransition();
   const [fullAnalysisEnabled, setFullAnalysisEnabled] = useState(false);
   const [pageIdx, setPageIdx] = useState(0);
   const [pageSearch, setPageSearch] = useState('');
+  const [debouncedPageSearch, setDebouncedPageSearch] = useState('');
   const pageSize = 25;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedPageSearch(pageSearch.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [pageSearch]);
 
   const {
     data: summaryData,
@@ -97,7 +107,7 @@ const InventoryIntelligencePage: React.FC = () => {
     isLoading: isLoadingPage,
   } = useInventoryIntelligenceProductsPage({
     lookbackDays: 365,
-    search: pageSearch || null,
+    search: debouncedPageSearch || null,
     limit: pageSize,
     offset: pageIdx * pageSize,
     enabled: activeTab === 'overview' && !fullAnalysisEnabled,
@@ -105,8 +115,10 @@ const InventoryIntelligencePage: React.FC = () => {
 
   const { data, isLoading, isError, refetch, isFetching } = useInventoryIntelligence(fullAnalysisEnabled);
   const { data: config } = useIntelligenceConfig();
-  const { data: history = EMPTY_HISTORY, isLoading: isLoadingHistory } = useRecommendationHistory();
-  const { data: runs = EMPTY_RUNS } = useIntelligenceRuns();
+  const { data: history = EMPTY_HISTORY, isLoading: isLoadingHistory } = useRecommendationHistory(
+    fullAnalysisEnabled || activeTab === 'decisions'
+  );
+  const { data: runs = EMPTY_RUNS } = useIntelligenceRuns(activeTab === 'ml_performance');
   const {
     decideRecommendation,
     isDeciding,
@@ -128,10 +140,13 @@ const InventoryIntelligencePage: React.FC = () => {
 
   const handleTabChange = React.useCallback((id: string) => {
     const next = id as IntelligenceTabId;
-    setActiveTab(next);
-    if (next !== 'overview' && next !== 'settings') {
-      setFullAnalysisEnabled(true);
-    }
+    setVisualTab(next);
+    startTabTransition(() => {
+      setActiveTab(next);
+      if (next !== 'overview' && next !== 'settings') {
+        setFullAnalysisEnabled(true);
+      }
+    });
   }, []);
 
   const companyId = useAuthStore(s => s.user?.company_id) ?? '';
@@ -184,7 +199,7 @@ const InventoryIntelligencePage: React.FC = () => {
         icon={Cpu}
         iconColor="text-blue-500"
         tabs={headerTabs}
-        activeTab={activeTab}
+        activeTab={visualTab}
         onTabChange={handleTabChange}
         actions={
           <div className="flex items-center gap-2">
@@ -216,7 +231,11 @@ const InventoryIntelligencePage: React.FC = () => {
         }
       />
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pt-3 pb-24 md:px-4">
+      <div
+        className={`custom-scrollbar flex-1 overflow-y-auto px-2 pt-3 pb-24 transition-opacity duration-150 md:px-4 ${
+          isTabPending ? 'opacity-70' : 'opacity-100'
+        }`}
+      >
         <ContentContainer>
           {activeTab === 'settings' ? (
             <EngineSettingsTab

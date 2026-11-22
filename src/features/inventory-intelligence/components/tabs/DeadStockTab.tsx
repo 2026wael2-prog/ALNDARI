@@ -12,6 +12,7 @@ import Button from '../../../../ui/base/Button';
 import {
   DEFAULT_INTELLIGENCE_FILTERS,
   filterAndSortProducts,
+  getProductMap,
   type IntelligenceFilterState,
 } from '../../domain/sorting/intelligenceSortAndFilter';
 import {
@@ -53,10 +54,7 @@ export const DeadStockTab: React.FC<Props> = React.memo(({
   const pageSize = 50;
   const [reviewedIds, setReviewedIds] = useState<Record<string, boolean>>({});
 
-  const productMap = useMemo(
-    () => new Map(products.map(p => [p.identity.productId, p])),
-    [products]
-  );
+  const productMap = useMemo(() => getProductMap(products), [products]);
 
   const persistedReviewed = useMemo(() => {
     const set = new Set<string>();

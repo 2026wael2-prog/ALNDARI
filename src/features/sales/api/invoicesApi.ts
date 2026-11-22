@@ -347,7 +347,7 @@ export const invoicesApi = {
 
     const rpcParams = {
       p_invoice_id: payload.invoiceId,
-      ...(payload.partyId ? { p_party_id: payload.partyId } : {}),
+      p_party_id: payload.partyId || null,
       p_invoice_date: payload.issueDate || formatLocalDate(),
       p_due_date: resolveSaleInvoiceDueDate({
         issueDate: payload.issueDate ?? null,
@@ -363,11 +363,11 @@ export const invoicesApi = {
         discount_amount: i.discount ?? 0,
       })),
       p_payment_type: payload.paymentMethod || 'cash',
-      ...(payload.notes ? { p_notes: payload.notes } : {}),
+      p_notes: payload.notes || null,
       p_currency_code: payload.currency || 'SAR',
       p_exchange_rate: payload.exchangeRate ? payload.exchangeRate : 1,
-      ...(payload.branchId ? { p_branch_id: payload.branchId } : {}),
-      ...(payload.treasuryAccountId ? { p_payment_account_id: payload.treasuryAccountId } : {}),
+      p_branch_id: payload.branchId || null,
+      p_payment_account_id: payload.treasuryAccountId || null,
       p_paid_amount: payload.paymentMethod === 'credit' ? payload.paidAmount || 0 : 0,
     };
 

@@ -354,8 +354,10 @@ const Modal: React.FC<ModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={closeOnBackdropClick ? onClose : undefined}
-                className="rounded-full p-2 text-[var(--app-text-secondary)] transition-all hover:text-red-500 active:scale-90"
+                onClick={onClose}
+                className="rounded-full p-2 text-[var(--app-text-secondary)] transition-all hover:bg-rose-50 hover:text-red-500 active:scale-90 dark:hover:bg-rose-950/20"
+                title="إغلاق النافذة (Esc)"
+                aria-label="إغلاق النافذة"
               >
                 <X size={20} />
               </button>

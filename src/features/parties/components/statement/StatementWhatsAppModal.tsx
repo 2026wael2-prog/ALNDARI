@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   FileSpreadsheet,
+  FileText,
   Image as ImageIcon,
+  Loader2,
   MessageSquare,
   Phone,
+  Send,
   Share2,
   X,
 } from 'lucide-react';
@@ -14,6 +17,11 @@ import { useStatementWhatsApp } from './whatsapp/useStatementWhatsApp';
 import { StatementExcelTab } from './whatsapp/StatementExcelTab';
 import { StatementImageTab } from './whatsapp/StatementImageTab';
 import { StatementTextTab } from './whatsapp/StatementTextTab';
+import { StatementPrintSheet } from './StatementPrintSheet';
+import { PdfCaptureHost } from '@/core/components/PdfCaptureHost';
+import { generatePDFBlob } from '@/core/utils/pdfExporter';
+import { sharePdfViaWhatsApp } from '@/core/utils/shareUtils';
+import { useFeedbackStore } from '@/features/feedback/store';
 
 interface StatementWhatsAppModalProps {
   isOpen: boolean;
@@ -75,7 +83,37 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
     companyNameAr,
   });
 
+  const { showToast } = useFeedbackStore();
+  const pdfCaptureRef = useRef<HTMLDivElement>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleSharePdf = async () => {
+    setIsExportingPdf(true);
+    await new Promise(resolve => setTimeout(resolve, 80));
+    try {
+      if (!pdfCaptureRef.current) throw new Error('Statement PDF element missing');
+      const blob = await generatePDFBlob(pdfCaptureRef.current);
+      const result = await sharePdfViaWhatsApp({
+        blob,
+        fileName: `كشف_حساب_${party.name.replace(/\s+/g, '_')}`,
+        shareTitle: `كشف حساب ${party.name}`,
+        shareText: `مرفق كشف حساب: ${party.name} (${dateRangeText}) بصيغة PDF`,
+        phone,
+      });
+      showToast(
+        result === 'download_and_wa'
+          ? 'تم تنزيل كشف الحساب بصيغة PDF وفتح واتساب — أرفق الملف في المحادثة'
+          : 'تم فتح مشاركة ملف الـ PDF بنجاح',
+        'success'
+      );
+    } catch {
+      showToast('تعذر إنشاء ملف PDF لكشف الحساب', 'error');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   return (
     <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
@@ -225,7 +263,19 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-[var(--app-border)] bg-slate-100/70 p-2 dark:bg-slate-800/40">
+        <div className="flex flex-wrap gap-1 border-b border-[var(--app-border)] bg-slate-100/70 p-2 dark:bg-slate-800/40">
+          <button
+            type="button"
+            onClick={() => setActiveTab('pdf')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs font-bold transition-all ${
+              activeTab === 'pdf'
+                ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-800 dark:text-blue-400'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <FileText size={16} />
+            ملف PDF ملون (مع الهيدر)
+          </button>
           <button
             type="button"
             onClick={() => setActiveTab('excel')}
@@ -266,6 +316,41 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
 
         {/* Tab Contents */}
         <div className="flex-1 overflow-y-auto p-5">
+          {activeTab === 'pdf' && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/70 p-5 text-center dark:border-blue-900/50 dark:bg-blue-950/20">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md">
+                  <FileText size={24} />
+                </div>
+                <h3 className="text-base font-black text-blue-950 dark:text-blue-100">
+                  إرسال كشف الحساب كملف PDF احترافي وملون
+                </h3>
+                <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-[var(--app-text-secondary)]">
+                  يحتوي الملف على شعار وهيدر الشركة الرسمي، جدول الحركات الملون، وتلخيص الأرصدة جاهز للطباعة والحفظ.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleSharePdf();
+                  }}
+                  disabled={isExportingPdf}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500 active:scale-95 disabled:opacity-60"
+                >
+                  {isExportingPdf ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                  <span>
+                    {isExportingPdf
+                      ? 'جاري تجهيز ملف PDF...'
+                      : 'تجهيز وإرسال ملف PDF عبر واتساب'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'excel' && (
             <StatementExcelTab
               isExportingExcel={isExportingExcel}
@@ -338,6 +423,28 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
           </button>
         </div>
       </div>
+
+      {isExportingPdf && (
+        <PdfCaptureHost innerRef={pdfCaptureRef}>
+          <StatementPrintSheet
+            company={{
+              nameAr: company.name_ar || companyNameAr,
+              nameEn: '',
+              address: company.address || '',
+              phone: company.phone || '',
+              taxNumber: company.tax_number || '',
+              specialization: '',
+              headerText: '',
+              logoUrl: company.logo_url || undefined,
+            }}
+            partyType={partyType}
+            partyName={party.name}
+            partyPhone={party.phone || undefined}
+            movements={movements}
+            printSubtitle={`الفترة: ${dateRangeText}`}
+          />
+        </PdfCaptureHost>
+      )}
     </div>
   );
 };

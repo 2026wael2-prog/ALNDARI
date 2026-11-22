@@ -133,8 +133,8 @@ const notifyDirectSendFailure = (
 };
 
 export interface UseStatementWhatsAppResult {
-  activeTab: 'excel' | 'image' | 'text';
-  setActiveTab: React.Dispatch<React.SetStateAction<'excel' | 'image' | 'text'>>;
+  activeTab: 'pdf' | 'excel' | 'image' | 'text';
+  setActiveTab: React.Dispatch<React.SetStateAction<'pdf' | 'excel' | 'image' | 'text'>>;
   phone: string;
   setPhone: React.Dispatch<React.SetStateAction<string>>;
   isValidPhone: boolean;
@@ -570,7 +570,7 @@ export const useStatementWhatsApp = ({
   companyNameAr,
 }: UseStatementWhatsAppParams): UseStatementWhatsAppResult => {
   const { showToast } = useFeedbackStore();
-  const [activeTab, setActiveTab] = useState<'excel' | 'image' | 'text'>('excel');
+  const [activeTab, setActiveTab] = useState<'pdf' | 'excel' | 'image' | 'text'>('pdf');
   const [phone, setPhone] = useState(party.phone ?? '');
   const [copiedType, setCopiedType] = useState<'text' | 'image' | null>(null);
   const gridImageRef = useRef<HTMLDivElement>(null);

@@ -198,13 +198,12 @@ const cropSliceToDataUrl = (
   return pageCanvas.toDataURL('image/png');
 };
 
-/** Lays the captured canvas out over standard pages (jsPDF is loaded on demand). */
-const writeCanvasToPdf = async (
+/** Lays the captured canvas out over standard pages and returns the jsPDF instance. */
+const buildPdfDocument = async (
   canvas: HTMLCanvasElement,
   element: HTMLElement,
-  fileName: string,
   options: PDFExportOptions
-): Promise<void> => {
+) => {
   const { jsPDF } = await import('jspdf');
   const { pageSize = 'a4', orientation = 'p', marginMm = 0 } = options;
 
@@ -243,7 +242,25 @@ const writeCanvasToPdf = async (
     }
   });
 
-  pdf.save(`${fileName}.pdf`);
+  return pdf;
+};
+
+export const generatePDFBlob = async (
+  element: HTMLElement | null,
+  options: PDFExportOptions = {}
+): Promise<Blob> => {
+  if (element === null) {
+    throw new Error('Export element not provided');
+  }
+
+  try {
+    const canvas = await captureElement(element, options.scale ?? 2);
+    const pdf = await buildPdfDocument(canvas, element, options);
+    return pdf.output('blob');
+  } catch (error) {
+    logger.error('pdfExporter', 'PDF Blob Generation Failed:', error);
+    throw error;
+  }
 };
 
 export const exportToPDF = async (
@@ -258,7 +275,8 @@ export const exportToPDF = async (
 
   try {
     const canvas = await captureElement(element, options.scale ?? 2);
-    await writeCanvasToPdf(canvas, element, fileName, options);
+    const pdf = await buildPdfDocument(canvas, element, options);
+    pdf.save(`${fileName}.pdf`);
   } catch (error) {
     logger.error('pdfExporter', 'PDF Export Failed:', error);
     throw error;

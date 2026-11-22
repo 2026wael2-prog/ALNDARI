@@ -18,6 +18,7 @@ import { AlNadaryPrintShell } from '@/ui/print/AlNadaryPrintShell';
 import { PdfCaptureHost } from '@/core/components/PdfCaptureHost';
 import { buildWhatsappHeader } from '@/core/utils/whatsappHeader';
 import { logger } from '../../../core/utils/logger';
+import WhatsAppShareChoiceModal from '@/ui/common/WhatsAppShareChoiceModal';
 
 interface BondVoucherModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ interface BondVoucherModalProps {
 export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onClose, bond }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
   const { data: settingsCompany } = useCompany();
@@ -118,45 +120,46 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
     }
   };
 
-  const handleWhatsApp = async () => {
+  const handleWhatsApp = () => {
+    setIsWhatsAppModalOpen(true);
+  };
+
+  const generateBondPdfBlob = async (): Promise<Blob> => {
+    setIsExportingPdf(true);
+    await new Promise(resolve => setTimeout(resolve, 80));
     try {
-      const { generateSingleBondExcelBlob, exportSingleBondToExcel } = await import(
-        '../../../core/utils/bondExcelExporter'
-      );
-      const blob = await generateSingleBondExcelBlob(company, bond);
-      const file = new File(
-        [blob],
-        `${voucherTitle.replace(/\s/g, '_')}_${bond.payment_number}.xlsx`,
-        {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }
-      );
-
-      const waHeader = headerConfig?.whatsapp
-        ? buildWhatsappHeader(headerConfig.whatsapp, {
-            name: headerConfig.details.companyNameOverride || company.name_ar,
-            phone: company.phone || undefined,
-            taxNumber: company.tax_number || undefined,
-            slogan: headerConfig.details.sloganText || undefined,
-          })
-        : '';
-      const shareText = `${waHeader}مرفق ${voucherTitle} رقم ${bond.payment_number}\nالمبلغ: ${formatCurrency(bond.amount, bond.currency_code)}`;
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `${voucherTitle} ${bond.payment_number}`,
-          text: shareText,
-        });
-      } else {
-        await exportSingleBondToExcel(company, bond);
-        const text = encodeURIComponent(shareText);
-        window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+      const target = pdfCaptureRef.current || printRef.current;
+      if (!target) {
+        throw new Error('Bond print target not ready');
       }
-    } catch (err) {
-      logger.error('BondVoucherModal', 'WhatsApp share failed', err);
+      const { generatePDFBlob } = await import('../../../core/utils/pdfExporter');
+      return await generatePDFBlob(target);
+    } finally {
+      setIsExportingPdf(false);
     }
   };
+
+  const waHeader = headerConfig?.whatsapp
+    ? buildWhatsappHeader(headerConfig.whatsapp, {
+        name: headerConfig.details.companyNameOverride || company.name_ar,
+        phone: company.phone || undefined,
+        taxNumber: company.tax_number || undefined,
+        slogan: headerConfig.details.sloganText || undefined,
+      })
+    : '';
+
+  const bondWhatsAppText = [
+    waHeader ? waHeader.trim() : '',
+    `📄 *${voucherTitle} رقم:* ${bond.payment_number}`,
+    `📅 *التاريخ:* ${(bond as any).payment_date || bond.date || ''}`,
+    `👤 *${personLabel.replace(/:$/, '')}:* ${bond.party_name || (bond as any).counterparty_account_name || 'عام'}`,
+    `🏦 *الصندوق / الحساب:* ${bond.account_name || '—'}`,
+    `💳 *طريقة الدفع:* ${paymentMethodLabel}`,
+    `💰 *المبلغ:* ${formatCurrency(bond.amount, bond.currency_code)}`,
+    bond.description ? `📝 *البيان:* ${bond.description}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   return (
     <>
@@ -543,6 +546,16 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
           </AlNadaryPrintShell>
         </div>
       </PdfCaptureHost>
+
+      <WhatsAppShareChoiceModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        title={`${voucherTitle} #${bond.payment_number}`}
+        textMessage={bondWhatsAppText}
+        pdfFileName={`${voucherTitle.replace(/\s+/g, '_')}_${bond.payment_number}`}
+        pdfCaption={`مرفق ${voucherTitle} رقم ${bond.payment_number} بصيغة PDF`}
+        onGeneratePdfBlob={generateBondPdfBlob}
+      />
     </>
   );
 };

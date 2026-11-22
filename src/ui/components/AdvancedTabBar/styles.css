@@ -26,9 +26,9 @@
   --tab-glass-border: rgba(255, 255, 255, 0.3);
   --tab-glass-blur: 20px;
 
-  /* Text Colors */
-  --tab-text-default: #64748b;
-  --tab-text-hover: #1e293b;
+  /* Text Colors — تباين عالٍ بدون رمادي باهت */
+  --tab-text-default: #1e293b;
+  --tab-text-hover: #0f172a;
   --tab-text-active: #ffffff;
 
   /* Animation Timing */
@@ -57,8 +57,19 @@
   --tab-glass-bg: rgba(30, 41, 59, 0.7);
   --tab-glass-border: rgba(255, 255, 255, 0.1);
 
-  --tab-text-default: #94a3b8;
-  --tab-text-hover: #f1f5f9;
+  --tab-text-default: #e2e8f0;
+  --tab-text-hover: #ffffff;
+  --tab-text-active: #ffffff;
+}
+
+/* ثيمات الوضع الهادئ ذات الخلفية الفاتحة (Obsidian Pro/Sun & Solar Noir) */
+html[data-preset='obsidian-pro'].dark,
+html[data-preset='obsidian-sun'].dark,
+html[data-preset='solar-noir'].dark {
+  --tab-glass-bg: rgba(255, 255, 255, 0.85);
+  --tab-glass-border: rgba(28, 25, 23, 0.16);
+  --tab-text-default: #1e293b;
+  --tab-text-hover: #0f172a;
   --tab-text-active: #ffffff;
 }
 

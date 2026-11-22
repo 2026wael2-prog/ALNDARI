@@ -103,6 +103,14 @@ function ExcelTable<T>({
 }: ExcelTableProps<T>) {
   const [sortConfig, setSortConfig] = useState<TableSortConfig | null>(null);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isPanMode, setIsPanMode] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const panStateRef = useRef<{
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -427,6 +435,8 @@ function ExcelTable<T>({
           setIsZoomed={setIsZoomed}
           zoomLevel={zoomLevel}
           setZoomLevel={setZoomLevel}
+          isPanMode={isPanMode}
+          onTogglePanMode={() => setIsPanMode(p => !p)}
           settingsButton={
             <TableSettingsButton
               tableId={tableSettingsId}
@@ -471,9 +481,58 @@ function ExcelTable<T>({
           <div
             ref={tableRef}
             tabIndex={0}
-            className="custom-scrollbar scroll-x-hint-surface min-h-0 flex-1 overflow-auto overscroll-contain outline-none"
-            onMouseUp={endSelection}
-            onMouseLeave={endSelection}
+            className={cn(
+              'custom-scrollbar scroll-x-hint-surface min-h-0 flex-1 overflow-auto overscroll-contain outline-none',
+              isPanMode && (isPanning ? 'cursor-grabbing select-none' : 'cursor-grab select-none')
+            )}
+            onWheel={e => {
+              if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.1 : -0.1;
+                setZoomLevel(z =>
+                  Math.min(2.0, Math.max(0.6, Math.round((z + delta) * 10) / 10))
+                );
+              }
+            }}
+            onMouseDown={e => {
+              const container = tableRef.current;
+              if (!container) return;
+              const shouldPan = isPanMode || e.button === 1 || (e.altKey && e.button === 0);
+              if (!shouldPan) return;
+              const tag = (e.target as HTMLElement)?.tagName;
+              if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') {
+                return;
+              }
+              e.preventDefault();
+              setIsPanning(true);
+              panStateRef.current = {
+                startX: e.clientX,
+                startY: e.clientY,
+                scrollLeft: container.scrollLeft,
+                scrollTop: container.scrollTop,
+              };
+            }}
+            onMouseMove={e => {
+              if (!panStateRef.current || !tableRef.current) return;
+              const dx = e.clientX - panStateRef.current.startX;
+              const dy = e.clientY - panStateRef.current.startY;
+              tableRef.current.scrollLeft = panStateRef.current.scrollLeft - dx;
+              tableRef.current.scrollTop = panStateRef.current.scrollTop - dy;
+            }}
+            onMouseUp={() => {
+              if (panStateRef.current) {
+                panStateRef.current = null;
+                setIsPanning(false);
+              }
+              endSelection();
+            }}
+            onMouseLeave={() => {
+              if (panStateRef.current) {
+                panStateRef.current = null;
+                setIsPanning(false);
+              }
+              endSelection();
+            }}
           >
             <table
               role="table"
@@ -487,12 +546,12 @@ function ExcelTable<T>({
               )}
             >
               <colgroup>
-                {enableSelection && <col style={{ width: 40 }} />}
-                <col style={{ width: 40 }} />
+                {enableSelection && <col style={{ width: Math.round(40 * zoomLevel) }} />}
+                <col style={{ width: Math.round(40 * zoomLevel) }} />
                 {effectiveColumns.map((col, idx) => {
                   const savedWidth = indexedColWidths[String(idx)];
                   const colStyle = savedWidth
-                    ? { width: `${String(savedWidth)}px` }
+                    ? { width: `${String(Math.round(savedWidth * zoomLevel))}px` }
                     : col.width
                       ? { width: col.width }
                       : {};

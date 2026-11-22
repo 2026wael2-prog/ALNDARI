@@ -18,6 +18,7 @@ import { cn, getDisplayItemName } from '@/core/utils';
 import { useInvoiceExportActions } from './useInvoiceExportActions';
 import { InvoiceDetailsSummaryCards } from './InvoiceDetailsSummaryCards';
 import EditInvoiceModal from '../edit/EditInvoiceModal';
+import WhatsAppShareChoiceModal from '@/ui/common/WhatsAppShareChoiceModal';
 
 interface Props {
   invoiceId: string | null;
@@ -53,6 +54,10 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
     handleExportPDF,
     handleExportExcel,
     handleShareWhatsApp,
+    isWhatsAppModalOpen,
+    setIsWhatsAppModalOpen,
+    generateInvoicePdfBlob,
+    whatsAppTextMessage,
     fullInvoiceData,
   } = useInvoiceExportActions(invoice, company, issuedByName);
 
@@ -281,6 +286,19 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
             setIsEditing(false);
             onClose();
           }}
+        />
+      )}
+
+      {invoice && (
+        <WhatsAppShareChoiceModal
+          isOpen={isWhatsAppModalOpen}
+          onClose={() => setIsWhatsAppModalOpen(false)}
+          title={`فاتورة #${invoice.invoice_number || ''}`}
+          defaultPhone={invoice.parties?.phone || undefined}
+          textMessage={whatsAppTextMessage}
+          pdfFileName={`فاتورة_${invoice.invoice_number || invoice.id}`}
+          pdfCaption={`مرفق فاتورة رقم ${invoice.invoice_number || ''} بصيغة PDF`}
+          onGeneratePdfBlob={generateInvoicePdfBlob}
         />
       )}
     </Modal>

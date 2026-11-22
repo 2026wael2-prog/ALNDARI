@@ -16,6 +16,8 @@ interface ModalProps {
   zIndex?: string;
   /** Hide the draggable header row entirely (caller renders its own header inside the body). */
   hideHeader?: boolean;
+  /** Allow closing by clicking outside on the backdrop (default false to prevent accidental data loss). */
+  closeOnBackdropClick?: boolean;
 }
 
 interface Position {
@@ -38,6 +40,7 @@ const Modal: React.FC<ModalProps> = ({
   size = 'lg',
   zIndex,
   hideHeader = false,
+  closeOnBackdropClick = false,
 }) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
@@ -234,7 +237,7 @@ const Modal: React.FC<ModalProps> = ({
         zIndex ?? (isMaximized || size === 'full' ? 'z-[9999]' : 'z-[100]'),
         !isMaximized && 'bg-slate-950/40 backdrop-blur-[2px]'
       )}
-      onClick={onClose}
+      onClick={closeOnBackdropClick ? onClose : undefined}
     >
       <div
         ref={modalRef}
@@ -333,7 +336,7 @@ const Modal: React.FC<ModalProps> = ({
                 {description && (
                   <p
                     id={descId}
-                    className="mt-1 text-[10px] font-medium text-[var(--app-text-secondary)] opacity-70 md:text-xs"
+                    className="mt-1 text-[10px] font-semibold text-[var(--app-text-secondary)] md:text-xs"
                   >
                     {description}
                   </p>
@@ -344,14 +347,14 @@ const Modal: React.FC<ModalProps> = ({
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="rounded-lg p-1.5 text-gray-400 transition-all hover:bg-blue-50 hover:text-blue-500 active:scale-90 dark:hover:bg-blue-900/20"
+                className="rounded-lg p-1.5 text-[var(--app-text-secondary)] transition-all hover:bg-blue-50 hover:text-blue-600 active:scale-90 dark:hover:bg-blue-900/20"
                 title={isMaximized ? 'خروج من ملء الشاشة' : 'ملء الشاشة'}
               >
                 {isMaximized ? <Shrink size={18} /> : <Expand size={18} />}
               </button>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={closeOnBackdropClick ? onClose : undefined}
                 className="rounded-full p-2 text-[var(--app-text-secondary)] transition-all hover:text-red-500 active:scale-90"
               >
                 <X size={20} />

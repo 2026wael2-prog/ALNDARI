@@ -94,3 +94,62 @@ export const shareSpreadsheet = async ({
   window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
   await onDownloadFallback();
 };
+
+export interface SharePdfOptions {
+  blob: Blob;
+  fileName: string;
+  shareTitle: string;
+  shareText: string;
+  phone?: string | undefined;
+}
+
+const buildWaLink = (text: string, phone?: string): string => {
+  const digits = (phone || '').replace(/[^\d]/g, '');
+  const cleanPhone = digits.startsWith('00') ? digits.slice(2) : digits;
+  const encoded = encodeURIComponent(text);
+  return cleanPhone.length >= 9
+    ? `https://wa.me/${cleanPhone}?text=${encoded}`
+    : `https://wa.me/?text=${encoded}`;
+};
+
+/**
+ * Shares a generated PDF file via the native share sheet (mobile/supported browsers),
+ * or downloads the PDF and opens WhatsApp directly to the recipient so the user can attach it.
+ */
+export const sharePdfViaWhatsApp = async ({
+  blob,
+  fileName,
+  shareTitle,
+  shareText,
+  phone,
+}: SharePdfOptions): Promise<'native' | 'download_and_wa'> => {
+  const normalizedName = fileName.toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+  const file = new File([blob], normalizedName, { type: 'application/pdf' });
+
+  if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: shareTitle, text: shareText });
+      return 'native';
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return 'native';
+      }
+    }
+  }
+
+  // Fallback for desktop browsers: download the colored PDF & open WhatsApp
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = normalizedName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  window.open(buildWaLink(shareText, phone), '_blank', 'noopener,noreferrer');
+  return 'download_and_wa';
+};
+
+/** Opens WhatsApp with a prefilled formatted text message. */
+export const shareTextViaWhatsApp = (text: string, phone?: string): void => {
+  window.open(buildWaLink(text, phone), '_blank', 'noopener,noreferrer');
+};

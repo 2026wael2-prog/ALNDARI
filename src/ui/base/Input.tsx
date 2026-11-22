@@ -82,7 +82,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             className={cn(
-              'block px-1 font-medium text-[var(--app-text-secondary)]',
+              'block px-1 font-bold text-[var(--app-text-secondary)]',
               isMicro ? 'mb-0.5 text-[10px]' : 'mb-1.5 text-xs'
             )}
           >
@@ -96,8 +96,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             step={resolvedStep}
             onKeyDown={handleKeyDown}
             className={cn(
-              'w-full rounded-[var(--radius)] border border-[var(--app-border)] bg-[var(--app-bg)]',
-              'font-medium text-[var(--app-text)] placeholder:text-[var(--app-text-secondary)] placeholder:opacity-60',
+              'w-full rounded-[var(--radius)] border-[1.5px] border-[var(--app-border-strong,var(--app-border))] bg-[var(--app-input-bg,var(--app-surface))]',
+              'font-semibold text-[var(--app-text)] placeholder:text-[var(--app-text-secondary)] placeholder:opacity-80',
               'focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] focus:outline-none focus:ring-2',
               'transition-all duration-200',
               isMicro

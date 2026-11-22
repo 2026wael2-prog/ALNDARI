@@ -217,7 +217,7 @@ export const WorkspaceTabBar: React.FC = () => {
                 'group relative flex h-8 min-w-[96px] max-w-[180px] cursor-pointer items-center gap-1.5 rounded-t-lg border border-b-0 px-2.5 text-xs font-bold transition-all duration-150',
                 isActive
                   ? 'z-10 -mb-[1px] border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--accent)] shadow-xs ring-1 ring-blue-500/20'
-                  : 'border-transparent bg-transparent text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
+                  : 'border-transparent bg-transparent text-[var(--app-text)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--accent)]'
               )}
             >
               {/* Active Tab Accent Top Line */}
@@ -252,7 +252,7 @@ export const WorkspaceTabBar: React.FC = () => {
                     handleCloseTab(e, tab.id);
                   }}
                   aria-label={`إغلاق تبويب ${tab.title}`}
-                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-md p-0.5 text-[var(--app-text-secondary)] opacity-60 transition-all hover:bg-rose-500/15 hover:text-rose-600 hover:opacity-100 group-hover:opacity-90"
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-md p-0.5 text-[var(--app-text-secondary)] opacity-85 transition-all hover:bg-rose-500/15 hover:text-rose-600 hover:opacity-100 group-hover:opacity-100"
                 >
                   <X size={12} strokeWidth={2.5} />
                 </button>
@@ -297,7 +297,7 @@ export const WorkspaceTabBar: React.FC = () => {
               [isRTL ? 'left' : 'right']: '12px',
             }}
           >
-            <div className="border-[var(--app-border)]/60 mb-1 flex items-center gap-1.5 border-b px-2 py-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
+            <div className="border-[var(--app-border)]/60 mb-1 flex items-center gap-1.5 border-b px-2 py-1 text-[11px] font-bold text-[var(--app-text)]">
               <Sparkles size={12} className="text-amber-500" />
               <span>فتح شاشة في تبويب جديد</span>
             </div>

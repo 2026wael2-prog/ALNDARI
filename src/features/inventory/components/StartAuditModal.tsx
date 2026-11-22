@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, Database, CheckCircle2, Info } from 'lucide-react';
 import { useWarehouses, useInventoryMutations, useAuditSessions } from '../hooks/index';
 import Button from '../../../ui/base/Button';
@@ -17,7 +17,8 @@ interface StartAuditModalProps {
 const StartAuditModal: React.FC<StartAuditModalProps> = ({ isOpen, onClose }) => {
   const { data: warehouses } = useWarehouses();
   const { startAudit, isStartingAudit } = useInventoryMutations();
-  const { data: auditSessions } = useAuditSessions();
+  // تمرير null لتجاوز فلتر المستودع المفرد وضمان فحص الجلسات النشطة لكل مستودعات الفرع
+  const { data: auditSessions } = useAuditSessions(null);
   const navigate = useNavigate();
   const { showToast } = useFeedbackStore();
 
@@ -25,6 +26,16 @@ const StartAuditModal: React.FC<StartAuditModalProps> = ({ isOpen, onClose }) =>
     title: `جرد دوري - ${formatLocalDate(new Date())}`,
     warehouse_id: '',
   });
+
+  useEffect(() => {
+    if (!formData.warehouse_id || !warehouses) return;
+    const stillValid = (warehouses as Array<{ id: string }>).some(
+      w => w.id === formData.warehouse_id
+    );
+    if (!stillValid) {
+      setFormData(prev => ({ ...prev, warehouse_id: '' }));
+    }
+  }, [warehouses, formData.warehouse_id]);
 
   if (!isOpen) return null;
 

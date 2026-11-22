@@ -1,12 +1,13 @@
 // ============================================
 // QuickAuditPage — الجرد السريع (تسوية مخزون فورية)
 // ============================================
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, CheckCircle2, Loader2, ArrowRight, AlertTriangle, Plus } from 'lucide-react';
 import { useWarehouses } from '../hooks/useInventoryManagement';
 import { useSearchProducts, useProductMutations } from '../hooks/useProducts';
 import { useInventoryMutations } from '../hooks/useInventoryManagement';
+import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
 import MicroHeader from '../../../ui/base/MicroHeader';
 import Button from '../../../ui/base/Button';
 import AddProductModal from '../components/AddProductModal';
@@ -24,6 +25,7 @@ import type { Product, ProductFormData } from '../types';
 const QuickAuditPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useFeedbackStore();
+  const { branchId: activeBranchId } = useBranchFilter();
   const { data: warehouses, isLoading: isWarehousesLoading } = useWarehouses();
   const { quickAdjustStock, isQuickAdjusting } = useInventoryMutations();
   const { saveProduct, isSaving: isSavingProduct } = useProductMutations();
@@ -35,7 +37,31 @@ const QuickAuditPage: React.FC = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [items, setItems] = useState<AdjustedItem[]>([]);
 
-  const { data: searchResults, isLoading: isLoadingSearch } = useSearchProducts(debouncedFilter);
+  // عزل البحث والكميات المعروضة بالفرع التابع له المستودع المختار أو الفرع النشط
+  const selectedWarehouseBranchId = useMemo(() => {
+    if (!selectedWarehouseId || !warehouses) return activeBranchId;
+    const found = (warehouses as Array<{ id: string; branch_id?: string | null }>).find(
+      w => w.id === selectedWarehouseId
+    );
+    return found?.branch_id ?? activeBranchId;
+  }, [selectedWarehouseId, warehouses, activeBranchId]);
+
+  // عند تبديل الفرع النشط، صفّر المستودع المختار والأصناف إذا لم يعد المستودع ضمن فرع المستخدم
+  useEffect(() => {
+    if (!selectedWarehouseId || !warehouses) return;
+    const stillAllowed = (warehouses as Array<{ id: string }>).some(
+      w => w.id === selectedWarehouseId
+    );
+    if (!stillAllowed) {
+      setSelectedWarehouseId('');
+      setItems([]);
+    }
+  }, [warehouses, selectedWarehouseId]);
+
+  const { data: searchResults, isLoading: isLoadingSearch } = useSearchProducts(
+    debouncedFilter,
+    selectedWarehouseBranchId
+  );
 
   // Get system quantity for a product in the selected warehouse
   const getSystemQuantity = useCallback(

@@ -231,7 +231,7 @@ export const useInventoryMutations = () => {
       items: Parameters<typeof inventoryService.finalizeAudit>[1];
     }) => {
       if (!user?.company_id || !user.id) throw new Error('Auth error');
-      return inventoryService.finalizeAudit(sessionId, items, user.company_id, user.id);
+      return inventoryService.finalizeAudit(sessionId, items, user.id, user.company_id);
     },
     onSuccess: async (_, { sessionId }) => {
       await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });

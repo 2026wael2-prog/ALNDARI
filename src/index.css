@@ -63,6 +63,13 @@
     --classic-panel-shadow: 0 10px 26px rgb(0 0 0 / 16%), 0 2px 6px rgb(0 0 0 / 10%);
 
     --app-font-size: 15px;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --semantic-success: #059669;
+    --semantic-danger: #e11d48;
+    --semantic-warning: #f59e0b;
+    --semantic-info: #0ea5e9;
+    --semantic-neutral: #64748b;
+    --semantic-primary: #4f46e5;
     --radius: 0.5rem;
     --glass-blur: 10px;
     --glass-opacity: 0.1;
@@ -3576,4 +3583,39 @@ html[data-preset] .alnadary-print-sheet .alnadary-date-row {
     background-color: #1F4E78 !important;
     color: #ffffff !important;
   }
+}
+
+/* ============================================================
+   الهوية المحاسبية الرسمية — OptiParts OR
+   شريط جانبي داكن (#0f172a) + أرقام محاسبية متراصة (tabular-nums)
+   ============================================================ */
+html[data-preset='optiparts-or'] .font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+html[data-preset='optiparts-or'] aside {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f8fafc;
+}
+
+html[data-preset='optiparts-or'] aside :is(h1, span.font-bold, span.font-semibold) {
+  color: #f8fafc;
+}
+
+html[data-preset='optiparts-or'] aside button[aria-current='page'] {
+  background-color: rgba(79, 70, 229, 0.22) !important;
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] aside button:not([aria-current='page']):hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] aside .border-t,
+html[data-preset='optiparts-or'] aside .border-b {
+  border-color: #1e293b !important;
 }

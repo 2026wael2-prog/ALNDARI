@@ -4,12 +4,12 @@ import { useThemeStore } from '../../../lib/themeStore';
 import { cn } from '../../../core/utils';
 
 const ACCENT_COLORS = [
-  { name: 'الزمردي', value: '#10b981', class: 'bg-[#10b981]' },
-  { name: 'الأزرق', value: '#3b82f6', class: 'bg-[#3b82f6]' },
-  { name: 'الوردي', value: '#ec4899', class: 'bg-[#ec4899]' },
-  { name: 'البرتقالي', value: '#f97316', class: 'bg-[#f97316]' },
-  { name: 'الأرجواني', value: '#8b5cf6', class: 'bg-[#8b5cf6]' },
-  { name: 'الأحمر', value: '#ef4444', class: 'bg-[#ef4444]' },
+  { name: 'النيلي (رسمي)', value: '#4f46e5', class: 'bg-[#4f46e5]' },
+  { name: 'الزمردي', value: '#059669', class: 'bg-[#059669]' },
+  { name: 'الأزرق', value: '#2563eb', class: 'bg-[#2563eb]' },
+  { name: 'السماوي', value: '#0ea5e9', class: 'bg-[#0ea5e9]' },
+  { name: 'الكهرماني', value: '#f59e0b', class: 'bg-[#f59e0b]' },
+  { name: 'الأحمر', value: '#e11d48', class: 'bg-[#e11d48]' },
 ];
 
 const ColorCustomizer: React.FC = () => {

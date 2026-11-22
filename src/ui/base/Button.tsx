@@ -28,17 +28,17 @@ const Button: React.FC<ButtonProps> = ({
 
   const variants = {
     primary:
-      'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 shadow-sm hover:shadow-md',
+      'bg-[var(--brand-600,#4f46e5)] text-white border-[var(--brand-600,#4f46e5)] hover:bg-[var(--brand-700,#4338ca)] hover:border-[var(--brand-700,#4338ca)] shadow-sm hover:shadow-md',
     secondary:
       'bg-slate-800 text-white border-slate-800 hover:bg-slate-900 hover:border-slate-900 shadow-sm hover:shadow-md dark:bg-slate-700 dark:border-slate-700 dark:hover:bg-slate-600',
     success:
-      'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700 shadow-sm hover:shadow-md',
+      'bg-[#059669] text-white border-[#059669] hover:bg-emerald-700 hover:border-emerald-700 shadow-sm hover:shadow-md',
     amber:
-      'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 hover:border-amber-600 shadow-sm hover:shadow-md',
+      'bg-[#f59e0b] text-white border-[#f59e0b] hover:bg-amber-600 hover:border-amber-600 shadow-sm hover:shadow-md',
     outline:
       'bg-[var(--app-surface)] text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-hover)]',
     danger:
-      'bg-rose-600 text-white border-rose-600 hover:bg-rose-700 hover:border-rose-700 shadow-sm hover:shadow-md',
+      'bg-[#e11d48] text-white border-[#e11d48] hover:bg-rose-700 hover:border-rose-700 shadow-sm hover:shadow-md',
     ghost:
       'bg-transparent border-transparent text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)]',
   };

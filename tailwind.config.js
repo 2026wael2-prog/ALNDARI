@@ -26,6 +26,7 @@ export default {
       },
       fontFamily: {
         sans: ['var(--font-sans, "Cairo")', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       keyframes: {
         shimmer: {

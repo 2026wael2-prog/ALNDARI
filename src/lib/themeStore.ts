@@ -263,8 +263,8 @@ export const useThemeStore = create<ThemeState>()(
     (set, get) => ({
       mode: 'light',
       theme: 'light',
-      activePresetId: 'obsidian-pro',
-      accentColor: '#2563eb',
+      activePresetId: 'optiparts-or',
+      accentColor: '#4f46e5',
       font: 'Cairo',
       radius: 0.5,
       fontSize: 14,
@@ -273,7 +273,7 @@ export const useThemeStore = create<ThemeState>()(
       glassOpacity: 0.1,
       uiLayout: 'auto',
       draftSettings: {
-        accentColor: '#2563eb',
+        accentColor: '#4f46e5',
         font: 'Cairo',
         radius: 0.5,
         fontSize: 14,
@@ -457,24 +457,26 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'al-zahra-appearance-storage',
-      version: 3,
+      version: 4,
       migrate: (persistedState: unknown, version: number) => {
         const state = (persistedState ?? {}) as Record<string, unknown>;
         if (version < 2) {
           return {
             ...state,
             mode: 'light',
-            activePresetId: 'obsidian-pro',
-            accentColor: '#2563eb',
+            activePresetId: 'optiparts-or',
+            accentColor: '#4f46e5',
             radius: 0.5,
           };
         }
-        if (version < 3) {
-          const isOldDarkAccent =
-            state.accentColor === '#0f172a' || state.accentColor === '#1d4ed8';
+        if (version < 4) {
+          const shouldUpgradeDefault =
+            !state.activePresetId || state.activePresetId === 'obsidian-pro';
           return {
             ...state,
-            ...(isOldDarkAccent ? { accentColor: '#2563eb' } : {}),
+            ...(shouldUpgradeDefault
+              ? { activePresetId: 'optiparts-or', accentColor: '#4f46e5' }
+              : {}),
           };
         }
         return state;

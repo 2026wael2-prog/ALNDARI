@@ -54,8 +54,8 @@ export function ExcelTableHeader<T>({
   // حاوية تمرير عمودي كان يعيد الرسم عند كل بكسل تمرير فتظهر الصفوف مرتجّة
   // خلف الترويسة الثابتة (وهو أوضح ما يكون مع أسماء المنتجات الطويلة).
   return (
-    <thead className="sticky top-0 z-[12] bg-[var(--app-bg)] shadow-sm">
-      <tr className="border-b border-[var(--app-border)] text-[var(--app-text)]">
+    <thead className="sticky top-0 z-[12] bg-[var(--table-header-bg,var(--app-surface-hover))] text-[var(--table-header-fg,var(--app-text))] shadow-sm">
+      <tr className="border-b border-[var(--app-border)] text-[var(--table-header-fg,var(--app-text))]">
         {enableSelection && (
           <th className="relative w-10 border-r border-[var(--app-border)] p-2 text-center">
             <input

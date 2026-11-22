@@ -3,6 +3,65 @@ import { normalize } from './normalize';
 
 export const PREMIUM_PRESETS: ThemePreset[] = [
   // ══════════════════════════════════════════════════════════════════════
+  // الهوية المحاسبية الرسمية — OptiParts OR
+  // ══════════════════════════════════════════════════════════════════════
+  normalize({
+    id: 'optiparts-or',
+    name: 'OptiParts OR — الهوية المحاسبية الرسمية',
+    description:
+      'نظام التصميم المؤسسي الرسمي للمحاسبة: خلفية بيضاء ورمادية هادئة، شريط جانبي داكن، ولون نيلي احترافي للأزرار والإجراءات.',
+    colors: ['#4f46e5', '#f8fafc', '#0f172a'],
+    previewColor: '#4f46e5',
+    accent: '#4f46e5',
+    isDark: false,
+    category: 'premium',
+    emoji: '🏛️',
+    light: {
+      '--app-bg': '#f8fafc',
+      '--app-surface': '#ffffff',
+      '--app-surface-hover': '#f1f5f9',
+      '--app-card': '#ffffff',
+      '--app-border': '#e2e8f0',
+      '--app-border-subtle': '#f1f5f9',
+      '--app-border-strong': '#cbd5e1',
+      '--app-grid': '#e2e8f0',
+      '--app-zebra': '#f8fafc',
+      '--app-text': '#0f172a',
+      '--app-text-secondary': '#475569',
+      '--accent': '#4f46e5',
+      '--brand-500': '#6366f1',
+      '--brand-600': '#4f46e5',
+      '--brand-700': '#4338ca',
+      '--brand-ink': '#ffffff',
+      '--app-input-bg': '#ffffff',
+      '--table-header-bg': '#f1f5f9',
+      '--table-header-fg': '#334155',
+      '--table-selected-row': '#eef2ff',
+    },
+    dark: {
+      '--app-bg': '#0b1120',
+      '--app-surface': '#111827',
+      '--app-surface-hover': '#1e293b',
+      '--app-card': '#111827',
+      '--app-border': '#1e293b',
+      '--app-border-subtle': '#1e293b',
+      '--app-border-strong': '#334155',
+      '--app-grid': '#1e293b',
+      '--app-zebra': '#0f172a',
+      '--app-text': '#f8fafc',
+      '--app-text-secondary': '#94a3b8',
+      '--accent': '#6366f1',
+      '--brand-500': '#818cf8',
+      '--brand-600': '#6366f1',
+      '--brand-700': '#4f46e5',
+      '--brand-ink': '#ffffff',
+      '--app-input-bg': '#0f172a',
+      '--table-header-bg': '#1e293b',
+      '--table-header-fg': '#e2e8f0',
+      '--table-selected-row': '#1e1b4b',
+    },
+  }),
+  // ══════════════════════════════════════════════════════════════════════
   // باقات برو الاحترافية — Premium Pro
   // ══════════════════════════════════════════════════════════════════════
   normalize({

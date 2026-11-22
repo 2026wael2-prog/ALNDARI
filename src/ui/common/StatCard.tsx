@@ -62,10 +62,10 @@ const StatCard: React.FC<StatCardProps> = ({
           }
         : {})}
       className={cn(
-        'stat-card group flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm transition-all duration-300 hover:border-blue-500/20 hover:shadow-md',
+        'stat-card group flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm transition-all duration-300 hover:border-[var(--accent)]/30 hover:shadow-md',
         isCompact ? 'p-2 lg:p-2.5' : 'p-2.5 max-md:p-2 md:p-3 lg:rounded-xl lg:p-3.5 xl:p-4',
-        isInteractive && 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
-        isActive && 'border-blue-500/60 ring-2 ring-blue-500/40',
+        isInteractive && 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50',
+        isActive && 'border-[var(--accent)]/60 ring-2 ring-[var(--accent)]/40',
         className
       )}
     >
@@ -75,14 +75,15 @@ const StatCard: React.FC<StatCardProps> = ({
           <span
             className={cn(
               'truncate font-medium leading-none text-[var(--app-text-secondary)]',
-              isCompact ? 'mb-0.5 text-[10px]' : 'mb-1 text-[11px]'
+              isCompact ? 'mb-0.5 text-[11px]' : 'mb-1 text-xs'
             )}
           >
             {title}
           </span>
           <h3
+            dir="ltr"
             className={cn(
-              'truncate font-mono font-bold leading-none tracking-tight',
+              'truncate text-right font-mono font-bold tabular-nums leading-none tracking-tight',
               isCompact ? 'text-base lg:text-lg' : 'text-lg max-md:text-base md:text-xl lg:text-2xl',
               colorClass
             )}

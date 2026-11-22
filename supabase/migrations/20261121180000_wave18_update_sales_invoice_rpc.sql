@@ -117,7 +117,7 @@ BEGIN
   -- 4. Branch access check
   v_branch_id := COALESCE(p_branch_id, v_invoice.branch_id);
   IF v_branch_id IS NOT NULL THEN
-    PERFORM public.fn_assert_branch_access(v_branch_id);
+    PERFORM public.fn_assert_branch_access(v_company_id, v_branch_id);
   END IF;
 
   -- 5. Fiscal year check
@@ -494,7 +494,7 @@ BEGIN
   UPDATE public.journal_entries SET status = 'posted' WHERE id = v_je_id;
 
   -- 15. Synchronize parties stats (both previous and new customer)
-  IF v_old_party_id IS NOT NULL AND v_old_party_id <> p_party_id THEN
+  IF v_old_party_id IS NOT NULL AND v_old_party_id IS DISTINCT FROM p_party_id THEN
     UPDATE public.parties SET
       total_invoices_count = (SELECT COUNT(*) FROM public.invoices WHERE party_id = v_old_party_id AND type = 'sale' AND status NOT IN ('cancelled', 'void', 'draft') AND deleted_at IS NULL),
       total_paid_amount = (SELECT COALESCE(SUM(paid_amount), 0) FROM public.invoices WHERE party_id = v_old_party_id AND type = 'sale' AND status NOT IN ('cancelled', 'void', 'draft') AND deleted_at IS NULL),

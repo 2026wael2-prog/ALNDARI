@@ -12,6 +12,7 @@ import type { CartItem } from '../../../sales/types';
 import { useSalesStore } from '../../store';
 import ProductSelectionModal from './ProductSelectionModal';
 import type { Product } from '../../../inventory/types';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface ProductSearchProps {
   onSelectProduct: (product: CartItem) => void;
@@ -108,7 +109,8 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ onSelectProduct }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
-                        {product.name_ar}
+                        <EntityInfoDot type="product" id={product.id} label={product.name_ar} size="xs" />
+                        <span>{product.name_ar}</span>
                         {searchTerm && product.alternative_numbers?.includes(searchTerm) && (
                           <span className="rounded-md bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700">
                             بديل

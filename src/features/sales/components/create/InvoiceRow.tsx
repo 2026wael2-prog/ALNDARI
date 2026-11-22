@@ -3,6 +3,7 @@ import { Search, Trash2 } from 'lucide-react';
 import type { SalesCartItem } from '../../store';
 
 import { normalizeArabicDigits } from '@/core/utils';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface InvoiceRowProps {
   item: SalesCartItem;
@@ -95,7 +96,10 @@ const ProductNameCell: React.FC<ProductNameCellProps> = ({
   onOpenSearch,
 }) => (
   <td className="border-l p-0 dark:border-slate-800">
-    <div className="group/cell flex items-center px-3 max-md:px-1.5">
+    <div className="group/cell flex items-center gap-1.5 px-3 max-md:px-1.5">
+      {item.productId && (
+        <EntityInfoDot type="product" id={item.productId} label={item.name} size="xs" />
+      )}
       <input
         type="text"
         value={item.name}

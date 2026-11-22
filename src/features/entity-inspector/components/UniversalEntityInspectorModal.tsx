@@ -195,7 +195,7 @@ export const UniversalEntityInspectorModal: React.FC = () => {
       title={modalTitle}
       description={modalDescription}
       size="5xl"
-      zIndex="z-[120]"
+      zIndex="z-[10050]"
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-[11px] font-semibold text-[var(--app-text-secondary)]">

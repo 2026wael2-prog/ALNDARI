@@ -3,6 +3,7 @@ import { Plus, Eye as EyeIcon } from 'lucide-react';
 import type { Product } from '../../../inventory/types';
 import type { ColumnConfig } from '../../hooks/useProductTableConfig';
 import { BranchStockAvailabilityCell } from '../../../inventory/components/products/BranchStockAvailabilityCell';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface ProductSelectionTableRowProps {
   product: Product;
@@ -36,7 +37,17 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
       case 'index':
         return <span className="font-mono opacity-50">{index + 1}</span>;
       case 'name':
-        return <span className="block truncate text-sm font-bold">{product.name}</span>;
+        return (
+          <div className="flex items-center gap-1.5 min-w-0">
+            <EntityInfoDot
+              type="product"
+              id={product.id}
+              label={product.name || product.name_ar}
+              size="xs"
+            />
+            <span className="block truncate text-sm font-bold">{product.name}</span>
+          </div>
+        );
       case 'part_number':
         return (
           <span

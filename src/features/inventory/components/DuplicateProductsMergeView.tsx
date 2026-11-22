@@ -16,6 +16,7 @@ import {
   useMergeDuplicateProduct,
 } from '../hooks/useProductDuplicates';
 import type { DuplicateProductGroup } from '../api/productMergeApi';
+import { EntityInfoDot } from '../../entity-inspector';
 
 const PAGE_SIZE = 20;
 
@@ -236,8 +237,14 @@ const DuplicateProductsMergeView: React.FC = () => {
                                 {item.sku}
                               </td>
                               <td className="p-2.5">
-                                <div className="font-bold text-[var(--app-text)]">
-                                  {item.name_ar}
+                                <div className="flex items-center gap-1.5 font-bold text-[var(--app-text)]">
+                                  <EntityInfoDot
+                                    type="product"
+                                    id={item.id}
+                                    label={item.name_ar}
+                                    size="xs"
+                                  />
+                                  <span>{item.name_ar}</span>
                                 </div>
                                 {isMaster && (
                                   <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-blue-600">

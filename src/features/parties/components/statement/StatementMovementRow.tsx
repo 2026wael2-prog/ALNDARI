@@ -16,6 +16,7 @@ import {
 import { cn, formatCurrency } from '../../../../core/utils';
 import type { StatementMovement } from '../../service';
 import { StatementTransactionDetailRow } from './StatementTransactionDetailRow';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface StatementMovementRowProps {
   row: StatementMovement;
@@ -153,7 +154,28 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
           className="whitespace-nowrap border-l border-[var(--app-border)] p-3 text-center font-mono font-bold text-blue-600"
           dir="ltr"
         >
-          {row.ref}
+          <div className="inline-flex items-center justify-center gap-1.5">
+            <span>{row.ref}</span>
+            {row.reference_id && (() => {
+              const refType = row.reference_type || row.type || '';
+              const isInv =
+                refType.includes('invoice') || refType.includes('sale') || refType.includes('purchase');
+              const isBond =
+                refType.includes('bond') ||
+                refType.includes('payment') ||
+                refType.includes('receipt') ||
+                refType.includes('voucher');
+              return isInv || isBond ? (
+                <EntityInfoDot
+                  type={isInv ? 'invoice' : 'bond'}
+                  id={row.reference_id}
+                  label={row.ref}
+                  subType={refType}
+                  size="xs"
+                />
+              ) : null;
+            })()}
+          </div>
         </td>
 
         {/* Operation Type & Currency */}

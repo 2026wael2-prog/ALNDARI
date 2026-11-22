@@ -28,6 +28,7 @@ import type { AccountFormData, AccountType } from '../../types/index';
 import { useFeedbackStore } from '../../../../features/feedback/store';
 import { ConfirmModal } from '../../../../ui/base/ConfirmModal';
 import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
+import { EntityInfoDot } from '../../../entity-inspector';
 import {
   buildAccountTree,
   filterAccountTree,
@@ -88,6 +89,13 @@ const AccountTreeRow: React.FC<{
                 <Lock size={12} className="ms-1 text-amber-500/80" />
               </span>
             )}
+            <EntityInfoDot
+              type="account"
+              id={node.id}
+              label={`${node.code} — ${node.name}`}
+              size="xs"
+              className="ms-1"
+            />
             <span
               className={cn(
                 'text-[11px] text-[var(--app-text)]',

@@ -2,6 +2,7 @@ import React from 'react';
 import type { Product } from '../types';
 import { formatCurrency, formatNumberDisplay, cn } from '../../../core/utils';
 import { Hash, MapPin, Box, Tag, Factory, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { EntityInfoDot } from '../../entity-inspector';
 
 interface Props {
   product: Product;
@@ -67,12 +68,21 @@ const ProductMicroCard: React.FC<Props> = ({ product, onClick }) => {
               </span>
             </div>
 
-            <h3
-              className="line-clamp-2 text-xs font-bold leading-snug text-slate-900 dark:text-white sm:text-sm"
-              title={product.name_ar || product.name}
-            >
-              {product.name_ar || product.name}
-            </h3>
+            <div className="flex items-start gap-1.5">
+              <EntityInfoDot
+                type="product"
+                id={product.id}
+                label={product.name_ar || product.name}
+                size="xs"
+                className="mt-0.5"
+              />
+              <h3
+                className="line-clamp-2 flex-1 text-xs font-bold leading-snug text-slate-900 dark:text-white sm:text-sm"
+                title={product.name_ar || product.name}
+              >
+                {product.name_ar || product.name}
+              </h3>
+            </div>
           </div>
         </div>
 

@@ -12,6 +12,7 @@ import ExcelTable, { type Column } from '@/ui/common/ExcelTable';
 import type { StatementMovement } from '../../service';
 import { cn, formatCurrency } from '@/core/utils';
 import EditInvoiceModal from '@/features/sales/components/edit/EditInvoiceModal';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface StatementExcelViewProps {
   filteredMovements: StatementMovement[];
@@ -114,6 +115,20 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
             <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
               {row.ref || '—'}
             </span>
+            {row.reference_id && (() => {
+              const refType = row.reference_type || row.type || '';
+              const isInv = refType.includes('invoice') || refType.includes('sale') || refType.includes('purchase');
+              const isBond = refType.includes('bond') || refType.includes('payment') || refType.includes('receipt') || refType.includes('voucher');
+              return isInv || isBond ? (
+                <EntityInfoDot
+                  type={isInv ? 'invoice' : 'bond'}
+                  id={row.reference_id}
+                  label={row.ref}
+                  subType={refType}
+                  size="xs"
+                />
+              ) : null;
+            })()}
             {row.reference_id && (
               <button
                 type="button"

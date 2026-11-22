@@ -23,6 +23,7 @@ import type { IntelligenceRunSummary, PersistedRecommendationRecord } from '../t
 import { useAuthStore } from '../../auth/store';
 import { runAiOrchestration } from '../domain/orchestration/aiOrchestrationEngine';
 import { IntelligenceExportBar } from './shared/IntelligenceExportBar';
+import { EntityInfoDot } from '../../entity-inspector';
 import {
   useIntelligenceConfig,
   useIntelligenceMutations,
@@ -321,7 +322,12 @@ const InventoryIntelligencePage: React.FC = () => {
                             {(pageData?.items ?? []).map((item: any) => (
                               <tr key={item.id} className="border-b border-[var(--app-border)]/50">
                                 <td className="p-2 font-mono">{item.sku}</td>
-                                <td className="p-2 font-medium">{item.name_ar}</td>
+                                <td className="p-2 font-medium">
+                                  <div className="flex items-center gap-1.5">
+                                    <EntityInfoDot type="product" id={item.id} label={item.name_ar} size="xs" />
+                                    <span>{item.name_ar}</span>
+                                  </div>
+                                </td>
                                 <td className="p-2">{item.brand || '—'}</td>
                                 <td className="p-2">{Number(item.cost_price ?? 0).toFixed(2)}</td>
                                 <td className="p-2">{Number(item.sale_price ?? 0).toFixed(2)}</td>

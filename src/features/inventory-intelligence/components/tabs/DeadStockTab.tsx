@@ -160,6 +160,7 @@ export const DeadStockTab: React.FC<Props> = React.memo(({
                   <tr key={item.id} className="hover:bg-[var(--app-surface-hover)]">
                     <td className="p-2.5">
                       <ProductIdentityCell
+                        productId={item.productId}
                         name={item.productName}
                         partNumber={item.partNumber}
                         sku={item.sku}

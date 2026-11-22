@@ -212,6 +212,7 @@ export const PurchaseRecommendationsTab: React.FC<Props> = React.memo(({
                   <tr key={rec.id} className="hover:bg-[var(--app-surface-hover)]">
                     <td className="p-2.5">
                       <ProductIdentityCell
+                        productId={rec.productId}
                         name={rec.productName}
                         partNumber={rec.partNumber}
                         sku={rec.sku}

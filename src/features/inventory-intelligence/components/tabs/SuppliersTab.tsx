@@ -7,6 +7,7 @@ import {
   ProductIdentityCell,
   TablePaginationBar,
 } from '../shared/IntelligenceBadges';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface Props {
   recommendations: PurchaseRecommendation[];
@@ -78,6 +79,7 @@ export const SuppliersTab: React.FC<Props> = React.memo(({ recommendations }) =>
                   <tr key={rec.id} className="hover:bg-[var(--app-surface-hover)]">
                     <td className="p-2.5">
                       <ProductIdentityCell
+                        productId={rec.productId}
                         name={rec.productName}
                         partNumber={rec.partNumber}
                         sku={rec.sku}
@@ -86,7 +88,16 @@ export const SuppliersTab: React.FC<Props> = React.memo(({ recommendations }) =>
                       />
                     </td>
                     <td className="p-2.5 font-bold text-blue-600 dark:text-blue-400">
-                      {sup.supplierName}
+                      <div className="flex items-center gap-1.5">
+                        <EntityInfoDot
+                          type="party"
+                          id={sup.supplierId}
+                          label={sup.supplierName}
+                          subType="supplier"
+                          size="xs"
+                        />
+                        <span>{sup.supplierName}</span>
+                      </div>
                     </td>
                     <td dir="ltr" className="p-2.5 text-center font-mono">
                       {formatNumberDisplay(sup.purchaseTxCount)}

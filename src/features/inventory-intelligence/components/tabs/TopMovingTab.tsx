@@ -113,6 +113,7 @@ export const TopMovingTab: React.FC<Props> = React.memo(({ products, branches })
                 <tr key={p.identity.productId} className="hover:bg-[var(--app-surface-hover)]">
                   <td className="p-2.5">
                     <ProductIdentityCell
+                      productId={p.identity.productId}
                       name={p.identity.name}
                       partNumber={p.identity.partNumber}
                       sku={p.identity.sku}

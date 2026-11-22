@@ -187,6 +187,7 @@ export const DemandForecastingTab: React.FC<Props> = React.memo(({ products, hor
                 >
                   <td className="p-2.5">
                     <ProductIdentityCell
+                      productId={p.identity.productId}
                       name={p.identity.name}
                       partNumber={p.identity.partNumber}
                       sku={p.identity.sku}

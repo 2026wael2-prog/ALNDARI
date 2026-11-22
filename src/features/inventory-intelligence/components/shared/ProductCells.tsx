@@ -2,11 +2,13 @@ import React from 'react';
 import type { ProductIdentityProfile } from '../../types';
 import { formatCurrency } from '../../../../core/utils';
 import { QualityBadge } from './StatusBadges';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 export const GRID_TABLE_CLASS =
   'w-full border-collapse text-right text-xs [&_th]:border [&_th]:border-[var(--app-border)] [&_td]:border [&_td]:border-[var(--app-border)]';
 
 export const ProductIdentityCell: React.FC<{
+  productId?: string | undefined;
   name: string;
   partNumber: string;
   sku?: string;
@@ -18,6 +20,7 @@ export const ProductIdentityCell: React.FC<{
   size?: string | undefined;
   alternativeNumbers?: string[];
 }> = ({
+  productId,
   name,
   partNumber,
   sku,
@@ -30,7 +33,10 @@ export const ProductIdentityCell: React.FC<{
   alternativeNumbers,
 }) => (
   <div className="space-y-1">
-    <div className="font-bold leading-snug text-[var(--app-text)]">{name}</div>
+    <div className="flex items-start gap-1.5 font-bold leading-snug text-[var(--app-text)]">
+      {productId && <EntityInfoDot type="product" id={productId} label={name} size="xs" className="mt-0.5" />}
+      <span>{name}</span>
+    </div>
     <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--app-text-secondary)]">
       <span dir="ltr" className="rounded bg-[var(--app-bg)] px-1.5 py-0.5 font-mono font-semibold text-[var(--app-text)]">
         P/N: {partNumber || '—'}
@@ -73,6 +79,7 @@ export const ProductIdentityCell: React.FC<{
 
 export const LastSupplierCell: React.FC<{
   supplier?: {
+    supplierId?: string | undefined;
     supplierName: string;
     lastUnitPrice: number;
     lastPurchaseDate: string | null;
@@ -83,7 +90,18 @@ export const LastSupplierCell: React.FC<{
   }
   return (
     <div className="space-y-0.5">
-      <div className="font-bold text-[var(--app-text)]">{supplier.supplierName}</div>
+      <div className="flex items-center gap-1 font-bold text-[var(--app-text)]">
+        {supplier.supplierId && (
+          <EntityInfoDot
+            type="party"
+            id={supplier.supplierId}
+            label={supplier.supplierName}
+            subType="supplier"
+            size="xs"
+          />
+        )}
+        <span>{supplier.supplierName}</span>
+      </div>
       <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px] text-[var(--app-text-secondary)]">
         <span dir="ltr" className="font-semibold text-emerald-600 dark:text-emerald-400">
           {formatCurrency(supplier.lastUnitPrice)}

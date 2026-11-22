@@ -8,13 +8,13 @@
    ============================================================ */
 @layer base {
   :root {
-    --app-bg: #f8fafc;
+    --app-bg: #f4f6f9;
     --app-surface: #ffffff;
-    --app-surface-hover: #f1f5f9;
-    --app-border: #e2e8f0;
-    --app-text: #1e293b;
-    --app-text-secondary: #334155;
-    --accent: #3b82f6;
+    --app-surface-hover: #eef2f7;
+    --app-border: #dce3ec;
+    --app-text: #0f172a;
+    --app-text-secondary: #475569;
+    --accent: #1d4ed8;
 
     /* ────────────────────────────────────────────────────────────
        طبقة الهوية (Brand Layer) — مشتقة تلقائياً من --accent
@@ -2953,107 +2953,110 @@ html[data-preset='solar-noir'] aside > div:last-of-type {
 }
 
 /* ==========================================================================
-   OBSIDIAN PRO (الوضع النهاري) — تباين عالٍ، خطوط وحواف واضحة، وحقول إدخال بارزة
+   OBSIDIAN PRO (الوضع النهاري التنفيذي) — تصميم هادئ، تباين متوازن، وتدرج بصري احترافي
    ========================================================================== */
 html[data-preset='obsidian-pro']:not(.dark) header,
 html[data-preset='obsidian-sun']:not(.dark) header {
-  background: linear-gradient(180deg, #f2f8ff 0%, #e4f0ff 100%) !important;
-  border-bottom: 1.5px solid rgba(15, 23, 42, 0.24) !important;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06) !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #dce3ec !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
 }
 
 html[data-preset='obsidian-pro']:not(.dark) aside {
-  border-color: rgba(15, 23, 42, 0.22) !important;
+  background-color: #ffffff !important;
+  border-color: #dce3ec !important;
 }
 
 html[data-preset='obsidian-pro']:not(.dark) table thead,
 html[data-preset='obsidian-pro']:not(.dark) table thead th,
 html[data-preset='obsidian-sun']:not(.dark) table thead,
 html[data-preset='obsidian-sun']:not(.dark) table thead th {
-  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%) !important;
-  color: #020617 !important;
-  border-color: rgba(15, 23, 42, 0.26) !important;
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
 }
 
-/* وضوح الكتابة والنصوص الرمادية الباهتة في الوضع الافتراضي */
+/* هرمية نصوص واضحة ومريحة للعين (تباين WCAG AA/AAA بدون رمادي باهت وبدون تسطيح أسود حاد) */
 html[data-preset='obsidian-pro']:not(.dark) .text-slate-400,
 html[data-preset='obsidian-pro']:not(.dark) .text-gray-400,
 html[data-preset='obsidian-pro']:not(.dark) .text-zinc-400,
 html[data-preset='obsidian-pro']:not(.dark) .text-neutral-400 {
-  color: #334155 !important;
+  color: #64748b !important;
 }
 
 html[data-preset='obsidian-pro']:not(.dark) .text-slate-500,
 html[data-preset='obsidian-pro']:not(.dark) .text-gray-500,
 html[data-preset='obsidian-pro']:not(.dark) .text-zinc-500,
 html[data-preset='obsidian-pro']:not(.dark) .text-neutral-500 {
-  color: #1e293b !important;
+  color: #475569 !important;
 }
 
 html[data-preset='obsidian-pro']:not(.dark) .text-slate-600,
 html[data-preset='obsidian-pro']:not(.dark) .text-gray-600 {
-  color: #0f172a !important;
+  color: #334155 !important;
 }
 
-/* وضوح الخطوط والحواف وحدود الجداول والكروت */
+/* حدود ناعمة ومنظمة تفصل البطاقات والجداول بأناقة بدون تشويش بصري */
 html[data-preset='obsidian-pro']:not(.dark) .border-slate-100,
+html[data-preset='obsidian-pro']:not(.dark) .border-gray-100 {
+  border-color: #e8edf3 !important;
+}
+
 html[data-preset='obsidian-pro']:not(.dark) .border-slate-200,
-html[data-preset='obsidian-pro']:not(.dark) .border-gray-100,
 html[data-preset='obsidian-pro']:not(.dark) .border-gray-200 {
-  border-color: #94a3b8 !important;
+  border-color: #dce3ec !important;
 }
 
 html[data-preset='obsidian-pro']:not(.dark) .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
 html[data-preset='obsidian-pro']:not(.dark) .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
 html[data-preset='obsidian-pro']:not(.dark) .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
 html[data-preset='obsidian-pro']:not(.dark) .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
 }
 
 html[data-preset='obsidian-pro']:not(.dark) table th,
 html[data-preset='obsidian-pro']:not(.dark) table td {
-  border-color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
 }
 
-/* إبراز مربعات الكتابة وحقول الإدخال بوضوح تام */
-html[data-preset='obsidian-pro'] input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
-html[data-preset='obsidian-pro'] select,
-html[data-preset='obsidian-pro'] textarea {
+/* حقول إدخال نظيفة ومتناسقة مع احترام الحقول الشفافة أو المدمجة داخل الجداول */
+html[data-preset='obsidian-pro'] input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']):not(.border-0):not([class*='border-transparent']):not([class*='bg-transparent']),
+html[data-preset='obsidian-pro'] select:not(.border-0):not([class*='border-transparent']):not([class*='bg-transparent']),
+html[data-preset='obsidian-pro'] textarea:not(.border-0):not([class*='border-transparent']):not([class*='bg-transparent']) {
   background-color: #ffffff !important;
-  color: #020617 !important;
-  border: 1.5px solid #64748b !important;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
   transition: border-color 150ms ease, box-shadow 150ms ease !important;
 }
 
 html[data-preset='obsidian-pro'] input::placeholder,
 html[data-preset='obsidian-pro'] textarea::placeholder {
-  color: #475569 !important;
+  color: #64748b !important;
   opacity: 1 !important;
 }
 
-html[data-preset='obsidian-pro'] input:not([type='checkbox']):not([type='radio']):hover:not(:focus),
-html[data-preset='obsidian-pro'] select:hover:not(:focus),
-html[data-preset='obsidian-pro'] textarea:hover:not(:focus) {
-  border-color: #334155 !important;
+html[data-preset='obsidian-pro'] input:not([type='checkbox']):not([type='radio']):not(.border-0):not([class*='border-transparent']):hover:not(:focus),
+html[data-preset='obsidian-pro'] select:not(.border-0):not([class*='border-transparent']):hover:not(:focus),
+html[data-preset='obsidian-pro'] textarea:not(.border-0):not([class*='border-transparent']):hover:not(:focus) {
+  border-color: #94a3b8 !important;
 }
 
-html[data-preset='obsidian-pro'] input:not([type='checkbox']):not([type='radio']):focus,
-html[data-preset='obsidian-pro'] select:focus,
-html[data-preset='obsidian-pro'] textarea:focus {
-  border-color: #1d4ed8 !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+html[data-preset='obsidian-pro'] input:not([type='checkbox']):not([type='radio']):not(.border-0):not([class*='border-transparent']):focus,
+html[data-preset='obsidian-pro'] select:not(.border-0):not([class*='border-transparent']):focus,
+html[data-preset='obsidian-pro'] textarea:not(.border-0):not([class*='border-transparent']):focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
   outline: none !important;
 }
 
 html[data-preset='obsidian-pro'] input[type='checkbox'],
 html[data-preset='obsidian-pro'] input[type='radio'] {
-  border: 1.5px solid #475569 !important;
+  border: 1.5px solid #94a3b8 !important;
 }
 
 /* ==========================================================================
-   OBSIDIAN PRO (بيج فخم) & OBSIDIAN SUN (أصفر خفيف) — الوضع الليلي بدون خلفية سوداء
-   تنسيق احترافي متناسق للأيقونات والتظليل والأسماء في القائمة والشريط العلوي والمحتوى
+   OBSIDIAN PRO (الوضع الهادئ الدافئ) & OBSIDIAN SUN — تناسق لوني دافئ ومريح للعين
    ========================================================================== */
 html[data-preset='obsidian-pro'].dark,
 html[data-preset='obsidian-sun'].dark {
@@ -3079,35 +3082,41 @@ html[data-preset='obsidian-sun'].dark .dark\:text-gray-300:not([class*='bg-']) {
 
 html[data-preset='obsidian-pro'].dark .dark\:text-slate-400,
 html[data-preset='obsidian-sun'].dark .dark\:text-slate-400,
-html[data-preset='obsidian-pro'].dark .dark\:text-slate-500,
-html[data-preset='obsidian-sun'].dark .dark\:text-slate-500,
 html[data-preset='obsidian-pro'].dark .dark\:text-gray-400,
 html[data-preset='obsidian-sun'].dark .dark\:text-gray-400,
 html[data-preset='obsidian-pro'].dark .text-slate-400,
-html[data-preset='obsidian-pro'].dark .text-gray-400,
+html[data-preset='obsidian-pro'].dark .text-gray-400 {
+  color: #6b645c !important;
+}
+
+html[data-preset='obsidian-pro'].dark .dark\:text-slate-500,
+html[data-preset='obsidian-sun'].dark .dark\:text-slate-500,
 html[data-preset='obsidian-pro'].dark .text-slate-500,
 html[data-preset='obsidian-pro'].dark .text-gray-500 {
-  color: #292524 !important;
+  color: #57534e !important;
 }
 
 html[data-preset='obsidian-pro'].dark .border-slate-100,
+html[data-preset='obsidian-pro'].dark .border-gray-100 {
+  border-color: #e9e3d8 !important;
+}
+
 html[data-preset='obsidian-pro'].dark .border-slate-200,
-html[data-preset='obsidian-pro'].dark .border-gray-100,
 html[data-preset='obsidian-pro'].dark .border-gray-200,
 html[data-preset='obsidian-pro'].dark .dark\:border-slate-700,
 html[data-preset='obsidian-pro'].dark .dark\:border-slate-800 {
-  border-color: #a89d8d !important;
+  border-color: #ddd6c8 !important;
 }
 
 html[data-preset='obsidian-pro'].dark table th,
 html[data-preset='obsidian-pro'].dark table td {
-  border-color: #c2b7a7 !important;
+  border-color: #e4ddd0 !important;
 }
 
 html[data-preset='obsidian-pro'].dark .dark\:bg-black,
 html[data-preset='obsidian-pro'].dark .dark\:bg-zinc-950,
 html[data-preset='obsidian-pro'].dark .dark\:bg-zinc-900 {
-  background-color: #faf7f2 !important;
+  background-color: #fcfaf6 !important;
 }
 
 html[data-preset='obsidian-sun'].dark .dark\:bg-black,
@@ -3116,10 +3125,10 @@ html[data-preset='obsidian-sun'].dark .dark\:bg-zinc-900 {
   background-color: #fefce8 !important;
 }
 
-/* القائمة الجانبية (Sidebar) — إزالة التظليل العشوائي وتوحيد الأيقونات والأسماء */
+/* القائمة الجانبية (Sidebar) — مظهر هادئ متناسق مع إبراز ألوان الأيقونات الأصلية */
 html[data-preset='obsidian-pro'].dark aside {
-  background-color: #faf7f2 !important;
-  border-color: rgba(28, 25, 23, 0.12) !important;
+  background-color: #faf8f4 !important;
+  border-color: #e4ddd0 !important;
 }
 
 html[data-preset='obsidian-sun'].dark aside {
@@ -3129,9 +3138,9 @@ html[data-preset='obsidian-sun'].dark aside {
 
 html[data-preset='obsidian-pro'].dark aside nav > div > div:first-child,
 html[data-preset='obsidian-sun'].dark aside nav > div > div:first-child {
-  color: #57534e !important;
+  color: #78716c !important;
   font-weight: 800 !important;
-  border-bottom: 1px solid rgba(28, 25, 23, 0.09);
+  border-bottom: 1px solid rgba(28, 25, 23, 0.08);
   padding-bottom: 0.25rem;
   margin-bottom: 0.25rem;
 }
@@ -3140,50 +3149,44 @@ html[data-preset='obsidian-pro'].dark aside nav button,
 html[data-preset='obsidian-sun'].dark aside nav button {
   background-color: transparent !important;
   border: 1px solid transparent !important;
-  color: #1c1917 !important;
+  color: #292524 !important;
   box-shadow: none !important;
 }
 
 html[data-preset='obsidian-pro'].dark aside nav button span,
 html[data-preset='obsidian-sun'].dark aside nav button span {
-  color: #1c1917 !important;
+  color: #292524 !important;
   font-weight: 700 !important;
-}
-
-/* حاوية الأيقونة في الوضع الهادئ — الحفاظ على ألوان الأيقونات المميزة وبروزها */
-html[data-preset='obsidian-pro'].dark aside nav button:not([aria-current='page']) > div svg,
-html[data-preset='obsidian-sun'].dark aside nav button:not([aria-current='page']) > div svg {
-  filter: saturate(1.3) brightness(0.75);
 }
 
 /* حالة المرور بالمؤشر */
 html[data-preset='obsidian-pro'].dark aside nav button:hover {
-  background-color: #ebe3d5 !important;
-  border-color: rgba(28, 25, 23, 0.16) !important;
+  background-color: #efeae0 !important;
+  border-color: rgba(28, 25, 23, 0.08) !important;
 }
 
 html[data-preset='obsidian-sun'].dark aside nav button:hover {
   background-color: #fef9c3 !important;
-  border-color: rgba(28, 25, 23, 0.16) !important;
+  border-color: rgba(28, 25, 23, 0.12) !important;
 }
 
 /* العنصر النشط في القائمة الجانبية */
 html[data-preset='obsidian-pro'].dark aside nav button[aria-current='page'] {
-  background-color: #faf6ef !important;
-  border: 1px solid rgba(15, 23, 42, 0.28) !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background-color: #ffffff !important;
+  border: 1px solid #d6cfc2 !important;
+  box-shadow: 0 1px 4px rgba(28, 25, 23, 0.06) !important;
 }
 
 html[data-preset='obsidian-sun'].dark aside nav button[aria-current='page'] {
   background-color: #ffffff !important;
-  border: 1px solid rgba(15, 23, 42, 0.28) !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06) !important;
 }
 
 html[data-preset='obsidian-pro'].dark aside nav button[aria-current='page'] > span:last-of-type,
 html[data-preset='obsidian-sun'].dark aside nav button[aria-current='page'] > span:last-of-type {
   color: #0f172a !important;
-  font-weight: 900 !important;
+  font-weight: 800 !important;
 }
 
 html[data-preset='obsidian-pro'].dark aside nav button[aria-current='page'] > div svg,
@@ -3192,22 +3195,23 @@ html[data-preset='obsidian-sun'].dark aside nav button[aria-current='page'] > di
   stroke: #ffffff !important;
 }
 
-/* الشريط العلوي وترويسات الجداول (Headers) — سماوي خفيف راقٍ في أوبسيديان بيج */
+/* الشريط العلوي وترويسات الجداول — ألوان حجرية دافئة متناغمة تماماً مع الخلفية البيج */
 html[data-preset='obsidian-pro'].dark header {
-  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
-  border-bottom: 1px solid rgba(14, 116, 144, 0.18) !important;
+  background: #f8f5ee !important;
+  border-bottom: 1px solid #ddd6c8 !important;
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04) !important;
 }
 
 html[data-preset='obsidian-pro'].dark table thead,
 html[data-preset='obsidian-pro'].dark table thead th {
-  background-color: #e0f2fe !important;
-  color: #0f172a !important;
-  border-color: rgba(14, 116, 144, 0.18) !important;
+  background-color: #ede8dd !important;
+  color: #1c1917 !important;
+  border-color: #d6cfc2 !important;
 }
 
 html[data-preset='obsidian-sun'].dark header {
-  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
-  border-bottom: 1px solid rgba(14, 116, 144, 0.18) !important;
+  background: #fef9c3 !important;
+  border-bottom: 1px solid #e5d89e !important;
 }
 
 html[data-preset='obsidian-pro'].dark header button:not([class*='bg-blue-']):not([class*='bg-emerald-']):not([class*='bg-rose-']):not([class*='bg-red-']):not([class*='bg-amber-']):not([class*='bg-indigo-']):not([class*='bg-slate-9']),

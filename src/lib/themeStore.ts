@@ -264,7 +264,7 @@ export const useThemeStore = create<ThemeState>()(
       mode: 'light',
       theme: 'light',
       activePresetId: 'obsidian-pro',
-      accentColor: '#0f172a',
+      accentColor: '#1d4ed8',
       font: 'Cairo',
       radius: 0.5,
       fontSize: 14,
@@ -273,7 +273,7 @@ export const useThemeStore = create<ThemeState>()(
       glassOpacity: 0.1,
       uiLayout: 'auto',
       draftSettings: {
-        accentColor: '#0f172a',
+        accentColor: '#1d4ed8',
         font: 'Cairo',
         radius: 0.5,
         fontSize: 14,

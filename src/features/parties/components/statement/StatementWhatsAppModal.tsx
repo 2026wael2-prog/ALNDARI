@@ -89,10 +89,21 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
 
   if (!isOpen) return null;
 
+  const waitForPdfHost = async () => {
+    await new Promise<void>(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 120)))
+    );
+  };
+
   const handleSharePdf = async () => {
+    // Open a blank tab synchronously inside the click handler on desktop browsers
+    // so popup blockers do not block WhatsApp after async PDF generation.
+    const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.canShare === 'function';
+    const preOpenedWindow = !canNativeShare ? window.open('', '_blank') : null;
+
     setIsExportingPdf(true);
-    await new Promise(resolve => setTimeout(resolve, 80));
     try {
+      await waitForPdfHost();
       if (!pdfCaptureRef.current) throw new Error('Statement PDF element missing');
       const blob = await generatePDFBlob(pdfCaptureRef.current);
       const result = await sharePdfViaWhatsApp({
@@ -101,6 +112,7 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
         shareTitle: `كشف حساب ${party.name}`,
         shareText: `مرفق كشف حساب: ${party.name} (${dateRangeText}) بصيغة PDF`,
         phone,
+        preOpenedWindow,
       });
       showToast(
         result === 'download_and_wa'
@@ -108,7 +120,34 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
           : 'تم فتح مشاركة ملف الـ PDF بنجاح',
         'success'
       );
-    } catch {
+    } catch (err) {
+      if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.close();
+      }
+      console.error('Statement PDF export failed:', err);
+      showToast('تعذر إنشاء ملف PDF لكشف الحساب', 'error');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleDownloadPdfOnly = async () => {
+    setIsExportingPdf(true);
+    try {
+      await waitForPdfHost();
+      if (!pdfCaptureRef.current) throw new Error('Statement PDF element missing');
+      const blob = await generatePDFBlob(pdfCaptureRef.current);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `كشف_حساب_${party.name.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      showToast('تم تنزيل ملف PDF لكشف الحساب بنجاح', 'success');
+    } catch (err) {
+      console.error('Statement PDF download failed:', err);
       showToast('تعذر إنشاء ملف PDF لكشف الحساب', 'error');
     } finally {
       setIsExportingPdf(false);
@@ -328,25 +367,38 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
                 <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-[var(--app-text-secondary)]">
                   يحتوي الملف على شعار وهيدر الشركة الرسمي، جدول الحركات الملون، وتلخيص الأرصدة جاهز للطباعة والحفظ.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleSharePdf();
-                  }}
-                  disabled={isExportingPdf}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500 active:scale-95 disabled:opacity-60"
-                >
-                  {isExportingPdf ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Send size={16} />
-                  )}
-                  <span>
-                    {isExportingPdf
-                      ? 'جاري تجهيز ملف PDF...'
-                      : 'تجهيز وإرسال ملف PDF عبر واتساب'}
-                  </span>
-                </button>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleSharePdf();
+                    }}
+                    disabled={isExportingPdf}
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500 active:scale-95 disabled:opacity-60"
+                  >
+                    {isExportingPdf ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Send size={16} />
+                    )}
+                    <span>
+                      {isExportingPdf
+                        ? 'جاري تجهيز ملف PDF...'
+                        : 'تجهيز وإرسال ملف PDF عبر واتساب'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDownloadPdfOnly();
+                    }}
+                    disabled={isExportingPdf}
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-300 bg-white px-4 py-2.5 text-xs font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-50 active:scale-95 disabled:opacity-60 dark:border-blue-800 dark:bg-slate-800 dark:text-blue-300"
+                  >
+                    <FileText size={15} />
+                    <span>تنزيل PDF فقط</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -427,6 +479,8 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
       {isExportingPdf && (
         <PdfCaptureHost innerRef={pdfCaptureRef}>
           <StatementPrintSheet
+            forPdf
+            currency="ALL"
             company={{
               nameAr: company.name_ar || companyNameAr,
               nameEn: '',

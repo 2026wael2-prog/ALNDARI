@@ -101,6 +101,8 @@ export interface SharePdfOptions {
   shareTitle: string;
   shareText: string;
   phone?: string | undefined;
+  /** Optional window pre-opened synchronously during the click event so desktop browsers never block WhatsApp after async PDF generation. */
+  preOpenedWindow?: Window | null | undefined;
 }
 
 const buildWaLink = (text: string, phone?: string): string => {
@@ -122,6 +124,7 @@ export const sharePdfViaWhatsApp = async ({
   shareTitle,
   shareText,
   phone,
+  preOpenedWindow,
 }: SharePdfOptions): Promise<'native' | 'download_and_wa'> => {
   const normalizedName = fileName.toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
   const file = new File([blob], normalizedName, { type: 'application/pdf' });
@@ -129,9 +132,15 @@ export const sharePdfViaWhatsApp = async ({
   if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: shareTitle, text: shareText });
+      if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.close();
+      }
       return 'native';
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
+        if (preOpenedWindow && !preOpenedWindow.closed) {
+          preOpenedWindow.close();
+        }
         return 'native';
       }
     }
@@ -142,10 +151,17 @@ export const sharePdfViaWhatsApp = async ({
   const a = document.createElement('a');
   a.href = url;
   a.download = normalizedName;
+  document.body.appendChild(a);
   a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 
-  window.open(buildWaLink(shareText, phone), '_blank', 'noopener,noreferrer');
+  const waUrl = buildWaLink(shareText, phone);
+  if (preOpenedWindow && !preOpenedWindow.closed) {
+    preOpenedWindow.location.href = waUrl;
+  } else {
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  }
   return 'download_and_wa';
 };
 

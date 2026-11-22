@@ -184,16 +184,17 @@ const buildCurrencyStatementSheet = async (
   ];
   rows.push(tableHeader);
 
-  // 4. Data Rows
+  // 4. Data Rows (recompute currency-isolated running balance to prevent any mixed-currency leakage)
   let totalDebit = 0;
   let totalCredit = 0;
+  let runningBalance = 0;
 
   entries.forEach((entry, idx) => {
     const debit = Number(entry.debit) || 0;
     const credit = Number(entry.credit) || 0;
-    const balance = Number(entry.balance) || 0;
     totalDebit += debit;
     totalCredit += credit;
+    runningBalance += isSupplier ? credit - debit : debit - credit;
 
     const statusAr =
       entry.payment_status === 'paid'
@@ -215,12 +216,12 @@ const buildCurrencyStatementSheet = async (
       statusAr,
       debit,
       credit,
-      balance,
+      runningBalance,
     ]);
   });
 
   // 5. Total & Summary Footer
-  const finalBalance = entries.length > 0 ? Number(entries[entries.length - 1].balance) || 0 : 0;
+  const finalBalance = runningBalance;
   const summaryStatusText = isSupplier
     ? finalBalance >= 0
       ? 'مستحق للمورد (له)'
@@ -639,16 +640,24 @@ export const generateStatementExcelWorkbook = async (
   const XLSX = await loadXLSX();
   const wb = XLSX.utils.book_new();
 
-  // Determine distinct currencies present in the entries
+  // Determine distinct currencies present in the entries (SAR first, YER second, then alphabetical)
   const currenciesPresent = Array.from(
     new Set(
       entries
         .map(e => e.currency?.trim().toUpperCase())
         .filter((c): c is string => Boolean(c))
     )
-  );
+  ).sort((a, b) => {
+    if (a === 'SAR') return -1;
+    if (b === 'SAR') return 1;
+    if (a === 'YER') return -1;
+    if (b === 'YER') return 1;
+    return a.localeCompare(b);
+  });
 
-  // If options.currencyCode is explicitly specified and not ALL, restrict to it
+  const isSupplier = options.partyType === 'supplier';
+
+  // If options.currencyCode is explicitly specified and not ALL, restrict strictly to it
   const isFilteringSingleCurrency =
     Boolean(options.currencyCode) && options.currencyCode !== 'ALL';
 
@@ -660,7 +669,7 @@ export const generateStatementExcelWorkbook = async (
     const ws = await buildCurrencyStatementSheet(
       company,
       partyName,
-      singleEntries.length > 0 ? singleEntries : entries,
+      singleEntries,
       singleCurr,
       options
     );
@@ -670,17 +679,16 @@ export const generateStatementExcelWorkbook = async (
     return wb;
   }
 
-  // If multiple currencies exist (e.g. SAR and YER), build multi-currency sheets
+  // If multiple currencies exist (e.g. SAR and YER), build strictly isolated multi-currency sheets
   if (currenciesPresent.length > 1) {
-    // 1. Calculate breakdown per currency
+    // 1. Calculate breakdown strictly per currency (never summing across currencies)
     const currencyBreakdown = currenciesPresent.map(curr => {
       const currEntries = entries.filter(
         e => (e.currency?.trim().toUpperCase() || 'SAR') === curr
       );
       const totalDebit = currEntries.reduce((s, r) => s + (Number(r.debit) || 0), 0);
       const totalCredit = currEntries.reduce((s, r) => s + (Number(r.credit) || 0), 0);
-      const finalBalance =
-        currEntries.length > 0 ? Number(currEntries[currEntries.length - 1].balance) || 0 : 0;
+      const finalBalance = isSupplier ? totalCredit - totalDebit : totalDebit - totalCredit;
       return {
         currency: curr,
         totalDebit,

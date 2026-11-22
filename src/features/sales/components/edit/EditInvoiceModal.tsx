@@ -18,6 +18,7 @@ import { useProductSearch, type ProductSearchResult } from '../../hooks/useProdu
 import { useAuthStore } from '../../../auth/store';
 import { formatCurrency, cn } from '../../../../core/utils';
 import PageLoader from '../../../../ui/base/PageLoader';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface EditItemRow {
   productId: string;
@@ -493,8 +494,16 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                           onClick={() => handleAddProduct(prod)}
                           className="flex cursor-pointer items-center justify-between rounded-lg p-2.5 hover:bg-[var(--app-surface-hover)] transition-colors"
                         >
-                          <div>
-                            <div className="text-xs font-bold text-[var(--app-text)]">{prod.name_ar}</div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--app-text)]">
+                              <EntityInfoDot
+                                type="product"
+                                id={prod.id}
+                                label={prod.name_ar}
+                                size="sm"
+                              />
+                              <span className="truncate">{prod.name_ar}</span>
+                            </div>
                             <div className="text-[10px] text-[var(--app-text-secondary)] font-mono">
                               SKU: {prod.sku || '—'} | المتوفر: {prod.quantity ?? 0}
                             </div>
@@ -538,7 +547,17 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                           {index + 1}
                         </td>
                         <td className="py-2.5 px-3">
-                          <div className="font-bold text-[var(--app-text)] text-xs">{item.name}</div>
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--app-text)]">
+                            {item.productId && (
+                              <EntityInfoDot
+                                type="product"
+                                id={item.productId}
+                                label={item.name}
+                                size="sm"
+                              />
+                            )}
+                            <span>{item.name}</span>
+                          </div>
                           {item.sku && (
                             <div className="font-mono text-[10px] text-[var(--app-text-secondary)]">SKU: {item.sku}</div>
                           )}

@@ -27,7 +27,7 @@ const DEFAULT_CONFIG: TableConfig = {
     { id: 'price', label: 'السعر', visible: true, width: 90, order: 6 },
     { id: 'size', label: 'المقاس', visible: false, width: 80, order: 7 },
     { id: 'specs', label: 'المواصفات', visible: false, width: 150, order: 8 },
-    { id: 'actions', label: 'الإجراءات', visible: true, width: 70, order: 9 },
+    { id: 'actions', label: 'الإجراءات', visible: true, width: 90, order: 9 },
   ],
   fontSize: 'medium',
 };

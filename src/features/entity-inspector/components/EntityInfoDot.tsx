@@ -57,6 +57,10 @@ export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
         type="button"
         onClick={handleClick}
         onMouseDown={e => e.stopPropagation()}
+        onDoubleClick={e => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
         title={resolvedTitle}
         aria-label={resolvedTitle}
         className={cn(

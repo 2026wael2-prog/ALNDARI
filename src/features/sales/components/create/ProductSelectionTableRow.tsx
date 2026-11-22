@@ -38,12 +38,12 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
         return <span className="font-mono opacity-50">{index + 1}</span>;
       case 'name':
         return (
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex min-w-0 items-center gap-1.5">
             <EntityInfoDot
               type="product"
               id={product.id}
               label={product.name || product.name_ar}
-              size="xs"
+              size="sm"
             />
             <span className="block truncate text-sm font-bold">{product.name}</span>
           </div>
@@ -113,6 +113,12 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
             >
               <Plus size={12} />
             </button>
+            <EntityInfoDot
+              type="product"
+              id={product.id}
+              label={product.name || product.name_ar}
+              size="sm"
+            />
             <button
               type="button"
               onClick={e => {
@@ -133,6 +139,8 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
 
   return (
     <tr
+      data-inspect-type="product"
+      data-inspect-id={product.id}
       onClick={() => {
         onRowClick(product);
       }}

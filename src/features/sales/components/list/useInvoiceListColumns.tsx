@@ -4,6 +4,7 @@ import { formatCurrency } from '../../../../core/utils';
 import type { InvoiceListItem } from '../../types';
 import { InvoiceItemsCell } from './InvoiceItemsCell';
 import { getStatusLabel } from './InvoiceStatusBadge';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface UseInvoiceListColumnsParams {
   handleViewDetails: (id: string) => void;
@@ -42,6 +43,13 @@ export const useInvoiceListColumns = ({
               >
                 #{row.invoiceNumber}
               </span>
+              <EntityInfoDot
+                type="invoice"
+                id={row.id}
+                label={`#${row.invoiceNumber}`}
+                subType={row.type}
+                size="xs"
+              />
             </div>
             {row.invoiceNumber.endsWith('-INT') && (
               <span

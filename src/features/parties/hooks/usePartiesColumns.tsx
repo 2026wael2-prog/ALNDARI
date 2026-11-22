@@ -6,6 +6,7 @@ import Avatar from '../../../ui/base/Avatar';
 import { formatCurrency, cn } from '../../../core/utils';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { buildWhatsAppLink, hasValidWhatsAppPhone } from '../../debts/lib/whatsapp';
+import { EntityInfoDot } from '../../entity-inspector';
 
 interface UsePartiesColumnsProps {
   partyType: PartyType;
@@ -34,9 +35,12 @@ export function usePartiesColumns({
           <div className="flex items-center gap-3">
             <Avatar name={row.name} size="sm" />
             <div className="flex translate-y-[1px] flex-col items-start">
-              <span className="font-bold leading-tight text-gray-900 dark:text-white">
-                {row.name}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold leading-tight text-gray-900 dark:text-white">
+                  {row.name}
+                </span>
+                <EntityInfoDot type="party" id={row.id} label={row.name} subType={partyType} />
+              </div>
               {row.email && (
                 <span className="text-[10px] font-medium text-gray-400">{row.email}</span>
               )}

@@ -3,6 +3,7 @@ import type { Product } from '../../types';
 import { formatCurrency, formatNumberDisplay, cn } from '../../../../core/utils';
 import type { Column } from '../../../../ui/common/ExcelTable';
 import { BranchStockAvailabilityCell } from './BranchStockAvailabilityCell';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface GetProductColumnsProps {
   onEdit?: ((p: Product) => void) | undefined;
@@ -64,13 +65,16 @@ export const getProductColumns = ({
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
             <Package size={12} />
           </div>
-          <div className="min-w-0">
-            <span
-              className="block truncate text-sm font-bold text-slate-900 dark:text-white"
-              title={p.name_ar || p.name || undefined}
-            >
-              {p.name_ar || p.name}
-            </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="block truncate text-sm font-bold text-slate-900 dark:text-white"
+                title={p.name_ar || p.name || undefined}
+              >
+                {p.name_ar || p.name}
+              </span>
+              <EntityInfoDot type="product" id={p.id} label={p.name_ar || p.name} />
+            </div>
             {p.brand && (
               <span className="text-[10px] font-bold text-blue-500 dark:text-blue-400">
                 {p.brand}

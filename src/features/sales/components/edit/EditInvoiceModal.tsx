@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Trash2,
@@ -263,32 +264,35 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 backdrop-blur-xs sm:p-4 animate-in fade-in duration-200">
-      <div className="flex max-h-[95vh] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 text-slate-100 shadow-2xl overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/45 p-2 backdrop-blur-xs sm:p-4 animate-in fade-in duration-200">
+      <div
+        style={{ backgroundColor: 'var(--app-surface)', color: 'var(--app-text)' }}
+        className="flex max-h-[95vh] w-full max-w-5xl flex-col rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-2xl overflow-hidden"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-5 py-3.5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
               <ArrowRightLeft size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-white">
+                <h2 className="text-base font-black text-[var(--app-text)]">
                   تعديل فاتورة مبيعات {invoice?.invoice_number ? `#${invoice.invoice_number}` : ''}
                 </h2>
                 <span
                   className={cn(
                     'rounded-md px-2 py-0.5 text-[10px] font-bold',
                     invoice?.status === 'paid'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                      : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
                   )}
                 >
                   {invoice?.status === 'paid' ? 'مدفوعة' : 'مرحلة'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs font-medium text-[var(--app-text-secondary)]">
                 تعديل الأصناف، الأسعار، العميل، طريقة الدفع مع تسوية القيود والمخزون تلقائياً
               </p>
             </div>
@@ -296,7 +300,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="rounded-lg p-2 text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)] transition-colors"
           >
             <X size={20} />
           </button>
@@ -308,35 +312,35 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
             <PageLoader />
           </div>
         ) : invoiceError ? (
-          <div className="p-10 text-center text-rose-400">
+          <div className="p-10 text-center text-rose-600 dark:text-rose-400 font-bold">
             حدث خطأ أثناء تحميل بيانات الفاتورة.
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {/* Metadata Bar */}
-            <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-950/40 p-3.5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] p-3.5 sm:grid-cols-2 lg:grid-cols-4">
               {/* Customer Selector */}
               <div className="relative">
-                <label className="mb-1 block text-xs font-bold text-slate-400">العميل / الطرف</label>
+                <label className="mb-1 block text-xs font-bold text-[var(--app-text-secondary)]">العميل / الطرف</label>
                 <div
                   onClick={() => setIsPartyDropdownOpen(!isPartyDropdownOpen)}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:border-slate-600 transition-colors"
+                  className="flex cursor-pointer items-center justify-between rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-semibold text-[var(--app-text)] hover:border-blue-500/60 transition-colors"
                 >
                   <div className="flex items-center gap-2 truncate">
-                    <User size={14} className="text-blue-400 shrink-0" />
+                    <User size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
                     <span className="truncate">{customerName || 'عميل نقدي'}</span>
                   </div>
-                  <Search size={14} className="text-slate-400" />
+                  <Search size={14} className="text-[var(--app-text-secondary)]" />
                 </div>
 
                 {isPartyDropdownOpen && (
-                  <div className="absolute top-full right-0 z-50 mt-1 w-72 rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">
+                  <div className="absolute top-full right-0 z-50 mt-1 w-72 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-2xl">
                     <input
                       type="text"
                       placeholder="ابحث عن العميل..."
                       value={partySearchQuery}
                       onChange={e => setPartySearchQuery(e.target.value)}
-                      className="mb-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                      className="mb-2 w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 py-1.5 text-xs text-[var(--app-text)] focus:outline-none focus:border-blue-500"
                       autoFocus
                     />
                     <div className="max-h-48 overflow-y-auto space-y-1">
@@ -349,7 +353,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                         }}
                         className={cn(
                           'flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold text-right transition-colors',
-                          partyId === null ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-300'
+                          partyId === null ? 'bg-blue-600 text-white' : 'hover:bg-[var(--app-surface-hover)] text-[var(--app-text)]'
                         )}
                       >
                         <span>عميل نقدي (بدون حساب)</span>
@@ -368,13 +372,13 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                             'flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold text-right transition-colors',
                             partyId === party.id
                               ? 'bg-blue-600 text-white'
-                              : 'hover:bg-slate-800 text-slate-300'
+                              : 'hover:bg-[var(--app-surface-hover)] text-[var(--app-text)]'
                           )}
                         >
                           <div className="flex flex-col">
                             <span>{party.name}</span>
                             {party.phone && (
-                              <span className="text-[10px] text-slate-400 font-mono" dir="ltr">
+                              <span className="text-[10px] opacity-80 font-mono" dir="ltr">
                                 {party.phone}
                               </span>
                             )}
@@ -389,8 +393,8 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
               {/* Payment Method */}
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-400">طريقة الدفع</label>
-                <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-0.5">
+                <label className="mb-1 block text-xs font-bold text-[var(--app-text-secondary)]">طريقة الدفع</label>
+                <div className="flex rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-0.5">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('cash')}
@@ -398,7 +402,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                       'flex-1 rounded-md py-1.5 text-xs font-bold transition-colors',
                       paymentMethod === 'cash'
                         ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text)]'
                     )}
                   >
                     نقداً (كاش)
@@ -410,7 +414,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                       'flex-1 rounded-md py-1.5 text-xs font-bold transition-colors',
                       paymentMethod === 'credit'
                         ? 'bg-amber-600 text-white shadow-xs'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text)]'
                     )}
                   >
                     آجل (ذمم)
@@ -420,11 +424,11 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
               {/* Cashbox / Treasury Selector */}
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-400">الصندوق / الخزينة</label>
+                <label className="mb-1 block text-xs font-bold text-[var(--app-text-secondary)]">الصندوق / الخزينة</label>
                 <select
                   value={paymentAccountId}
                   onChange={e => setPaymentAccountId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-blue-500"
+                  className="w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-semibold text-[var(--app-text)] focus:outline-none focus:border-blue-500"
                 >
                   <option value="">الصندوق الافتراضي للفرع</option>
                   {(paymentAccounts || []).map(acc => (
@@ -437,12 +441,12 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
               {/* Issue Date */}
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-400">تاريخ الفاتورة</label>
+                <label className="mb-1 block text-xs font-bold text-[var(--app-text-secondary)]">تاريخ الفاتورة</label>
                 <input
                   type="date"
                   value={issueDate}
                   onChange={e => setIssueDate(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-blue-500 font-mono"
+                  className="w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text)] focus:outline-none focus:border-blue-500 font-mono"
                 />
               </div>
             </div>
@@ -453,7 +457,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                 <div className="relative flex-1">
                   <Search
                     size={16}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--app-text-secondary)]"
                   />
                   <input
                     type="text"
@@ -464,10 +468,10 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                       setIsProductSearchOpen(true);
                     }}
                     onFocus={() => setIsProductSearchOpen(true)}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 py-2.5 pr-10 pl-4 text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] py-2.5 pr-10 pl-4 text-xs font-medium text-[var(--app-text)] focus:outline-none focus:border-blue-500"
                   />
                   {searchLoading && (
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-blue-400 font-bold">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-blue-600 dark:text-blue-400 font-bold">
                       جاري البحث...
                     </div>
                   )}
@@ -476,9 +480,9 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
               {/* Search Results Dropdown */}
               {isProductSearchOpen && productSearchTerm.trim().length >= 2 && (
-                <div className="absolute top-full right-0 z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">
+                <div className="absolute top-full right-0 z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-2xl">
                   {searchResults.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-400">
+                    <div className="p-4 text-center text-xs text-[var(--app-text-secondary)]">
                       لم يتم العثور على أصناف مطابقة.
                     </div>
                   ) : (
@@ -487,19 +491,19 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                         <div
                           key={prod.id}
                           onClick={() => handleAddProduct(prod)}
-                          className="flex cursor-pointer items-center justify-between rounded-lg p-2.5 hover:bg-slate-800 transition-colors"
+                          className="flex cursor-pointer items-center justify-between rounded-lg p-2.5 hover:bg-[var(--app-surface-hover)] transition-colors"
                         >
                           <div>
-                            <div className="text-xs font-bold text-white">{prod.name_ar}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">
+                            <div className="text-xs font-bold text-[var(--app-text)]">{prod.name_ar}</div>
+                            <div className="text-[10px] text-[var(--app-text-secondary)] font-mono">
                               SKU: {prod.sku || '—'} | المتوفر: {prod.quantity ?? 0}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-emerald-400" dir="ltr">
+                            <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400" dir="ltr">
                               {formatCurrency(prod.sale_price, currencyCode)}
                             </span>
-                            <span className="rounded bg-blue-600/30 px-2 py-0.5 text-[10px] font-bold text-blue-300">
+                            <span className="rounded bg-blue-600/15 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300">
                               + إضافة
                             </span>
                           </div>
@@ -512,10 +516,10 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
             </div>
 
             {/* Items Table */}
-            <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/60">
+            <div className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)]">
               <table className="w-full text-right text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 bg-slate-900/80 text-slate-400">
+                  <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)]">
                     <th className="py-2.5 px-3 font-bold text-center w-10">#</th>
                     <th className="py-2.5 px-3 font-bold">الصنف</th>
                     <th className="py-2.5 px-3 font-bold text-center w-28">الكمية</th>
@@ -525,18 +529,18 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                     <th className="py-2.5 px-2 font-bold text-center w-12">حذف</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[var(--app-border)]">
                   {items.map((item, index) => {
                     const lineTotal = Math.max(0, item.quantity * item.unitPrice - item.discount);
                     return (
-                      <tr key={`${item.productId}-${index}`} className="hover:bg-slate-900/40">
-                        <td className="py-2.5 px-3 text-center font-mono text-slate-500 text-xs">
+                      <tr key={`${item.productId}-${index}`} className="hover:bg-[var(--app-surface-hover)]">
+                        <td className="py-2.5 px-3 text-center font-mono text-[var(--app-text-secondary)] text-xs">
                           {index + 1}
                         </td>
                         <td className="py-2.5 px-3">
-                          <div className="font-bold text-white text-xs">{item.name}</div>
+                          <div className="font-bold text-[var(--app-text)] text-xs">{item.name}</div>
                           {item.sku && (
-                            <div className="font-mono text-[10px] text-slate-400">SKU: {item.sku}</div>
+                            <div className="font-mono text-[10px] text-[var(--app-text-secondary)]">SKU: {item.sku}</div>
                           )}
                         </td>
                         <td className="py-2.5 px-3">
@@ -544,7 +548,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(index, item.quantity - 1)}
-                              className="h-6 w-6 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center font-bold"
+                              className="h-6 w-6 rounded border border-[var(--app-border)] bg-[var(--app-surface-hover)] text-[var(--app-text)] hover:bg-[var(--app-border)] flex items-center justify-center font-bold"
                             >
                               -
                             </button>
@@ -553,12 +557,12 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                               min="1"
                               value={item.quantity}
                               onChange={e => handleQuantityChange(index, Number(e.target.value))}
-                              className="h-7 w-14 rounded border border-slate-700 bg-slate-900 text-center text-xs font-bold text-white font-mono focus:outline-none focus:border-blue-500"
+                              className="h-7 w-14 rounded border border-[var(--app-border)] bg-[var(--app-bg)] text-center text-xs font-bold text-[var(--app-text)] font-mono focus:outline-none focus:border-blue-500"
                             />
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(index, item.quantity + 1)}
-                              className="h-6 w-6 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center font-bold"
+                              className="h-6 w-6 rounded border border-[var(--app-border)] bg-[var(--app-surface-hover)] text-[var(--app-text)] hover:bg-[var(--app-border)] flex items-center justify-center font-bold"
                             >
                               +
                             </button>
@@ -571,7 +575,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                             step="0.01"
                             value={item.unitPrice}
                             onChange={e => handleUnitPriceChange(index, Number(e.target.value))}
-                            className="h-7 w-full rounded border border-slate-700 bg-slate-900 text-center text-xs font-bold text-white font-mono focus:outline-none focus:border-blue-500"
+                            className="h-7 w-full rounded border border-[var(--app-border)] bg-[var(--app-bg)] text-center text-xs font-bold text-[var(--app-text)] font-mono focus:outline-none focus:border-blue-500"
                           />
                         </td>
                         <td className="py-2.5 px-3">
@@ -581,17 +585,17 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                             step="0.01"
                             value={item.discount}
                             onChange={e => handleDiscountChange(index, Number(e.target.value))}
-                            className="h-7 w-full rounded border border-slate-700 bg-slate-900 text-center text-xs font-bold text-white font-mono focus:outline-none focus:border-blue-500"
+                            className="h-7 w-full rounded border border-[var(--app-border)] bg-[var(--app-bg)] text-center text-xs font-bold text-[var(--app-text)] font-mono focus:outline-none focus:border-blue-500"
                           />
                         </td>
-                        <td className="py-2.5 px-3 text-left font-mono font-bold text-emerald-400" dir="ltr">
+                        <td className="py-2.5 px-3 text-left font-mono font-bold text-emerald-600 dark:text-emerald-400" dir="ltr">
                           {formatCurrency(lineTotal, currencyCode)}
                         </td>
                         <td className="py-2.5 px-2 text-center">
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(index)}
-                            className="rounded p-1.5 text-slate-500 hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
+                            className="rounded p-1.5 text-[var(--app-text-secondary)] hover:bg-rose-500/15 hover:text-rose-600 transition-colors"
                             title="حذف الصنف"
                           >
                             <Trash2 size={14} />
@@ -607,26 +611,26 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
             {/* Notes & Summary */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-400">ملاحظات الفاتورة</label>
+                <label className="mb-1 block text-xs font-bold text-[var(--app-text-secondary)]">ملاحظات الفاتورة</label>
                 <textarea
                   rows={3}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="أدخل أي ملاحظات تخص الفاتورة أو سبب التعديل..."
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 text-xs text-[var(--app-text)] focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               {/* Totals & Impact Box */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2">
-                <div className="flex justify-between text-xs text-slate-400">
+              <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] p-4 space-y-2">
+                <div className="flex justify-between text-xs text-[var(--app-text-secondary)] font-medium">
                   <span>المجموع الفرعي:</span>
-                  <span className="font-mono font-bold text-white" dir="ltr">
+                  <span className="font-mono font-bold text-[var(--app-text)]" dir="ltr">
                     {formatCurrency(summary.subtotal, currencyCode)}
                   </span>
                 </div>
                 {summary.discount > 0 && (
-                  <div className="flex justify-between text-xs text-rose-400">
+                  <div className="flex justify-between text-xs text-rose-600 dark:text-rose-400 font-medium">
                     <span>إجمالي الخصم:</span>
                     <span className="font-mono font-bold" dir="ltr">
                       -{formatCurrency(summary.discount, currencyCode)}
@@ -634,34 +638,34 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                   </div>
                 )}
                 {summary.tax > 0 && (
-                  <div className="flex justify-between text-xs text-slate-400">
+                  <div className="flex justify-between text-xs text-[var(--app-text-secondary)] font-medium">
                     <span>الضريبة:</span>
-                    <span className="font-mono font-bold text-white" dir="ltr">
+                    <span className="font-mono font-bold text-[var(--app-text)]" dir="ltr">
                       {formatCurrency(summary.tax, currencyCode)}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-slate-800 pt-2 text-sm font-black text-white">
+                <div className="flex justify-between border-t border-[var(--app-border)] pt-2 text-sm font-black text-[var(--app-text)]">
                   <span>الإجمالي الجديد:</span>
-                  <span className="font-mono text-base font-black text-emerald-400" dir="ltr">
+                  <span className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400" dir="ltr">
                     {formatCurrency(summary.total, currencyCode)}
                   </span>
                 </div>
 
                 {/* Comparison with Old Total */}
-                <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/90 p-2.5 text-xs space-y-1">
-                  <div className="flex justify-between text-slate-400">
+                <div className="mt-3 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 text-xs space-y-1">
+                  <div className="flex justify-between text-[var(--app-text-secondary)] font-medium">
                     <span>الإجمالي السابق:</span>
-                    <span className="font-mono font-bold" dir="ltr">
+                    <span className="font-mono font-bold text-[var(--app-text)]" dir="ltr">
                       {formatCurrency(oldDocumentTotal, currencyCode)}
                     </span>
                   </div>
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between font-bold text-[var(--app-text)]">
                     <span>الفارق المحاسبي:</span>
                     <span
                       className={cn(
                         'font-mono font-black',
-                        difference > 0 ? 'text-amber-400' : difference < 0 ? 'text-emerald-400' : 'text-slate-400'
+                        difference > 0 ? 'text-amber-600 dark:text-amber-400' : difference < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--app-text-secondary)]'
                       )}
                       dir="ltr"
                     >
@@ -673,12 +677,12 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
             </div>
 
             {/* Accounting notice banner */}
-            <div className="rounded-xl border border-blue-900/40 bg-blue-950/30 p-3 text-xs text-blue-300 space-y-1">
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-900 dark:text-blue-200 space-y-1">
               <div className="flex items-center gap-2 font-bold">
-                <CheckCircle2 size={16} className="text-blue-400 shrink-0" />
+                <CheckCircle2 size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
                 <span>المعالجة المحاسبية والمخزنية الآلية:</span>
               </div>
-              <ul className="pr-6 list-disc space-y-0.5 text-[11px] text-blue-300/80">
+              <ul className="pr-6 list-disc space-y-0.5 text-[11px] font-medium">
                 <li>تسوية المخزون فورياً: إرجاع كميات الأصناف المحذوفة/المخفضة وخصم الأصناف الجديدة.</li>
                 <li>تحديث قيود اليومية للعميل، الخزينة، إيراد المبيعات، والضريبة لتطابق الإجمالي الجديد.</li>
                 <li>تحديث رصيد العميل وكشف الحساب تلقائياً دون أي تأثير جانبي أو تعارض.</li>
@@ -688,12 +692,12 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
         )}
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between border-t border-slate-800 bg-slate-950/60 px-5 py-3">
+        <div className="flex items-center justify-between border-t border-[var(--app-border)] bg-[var(--app-bg)] px-5 py-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isUpdating}
-            className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+            className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-xs font-bold text-[var(--app-text)] hover:bg-[var(--app-surface-hover)] transition-colors"
           >
             إلغاء
           </button>
@@ -702,7 +706,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
             type="button"
             onClick={handleSave}
             disabled={isUpdating || invoiceLoading || items.length === 0}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 active:scale-95 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50"
           >
             <Save size={15} />
             <span>حفظ التعديلات واعتماد القيود</span>
@@ -711,42 +715,45 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
         {/* Confirmation Dialog */}
         {showConfirm && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl text-right space-y-4">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs animate-in fade-in duration-150">
+            <div
+              style={{ backgroundColor: 'var(--app-surface)', color: 'var(--app-text)' }}
+              className="w-full max-w-md rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-5 shadow-2xl text-right space-y-4"
+            >
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                   <AlertCircle size={22} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-white">تأكيد تعديل الفاتورة</h3>
-                  <p className="text-xs text-slate-400">يرجى مراجعة تفاصيل التعديل قبل الاعتماد</p>
+                  <h3 className="text-sm font-black text-[var(--app-text)]">تأكيد تعديل الفاتورة</h3>
+                  <p className="text-xs font-medium text-[var(--app-text-secondary)]">يرجى مراجعة تفاصيل التعديل قبل الاعتماد</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-xs space-y-2">
+              <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] p-3 text-xs space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">العميل:</span>
-                  <span className="font-bold text-white">{customerName}</span>
+                  <span className="text-[var(--app-text-secondary)]">العميل:</span>
+                  <span className="font-bold text-[var(--app-text)]">{customerName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">طريقة الدفع:</span>
-                  <span className="font-bold text-white">
+                  <span className="text-[var(--app-text-secondary)]">طريقة الدفع:</span>
+                  <span className="font-bold text-[var(--app-text)]">
                     {paymentMethod === 'cash' ? 'نقداً (كاش)' : 'آجل (ذمم)'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">عدد الأصناف:</span>
-                  <span className="font-bold text-white font-mono">{items.length}</span>
+                  <span className="text-[var(--app-text-secondary)]">عدد الأصناف:</span>
+                  <span className="font-bold text-[var(--app-text)] font-mono">{items.length}</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-800 pt-2 font-bold">
-                  <span className="text-slate-300">الإجمالي الجديد:</span>
-                  <span className="font-mono text-emerald-400" dir="ltr">
+                <div className="flex justify-between border-t border-[var(--app-border)] pt-2 font-bold">
+                  <span className="text-[var(--app-text)]">الإجمالي الجديد:</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400" dir="ltr">
                     {formatCurrency(summary.total, currencyCode)}
                   </span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-[11px] font-medium text-[var(--app-text-secondary)] leading-relaxed">
                 سيتم تنفيذ تسوية المخزون وإعادة إنشاء بنود القيود المحاسبية تلقائياً في معاملة واحدة غير قابلة للتجزئة.
               </p>
 
@@ -755,7 +762,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                   type="button"
                   onClick={() => setShowConfirm(false)}
                   disabled={isUpdating}
-                  className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                  className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-xs font-bold text-[var(--app-text)] hover:bg-[var(--app-surface-hover)]"
                 >
                   تراجع
                 </button>
@@ -763,7 +770,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                   type="button"
                   onClick={executeSave}
                   disabled={isUpdating}
-                  className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-black text-white hover:bg-blue-500 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-black text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {isUpdating ? 'جاري الحفظ والترحيل...' : 'تأكيد الحفظ والترحيل'}
                 </button>
@@ -772,7 +779,8 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

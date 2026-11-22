@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Package } from 'lucide-react';
 import type { MatchedInvoiceItem } from '../../types';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface Props {
   items?: MatchedInvoiceItem[] | undefined;
@@ -44,6 +45,14 @@ export const InvoiceItemsCell: React.FC<Props> = ({ items, totalCount }) => {
             <span className="font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
               ×{item.quantity}
             </span>
+            {item.product_id && (
+              <EntityInfoDot
+                type="product"
+                id={item.product_id}
+                label={item.product_name}
+                size="xs"
+              />
+            )}
           </span>
         ))}
       </div>

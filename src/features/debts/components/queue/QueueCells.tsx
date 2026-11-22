@@ -21,6 +21,7 @@ import {
   scoreBarWidth,
 } from '../../lib/queueGrid';
 import type { DebtPriorityQueueRow } from '../../types';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 const barClass = (band: 'critical' | 'high' | 'normal'): string => {
   if (band === 'critical') return 'bg-rose-500';
@@ -138,6 +139,13 @@ export const QueuePartyCell: React.FC<{ row: DebtPriorityQueueRow }> = ({ row })
       <span className="truncate text-[11px] font-bold text-[var(--app-text)]" title={row.party_name}>
         {row.party_name}
       </span>
+      <EntityInfoDot
+        type="party"
+        id={row.party_id}
+        label={row.party_name}
+        subType="customer"
+        size="xs"
+      />
       <span className="shrink-0 rounded bg-[var(--app-surface-hover)] px-1 py-0.5 text-[10px] font-bold text-[var(--app-text-secondary)]">
         {queueTaskLabel(row.task_type)}
       </span>

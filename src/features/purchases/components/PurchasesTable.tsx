@@ -5,6 +5,7 @@ import { formatCurrency } from '../../../core/utils';
 import { Eye, Trash2, ArrowLeftRight, ShoppingCart, Printer, Package } from 'lucide-react';
 import { useDeletePurchase } from '../hooks';
 import type { MatchedInvoiceItem } from '@/core/types/invoiceSearch';
+import { EntityInfoDot } from '../../entity-inspector';
 
 export interface PurchaseTableRow {
   id: string;
@@ -192,6 +193,13 @@ const invoiceColumn = {
       >
         {row.invoice_number ?? ''}
       </span>
+      <EntityInfoDot
+        type="invoice"
+        id={row.id}
+        label={row.invoice_number ?? undefined}
+        subType={row.type}
+        size="xs"
+      />
     </div>
   ),
   width: '160px',
@@ -242,6 +250,14 @@ const PurchaseItemsCell = ({
             <span className="font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
               ×{item.quantity}
             </span>
+            {item.product_id && (
+              <EntityInfoDot
+                type="product"
+                id={item.product_id}
+                label={item.product_name}
+                size="xs"
+              />
+            )}
           </span>
         ))}
       </div>

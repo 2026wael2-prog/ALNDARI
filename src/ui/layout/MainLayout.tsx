@@ -27,6 +27,7 @@ import {
 import { useConnectionStore } from '../../core/store/connectionStore';
 import { NetworkStatusPill } from './NetworkStatusPill';
 import { MobileBottomNav } from './mobile/MobileBottomNav';
+import { EntityInspectorHost } from '../../features/entity-inspector';
 /**
  * ⚡ Lazy floating overlays — لا تنتمي لمسار الإقلاع الحرج.
  * برميل `features/chat` يصدّر وحدات المحادثات كاملة (خدمات، متاجر، هوكات صوتية،
@@ -220,6 +221,9 @@ const MainLayout: React.FC = () => {
             <AccompanyingInfoWindow />
           </Suspense>
         )}
+
+        {/* Global Universal Entity Inspector (نقطة الاستعلام الفوري — لا يُحمَّل إلا عند النقر) */}
+        <EntityInspectorHost />
       </div>
     </div>
   );

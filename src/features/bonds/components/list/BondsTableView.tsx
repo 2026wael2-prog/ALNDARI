@@ -11,6 +11,7 @@ import {
 import type { Bond } from '../../types';
 import type { BondsPageTotals } from '../../hooks/useBondActions';
 import { cn, formatCurrency } from '../../../../core/utils';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface BondsTableViewProps {
   bonds: Bond[];
@@ -97,9 +98,17 @@ export const BondsTableView: React.FC<BondsTableViewProps> = ({
                     )}
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-black text-gray-900 dark:text-slate-100">
-                      {bond.payment_number}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-gray-900 dark:text-slate-100">
+                        {bond.payment_number}
+                      </span>
+                      <EntityInfoDot
+                        type="bond"
+                        id={bond.id}
+                        label={bond.payment_number}
+                        size="xs"
+                      />
+                    </div>
                     <span className="text-[10px] text-gray-400">
                       {bond.type === 'receipt'
                         ? 'قبض'

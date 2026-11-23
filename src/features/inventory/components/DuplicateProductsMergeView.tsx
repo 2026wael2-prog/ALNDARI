@@ -74,7 +74,7 @@ const DuplicateProductsMergeView: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(totalGroups / PAGE_SIZE));
 
   const getMasterId = (group: DuplicateProductGroup): string => {
-    const key = `${group.norm_pn}::${group.norm_brand}`;
+    const key = `${group.norm_pn}::${group.norm_brand}::${group.category_name ?? ''}`;
     const chosen = selectedMasters[key];
     if (chosen && group.items.some(i => i.id === chosen)) return chosen;
     return group.items[0]?.id ?? '';
@@ -232,7 +232,7 @@ const DuplicateProductsMergeView: React.FC = () => {
 
                 <tbody>
                   {groups.map((group, gIdx) => {
-                    const groupKey = `${group.norm_pn}::${group.norm_brand}`;
+                    const groupKey = `${group.norm_pn}::${group.norm_brand}::${group.category_name ?? ''}`;
                     const masterId = getMasterId(group);
                     const isSamePnBrand = group.norm_pn === group.norm_brand;
                     const groupNumber = pageIdx * PAGE_SIZE + gIdx + 1;
@@ -254,6 +254,11 @@ const DuplicateProductsMergeView: React.FC = () => {
                                 <span className="inline-flex h-5 min-w-[24px] items-center justify-center rounded bg-orange-600 px-1.5 font-mono text-[11px] font-black text-white">
                                   #{groupNumber}
                                 </span>
+                                {group.category_name && (
+                                  <span className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200">
+                                    التصنيف: {group.category_name}
+                                  </span>
+                                )}
                                 <span className="inline-flex items-center gap-1 rounded border border-orange-300 bg-white px-2 py-0.5 font-mono text-xs font-black text-slate-950 dark:border-orange-800 dark:bg-slate-900 dark:text-orange-200">
                                   <Package size={12} className="text-orange-600" />
                                   {group.norm_pn.toUpperCase()}

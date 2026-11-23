@@ -13,6 +13,7 @@ export interface DuplicateProductItem {
   part_number: string;
   brand: string;
   size?: string | null;
+  category_name?: string | null;
   sale_price: number;
   cost_price: number;
   total_stock: number;
@@ -23,6 +24,7 @@ export interface DuplicateProductItem {
 export interface DuplicateProductGroup {
   norm_pn: string;
   norm_brand: string;
+  category_name?: string | null;
   group_count: number;
   items: DuplicateProductItem[];
 }

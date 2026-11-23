@@ -20,7 +20,6 @@ export const useAccounts = () => {
     enabled: !!user?.company_id,
     staleTime: 5 * 60 * 1000, // 5 minutes - accounts rarely change
     gcTime: 15 * 60 * 1000,
-    placeholderData: prev => prev,
   });
 };
 

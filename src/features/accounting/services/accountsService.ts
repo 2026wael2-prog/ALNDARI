@@ -37,7 +37,7 @@ export const accountsService = {
     companyId: string,
     options?: { includeBalances?: boolean; branchId?: string | null }
   ): Promise<Account[]> => {
-    // جلب متزامن لهيكل الحسابات وأرصدتها التراكمية لتسريع تحميل دليل الحسابات
+    // جلب متزامن لهيكل الحسابات وأرصدتها التراكمية وعزل صناديق الفروع الأخرى
     const accountsPromise = accountsApi.getAccounts(companyId);
     const balancesPromise = options?.includeBalances
       ? fetchAllRpcPages(
@@ -52,10 +52,30 @@ export const accountsService = {
         )
       : Promise.resolve({ data: null, error: null });
 
-    const [accountsRes, balancesRes] = await Promise.all([accountsPromise, balancesPromise]);
+    const otherBranchTreasuryPromise = options?.branchId
+      ? (supabase.rpc as unknown as (
+          fn: string,
+          params: Record<string, unknown>
+        ) => Promise<{ data: Array<{ account_id: string }> | null; error: unknown }>)(
+          'fn_get_other_branch_treasury_account_ids',
+          { p_company_id: companyId, p_branch_id: options.branchId }
+        ).catch(() => ({ data: null, error: null }))
+      : Promise.resolve({ data: null, error: null });
+
+    const [accountsRes, balancesRes, otherBranchRes] = await Promise.all([
+      accountsPromise,
+      balancesPromise,
+      otherBranchTreasuryPromise,
+    ]);
 
     if (accountsRes.error) throw parseError(accountsRes.error);
     if (balancesRes.error) throw parseError(balancesRes.error);
+
+    const otherBranchTreasuryIds = new Set<string>(
+      (otherBranchRes?.data ?? [])
+        .map(r => r.account_id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    );
 
     const balanceMap = new Map<string, number>();
     const foreignBalanceMap = new Map<string, number>();
@@ -81,8 +101,10 @@ export const accountsService = {
       }
     }
 
-    // Map to Account model
-    return (accountsRes.data ?? []).map(acc => {
+    // Map to Account model — exclude cashboxes/exchange companies owned by other branches
+    return (accountsRes.data ?? [])
+      .filter(acc => !otherBranchTreasuryIds.has(acc.id))
+      .map(acc => {
       // report_trial_balance returns flat `balance = SUM(debit) - SUM(credit)`
       // for every account type. Normalise the sign by type so that
       // liabilities / equity / revenue appear as positive CREDIT balances

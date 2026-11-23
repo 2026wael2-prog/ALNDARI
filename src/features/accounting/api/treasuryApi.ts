@@ -49,7 +49,7 @@ export const treasuryApi = {
       .eq('is_active', true);
 
     if (branchId) {
-      query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
+      query = query.eq('branch_id', branchId);
     }
 
     return await query.order('created_at', { ascending: true });
@@ -94,7 +94,7 @@ export const treasuryApi = {
       .eq('is_active', true);
 
     if (branchId) {
-      query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
+      query = query.eq('branch_id', branchId);
     }
 
     return await query.order('created_at', { ascending: true });

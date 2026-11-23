@@ -75,5 +75,27 @@ describe('accountsService.getAccounts', () => {
     expect(result[0].balance).toBe(0);
     expect(supabaseMock.rpc).not.toHaveBeenCalled();
   });
+
+  it('excludes cashboxes and exchange accounts owned by other branches when branchId is set', async () => {
+    const accounts = [
+      { id: 'acc-ghamdan-cash', company_id: 'c1', code: '101001', name_ar: 'الصندوق العام', type: 'asset', currency_code: 'SAR', is_system: false, parent_id: null, allow_posting: true },
+      { id: 'acc-wael-cash', company_id: 'c1', code: 'MZ-135', name_ar: 'صندوق سعودي', type: 'asset', currency_code: 'SAR', is_system: false, parent_id: null, allow_posting: true },
+      { id: 'acc-sales', company_id: 'c1', code: '4100', name_ar: 'المبيعات', type: 'revenue', currency_code: 'SAR', is_system: true, parent_id: null, allow_posting: true },
+    ];
+    accountsApiMock.getAccounts.mockResolvedValue({ data: accounts, error: null });
+    supabaseMock.rpc.mockImplementation((fn: string) => {
+      if (fn === 'fn_get_other_branch_treasury_account_ids') {
+        return Promise.resolve({ data: [{ account_id: 'acc-ghamdan-cash' }], error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+
+    const result = await accountsService.getAccounts('c1', {
+      includeBalances: true,
+      branchId: 'branch-wael',
+    });
+
+    expect(result.map(a => a.id)).toEqual(['acc-wael-cash', 'acc-sales']);
+  });
 });
 

@@ -3597,9 +3597,14 @@ html[data-preset='optiparts-or'] .font-mono {
 
 /* ── 1. الشريط الجانبي (Sidebar) — تباين عالٍ ومقروء 100% في الوضع النهاري والليلي ── */
 html[data-preset='optiparts-or'] aside {
-  background-color: #0f172a !important;
-  border-color: #1e293b !important;
+  background-color: #161b26 !important;
+  border-color: #252c3a !important;
   color: #f1f5f9 !important;
+}
+
+html.dark[data-preset='optiparts-or'] aside {
+  background-color: #161920 !important;
+  border-color: #262b35 !important;
 }
 
 /* عناوين الأقسام في القائمة الجانبية */
@@ -3660,18 +3665,18 @@ html[data-preset='optiparts-or'] aside .border-b {
   border-color: #1e293b !important;
 }
 
-/* ── 2. الهيدر الرئيسي في جميع الصفحات — برتقالي احترافي مع أبيض ناصع ── */
+/* ── 2. الهيدر الرئيسي في جميع الصفحات — برتقالي عميق احترافي مع أبيض ناصع ── */
 html[data-preset='optiparts-or'] header[data-main-header='true'] {
-  background: linear-gradient(90deg, #ea580c 0%, #f97316 55%, #ea580c 100%) !important;
-  border-bottom: 1px solid #c2410c !important;
+  background: linear-gradient(90deg, #c2410c 0%, #ea580c 55%, #c2410c 100%) !important;
+  border-bottom: 1px solid #9a3412 !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 8px -2px rgba(234, 88, 12, 0.28) !important;
+  box-shadow: 0 2px 8px -2px rgba(194, 65, 12, 0.32) !important;
 }
 
 html.dark[data-preset='optiparts-or'] header[data-main-header='true'] {
   background: linear-gradient(90deg, #9a3412 0%, #c2410c 55%, #9a3412 100%) !important;
   border-bottom: 1px solid #7c2d12 !important;
-  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* عنوان الصفحة والأيقونات المباشرة في الهيدر البرتقالي */
@@ -3727,36 +3732,59 @@ html.dark[data-preset='optiparts-or'] header[data-main-header='true'] input[type
   color: #cbd5e1 !important;
 }
 
-/* ── 3. الهيدر الثانوي للصفحات (MicroHeader) — رصاصي-سليت احترافي متناغم مع البرتقالي ── */
+/* ── 3. الهيدر الثانوي للصفحات (MicroHeader) — برتقالي عميق بدرجة أفتح من الهيدر الرئيسي ── */
 html[data-preset='optiparts-or'] [data-micro-header='true'] {
-  background: linear-gradient(180deg, #eef2f6 0%, #e6ecf2 100%) !important;
-  border-bottom: 1px solid #cbd5e1 !important;
+  background: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%) !important;
+  border-bottom: 1px solid #c2410c !important;
+  color: #ffffff !important;
 }
 
 html.dark[data-preset='optiparts-or'] [data-micro-header='true'] {
-  background: linear-gradient(180deg, #1e293b 0%, #172033 100%) !important;
-  border-bottom: 1px solid #334155 !important;
+  background: linear-gradient(90deg, #b84210 0%, #d95918 55%, #c24b12 100%) !important;
+  border-bottom: 1px solid #9a3412 !important;
+  color: #ffffff !important;
 }
 
+/* شارة العنوان والأيقونة وزر الرجوع داخل الهيدر الثانوي البرتقالي */
 html[data-preset='optiparts-or'] [data-micro-header='true'] h1 {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'] {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'] svg {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back']:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child .rounded-full {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child .rounded-full svg {
+  color: #ffffff !important;
+}
+
+/* شريط التبويبات أسفل الهيدر الثانوي */
+html[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
+  background-color: #fff7ed !important;
+  border-top-color: #fed7aa !important;
   color: #0f172a !important;
 }
 
-html.dark[data-preset='optiparts-or'] [data-micro-header='true'] h1 {
-  color: #f8fafc !important;
-}
-
-html[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
-  background-color: #f8fafc !important;
-  border-top-color: #dbe3ec !important;
-}
-
 html.dark[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
-  background-color: #111827 !important;
-  border-top-color: #1e293b !important;
+  background-color: #1a1d24 !important;
+  border-top-color: #2b303b !important;
+  color: #f3f4f6 !important;
 }
 
-/* ── 4. ترويسات الجداول الاحترافية (Table Headers) — كحلي سليت داكن مع نص أبيض وحد برتقالي ── */
+/* ── 4. ترويسات الجداول الاحترافية (Table Headers) — رمادي داكن متوازن بدون مبالغة كحلية ── */
 @media screen {
   html[data-preset='optiparts-or'] table thead,
   html[data-preset='optiparts-or'] table thead tr,
@@ -3781,16 +3809,16 @@ html.dark[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
   html.dark[data-preset='optiparts-or'] table thead,
   html.dark[data-preset='optiparts-or'] table thead tr,
   html.dark[data-preset='optiparts-or'] table thead tr th {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
-    border-color: #334155 !important;
+    background-color: #222630 !important;
+    color: #f3f4f6 !important;
+    border-color: #323846 !important;
   }
 
   html.dark[data-preset='optiparts-or'] table thead tr {
-    border-bottom: 2px solid #f97316 !important;
+    border-bottom: 2px solid #ea580c !important;
   }
 
   html.dark[data-preset='optiparts-or'] table thead tr th:hover {
-    background-color: #1e293b !important;
+    background-color: #2b303d !important;
   }
 }

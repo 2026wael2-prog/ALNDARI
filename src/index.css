@@ -3865,17 +3865,17 @@ html[data-preset='optiparts-or'] [data-modal-header='true'] > div:last-child but
   color: #ffffff !important;
 }
 
-/* الهيدرات الثانوية داخل نافذة الاستعلام الشامل */
+/* الهيدرات الثانوية داخل نافذة الاستعلام الشامل — برتقالي ناعم أفتح بوضوح من الهيدر الرئيسي */
 html[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
-  background: linear-gradient(90deg, #ea580c 0%, #f97316 55%, #fb923c 100%) !important;
-  border-bottom: 1px solid #c2410c !important;
-  color: #ffffff !important;
+  background: linear-gradient(90deg, #fed7aa 0%, #ffedd5 65%, #fff7ed 100%) !important;
+  border-bottom: 1px solid #fdba74 !important;
+  color: #7c2d12 !important;
 }
 
 html.dark[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
-  background: linear-gradient(90deg, #b84210 0%, #d95918 55%, #c24b12 100%) !important;
-  border-bottom: 1px solid #9a3412 !important;
-  color: #ffffff !important;
+  background: linear-gradient(90deg, #3a2416 0%, #2e1d13 65%, #261810 100%) !important;
+  border-bottom: 1px solid #6b3a1d !important;
+  color: #ffedd5 !important;
 }
 
 /* ── 4. ترويسات الجداول الاحترافية (Table Headers) — برتقالي خفيف بدرجة أفتح من الهيدر الثانوي ── */

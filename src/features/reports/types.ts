@@ -27,11 +27,13 @@ export interface DebtSummary {
 export interface PartyDebt {
   id: string;
   name: string;
+  phone?: string | null;
   type: 'customer' | 'supplier';
   currency: string;
   total_sales: number;
   paid_amount: number;
   remaining_amount: number;
+  balances_by_currency?: Array<{ currency: string; balance: number }>;
 }
 
 export interface ReportsStats {

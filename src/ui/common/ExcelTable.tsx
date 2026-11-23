@@ -368,6 +368,19 @@ function ExcelTable<T>({
     }
   };
 
+const extractTextFromReactNode = (node: React.ReactNode): string => {
+  if (node === null || node === undefined || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) {
+    return node.map(extractTextFromReactNode).filter(Boolean).join(' ').trim();
+  }
+  if (React.isValidElement(node)) {
+    const props = node.props as { children?: React.ReactNode } | null;
+    return extractTextFromReactNode(props?.children);
+  }
+  return '';
+};
+
   const handleExport = useCallback(() => {
     if (onExport) {
       onExport();
@@ -394,7 +407,7 @@ function ExcelTable<T>({
           if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
             return val;
           }
-          return '';
+          return extractTextFromReactNode(val);
         });
     });
 

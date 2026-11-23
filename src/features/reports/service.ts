@@ -301,19 +301,47 @@ export const reportsService = {
    * type='both' rows are split by sign → customer (receivable) / supplier (payable).
    */
   getDebtReport: async (companyId: string, branchId?: string | null): Promise<ReportsStats> => {
-    const [{ data: company }, { data, error }] = await Promise.all([
+    const fetchCurrenciesSafe = async () => {
+      try {
+        const res = await (supabase.rpc as Function)('get_party_currencies_by_company_json', {
+          p_company_id: companyId,
+        });
+        return Array.isArray(res?.data) ? (res.data as Array<{ party_id?: string; currency_code?: string; balance?: number }>) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const [{ data: company }, { data, error }, currencyRows] = await Promise.all([
       supabase.from('companies').select('base_currency').eq('id', companyId).maybeSingle(),
       supabase.rpc('report_debts', {
         p_company_id: companyId,
         ...(branchId ? { p_branch_id: branchId } : {}),
       }),
+      fetchCurrenciesSafe(),
     ]);
     if (error) throw error;
     const baseCurrency = company?.base_currency || 'SAR';
 
+    const currencyMap = new Map<string, Array<{ currency: string; balance: number }>>();
+    for (const row of currencyRows) {
+      if (typeof row.party_id !== 'string' || typeof row.currency_code !== 'string') continue;
+      const bal = Number(row.balance) || 0;
+      if (Math.abs(bal) < 0.01) continue;
+      const list = currencyMap.get(row.party_id) ?? [];
+      list.push({ currency: row.currency_code.toUpperCase(), balance: Math.round(bal * 100) / 100 });
+      currencyMap.set(row.party_id, list);
+    }
+
     const raw = (data ?? {}) as {
       summary?: { receivables?: number; payables?: number };
-      debts?: Array<{ id: string; name: string; type: string; remaining_amount: number }>;
+      debts?: Array<{
+        id: string;
+        name: string;
+        phone?: string | null;
+        type: string;
+        remaining_amount: number;
+      }>;
     };
 
     const debts: PartyDebt[] = (raw.debts ?? []).map(r => {
@@ -330,11 +358,13 @@ export const reportsService = {
       return {
         id: r.id,
         name: r.name,
+        phone: r.phone ?? null,
         type,
         currency: baseCurrency,
         total_sales: 0,
         paid_amount: 0,
         remaining_amount: remaining,
+        balances_by_currency: currencyMap.get(r.id) ?? [],
       };
     });
 

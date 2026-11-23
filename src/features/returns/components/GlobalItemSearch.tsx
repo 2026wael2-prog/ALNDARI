@@ -15,7 +15,7 @@ import { getItemDisplayName, getItemDisplayCode } from '../utils/returnHelpers';
 
 interface GlobalItemSearchProps {
   invoices: Invoice[];
-  onItemSelect: (invoiceId: string) => void;
+  onItemSelect: (invoiceId: string, itemId?: string) => void;
 }
 
 interface SearchResult {
@@ -164,7 +164,7 @@ const GlobalItemSearch: React.FC<GlobalItemSearchProps> = ({ invoices, onItemSel
                   <tr
                     key={`${result.invoiceId}-${result.item.id}-${idx}`}
                     onClick={() => {
-                      onItemSelect(result.invoiceId);
+                      onItemSelect(result.invoiceId, result.item.id);
                     }}
                     className="group cursor-pointer transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                   >
@@ -228,10 +228,11 @@ const GlobalItemSearch: React.FC<GlobalItemSearchProps> = ({ invoices, onItemSel
                     </td>
                     <td className="p-3 text-center max-md:p-3">
                       <button
+                        type="button"
                         className="w-full rounded-lg bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700 transition-all hover:bg-indigo-600 hover:text-white dark:bg-indigo-900/50 dark:text-indigo-300"
                         onClick={e => {
                           e.stopPropagation();
-                          onItemSelect(result.invoiceId);
+                          onItemSelect(result.invoiceId, result.item.id);
                         }}
                       >
                         إرجاع الصنف

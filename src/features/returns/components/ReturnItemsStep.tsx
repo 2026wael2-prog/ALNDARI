@@ -57,8 +57,16 @@ export const ReturnItemsStep: React.FC<ReturnItemsStepProps> = ({
     return selMap;
   }, [items]);
 
-  const handleInvoiceSelect = (id: string) => {
+  const handleInvoiceSelect = (id: string, preselectedItemId?: string) => {
     setValue('invoiceId', id, { shouldValidate: true });
+    if (preselectedItemId) {
+      const inv = invoices.find(i => i.id === id);
+      const matchedItem = inv?.invoice_items?.find(it => it.id === preselectedItemId);
+      if (matchedItem) {
+        setValue('items', [buildReturnItem(matchedItem, 1)], { shouldValidate: true });
+        return;
+      }
+    }
     // Reset items when invoice changes
     setValue('items', [], { shouldValidate: true });
   };

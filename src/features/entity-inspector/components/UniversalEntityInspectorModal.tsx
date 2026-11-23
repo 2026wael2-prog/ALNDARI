@@ -11,6 +11,7 @@ import {
   Package,
   Receipt,
   RefreshCw,
+  RotateCcw,
   Search,
   Table2,
   Users,
@@ -23,8 +24,14 @@ import { useAuthStore } from '../../auth/store';
 import { useBranchFilterStore } from '../../branches/store';
 import { useEntityInspectorStore } from '../store';
 import { fetchInspectedEntity } from '../service';
-import type { InspectableEntityType, InspectorFieldRow, InspectorTone } from '../types';
+import type {
+  InspectableEntityType,
+  InspectorFieldRow,
+  InspectorRowReturnAction,
+  InspectorTone,
+} from '../types';
 import { EntityInfoDot } from './EntityInfoDot';
+import { AdvancedReturnModal } from '../../returns/components/AdvancedReturnModal';
 
 const ENTITY_ICON_MAP: Record<InspectableEntityType, typeof Package> = {
   product: Package,
@@ -81,6 +88,7 @@ export const UniversalEntityInspectorModal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [sheetSearch, setSheetSearch] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [returnModalState, setReturnModalState] = useState<InspectorRowReturnAction | null>(null);
 
   useEffect(() => {
     setActiveTab('overview');
@@ -195,7 +203,6 @@ export const UniversalEntityInspectorModal: React.FC = () => {
       title={modalTitle}
       description={modalDescription}
       size="5xl"
-      zIndex="z-[10050]"
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-[11px] font-semibold text-[var(--app-text-secondary)]">
@@ -206,7 +213,33 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                 : `ورقة البيانات الشاملة (${data?.fields.length ?? 0} حقل)`}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {data?.returnContext && (
+              <button
+                type="button"
+                onClick={() => {
+                  const ctx = data.returnContext!;
+                  setReturnModalState({
+                    returnType: ctx.returnType,
+                    invoiceId: ctx.invoiceId || '',
+                    ...(ctx.productId ? { productId: ctx.productId } : {}),
+                    ...(ctx.partyId ? { partyId: ctx.partyId } : {}),
+                    ...(ctx.partyName ? { partyName: ctx.partyName } : {}),
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-rose-700"
+                title="إرجاع المنتج أو إنشاء مرتجع مباشر من الفاتورة"
+              >
+                <RotateCcw size={13} />
+                <span>
+                  {data.type === 'product'
+                    ? 'إرجاع هذا المنتج'
+                    : data.type === 'invoice'
+                      ? 'إرجاع من هذه الفاتورة'
+                      : 'إنشاء مرتجع'}
+                </span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => refetch()}
@@ -322,16 +355,41 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                     </button>
                   )}
                 </div>
-                {data.badge && (
-                  <span
-                    className={cn(
-                      'rounded-full border px-2.5 py-0.5 text-[11px] font-black',
-                      TONE_BADGE[data.badge.tone]
+                    {data.badge && (
+                      <span
+                        className={cn(
+                          'rounded-full border px-2.5 py-0.5 text-[11px] font-black',
+                          TONE_BADGE[data.badge.tone]
+                        )}
+                      >
+                        {data.badge.label}
+                      </span>
                     )}
-                  >
-                    {data.badge.label}
-                  </span>
-                )}
+                    {data.returnContext && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const ctx = data.returnContext!;
+                          setReturnModalState({
+                            returnType: ctx.returnType,
+                            invoiceId: ctx.invoiceId || '',
+                            ...(ctx.productId ? { productId: ctx.productId } : {}),
+                            ...(ctx.partyId ? { partyId: ctx.partyId } : {}),
+                            ...(ctx.partyName ? { partyName: ctx.partyName } : {}),
+                          });
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-rose-500/35 bg-rose-500/15 px-2.5 py-1 text-[11px] font-black text-rose-700 transition-colors hover:bg-rose-600 hover:text-white dark:text-rose-300 dark:hover:bg-rose-600 dark:hover:text-white"
+                      >
+                        <RotateCcw size={12} />
+                        <span>
+                          {data.type === 'product'
+                            ? 'إرجاع المنتج'
+                            : data.type === 'invoice'
+                              ? 'إرجاع من الفاتورة'
+                              : 'إنشاء مرتجع'}
+                        </span>
+                      </button>
+                    )}
               </div>
 
               <div className="grid grid-cols-2 divide-x divide-x-reverse divide-[var(--app-border)] sm:grid-cols-4">
@@ -601,8 +659,8 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                               {col.label}
                             </th>
                           ))}
-                          <th className="w-12 border border-[var(--app-border)] px-2 py-2 text-center text-[11px] font-black">
-                            تفاصيل
+                          <th className="w-24 border border-[var(--app-border)] px-2 py-2 text-center text-[11px] font-black">
+                            إجراءات
                           </th>
                         </tr>
                       </thead>
@@ -639,18 +697,31 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                               );
                             })}
                             <td className="border border-[var(--app-border)] px-2 py-2 text-center">
-                              {row.target ? (
-                                <EntityInfoDot
-                                  type={row.target.type}
-                                  id={row.target.id}
-                                  label={row.target.label}
-                                  subType={row.target.subType}
-                                  inInspector
-                                  size="xs"
-                                />
-                              ) : (
-                                <span className="text-[var(--app-text-secondary)]">—</span>
-                              )}
+                              <div className="flex items-center justify-center gap-1.5">
+                                {row.returnAction && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setReturnModalState(row.returnAction!)}
+                                    className="inline-flex items-center gap-1 rounded-md border border-rose-500/35 bg-rose-500/15 px-2 py-0.5 text-[10px] font-black text-rose-700 transition-colors hover:bg-rose-600 hover:text-white dark:text-rose-300 dark:hover:bg-rose-600 dark:hover:text-white"
+                                    title="إرجاع هذا الصنف من الفاتورة"
+                                  >
+                                    <RotateCcw size={11} />
+                                    <span>إرجاع</span>
+                                  </button>
+                                )}
+                                {row.target ? (
+                                  <EntityInfoDot
+                                    type={row.target.type}
+                                    id={row.target.id}
+                                    label={row.target.label}
+                                    subType={row.target.subType}
+                                    inInspector
+                                    size="xs"
+                                  />
+                                ) : !row.returnAction ? (
+                                  <span className="text-[var(--app-text-secondary)]">—</span>
+                                ) : null}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -663,6 +734,22 @@ export const UniversalEntityInspectorModal: React.FC = () => {
           </>
         ) : null}
       </div>
+
+      {returnModalState && (
+        <AdvancedReturnModal
+          isOpen={true}
+          onClose={() => setReturnModalState(null)}
+          returnType={returnModalState.returnType}
+          initialInvoiceId={returnModalState.invoiceId || undefined}
+          initialProductId={returnModalState.productId}
+          partyId={returnModalState.partyId}
+          partyName={returnModalState.partyName}
+          onSuccess={() => {
+            setReturnModalState(null);
+            void refetch();
+          }}
+        />
+      )}
     </Modal>
   );
 };

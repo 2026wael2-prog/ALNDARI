@@ -12,6 +12,7 @@ import {
   Loader2,
   Info,
   GripHorizontal,
+  RotateCcw,
 } from 'lucide-react';
 import { motion, useDragControls } from 'framer-motion';
 import { useAccompanyingInfoStore } from '../store/accompanyingInfoStore';
@@ -20,6 +21,7 @@ import { useAuthStore } from '../../auth/store';
 import { PartyCurrencyGrid } from './PartyCurrencyGrid';
 import { InvoiceSummaryGrid } from './InvoiceSummaryGrid';
 import { ProductStockGrid } from './ProductStockGrid';
+import { AdvancedReturnModal } from '../../returns/components/AdvancedReturnModal';
 
 export const AccompanyingInfoWindow: React.FC = () => {
   const {
@@ -55,6 +57,13 @@ export const AccompanyingInfoWindow: React.FC = () => {
     }>
   >([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [returnModalTarget, setReturnModalTarget] = useState<{
+    returnType: 'sale' | 'purchase';
+    invoiceId?: string | undefined;
+    productId?: string | undefined;
+    partyId?: string | undefined;
+    partyName?: string | undefined;
+  } | null>(null);
 
   // للتحكم بالسحب (Drag)
   const dragControls = useDragControls();
@@ -284,7 +293,22 @@ export const AccompanyingInfoWindow: React.FC = () => {
             )
           ) : target?.type === 'invoice' ? (
             invoiceData ? (
-              <InvoiceSummaryGrid data={invoiceData} />
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReturnModalTarget({
+                      returnType: 'sale',
+                      invoiceId: invoiceData.id,
+                    })
+                  }
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-600 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-rose-700"
+                >
+                  <RotateCcw size={13} />
+                  <span>إرجاع أصناف من هذه الفاتورة</span>
+                </button>
+                <InvoiceSummaryGrid data={invoiceData} />
+              </div>
             ) : (
               <div className="p-4 text-center text-xs text-slate-400">
                 لم يتم العثور على بيانات الفاتورة المحددة
@@ -292,7 +316,22 @@ export const AccompanyingInfoWindow: React.FC = () => {
             )
           ) : target?.type === 'product' ? (
             productData ? (
-              <ProductStockGrid data={productData} />
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReturnModalTarget({
+                      returnType: 'sale',
+                      productId: productData.id,
+                    })
+                  }
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-600 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-rose-700"
+                >
+                  <RotateCcw size={13} />
+                  <span>إرجاع هذا المنتج</span>
+                </button>
+                <ProductStockGrid data={productData} />
+              </div>
             ) : (
               <div className="p-4 text-center text-xs text-slate-400">
                 لم يتم العثور على بيانات الصنف المحدد
@@ -316,6 +355,23 @@ export const AccompanyingInfoWindow: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+      {returnModalTarget && (
+        <AdvancedReturnModal
+          isOpen={true}
+          onClose={() => setReturnModalTarget(null)}
+          returnType={returnModalTarget.returnType}
+          initialInvoiceId={returnModalTarget.invoiceId}
+          initialProductId={returnModalTarget.productId}
+          partyId={returnModalTarget.partyId}
+          partyName={returnModalTarget.partyName}
+          onSuccess={() => {
+            setReturnModalTarget(null);
+            if (target) {
+              void loadTargetData(target);
+            }
+          }}
+        />
       )}
     </motion.div>
   );

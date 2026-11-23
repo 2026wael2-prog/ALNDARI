@@ -142,7 +142,7 @@ export const purchasesApi = {
         `
       id, invoice_number, issue_date, total_amount, total_document_amount, subtotal_document_amount, status, type, payment_method,
       currency_code, exchange_rate, notes, return_reason, reference_invoice_id, created_at,
-      reference_invoice:reference_invoice_id(id, invoice_number),
+      reference_invoice:invoices!invoices_reference_invoice_id_fkey(id, invoice_number),
       party:party_id(name, phone),
       invoice_items(
         id, product_id, cost_price, quantity, unit_price, total, description,

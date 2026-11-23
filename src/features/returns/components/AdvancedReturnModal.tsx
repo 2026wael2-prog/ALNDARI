@@ -30,6 +30,7 @@ interface AdvancedReturnModalProps {
   partyName?: string | undefined;
   partyId?: string | undefined;
   initialInvoiceId?: string | undefined;
+  initialProductId?: string | undefined;
 }
 
 // Validation Schema using Zod
@@ -38,6 +39,7 @@ const returnSchema = z.object({
   items: z
     .array(
       z.object({
+        id: z.string().optional(),
         productId: z.string(),
         name: z.string(),
         quantity: z.number(),
@@ -79,6 +81,7 @@ export const AdvancedReturnModal: React.FC<AdvancedReturnModalProps> = ({
 
   partyId,
   initialInvoiceId,
+  initialProductId,
 }) => {
   const { showToast } = useFeedbackStore();
   const queryClient = useQueryClient();
@@ -109,18 +112,66 @@ export const AdvancedReturnModal: React.FC<AdvancedReturnModalProps> = ({
     defaultValues: {
       invoiceId: initialInvoiceId || '',
       date: formatLocalDate(),
-      status: 'processing',
+      status: 'accepted',
       items: [],
-      returnReason: '',
+      returnReason: 'changed_mind',
     },
     mode: 'onChange',
   });
 
   useEffect(() => {
-    if (initialInvoiceId && isOpen) {
-      methods.setValue('invoiceId', initialInvoiceId);
+    if (!isOpen) return;
+    if (initialInvoiceId) {
+      methods.setValue('invoiceId', initialInvoiceId, { shouldValidate: true });
     }
   }, [initialInvoiceId, isOpen, methods]);
+
+  useEffect(() => {
+    if (!isOpen || invoices.length === 0) return;
+
+    const currentInvId = methods.getValues('invoiceId') || initialInvoiceId || '';
+    let targetInvoice = currentInvId ? invoices.find(inv => inv.id === currentInvId) : undefined;
+
+    if (!targetInvoice && initialProductId) {
+      targetInvoice = invoices.find(inv =>
+        inv.invoice_items?.some(it => it.product_id === initialProductId)
+      );
+      if (targetInvoice) {
+        methods.setValue('invoiceId', targetInvoice.id, { shouldValidate: true });
+      }
+    }
+
+    if (targetInvoice && initialProductId) {
+      const currentItems = methods.getValues('items') || [];
+      if (currentItems.length === 0) {
+        const matchedLine = targetInvoice.invoice_items?.find(
+          it => it.product_id === initialProductId
+        );
+        if (matchedLine) {
+          methods.setValue(
+            'items',
+            [
+              {
+                id: matchedLine.id,
+                productId: matchedLine.product_id || matchedLine.id,
+                name:
+                  matchedLine.product?.name_ar ||
+                  matchedLine.name ||
+                  matchedLine.description ||
+                  'صنف مرتجع',
+                quantity: Number(matchedLine.quantity) || 1,
+                unitPrice: Number(matchedLine.unit_price) || 0,
+                costPrice: Number(matchedLine.cost_price) || 0,
+                returnQuantity: 1,
+                maxQuantity: Number(matchedLine.quantity) || 1,
+              },
+            ],
+            { shouldValidate: true }
+          );
+        }
+      }
+    }
+  }, [isOpen, invoices, initialInvoiceId, initialProductId, methods]);
 
   // Handle Escape Key for closing
   useEffect(() => {

@@ -21,6 +21,7 @@ export const normalizeSalesReturn = (row: SalesReturn): ReturnsListRow => ({
   issue_date: row.issue_date,
   created_at: row.created_at,
   total_amount: row.total_amount,
+  total_document_amount: row.total_document_amount ?? null,
   currency_code: row.currency_code ?? 'SAR',
   exchange_rate: row.exchange_rate ?? null,
   status: row.status,
@@ -42,6 +43,7 @@ export interface SalesReturnRow {
   issue_date?: string | null;
   created_at?: string | null;
   total_amount?: number | null;
+  total_document_amount?: number | null;
   currency_code?: string | null;
   exchange_rate?: number | null;
   status?: string | null;
@@ -172,13 +174,22 @@ export function useSalesReturnsColumns({
       },
       {
         header: 'المبلغ الإجمالي',
-        accessor: (row: SalesReturnRow) => (
-          <div className="font-bold">
-            <span className="text-red-500">
-              -{formatCurrency(Number(row.total_amount), row.currency_code || 'SAR')}
-            </span>
-          </div>
-        ),
+        accessor: (row: SalesReturnRow) => {
+          const curr = (row.currency_code || 'SAR').toUpperCase();
+          const baseAmt = Number(row.total_amount) || 0;
+          const docAmt = Number(row.total_document_amount) || 0;
+          const displayAmt = curr !== 'SAR' && docAmt > 0 ? docAmt : baseAmt;
+          return (
+            <div className="flex flex-col items-center font-bold">
+              <span className="text-red-500">-{formatCurrency(displayAmt, curr)}</span>
+              {curr !== 'SAR' && baseAmt > 0 && (
+                <span className="font-mono text-[10px] text-slate-400">
+                  ≈ {formatCurrency(baseAmt, 'SAR')}
+                </span>
+              )}
+            </div>
+          );
+        },
         accessorKey: 'total_amount',
         sortKey: 'total_amount',
         align: 'center',

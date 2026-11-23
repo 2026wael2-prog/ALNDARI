@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { exportReturnsToExcel } from '../../../core/utils/returnsExcelExporter';
+import { normalizeSearch } from '../../../core/utils';
 
 export type SortField = 'issue_date' | 'total_amount' | 'party_name' | 'invoice_number';
 export type SortDirection = 'asc' | 'desc';
@@ -11,6 +12,7 @@ export interface ReturnsListRow {
   issue_date: string | null;
   created_at: string;
   total_amount: number | string | null;
+  total_document_amount?: number | string | null;
   currency_code?: string | null;
   exchange_rate: number | string | null;
   status: string | null;
@@ -70,22 +72,46 @@ const amountInRange = (row: ReturnsListRow, filters: ReturnsListFilters): boolea
   const maxMatches = filters.maxAmount === '' || amount <= Number(filters.maxAmount);
   return minMatches && maxMatches;
 };
-const asSearchText = (value: string | null): string => (value ?? '').toLowerCase();
+const asSearchText = (value: string | null | undefined): string => normalizeSearch(value ?? '');
 const matchesSearch = (row: ReturnsListRow, searchTerm: string): boolean => {
-  if (searchTerm === '') return true;
-  const query = searchTerm.toLowerCase();
+  if (searchTerm.trim() === '') return true;
+  const query = normalizeSearch(searchTerm);
+  if (!query) return true;
   const partyName = row.party === null ? '' : row.party.name;
+  const items = Array.isArray(row.invoice_items)
+    ? (row.invoice_items as Array<{
+        description?: string | null;
+        product?: { name_ar?: string | null; part_number?: string | null; sku?: string | null } | null;
+      }>)
+    : [];
+  const matchesItem = items.some(
+    it =>
+      asSearchText(it.product?.name_ar).includes(query) ||
+      asSearchText(it.description).includes(query) ||
+      asSearchText(it.product?.part_number).includes(query) ||
+      asSearchText(it.product?.sku).includes(query)
+  );
   return (
     asSearchText(partyName).includes(query) ||
     asSearchText(row.invoice_number).includes(query) ||
-    asSearchText(row.return_reason).includes(query)
+    asSearchText(row.return_reason).includes(query) ||
+    asSearchText(row.notes).includes(query) ||
+    asSearchText(row.reference_invoice?.invoice_number).includes(query) ||
+    matchesItem
   );
+};
+const matchesReasonFilter = (row: ReturnsListRow, filters: ReturnsListFilters): boolean => {
+  if (!filters.returnReason || filters.returnReason === '') return true;
+  return asSearchText(row.return_reason).includes(asSearchText(filters.returnReason));
 };
 const matchesFilters = (
   row: ReturnsListRow,
   filters: ReturnsListFilters,
   searchTerm: string
-): boolean => amountInRange(row, filters) && matchesSearch(row, searchTerm);
+): boolean =>
+  amountInRange(row, filters) &&
+  matchesReasonFilter(row, filters) &&
+  matchesSearch(row, searchTerm);
 
 const rowDate = (row: ReturnsListRow): number =>
   new Date(row.issue_date ?? row.created_at).getTime();

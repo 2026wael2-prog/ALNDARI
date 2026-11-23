@@ -34,11 +34,20 @@ export interface InspectorTableColumn {
   width?: string | undefined;
 }
 
+export interface InspectorRowReturnAction {
+  returnType: 'sale' | 'purchase';
+  invoiceId: string;
+  productId?: string | undefined;
+  partyId?: string | undefined;
+  partyName?: string | undefined;
+}
+
 export interface InspectorHistoryRow {
   id: string;
   cells: Record<string, string>;
   tone?: InspectorTone | undefined;
   target?: InspectorTarget | undefined;
+  returnAction?: InspectorRowReturnAction | undefined;
 }
 
 export interface InspectorTabSheet {
@@ -57,6 +66,13 @@ export interface InspectedEntityData {
   badge?: {
     label: string;
     tone: InspectorTone;
+  } | undefined;
+  returnContext?: {
+    returnType: 'sale' | 'purchase';
+    invoiceId?: string | undefined;
+    productId?: string | undefined;
+    partyId?: string | undefined;
+    partyName?: string | undefined;
   } | undefined;
   kpis: InspectorKpi[];
   fields: InspectorFieldRow[];

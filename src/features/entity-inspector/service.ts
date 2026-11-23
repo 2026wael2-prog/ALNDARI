@@ -310,6 +310,7 @@ async function inspectProduct(id: string, ctx: InspectContext): Promise<Inspecte
   const invoiceHistoryRows: InspectorHistoryRow[] = invoiceLines.map((line: any) => {
     const inv = line.invoice;
     const isSale = inv.type === 'sale' || inv.type === 'sale_return';
+    const canReturnLine = inv.type === 'sale' || inv.type === 'purchase';
     const curr = inv.currency_code || 'SAR';
     return {
       id: line.id,
@@ -320,6 +321,17 @@ async function inspectProduct(id: string, ctx: InspectContext): Promise<Inspecte
         label: `#${inv.invoice_number}`,
         subType: inv.type,
       },
+      ...(canReturnLine
+        ? {
+            returnAction: {
+              returnType: inv.type === 'purchase' ? ('purchase' as const) : ('sale' as const),
+              invoiceId: inv.id,
+              productId: p.id,
+              partyId: inv.party?.id,
+              partyName: inv.party?.name,
+            },
+          }
+        : {}),
       cells: {
         date: formatDateShort(inv.issue_date),
         type: translateInvoiceType(inv.type),
@@ -402,6 +414,9 @@ async function inspectProduct(id: string, ctx: InspectContext): Promise<Inspecte
   ];
 
   const st = translateStatus(p.status || 'active');
+  const latestReturnableLine = invoiceLines.find(
+    (line: any) => line.invoice?.type === 'sale' || line.invoice?.type === 'purchase'
+  );
   return {
     type: 'product',
     title: dash(p.name_ar || p.name),
@@ -410,6 +425,17 @@ async function inspectProduct(id: string, ctx: InspectContext): Promise<Inspecte
       .join(' • ') || 'بطاقة منتج تفصيلية',
     code: p.sku || p.part_number || undefined,
     badge: { label: totalQty > 0 ? st.label : 'نفد المخزون', tone: totalQty > 0 ? st.tone : 'rose' },
+    returnContext: {
+      returnType: latestReturnableLine?.invoice?.type === 'purchase' ? 'purchase' : 'sale',
+      ...(latestReturnableLine?.invoice?.id ? { invoiceId: latestReturnableLine.invoice.id } : {}),
+      productId: p.id,
+      ...(latestReturnableLine?.invoice?.party?.id
+        ? { partyId: latestReturnableLine.invoice.party.id }
+        : {}),
+      ...(latestReturnableLine?.invoice?.party?.name
+        ? { partyName: latestReturnableLine.invoice.party.name }
+        : {}),
+    },
     kpis,
     fields,
     sheets,
@@ -574,10 +600,21 @@ async function inspectParty(id: string, ctx: InspectContext, subType?: string): 
       inv.total_document_amount != null && Number(inv.total_document_amount) > 0
         ? Number(inv.total_document_amount)
         : Number(inv.total_amount) || 0;
+    const canReturnInv = inv.type === 'sale' || inv.type === 'purchase';
     return {
       id: inv.id,
       tone: inv.type?.includes('return') ? 'amber' : 'blue',
       target: { type: 'invoice', id: inv.id, label: `#${inv.invoice_number}`, subType: inv.type },
+      ...(canReturnInv
+        ? {
+            returnAction: {
+              returnType: inv.type === 'purchase' ? ('purchase' as const) : ('sale' as const),
+              invoiceId: inv.id,
+              partyId: party.id,
+              partyName: party.name,
+            },
+          }
+        : {}),
       cells: {
         date: formatDateShort(inv.issue_date),
         number: `#${inv.invoice_number || '—'}`,
@@ -614,6 +651,11 @@ async function inspectParty(id: string, ctx: InspectContext, subType?: string): 
     subtitle: `${partyType === 'supplier' ? 'بطاقة مورد وكشف حساب' : 'بطاقة عميل وكشف حساب'}${party.phone ? ` • ${party.phone}` : ''}`,
     code: party.tax_number || undefined,
     badge: st,
+    returnContext: {
+      returnType: partyType === 'supplier' ? 'purchase' : 'sale',
+      partyId: party.id,
+      partyName: party.name,
+    },
     kpis,
     fields,
     sheets: [
@@ -772,11 +814,23 @@ async function inspectInvoice(id: string): Promise<InspectedEntityData> {
     ...(inv.notes ? [{ section: 'ملاحظات', label: 'ملاحظات الفاتورة', value: String(inv.notes) }] : []),
   ];
 
+  const canReturnInvoice = inv.type === 'sale' || inv.type === 'purchase';
   const itemRows: InspectorHistoryRow[] = items.map((it: any) => ({
     id: it.id,
     target: it.product_id
       ? { type: 'product', id: it.product_id, label: it.product?.name_ar || it.description || 'صنف' }
       : undefined,
+    ...(canReturnInvoice
+      ? {
+          returnAction: {
+            returnType: inv.type === 'purchase' ? ('purchase' as const) : ('sale' as const),
+            invoiceId: inv.id,
+            ...(it.product_id ? { productId: it.product_id } : {}),
+            ...(inv.party?.id ? { partyId: inv.party.id } : {}),
+            ...(inv.party?.name ? { partyName: inv.party.name } : {}),
+          },
+        }
+      : {}),
     cells: {
       name: dash(it.product?.name_ar || it.description),
       sku: dash(it.product?.part_number || it.product?.sku),
@@ -814,6 +868,16 @@ async function inspectInvoice(id: string): Promise<InspectedEntityData> {
     subtitle: `${dash(inv.party?.name || 'عميل نقدي')} • ${formatDateShort(inv.issue_date)}`,
     code: inv.invoice_number || undefined,
     badge: translateStatus(inv.status),
+    ...(canReturnInvoice
+      ? {
+          returnContext: {
+            returnType: inv.type === 'purchase' ? ('purchase' as const) : ('sale' as const),
+            invoiceId: inv.id,
+            ...(inv.party?.id ? { partyId: inv.party.id } : {}),
+            ...(inv.party?.name ? { partyName: inv.party.name } : {}),
+          },
+        }
+      : {}),
     kpis,
     fields,
     sheets: [

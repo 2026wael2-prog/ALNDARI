@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useReactToPrint } from 'react-to-print';
 import { useSalesStore } from '../store';
 import { useCreateInvoice, useNextInvoiceNumber } from './index';
+import { salesQuotationsApi } from '../api';
+import { useAuthStore } from '../../auth/store';
 import { useCompany } from '../../settings/hooks';
 import { useSettingsStore } from '../../settings/settingsStore';
 import { useFeedbackStore } from '../../feedback/store';
@@ -10,6 +13,7 @@ import type { InvoiceStatus } from '../types';
 import { logger } from '../../../core/utils/logger';
 import { createIdempotencyKey } from '../../../core/utils/idempotency';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
+import { parseError } from '../../../core/utils/errorUtils';
 import { usePaymentAccounts } from '../../accounting/hooks/index';
 import { useWarehouses } from '../../inventory/hooks/useInventoryManagement';
 import { useInvoiceNavigation } from './useInvoiceNavigation';
@@ -75,6 +79,8 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
   } = useSalesStore();
 
   const { mutate: createInvoice, isPending } = useCreateInvoice();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const { invoice: invoiceSettings } = useSettingsStore();
   const { showToast } = useFeedbackStore();
   const { data: paymentAccounts } = usePaymentAccounts();
@@ -83,6 +89,7 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [targetStatus, setTargetStatus] = useState<InvoiceStatus>('paid');
+  const [isSavingQuotation, setIsSavingQuotation] = useState(false);
 
   const navigation = useInvoiceNavigation();
   const { closeDraft, activeDraftId, syncCurrentDraft } = useOpenInvoicesStore();
@@ -282,6 +289,64 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
     setShowConfirmModal(true);
   };
 
+  const handleSaveAsQuotation = async (): Promise<void> => {
+    if (isSavingQuotation || isPending) return;
+    if (!comp?.id || !user?.id) {
+      showToast('جلسة العمل غير صالحة — يرجى تحديث الصفحة', 'error');
+      return;
+    }
+
+    const validItems = items.filter(
+      item =>
+        (Boolean(item.productId) || Boolean(item.name.trim())) &&
+        item.quantity > 0 &&
+        item.price >= 0
+    );
+    if (validItems.length === 0) {
+      showToast('يرجى إضافة صنف واحد على الأقل لحفظ عرض السعر', 'warning');
+      return;
+    }
+
+    setIsSavingQuotation(true);
+    try {
+      const today = formatLocalDate();
+      const validUntilDate = new Date();
+      validUntilDate.setDate(validUntilDate.getDate() + 7);
+      const validUntil = formatLocalDate(validUntilDate);
+
+      const quotation = await salesQuotationsApi.createQuotation(comp.id, user.id, {
+        partyId: selectedCustomer?.id || null,
+        issueDate: today,
+        validUntil,
+        discountAmount: summary.discountAmount || 0,
+        currencyCode: currency || 'SAR',
+        exchangeRate: currency === 'SAR' ? 1 : exchangeRate || 1,
+        notes: notes.trim() || undefined,
+        branchId: branchId || null,
+        items: validItems.map(item => ({
+          productId: item.productId || '',
+          description: item.name || 'صنف',
+          quantity: item.quantity,
+          unitPrice: item.price,
+          discountPercent: item.discount || 0,
+        })),
+      });
+
+      void queryClient.invalidateQueries({ queryKey: ['sales_quotations'] });
+      void queryClient.invalidateQueries({ queryKey: ['sales_quotations_summary'] });
+
+      showToast(
+        `تم حفظ عرض السعر (${quotation.quotation_number}) بنجاح — تجده في تبويب عروض الأسعار`,
+        'success'
+      );
+    } catch (error) {
+      logger.error('CreateInvoiceView', 'Failed to save quotation from invoice cart', error);
+      showToast('تعذر حفظ عرض السعر: ' + parseError(error).message, 'error');
+    } finally {
+      setIsSavingQuotation(false);
+    }
+  };
+
   const executeSave = (statusToSave: InvoiceStatus) => {
     if (isPending) return;
     const validItems = items.filter(
@@ -416,6 +481,8 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
     setMetadata,
     setCurrencyPreservingPrices,
     handleSave,
+    handleSaveAsQuotation,
+    isSavingQuotation,
     executeSave,
     showConfirmModal,
     setShowConfirmModal,

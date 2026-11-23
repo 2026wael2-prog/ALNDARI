@@ -12,6 +12,7 @@ import {
   Save,
   Printer,
   FileDown,
+  FileText,
   CornerDownLeft,
   Hash,
 } from 'lucide-react';
@@ -24,6 +25,8 @@ interface InvoiceNavigatorBarProps {
   defaultNextNumber?: string | undefined;
   onNewInvoiceClick?: () => void;
   onSave?: ((status: InvoiceStatus) => void) | undefined;
+  onSaveAsQuotation?: (() => void) | undefined;
+  isSavingQuotation?: boolean | undefined;
   onPrint?: (() => void) | undefined;
   isSaving?: boolean | undefined;
   totalAmount?: number | undefined;
@@ -35,6 +38,8 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
   defaultNextNumber,
   onNewInvoiceClick,
   onSave,
+  onSaveAsQuotation,
+  isSavingQuotation = false,
   onPrint,
   isSaving = false,
   totalAmount = 0,
@@ -206,7 +211,7 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
               onClick={() => {
                 onSave('draft');
               }}
-              disabled={isSaving}
+              disabled={isSaving || isSavingQuotation}
               title="حفظ محلي كمسودة دون ترحيل"
               className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
@@ -214,12 +219,30 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
               <span className="hidden sm:inline">مسودة</span>
             </button>
 
+            {/* حفظ كعرض سعر */}
+            {onSaveAsQuotation && (
+              <button
+                type="button"
+                onClick={onSaveAsQuotation}
+                disabled={isSaving || isSavingQuotation}
+                title="حفظ الفاتورة الحالية كعرض سعر رسمي للعميل دون خصم المخزون"
+                className="flex h-9 items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-bold text-amber-800 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-100 hover:text-amber-900 active:scale-95 disabled:opacity-40 dark:border-amber-700/60 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-900/50"
+              >
+                {isSavingQuotation ? (
+                  <Loader2 size={14} className="animate-spin text-amber-600 dark:text-amber-400" />
+                ) : (
+                  <FileText size={14} className="text-amber-600 dark:text-amber-400" />
+                )}
+                <span>عرض سعر</span>
+              </button>
+            )}
+
             {/* طباعة الفاتورة */}
             {onPrint && (
               <button
                 type="button"
                 onClick={onPrint}
-                disabled={isSaving}
+                disabled={isSaving || isSavingQuotation}
                 title="طباعة ومعاينة الفاتورة"
                 className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm transition-all hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
               >
@@ -234,7 +257,7 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
               onClick={() => {
                 onSave('posted');
               }}
-              disabled={isSaving}
+              disabled={isSaving || isSavingQuotation}
               title="اعتماد وترحيل الفاتورة رسمياً"
               className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 text-xs font-black text-white shadow-md transition-all hover:from-emerald-700 hover:to-teal-700 hover:shadow-lg active:scale-95 disabled:opacity-50"
             >

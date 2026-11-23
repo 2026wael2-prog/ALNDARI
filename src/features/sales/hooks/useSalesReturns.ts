@@ -22,6 +22,8 @@ export interface SalesReturn {
   invoice_number: string;
   issue_date: string;
   total_amount: number;
+  total_document_amount?: number | null;
+  subtotal_document_amount?: number | null;
   status: InvoiceStatus;
   notes?: string | null;
   currency_code?: string | null;
@@ -59,6 +61,8 @@ export type SalesReturnQueryResult = Pick<
   | 'invoice_number'
   | 'issue_date'
   | 'total_amount'
+  | 'total_document_amount'
+  | 'subtotal_document_amount'
   | 'status'
   | 'notes'
   | 'created_at'
@@ -115,6 +119,8 @@ export const useSalesReturns = (filters?: {
           invoice_number,
           issue_date,
           total_amount,
+          total_document_amount,
+          subtotal_document_amount,
           status,
           notes,
           currency_code,
@@ -131,7 +137,6 @@ export const useSalesReturns = (filters?: {
             product:products!fk_invoice_items_company_product(id, name_ar, sku, part_number, brand)
           ),
           reference_invoice_id,
-          reference_invoice:reference_invoice_id(id, invoice_number),
           return_reason,
           created_at
         `
@@ -163,20 +168,52 @@ export const useSalesReturns = (filters?: {
         .order('id', { ascending: false });
 
       if (error) throw error;
-      const typedData = data as unknown as SalesReturnQueryResult[];
+      const typedData = (data as unknown as SalesReturnQueryResult[]) || [];
 
-      // Client-side search filtering
-      let returns = typedData || [];
+      // Decoupled reference invoice lookup to avoid PostgREST PGRST201 ambiguity
+      // on dual self-referential FKs (fk_invoices_company_reference vs invoices_reference_invoice_id_fkey)
+      const refIds = [
+        ...new Set(
+          typedData
+            .map(r => r.reference_invoice_id)
+            .filter((v): v is string => typeof v === 'string' && v.length > 0)
+        ),
+      ];
+      let refMap: Record<string, string> = {};
+      if (refIds.length > 0) {
+        const { data: refRows } = await supabase
+          .from('invoices')
+          .select('id, invoice_number')
+          .in('id', refIds);
+        refMap = Object.fromEntries((refRows ?? []).map(r => [r.id, r.invoice_number ?? '']));
+      }
+
+      let returns = typedData.map(r => ({
+        ...r,
+        reference_invoice: r.reference_invoice_id
+          ? { id: r.reference_invoice_id, invoice_number: refMap[r.reference_invoice_id] ?? null }
+          : null,
+      }));
 
       if (filters?.searchTerm) {
         const term = normalizeSearch(filters.searchTerm);
         if (term) {
-          returns = returns.filter(
-            (r: SalesReturnQueryResult) =>
+          returns = returns.filter((r: SalesReturnQueryResult) => {
+            const matchMain =
               normalizeSearch(r.invoice_number).includes(term) ||
               normalizeSearch(r.party?.name).includes(term) ||
-              normalizeSearch(r.notes).includes(term)
-          );
+              normalizeSearch(r.notes).includes(term) ||
+              normalizeSearch(r.return_reason).includes(term) ||
+              normalizeSearch(r.reference_invoice?.invoice_number).includes(term);
+            const matchItems = (r.invoice_items ?? []).some(
+              it =>
+                normalizeSearch(it.product?.name_ar).includes(term) ||
+                normalizeSearch(it.description).includes(term) ||
+                normalizeSearch(it.product?.part_number).includes(term) ||
+                normalizeSearch(it.product?.sku).includes(term)
+            );
+            return matchMain || matchItems;
+          });
         }
       }
 
@@ -318,6 +355,8 @@ export const useSalesInvoicesForReturn = (
           invoice_number,
           issue_date,
           total_amount,
+          total_document_amount,
+          subtotal_document_amount,
           currency_code,
           exchange_rate,
           payment_method,
@@ -340,7 +379,10 @@ export const useSalesInvoicesForReturn = (
         query = query.eq('party_id', customerId);
       }
 
-      const { data, error } = await query.order('issue_date', { ascending: false }).limit(80);
+      const { data, error } = await query
+        .order('issue_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(150);
 
       if (error) throw error;
       const typedData = data as unknown as SalesReturnQueryResult[];

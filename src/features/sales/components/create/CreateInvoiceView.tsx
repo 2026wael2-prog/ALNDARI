@@ -41,6 +41,8 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
     setMetadata,
     setCurrencyPreservingPrices,
     handleSave,
+    handleSaveAsQuotation,
+    isSavingQuotation,
     executeSave,
     showConfirmModal,
     setShowConfirmModal,
@@ -99,6 +101,10 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
             <div className="flex justify-end">
               <InvoiceActions
                 onSave={handleSave}
+                onSaveAsQuotation={() => {
+                  void handleSaveAsQuotation();
+                }}
+                isSavingQuotation={isSavingQuotation}
                 onPrint={() => {
                   handlePrint();
                 }}
@@ -114,6 +120,10 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
           defaultNextNumber={nextInvoiceNumber ?? undefined}
           onNewInvoiceClick={navigation.exitViewingMode}
           onSave={handleSave}
+          onSaveAsQuotation={() => {
+            void handleSaveAsQuotation();
+          }}
+          isSavingQuotation={isSavingQuotation}
           onPrint={() => {
             handlePrint();
           }}

@@ -12,6 +12,7 @@ export interface DuplicateProductItem {
   name_ar: string;
   part_number: string;
   brand: string;
+  size?: string | null;
   sale_price: number;
   cost_price: number;
   total_stock: number;

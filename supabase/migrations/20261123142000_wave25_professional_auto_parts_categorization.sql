@@ -1,4 +1,4 @@
--- Migration: Wave 25 — Archive old random categories & professionally classify all auto spare parts
+-- Migration: Wave 25 — Archive old random categories & professionally classify all auto spare parts across all branches
 -- Date: 2026-11-23
 
 CREATE OR REPLACE FUNCTION public.fn_extract_spare_part_category(p_name text)
@@ -9,6 +9,7 @@ SET search_path TO 'public', 'pg_temp'
 AS $$
 DECLARE
   v_clean text;
+  v_code text;
   v_words text[];
   v_ar_words text[] := '{}';
   v_tok text;
@@ -19,11 +20,58 @@ BEGIN
     RETURN 'غير مصنف';
   END IF;
 
-  IF btrim(p_name) ~ '^(1[2-9]|2[0-2])\s*[/\\*]\s*[0-9]+' THEN
+  v_code := UPPER(btrim(p_name));
+
+  -- Tire sizes e.g. 15/70/255 or 16/750/8
+  IF v_code ~ '^(1[2-9]|2[0-2])\s*[/\\*]\s*[0-9]+' THEN
     RETURN 'كفرات وإطارات';
   END IF;
 
+  -- Belt codes e.g. 4PK920, 6PK1915, 7PK2120
+  IF v_code ~ '\b[3-9]PK\s*[0-9]{3,4}\b' THEN
+    RETURN 'سير مروحة';
+  END IF;
+
+  -- If no Arabic letters at all, classify by Automotive OEM Part Number Prefix Rules
   IF p_name !~ '[ء-ي]' THEN
+    IF v_code ~ '^(04465|D1060|D106M|58101|AN-|DB[0-9]|GDB)' THEN RETURN 'كنويس امامي'; END IF;
+    IF v_code ~ '^(04466|04495|58302|58305|FN-)' THEN RETURN 'كنويس خلفي'; END IF;
+    IF v_code ~ '^(90311|90310|BH-|AH[0-9]|MUS|POS|21443|43119)' THEN RETURN 'لمدة كرين'; END IF;
+    IF v_code ~ '^(45046|45047|56820|SE-|CE-|TE-|ES[0-9])' THEN RETURN 'راس ذراع'; END IF;
+    IF v_code ~ '^(45503|57724|SR-|CR-)' THEN RETURN 'ركبة ذراع'; END IF;
+    IF v_code ~ '^(43330|43340|43310|43350|43360|54530|51220|SB-|CB-|JB-)' THEN RETURN 'جوزة مقص'; END IF;
+    IF v_code ~ '^(48810|48820|48830|48819|54830|55530|SL-|CL-)' THEN RETURN 'مسمار توازن'; END IF;
+    IF v_code ~ '^(48654|48655|48725|54551|54584|55118)' THEN RETURN 'بوش مقص'; END IF;
+    IF v_code ~ '^(48815|54813|55513)' THEN RETURN 'بوش عمود'; END IF;
+    IF v_code ~ '^(48066|48067|48068|48069|48610|48630|54500|54501)' THEN RETURN 'مقص'; END IF;
+    IF v_code ~ '^(48510|48511|48520|54650|54660|333[0-9]{3}|334[0-9]{3}|339[0-9]{3}|341[0-9]{3})' THEN RETURN 'لعابة امامي'; END IF;
+    IF v_code ~ '^(48530|48531|55300|55310|343[0-9]{3}|344[0-9]{3}|349[0-9]{3}|443[0-9]{3}|444[0-9]{3})' THEN RETURN 'لعابة خلفي'; END IF;
+    IF v_code ~ '^(11115|11116|22311|11044)' THEN RETURN 'باكن راس'; END IF;
+    IF v_code ~ '^(04111|20910|A1010|FS-)' THEN RETURN 'طقم باكنات'; END IF;
+    IF v_code ~ '^(11213|11214|22441|13270)' THEN RETURN 'باكن غطاء'; END IF;
+    IF v_code ~ '^(12361|12305|12371|12372|21810|21830|21910|21930|11210|11220)' THEN RETURN 'كرسي مكينة'; END IF;
+    IF v_code ~ '^(16100|25100|21010|GWT-|GWM-|GWN-|GWH-|GWS-|GWIS|WPT-)' THEN RETURN 'بمب ماء'; END IF;
+    IF v_code ~ '^(23220|23221|GIP-|EP-|FPD-|FPB-|31111|17040)' THEN RETURN 'بمب بترول'; END IF;
+    IF v_code ~ '^(90919-01|18814|18817|22401|BKR|K20|K16|SC20)' THEN RETURN 'بلاكات'; END IF;
+    IF v_code ~ '^(90919-02|27301|22448)' THEN RETURN 'كويل'; END IF;
+    IF v_code ~ '^(90919-22|27501)' THEN RETURN 'اسلاك بلاكات'; END IF;
+    IF v_code ~ '^(31210|41300|TYC-|MTC-|NSC-|SZC-|HDC-|DHC-)' THEN RETURN 'موسم كليش'; END IF;
+    IF v_code ~ '^(31250|41100|TYD-|MBD-|NSD-|SZD-|HDD-|DHD-|ISD-|D-[0-9])' THEN RETURN 'صحن كليش'; END IF;
+    IF v_code ~ '^(31230|41421|RCT|RCTS|TK[0-9])' THEN RETURN 'فحمة كليش'; END IF;
+    IF v_code ~ '^(31410|31420|31470|41600|41700|30610|30620)' THEN RETURN 'علبة كليش'; END IF;
+    IF v_code ~ '^(04311|04313|SK-)' THEN RETURN 'اصلاح كليش'; END IF;
+    IF v_code ~ '^(47201|58510|46010)' THEN RETURN 'علبة بريك'; END IF;
+    IF v_code ~ '^(04493|04479|WK-)' THEN RETURN 'اصلاح بريك'; END IF;
+    IF v_code ~ '^(43512|51712|40206)' THEN RETURN 'هوب امامي'; END IF;
+    IF v_code ~ '^(90363|90369|43550|43560|42410|42450|51720|DAC[0-9]|DU[0-9]|620[0-9]|630[0-9]|622[0-9]|302[0-9]{2}|320[0-9]{2}|322[0-9]{2})' THEN RETURN 'بيرنج هبس'; END IF;
+    IF v_code ~ '^(17801|28113|16546)' THEN RETURN 'فلتر هواء'; END IF;
+    IF v_code ~ '^(90915|15601|26300|15208|C-[0-9]{3,4})' THEN RETURN 'فلتر زيت'; END IF;
+    IF v_code ~ '^(23300|23390|31911|16400|FC-[0-9]{3,4})' THEN RETURN 'فلتر بترول'; END IF;
+    IF v_code ~ '^(04438|04427|04428|FB-[0-9]{4})' THEN RETURN 'ربلة عكس'; END IF;
+    IF v_code ~ '^(13011|23040|358[0-9]{2}|359[0-9]{2}|SWT|SDM|SWN|SWM|TP-|NPR-)' THEN RETURN 'رنجات مكينة'; END IF;
+    IF v_code ~ '^(11701|11704|21020|M[0-9]{3,4}[A-Z])' THEN RETURN 'براصات ثابت'; END IF;
+    IF v_code ~ '^(13041|13204|23060|R[0-9]{3,4}[A-Z])' THEN RETURN 'براصات متحرك'; END IF;
+    IF v_code ~ '^(H1|H3|H4|H7|H11|9005|9006)\b' THEN RETURN 'لمبة كشافة'; END IF;
     RETURN 'أرقام قطع (بدون مسمى)';
   END IF;
 

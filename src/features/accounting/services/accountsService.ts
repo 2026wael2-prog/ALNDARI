@@ -62,10 +62,21 @@ export const accountsService = {
         ).catch(() => ({ data: null, error: null }))
       : Promise.resolve({ data: null, error: null });
 
-    const [accountsRes, balancesRes, otherBranchRes] = await Promise.all([
+    const branchUsesLegacyMzPromise = options?.branchId
+      ? (supabase.rpc as unknown as (
+          fn: string,
+          params: Record<string, unknown>
+        ) => Promise<{ data: boolean | null; error: unknown }>)(
+          'fn_branch_uses_legacy_mz_accounts',
+          { p_company_id: companyId, p_branch_id: options.branchId }
+        ).catch(() => ({ data: null, error: null }))
+      : Promise.resolve({ data: true as boolean | null, error: null });
+
+    const [accountsRes, balancesRes, otherBranchRes, legacyMzRes] = await Promise.all([
       accountsPromise,
       balancesPromise,
       otherBranchTreasuryPromise,
+      branchUsesLegacyMzPromise,
     ]);
 
     if (accountsRes.error) throw parseError(accountsRes.error);
@@ -76,6 +87,7 @@ export const accountsService = {
         .map(r => r.account_id)
         .filter((id): id is string => typeof id === 'string' && id.length > 0)
     );
+    const hideLegacyMzAccounts = legacyMzRes?.data === false;
 
     const balanceMap = new Map<string, number>();
     const foreignBalanceMap = new Map<string, number>();
@@ -102,8 +114,15 @@ export const accountsService = {
     }
 
     // Map to Account model — exclude cashboxes/exchange companies owned by other branches
+    // and exclude legacy MZ-* accounts on branches that have no MZ-* postings
     return (accountsRes.data ?? [])
-      .filter(acc => !otherBranchTreasuryIds.has(acc.id))
+      .filter(acc => {
+        if (otherBranchTreasuryIds.has(acc.id)) return false;
+        if (hideLegacyMzAccounts && typeof acc.code === 'string' && acc.code.startsWith('MZ-')) {
+          return false;
+        }
+        return true;
+      })
       .map(acc => {
       // report_trial_balance returns flat `balance = SUM(debit) - SUM(credit)`
       // for every account type. Normalise the sign by type so that

@@ -97,5 +97,31 @@ describe('accountsService.getAccounts', () => {
 
     expect(result.map(a => a.id)).toEqual(['acc-wael-cash', 'acc-sales']);
   });
+
+  it('excludes legacy MZ-* accounts on branches without MZ-* postings (e.g. Ghamdan/Mohammed)', async () => {
+    const accounts = [
+      { id: 'acc-std-cash', company_id: 'c1', code: '101001', name_ar: 'الصندوق العام', type: 'asset', currency_code: 'SAR', is_system: false, parent_id: null, allow_posting: true },
+      { id: 'acc-mz-1', company_id: 'c1', code: 'MZ-5201', name_ar: 'مبيعات قديم', type: 'revenue', currency_code: 'SAR', is_system: false, parent_id: null, allow_posting: true },
+      { id: 'acc-mz-2', company_id: 'c1', code: 'MZ-135', name_ar: 'صندوق سعودي', type: 'asset', currency_code: 'SAR', is_system: false, parent_id: null, allow_posting: true },
+      { id: 'acc-sales', company_id: 'c1', code: '4100', name_ar: 'المبيعات', type: 'revenue', currency_code: 'SAR', is_system: true, parent_id: null, allow_posting: true },
+    ];
+    accountsApiMock.getAccounts.mockResolvedValue({ data: accounts, error: null });
+    supabaseMock.rpc.mockImplementation((fn: string) => {
+      if (fn === 'fn_get_other_branch_treasury_account_ids') {
+        return Promise.resolve({ data: [], error: null });
+      }
+      if (fn === 'fn_branch_uses_legacy_mz_accounts') {
+        return Promise.resolve({ data: false, error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+
+    const result = await accountsService.getAccounts('c1', {
+      includeBalances: true,
+      branchId: 'branch-ghamdan',
+    });
+
+    expect(result.map(a => a.code)).toEqual(['101001', '4100']);
+  });
 });
 

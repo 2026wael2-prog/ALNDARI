@@ -53,22 +53,26 @@ export const accountsService = {
       : Promise.resolve({ data: null, error: null });
 
     const otherBranchTreasuryPromise = options?.branchId
-      ? (supabase.rpc as unknown as (
-          fn: string,
-          params: Record<string, unknown>
-        ) => Promise<{ data: Array<{ account_id: string }> | null; error: unknown }>)(
-          'fn_get_other_branch_treasury_account_ids',
-          { p_company_id: companyId, p_branch_id: options.branchId }
+      ? Promise.resolve(
+          (supabase.rpc as unknown as (
+            fn: string,
+            params: Record<string, unknown>
+          ) => PromiseLike<{ data: Array<{ account_id: string }> | null; error: unknown }>)(
+            'fn_get_other_branch_treasury_account_ids',
+            { p_company_id: companyId, p_branch_id: options.branchId }
+          )
         ).catch(() => ({ data: null, error: null }))
       : Promise.resolve({ data: null, error: null });
 
     const branchUsesLegacyMzPromise = options?.branchId
-      ? (supabase.rpc as unknown as (
-          fn: string,
-          params: Record<string, unknown>
-        ) => Promise<{ data: boolean | null; error: unknown }>)(
-          'fn_branch_uses_legacy_mz_accounts',
-          { p_company_id: companyId, p_branch_id: options.branchId }
+      ? Promise.resolve(
+          (supabase.rpc as unknown as (
+            fn: string,
+            params: Record<string, unknown>
+          ) => PromiseLike<{ data: boolean | null; error: unknown }>)(
+            'fn_branch_uses_legacy_mz_accounts',
+            { p_company_id: companyId, p_branch_id: options.branchId }
+          )
         ).catch(() => ({ data: null, error: null }))
       : Promise.resolve({ data: true as boolean | null, error: null });
 

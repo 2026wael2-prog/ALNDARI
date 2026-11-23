@@ -1,48 +1,55 @@
 // Category Service - Handles product category operations
+import { supabase } from '@/lib/supabaseClient';
 import { inventoryApi } from '../api';
-import type { Product } from '../types';
 
 interface RawCategory {
     id: string;
     name?: string;
     name_ar?: string;
+    productsCount?: number;
+    totalStock?: number;
+    totalValue?: number;
+    hasAlert?: boolean;
 }
 
 export const categoryService = {
     /**
-     * Get all categories for a company
+     * Get all categories for a company via server-side aggregation RPC
+     * (eliminates downloading 45,000+ products & O(C*P) main-thread blocking).
      */
     getCategories: async (companyId: string) => {
-        // Fetch both categories and products to compute metrics
-        const [categoriesResponse, productsResponse] = await Promise.all([
-            inventoryApi.getCategories(companyId),
-            inventoryApi.getProducts(companyId)
-        ]);
+        try {
+            const { data, error } = await (supabase.rpc as Function)(
+                'fn_get_product_categories_with_stats',
+                { p_company_id: companyId }
+            );
+            if (!error && Array.isArray(data)) {
+                return data.map((row: RawCategory) => ({
+                    id: row.id,
+                    name: row.name || row.name_ar || '',
+                    productsCount: Number(row.productsCount) || 0,
+                    totalStock: Number(row.totalStock) || 0,
+                    totalValue: Number(row.totalValue) || 0,
+                    hasAlert: Boolean(row.hasAlert),
+                }));
+            }
+        } catch {
+            // Fall back to lightweight categories list
+        }
 
+        const categoriesResponse = await inventoryApi.getCategories(companyId);
         const categories: RawCategory[] = Array.isArray(categoriesResponse)
             ? categoriesResponse
             : ((categoriesResponse as unknown as { data?: RawCategory[] })?.data ?? []);
 
-        const products: Product[] = Array.isArray(productsResponse)
-            ? productsResponse
-            : ((productsResponse as unknown as { data?: Product[] })?.data ?? []);
-
-        return categories.map((cat: RawCategory) => {
-            const categoryProducts = products.filter((p) => p.category_id === cat.id || p.category === (cat.name || cat.name_ar));
-            const productsCount = categoryProducts.length;
-            const totalStock = categoryProducts.reduce((sum: number, p) => sum + (Number(p.stock_quantity) || 0), 0);
-            const totalValue = categoryProducts.reduce((sum: number, p) => sum + ((Number(p.cost_price) || 0) * (Number(p.stock_quantity) || 0)), 0);
-            const hasAlert = categoryProducts.some((p) => (Number(p.stock_quantity) || 0) <= (Number(p.min_stock_level) || 0));
-
-            return {
-                id: cat.id,
-                name: cat.name || cat.name_ar,
-                productsCount,
-                totalStock,
-                totalValue,
-                hasAlert
-            };
-        });
+        return categories.map((cat: RawCategory) => ({
+            id: cat.id,
+            name: cat.name || cat.name_ar || '',
+            productsCount: 0,
+            totalStock: 0,
+            totalValue: 0,
+            hasAlert: false,
+        }));
     },
 
     /**

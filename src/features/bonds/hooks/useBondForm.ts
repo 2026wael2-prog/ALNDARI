@@ -191,12 +191,28 @@ export function useBondForm(
   }, [isOpen, prefill, setValue, setAmountInputStr]);
 
   const { cashAccounts, otherAccounts } = useMemo(() => {
-    const paymentIds = new Set((paymentAccounts ?? []).map(p => p.id));
+    const accountMap = new Map((allAccounts ?? []).map(a => [a.id, a]));
+    const paymentList = paymentAccounts ?? [];
     const cash =
-      paymentIds.size > 0 && allAccounts
-        ? allAccounts.filter(acc => paymentIds.has(acc.id))
+      paymentList.length > 0
+        ? paymentList.map(p => {
+            const linked = accountMap.get(p.id);
+            return {
+              id: p.id,
+              code: linked?.code || p.code || p.currency_code || '101',
+              name: p.name_ar || linked?.name || 'صندوق',
+              currency_code: p.currency_code || linked?.currency_code || 'SAR',
+            };
+          })
         : allAccounts?.filter(acc => acc.code.startsWith('10') && acc.allow_posting) || [];
-    const others = allAccounts?.filter(acc => !acc.code.startsWith('10')) || [];
+    const paymentIds = new Set(cash.map(c => c.id));
+    const others =
+      allAccounts?.filter(
+        acc =>
+          !paymentIds.has(acc.id) &&
+          !acc.code.startsWith('10') &&
+          !(acc.code.startsWith('MZ-') && (acc.type === 'asset' || acc.type === 'liability'))
+      ) || [];
     return { cashAccounts: cash, otherAccounts: others };
   }, [allAccounts, paymentAccounts]);
 

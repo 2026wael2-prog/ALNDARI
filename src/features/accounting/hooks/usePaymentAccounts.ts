@@ -109,5 +109,8 @@ export const usePaymentAccounts = (): { data: PaymentAccount[]; isLoading: boole
     return list;
   }, [cash, exchanges, allAccounts, branchId]);
 
-  return { data, isLoading: l1 || l2 || l3 };
+  return {
+    data,
+    isLoading: cash.length > 0 || exchanges.length > 0 ? l1 || l2 : l1 || l2 || l3,
+  };
 };

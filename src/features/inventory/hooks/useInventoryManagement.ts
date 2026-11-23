@@ -33,6 +33,8 @@ export const useInventoryCategories = () => {
         ? inventoryService.getInventoryCategories(user.company_id)
         : Promise.resolve<Awaited<ReturnType<typeof inventoryService.getInventoryCategories>>>([]),
     enabled: !!user?.company_id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 };
 

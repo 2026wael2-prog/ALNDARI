@@ -10,6 +10,7 @@ const SidebarLogo: React.FC<SidebarLogoProps> = ({ isCollapsed }) => {
   const { t } = useTranslation();
   return (
     <div
+      data-sidebar-logo="true"
       className={`h-16 flex items-center bg-[var(--app-surface)] border-b border-[var(--app-border)] transition-colors duration-150 ${
         isCollapsed ? 'px-0 justify-center' : 'px-4 justify-start'
       }`}

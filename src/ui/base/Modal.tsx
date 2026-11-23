@@ -313,6 +313,7 @@ const Modal: React.FC<ModalProps> = ({
         {/* Header - Draggable Area */}
         {!hideHeader && (
           <div
+            data-modal-header="true"
             onMouseDown={handleDragStart}
             className={cn(
               'flex shrink-0 items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] p-3 md:p-5',

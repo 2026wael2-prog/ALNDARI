@@ -3829,6 +3829,55 @@ html.dark[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
   color: #f3f4f6 !important;
 }
 
+/* ── 3B. هيدرات النوافذ المنبثقة والاستعلام (Modal & Inspector Headers) ── */
+html[data-preset='optiparts-or'] [data-modal-header='true'] {
+  background: linear-gradient(90deg, #c2410c 0%, #ea580c 55%, #c2410c 100%) !important;
+  border-bottom: 1px solid #9a3412 !important;
+  color: #ffffff !important;
+}
+
+html.dark[data-preset='optiparts-or'] [data-modal-header='true'] {
+  background: linear-gradient(90deg, #9a3412 0%, #c2410c 55%, #9a3412 100%) !important;
+  border-bottom: 1px solid #7c2d12 !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] h2 {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] p {
+  color: #ffedd5 !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] > div:first-child > div:first-child {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] > div:last-child button {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] > div:last-child button:hover {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+/* الهيدرات الثانوية داخل نافذة الاستعلام الشامل */
+html[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
+  background: linear-gradient(90deg, #ea580c 0%, #f97316 55%, #fb923c 100%) !important;
+  border-bottom: 1px solid #c2410c !important;
+  color: #ffffff !important;
+}
+
+html.dark[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
+  background: linear-gradient(90deg, #b84210 0%, #d95918 55%, #c24b12 100%) !important;
+  border-bottom: 1px solid #9a3412 !important;
+  color: #ffffff !important;
+}
+
 /* ── 4. ترويسات الجداول الاحترافية (Table Headers) — برتقالي خفيف بدرجة أفتح من الهيدر الثانوي ── */
 @media screen {
   html[data-preset='optiparts-or'] table thead,

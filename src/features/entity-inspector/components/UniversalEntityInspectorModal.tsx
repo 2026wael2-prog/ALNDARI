@@ -298,7 +298,10 @@ export const UniversalEntityInspectorModal: React.FC = () => {
           <>
             {/* Top Status & KPI Excel Grid */}
             <div className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)]">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-bg)] px-3.5 py-2">
+              <div
+                data-inspector-subheader="true"
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-bg)] px-3.5 py-2"
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-0.5 text-[11px] font-black text-[var(--app-text)]">
                     {ENTITY_TYPE_LABEL[data.type]}
@@ -437,7 +440,10 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                     key={sectionName}
                     className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)]"
                   >
-                    <div className="border-b border-[var(--app-border)] bg-[var(--app-bg)] px-3.5 py-2 text-xs font-black text-[var(--app-text)]">
+                    <div
+                      data-inspector-subheader="true"
+                      className="border-b border-[var(--app-border)] bg-[var(--app-bg)] px-3.5 py-2 text-xs font-black text-[var(--app-text)]"
+                    >
                       {sectionName}
                     </div>
                     <div className="overflow-x-auto">

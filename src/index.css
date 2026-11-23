@@ -3784,34 +3784,34 @@ html.dark[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
   color: #f3f4f6 !important;
 }
 
-/* ── 4. ترويسات الجداول الاحترافية (Table Headers) — رمادي داكن متوازن بدون مبالغة كحلية ── */
+/* ── 4. ترويسات الجداول الاحترافية (Table Headers) — برتقالي خفيف بدرجة أفتح من الهيدر الثانوي ── */
 @media screen {
   html[data-preset='optiparts-or'] table thead,
   html[data-preset='optiparts-or'] table thead tr,
   html[data-preset='optiparts-or'] table thead tr th {
-    background-color: #1e293b !important;
-    color: #ffffff !important;
-    border-color: #334155 !important;
+    background-color: #ffedd5 !important;
+    color: #7c2d12 !important;
+    border-color: #fdba74 !important;
   }
 
   html[data-preset='optiparts-or'] table thead tr {
-    border-bottom: 2px solid #ea580c !important;
+    border-bottom: 2px solid #f97316 !important;
   }
 
   html[data-preset='optiparts-or'] table thead tr th:hover {
-    background-color: #293548 !important;
+    background-color: #fed7aa !important;
   }
 
   html[data-preset='optiparts-or'] table thead tr th svg {
-    color: #cbd5e1;
+    color: #9a3412;
   }
 
   html.dark[data-preset='optiparts-or'] table thead,
   html.dark[data-preset='optiparts-or'] table thead tr,
   html.dark[data-preset='optiparts-or'] table thead tr th {
-    background-color: #222630 !important;
-    color: #f3f4f6 !important;
-    border-color: #323846 !important;
+    background-color: #2c1d14 !important;
+    color: #ffedd5 !important;
+    border-color: #5c3317 !important;
   }
 
   html.dark[data-preset='optiparts-or'] table thead tr {
@@ -3819,6 +3819,10 @@ html.dark[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
   }
 
   html.dark[data-preset='optiparts-or'] table thead tr th:hover {
-    background-color: #2b303d !important;
+    background-color: #3a2619 !important;
+  }
+
+  html.dark[data-preset='optiparts-or'] table thead tr th svg {
+    color: #fdba74;
   }
 }

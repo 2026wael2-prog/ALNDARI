@@ -141,11 +141,50 @@ export const useUpdateInvoice = () => {
     mutationFn: async (payload: UpdateInvoicePayload) => {
       return await invoicesApi.updateInvoice(payload);
     },
-    onSuccess: (_res, vars) => {
+    onSuccess: (res, vars) => {
       showToast('تم تعديل الفاتورة وتحديث القيود والمخزون بنجاح', 'success');
+
+      // Immediate cache patch so Sales Log & details show the new total without waiting for network
+      const rpcRes = (res ?? {}) as {
+        total_amount?: number;
+        total_document_amount?: number;
+        status?: string;
+      };
+      const newBaseTotal = Number(rpcRes.total_amount);
+      const newDocTotal = Number(rpcRes.total_document_amount);
+      const hasNewTotal = Number.isFinite(newBaseTotal) && newBaseTotal >= 0;
+
+      if (hasNewTotal) {
+        queryClient.setQueriesData<unknown>({ queryKey: ['invoices'] }, (old: unknown) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((row: Record<string, unknown>) => {
+            if (row?.id !== vars.invoiceId) return row;
+            const isForeign = String(row.currencyCode || row.currency_code || 'SAR') !== 'SAR';
+            const displayTotal =
+              isForeign && Number.isFinite(newDocTotal) && newDocTotal > 0
+                ? newDocTotal
+                : newBaseTotal;
+            return {
+              ...row,
+              total: displayTotal,
+              baseTotal: newBaseTotal,
+              total_amount: newBaseTotal,
+              total_document_amount:
+                Number.isFinite(newDocTotal) && newDocTotal > 0 ? newDocTotal : newBaseTotal,
+              ...(rpcRes.status ? { status: rpcRes.status } : {}),
+              paymentMethod: vars.paymentMethod,
+              payment_method: vars.paymentMethod,
+            };
+          });
+        });
+      }
+
+      // Drop stale invoice_details cache so re-opening details/edit fetches fresh items & totals
+      queryClient.removeQueries({ queryKey: ['invoice_details', vars.invoiceId] });
+
       invalidateByPreset(queryClient, 'sale');
       void queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      void queryClient.invalidateQueries({ queryKey: ['invoice_details', vars.invoiceId] });
+      void queryClient.refetchQueries({ queryKey: ['invoices'], type: 'active' });
       void queryClient.invalidateQueries({ queryKey: ['party_statement_v4'] });
       void queryClient.invalidateQueries({ queryKey: ['parties'] });
       void queryClient.invalidateQueries({ queryKey: ['party_balances'] });

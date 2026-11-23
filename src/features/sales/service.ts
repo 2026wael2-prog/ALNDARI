@@ -29,6 +29,8 @@ interface RawInvoice {
   total_amount: number | null;
   total_document_amount?: number | null;
   status: string;
+  return_status?: string | null;
+  returned_amount?: number | null;
   type: string;
   payment_method: string | null;
   currency_code: string | null;
@@ -76,7 +78,12 @@ export const salesService = {
             return rate > 0 && rate !== 1 ? Math.round((base / rate) * 100) / 100 : base;
           })(),
           baseTotal: Number(_inv.total_amount) || 0,
-          status: _inv.status,
+          status:
+            _inv.return_status === 'full'
+              ? 'returned'
+              : _inv.return_status === 'partial'
+                ? 'partially_returned'
+                : _inv.status,
           type: _inv.type,
           paymentMethod: _inv.payment_method,
           currencyCode: _inv.currency_code || 'SAR',

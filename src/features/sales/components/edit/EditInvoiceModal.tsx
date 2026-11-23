@@ -19,6 +19,7 @@ import { useAuthStore } from '../../../auth/store';
 import { formatCurrency, cn } from '../../../../core/utils';
 import PageLoader from '../../../../ui/base/PageLoader';
 import { EntityInfoDot } from '../../../entity-inspector';
+import { CalculatorInput } from '@/ui/common/CalculatorInput';
 
 interface EditItemRow {
   productId: string;
@@ -154,7 +155,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
   // Item handlers
   const handleQuantityChange = (index: number, newQty: number) => {
-    if (newQty <= 0) return;
+    if (newQty < 0) return;
     setItems(prev => {
       const next = [...prev];
       next[index] = { ...next[index], quantity: newQty };
@@ -213,6 +214,10 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
   const handleSave = () => {
     if (items.length === 0) {
       alert('لا يمكن حفظ فاتورة بدون أصناف.');
+      return;
+    }
+    if (items.some(i => !i.quantity || i.quantity <= 0)) {
+      alert('يجب أن تكون كمية كل صنف أكبر من صفر.');
       return;
     }
     if (paymentMethod === 'credit' && !partyId) {
@@ -566,17 +571,19 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
-                              onClick={() => handleQuantityChange(index, item.quantity - 1)}
+                              onClick={() => handleQuantityChange(index, Math.max(1, item.quantity - 1))}
                               className="h-6 w-6 rounded border border-[var(--app-border)] bg-[var(--app-surface-hover)] text-[var(--app-text)] hover:bg-[var(--app-border)] flex items-center justify-center font-bold"
                             >
                               -
                             </button>
-                            <input
-                              type="number"
-                              min="1"
+                            <CalculatorInput
                               value={item.quantity}
-                              onChange={e => handleQuantityChange(index, Number(e.target.value))}
-                              className="h-7 w-14 rounded border border-[var(--app-border)] bg-[var(--app-bg)] text-center text-xs font-bold text-[var(--app-text)] font-mono focus:outline-none focus:border-blue-500"
+                              onValueChange={val => handleQuantityChange(index, val)}
+                              allowNegative={false}
+                              compact={true}
+                              wrapperClassName="w-16"
+                              className="h-7 w-full rounded border border-[var(--app-border)] bg-[var(--app-bg)] text-center text-xs font-bold text-[var(--app-text)] font-mono focus:outline-none focus:border-blue-500"
+                              placeholder="1"
                             />
                             <button
                               type="button"
@@ -588,23 +595,23 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                           </div>
                         </td>
                         <td className="py-2.5 px-3">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                          <CalculatorInput
                             value={item.unitPrice}
-                            onChange={e => handleUnitPriceChange(index, Number(e.target.value))}
+                            onValueChange={val => handleUnitPriceChange(index, val)}
+                            allowNegative={false}
+                            compact={true}
                             className="h-7 w-full rounded border border-[var(--app-border)] bg-[var(--app-bg)] text-center text-xs font-bold text-[var(--app-text)] font-mono focus:outline-none focus:border-blue-500"
+                            placeholder="0.00"
                           />
                         </td>
                         <td className="py-2.5 px-3">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                          <CalculatorInput
                             value={item.discount}
-                            onChange={e => handleDiscountChange(index, Number(e.target.value))}
+                            onValueChange={val => handleDiscountChange(index, val)}
+                            allowNegative={false}
+                            compact={true}
                             className="h-7 w-full rounded border border-[var(--app-border)] bg-[var(--app-bg)] text-center text-xs font-bold text-[var(--app-text)] font-mono focus:outline-none focus:border-blue-500"
+                            placeholder="0"
                           />
                         </td>
                         <td className="py-2.5 px-3 text-left font-mono font-bold text-emerald-600 dark:text-emerald-400" dir="ltr">

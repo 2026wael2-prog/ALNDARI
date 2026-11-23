@@ -2,6 +2,16 @@ import React from 'react';
 import { cn } from '../../../../core/utils';
 
 export const getStatusLabel = (status: string) => {
+  if (status === 'returned')
+    return {
+      label: 'مرتجع',
+      cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    };
+  if (status === 'partially_returned')
+    return {
+      label: 'مرتجع جزئياً',
+      cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+    };
   if (status === 'paid')
     return {
       label: 'مدفوع',

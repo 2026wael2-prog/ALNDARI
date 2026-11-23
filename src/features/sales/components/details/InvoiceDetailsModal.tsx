@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { FileText, Loader2, RotateCcw, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import Modal from '@/ui/base/Modal';
@@ -28,6 +29,7 @@ interface Props {
 
 const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) => {
   const { data: invoice, isLoading } = useInvoiceDetails(invoiceId);
+  const queryClient = useQueryClient();
   const createSalesReturn = useCreateSalesReturn();
   const { data: company } = useCompany();
   const { user } = useAuthStore();
@@ -87,6 +89,11 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
           notes: `مرتجع للفاتورة #${invAny.invoice_number || ''}`,
         });
         onClose();
+      }
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      void queryClient.refetchQueries({ queryKey: ['invoices'], type: 'active' });
+      if (invoiceId) {
+        void queryClient.invalidateQueries({ queryKey: ['invoice_details', invoiceId] });
       }
       setShowReturnSection(false);
       setTimeout(() => {

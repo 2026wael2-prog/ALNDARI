@@ -8,7 +8,24 @@ interface InvoiceDetailsSummaryCardsProps {
   remainingAmount?: number | null | undefined;
 }
 
-const statusBadge = (status: string, paymentMethod?: string, remainingAmount?: number | null) => {
+const statusBadge = (
+  status: string,
+  paymentMethod?: string | null,
+  remainingAmount?: number | null,
+  returnStatus?: string | null
+) => {
+  if (status === 'returned' || returnStatus === 'full') {
+    return {
+      label: 'مرتجع بالكامل',
+      cls: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+    };
+  }
+  if (status === 'partially_returned' || returnStatus === 'partial') {
+    return {
+      label: 'مرتجع جزئياً',
+      cls: 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+    };
+  }
   if (status === 'paid' || (paymentMethod === 'credit' && remainingAmount !== undefined && remainingAmount !== null && remainingAmount <= 0)) {
     return {
       label: 'مدفوع بالكامل',
@@ -48,7 +65,8 @@ export const InvoiceDetailsSummaryCards: React.FC<InvoiceDetailsSummaryCardsProp
   invoice,
   remainingAmount,
 }) => {
-  const badge = statusBadge(invoice.status, invoice.payment_method, remainingAmount);
+  const returnStatus = (invoice as unknown as { return_status?: string | null }).return_status;
+  const badge = statusBadge(invoice.status, invoice.payment_method, remainingAmount, returnStatus);
   const explicitDocTotal = Number((invoice as Record<string, unknown>).total_document_amount) || 0;
   const itemsSum = Array.isArray(invoice.invoice_items)
     ? invoice.invoice_items.reduce(

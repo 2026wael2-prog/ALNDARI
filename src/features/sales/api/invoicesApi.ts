@@ -43,6 +43,8 @@ export const invoicesApi = {
         total_document_amount,
         subtotal_document_amount,
         status,
+        return_status,
+        returned_amount,
         type,
         payment_method,
         currency_code,

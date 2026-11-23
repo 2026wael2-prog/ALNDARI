@@ -6,11 +6,12 @@ import { getDateRangeForPreset } from '../../../core/utils/dateUtils';
 import type { BondSortBy, BondSortOrder } from '../hooks/useBondsFilter';
 
 export const BOND_DATE_PRESETS: Array<{ id: DatePreset; label: string }> = [
-  { id: 'all', label: 'كل الفترات' },
+  { id: 'this_year', label: 'الفترة الحالية' },
   { id: 'today', label: 'اليوم' },
   { id: 'this_week', label: 'آخر 7 أيام' },
   { id: 'this_month', label: 'هذا الشهر' },
   { id: 'last_month', label: 'الشهر الماضي' },
+  { id: 'all', label: 'كل الفترات' },
   { id: 'custom', label: 'مخصص' },
 ];
 

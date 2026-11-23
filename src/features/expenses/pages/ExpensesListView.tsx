@@ -11,11 +11,12 @@ import type { DatePreset } from '../../../core/types/invoiceSearch';
 import { getDateRangeForPreset } from '../../../core/utils/dateUtils';
 
 const EXPENSE_DATE_PRESETS: Array<{ id: DatePreset; label: string }> = [
-  { id: 'all', label: 'كل الفترات' },
+  { id: 'this_year', label: 'الفترة الحالية' },
   { id: 'today', label: 'اليوم' },
   { id: 'this_week', label: 'آخر 7 أيام' },
   { id: 'this_month', label: 'هذا الشهر' },
   { id: 'last_month', label: 'الشهر الماضي' },
+  { id: 'all', label: 'كل الفترات' },
   { id: 'custom', label: 'مخصص' },
 ];
 
@@ -33,9 +34,13 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
   onDelete,
   onOpenLedger,
 }) => {
-  const [datePreset, setDatePreset] = useState<DatePreset>('all');
-  const [dateFrom, setDateFrom] = useState<string | undefined>();
-  const [dateTo, setDateTo] = useState<string | undefined>();
+  const [datePreset, setDatePreset] = useState<DatePreset>('this_year');
+  const [dateFrom, setDateFrom] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').from
+  );
+  const [dateTo, setDateTo] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').to
+  );
   const [currencyFilter, setCurrencyFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'voucher'>('date');
@@ -115,20 +120,19 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
   const hasActiveFilters = Boolean(
     currencyFilter !== 'all' ||
     categoryFilter !== 'all' ||
-    datePreset !== 'all' ||
-    dateFrom ||
-    dateTo ||
+    datePreset !== 'this_year' ||
     showVoided ||
     sortBy !== 'date' ||
     sortOrder !== 'desc'
   );
 
   const handleResetFilters = () => {
+    const currentRange = getDateRangeForPreset('this_year');
     setCurrencyFilter('all');
     setCategoryFilter('all');
-    setDatePreset('all');
-    setDateFrom(undefined);
-    setDateTo(undefined);
+    setDatePreset('this_year');
+    setDateFrom(currentRange.from);
+    setDateTo(currentRange.to);
     setShowVoided(false);
     setSortBy('date');
     setSortOrder('desc');

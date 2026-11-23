@@ -35,12 +35,13 @@ interface InvoiceSearchToolbarProps {
 }
 
 const PRESETS: Array<{ id: DatePreset; label: string }> = [
-  { id: 'all', label: 'كل الفترات' },
+  { id: 'this_year', label: 'الفترة الحالية' },
   { id: 'today', label: 'اليوم' },
   { id: 'this_week', label: 'آخر 7 أيام' },
   { id: 'this_month', label: 'هذا الشهر' },
   { id: 'last_month', label: 'الشهر الماضي' },
   { id: 'last_3_months', label: 'آخر 3 أشهر' },
+  { id: 'all', label: 'كل الفترات' },
   { id: 'custom', label: 'مخصص' },
 ];
 

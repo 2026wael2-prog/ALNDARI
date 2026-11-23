@@ -19,11 +19,12 @@ export interface SalesStatsProps {
 }
 
 const STATS_PRESETS: Array<{ id: DatePreset; label: string }> = [
-  { id: 'all', label: 'كل الفترات' },
+  { id: 'this_year', label: 'الفترة الحالية' },
   { id: 'today', label: 'اليوم' },
   { id: 'this_week', label: 'آخر 7 أيام' },
   { id: 'this_month', label: 'هذا الشهر' },
   { id: 'last_month', label: 'الشهر السابق' },
+  { id: 'all', label: 'كل الفترات' },
 ];
 
 export const SalesStats: React.FC<SalesStatsProps> = ({
@@ -33,11 +34,11 @@ export const SalesStats: React.FC<SalesStatsProps> = ({
   onDatePresetChange,
   showPeriodFilter = true,
 }) => {
-  const [internalPreset, setInternalPreset] = useState<DatePreset>('all');
+  const [internalPreset, setInternalPreset] = useState<DatePreset>('this_year');
   const [internalRange, setInternalRange] = useState<{
     from?: string | undefined;
     to?: string | undefined;
-  }>({});
+  }>(() => getDateRangeForPreset('this_year'));
 
   const activePreset = externalPreset ?? internalPreset;
   const effectiveDateFrom = externalDateFrom !== undefined ? externalDateFrom : internalRange.from;
@@ -64,6 +65,7 @@ export const SalesStats: React.FC<SalesStatsProps> = ({
   };
 
   const periodLabel = useMemo(() => {
+    if (activePreset === 'this_year') return `الفترة الحالية (${new Date().getFullYear()})`;
     if (activePreset === 'all') return 'كل الفترات';
     if (activePreset === 'today') return 'اليوم';
     if (activePreset === 'this_week') return 'آخر 7 أيام';

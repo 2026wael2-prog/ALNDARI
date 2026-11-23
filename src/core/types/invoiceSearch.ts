@@ -1,5 +1,5 @@
 export type DatePreset =
-  'all' | 'today' | 'this_week' | 'this_month' | 'last_month' | 'last_3_months' | 'custom';
+  'all' | 'today' | 'this_week' | 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'custom';
 
 export interface MatchedInvoiceItem {
   id: string;

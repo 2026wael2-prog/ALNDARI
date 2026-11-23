@@ -24,6 +24,7 @@ import type { ExtractedItem } from '../../smart-import/components/SmartImportVie
 import { usePurchaseStore } from '../store';
 import { useAuthStore } from '../../auth/store';
 import type { DatePreset } from '@/core/types/invoiceSearch';
+import { getDateRangeForPreset } from '@/core/utils/dateUtils';
 import {
   usePurchasePrefill,
   type PurchaseTab,
@@ -80,9 +81,13 @@ const PurchasesPage: React.FC = () => {
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [datePreset, setDatePreset] = useState<DatePreset>('all');
-  const [dateFrom, setDateFrom] = useState<string | undefined>();
-  const [dateTo, setDateTo] = useState<string | undefined>();
+  const [datePreset, setDatePreset] = useState<DatePreset>('this_year');
+  const [dateFrom, setDateFrom] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').from
+  );
+  const [dateTo, setDateTo] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').to
+  );
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [currencyFilter, setCurrencyFilter] = useState('all');
@@ -120,11 +125,12 @@ const PurchasesPage: React.FC = () => {
   usePurchasePrefill(setActiveTab);
 
   const handleResetFilters = useCallback(() => {
+    const currentRange = getDateRangeForPreset('this_year');
     setSearchTerm('');
     setDebouncedSearch('');
-    setDatePreset('all');
-    setDateFrom(undefined);
-    setDateTo(undefined);
+    setDatePreset('this_year');
+    setDateFrom(currentRange.from);
+    setDateTo(currentRange.to);
     setStatusFilter('all');
     setPaymentMethodFilter('all');
     setCurrencyFilter('all');

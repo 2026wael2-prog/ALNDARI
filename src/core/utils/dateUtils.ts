@@ -34,7 +34,7 @@ export const getLocalYearStart = (year: number = new Date().getFullYear()): stri
  * Computes start and end dates for a given DatePreset in local timezone.
  */
 export const getDateRangeForPreset = (
-  preset: 'all' | 'today' | 'this_week' | 'this_month' | 'last_month' | 'last_3_months' | 'custom'
+  preset: 'all' | 'today' | 'this_week' | 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'custom'
 ): { from?: string; to?: string } => {
   const now = new Date();
   const todayStr = formatLocalDate(now);
@@ -63,6 +63,9 @@ export const getDateRangeForPreset = (
   if (preset === 'last_3_months') {
     const d = new Date(now.getFullYear(), now.getMonth() - 3, 1);
     return { from: formatLocalDate(d), to: todayStr };
+  }
+  if (preset === 'this_year') {
+    return { from: `${now.getFullYear()}-01-01`, to: todayStr };
   }
   return {};
 };

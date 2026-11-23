@@ -2,6 +2,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import type { Bond } from '../types';
 import type { DatePreset } from '@/core/types/invoiceSearch';
+import { getDateRangeForPreset } from '@/core/utils/dateUtils';
 
 export type BondSortBy = 'date' | 'amount' | 'number';
 export type BondSortOrder = 'asc' | 'desc';
@@ -32,9 +33,13 @@ export interface UseBondsFilterReturn {
 export function useBondsFilter(bonds: Bond[] | undefined): UseBondsFilterReturn {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [datePreset, setDatePreset] = useState<DatePreset>('all');
-  const [dateFrom, setDateFrom] = useState<string | undefined>();
-  const [dateTo, setDateTo] = useState<string | undefined>();
+  const [datePreset, setDatePreset] = useState<DatePreset>('this_year');
+  const [dateFrom, setDateFrom] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').from
+  );
+  const [dateTo, setDateTo] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').to
+  );
   const [currencyFilter, setCurrencyFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<BondPaymentMethodFilter>('all');
   const [sortBy, setSortBy] = useState<BondSortBy>('date');
@@ -111,20 +116,19 @@ export function useBondsFilter(bonds: Bond[] | undefined): UseBondsFilterReturn 
     (searchTerm && searchTerm.trim() !== '') ||
     paymentMethodFilter !== 'all' ||
     currencyFilter !== 'all' ||
-    datePreset !== 'all' ||
-    dateFrom ||
-    dateTo ||
+    datePreset !== 'this_year' ||
     sortBy !== 'date' ||
     sortOrder !== 'desc'
   );
 
   const handleResetFilters = () => {
+    const currentRange = getDateRangeForPreset('this_year');
     setSearchTerm('');
     setPaymentMethodFilter('all');
     setCurrencyFilter('all');
-    setDatePreset('all');
-    setDateFrom(undefined);
-    setDateTo(undefined);
+    setDatePreset('this_year');
+    setDateFrom(currentRange.from);
+    setDateTo(currentRange.to);
     setSortBy('date');
     setSortOrder('desc');
   };

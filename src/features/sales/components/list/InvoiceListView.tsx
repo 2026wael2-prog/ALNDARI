@@ -14,6 +14,7 @@ import { useFeedbackStore } from '../../../feedback/store';
 import { useAccompanyingInfoStore } from '../../../accompanying-info';
 import InvoiceSearchToolbar from '../../../../ui/common/InvoiceSearchToolbar';
 import type { DatePreset } from '@/core/types/invoiceSearch';
+import { getDateRangeForPreset } from '@/core/utils/dateUtils';
 import { useInvoiceListColumns } from './useInvoiceListColumns';
 import EditInvoiceModal from '../edit/EditInvoiceModal';
 
@@ -30,9 +31,13 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
 }) => {
   const [internalSearch, setInternalSearch] = useState(searchTerm || '');
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm || '');
-  const [datePreset, setDatePreset] = useState<DatePreset>('all');
-  const [dateFrom, setDateFrom] = useState<string | undefined>();
-  const [dateTo, setDateTo] = useState<string | undefined>();
+  const [datePreset, setDatePreset] = useState<DatePreset>('this_year');
+  const [dateFrom, setDateFrom] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').from
+  );
+  const [dateTo, setDateTo] = useState<string | undefined>(
+    () => getDateRangeForPreset('this_year').to
+  );
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [currencyFilter, setCurrencyFilter] = useState('all');
@@ -87,11 +92,12 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   );
 
   const handleResetFilters = useCallback(() => {
+    const currentRange = getDateRangeForPreset('this_year');
     setInternalSearch('');
     setDebouncedSearch('');
-    setDatePreset('all');
-    setDateFrom(undefined);
-    setDateTo(undefined);
+    setDatePreset('this_year');
+    setDateFrom(currentRange.from);
+    setDateTo(currentRange.to);
     setStatusFilter('all');
     setPaymentMethodFilter('all');
     setCurrencyFilter('all');

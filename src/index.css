@@ -3826,3 +3826,130 @@ html.dark[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
     color: #fdba74;
   }
 }
+
+/* ============================================================
+   أيقونة السيارة التفاعلية — تفكيك قطع الغيار وإعادة تطبيقها بسلاسة
+   ============================================================ */
+.car-parts-logo .car-part {
+  transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+  will-change: transform, opacity;
+}
+
+.car-parts-logo .car-part-gear {
+  opacity: 0;
+  animation: car-part-gear-loop 5.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.car-parts-logo .car-part-roof {
+  animation: car-part-roof-loop 5.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+.car-parts-logo .car-part-hood {
+  animation: car-part-hood-loop 5.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+.car-parts-logo .car-part-bumper {
+  animation: car-part-bumper-loop 5.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+.car-parts-logo .car-part-body {
+  animation: car-part-body-loop 5.4s ease-in-out infinite;
+}
+
+.car-parts-logo .car-part-wheel-front {
+  animation: car-part-wheel-front-loop 5.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+.car-parts-logo .car-part-wheel-rear {
+  animation: car-part-wheel-rear-loop 5.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+/* التفاعل الفوري عند التمرير بالماوس أو النقر */
+.car-parts-logo:hover .car-part,
+.car-parts-logo.is-bursting .car-part {
+  animation: none;
+}
+
+.car-parts-logo:hover .car-part-roof,
+.car-parts-logo.is-bursting .car-part-roof {
+  transform: translate(0px, -8.5px) rotate(-7deg);
+}
+
+.car-parts-logo:hover .car-part-hood,
+.car-parts-logo.is-bursting .car-part-hood {
+  transform: translate(7px, -4.5px) rotate(12deg);
+}
+
+.car-parts-logo:hover .car-part-bumper,
+.car-parts-logo.is-bursting .car-part-bumper {
+  transform: translate(-6.5px, -3.5px) rotate(-10deg);
+}
+
+.car-parts-logo:hover .car-part-body,
+.car-parts-logo.is-bursting .car-part-body {
+  transform: translate(0px, 1.5px) scale(0.95);
+  opacity: 0.78;
+}
+
+.car-parts-logo:hover .car-part-wheel-front,
+.car-parts-logo.is-bursting .car-part-wheel-front {
+  transform: translate(6px, 6.5px) rotate(180deg);
+}
+
+.car-parts-logo:hover .car-part-wheel-rear,
+.car-parts-logo.is-bursting .car-part-wheel-rear {
+  transform: translate(-6px, 6.5px) rotate(-180deg);
+}
+
+.car-parts-logo:hover .car-part-gear,
+.car-parts-logo.is-bursting .car-part-gear {
+  opacity: 1;
+  animation: car-gear-spin 1.4s linear infinite !important;
+}
+
+@keyframes car-gear-spin {
+  from { transform: rotate(0deg) scale(1.1); }
+  to { transform: rotate(360deg) scale(1.1); }
+}
+
+@keyframes car-part-roof-loop {
+  0%, 34%, 76%, 100% { transform: translate(0, 0) rotate(0deg); }
+  48%, 62% { transform: translate(0, -7.5px) rotate(-6deg); }
+}
+
+@keyframes car-part-hood-loop {
+  0%, 34%, 76%, 100% { transform: translate(0, 0) rotate(0deg); }
+  48%, 62% { transform: translate(6px, -3.5px) rotate(10deg); }
+}
+
+@keyframes car-part-bumper-loop {
+  0%, 34%, 76%, 100% { transform: translate(0, 0) rotate(0deg); }
+  48%, 62% { transform: translate(-5.5px, -2.5px) rotate(-9deg); }
+}
+
+@keyframes car-part-body-loop {
+  0%, 34%, 76%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
+  48%, 62% { transform: translate(0, 1.2px) scale(0.96); opacity: 0.82; }
+}
+
+@keyframes car-part-wheel-front-loop {
+  0%, 34%, 76%, 100% { transform: translate(0, 0) rotate(0deg); }
+  48%, 62% { transform: translate(5.5px, 5.5px) rotate(160deg); }
+}
+
+@keyframes car-part-wheel-rear-loop {
+  0%, 34%, 76%, 100% { transform: translate(0, 0) rotate(0deg); }
+  48%, 62% { transform: translate(-5.5px, 5.5px) rotate(-160deg); }
+}
+
+@keyframes car-part-gear-loop {
+  0%, 36%, 74%, 100% { opacity: 0; transform: rotate(0deg) scale(0.5); }
+  48% { opacity: 1; transform: rotate(120deg) scale(1.08); }
+  62% { opacity: 1; transform: rotate(300deg) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .car-parts-logo .car-part {
+    animation: none !important;
+  }
+}

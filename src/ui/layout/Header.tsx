@@ -1,8 +1,9 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Car, Menu, Search, X } from 'lucide-react';
+import { Menu, Search, X } from 'lucide-react';
 import HeaderActions from './header/HeaderActions';
 import RealtimeStatusIndicator from '../common/RealtimeStatusIndicator';
+import { InteractiveCarPartsLogo } from '../common/InteractiveCarPartsLogo';
 import { MENU_ITEMS } from '../../core/constants';
 
 /**
@@ -79,10 +80,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 navigate('/');
               });
             }}
-            className="cursor-pointer rounded-lg bg-blue-600 p-1.5 text-white shadow-md shadow-blue-500/20 transition-all duration-300 active:scale-95 md:hidden"
+            className="cursor-pointer rounded-lg bg-gradient-to-tr from-orange-600 to-amber-500 p-1 text-white shadow-md shadow-orange-600/25 ring-1 ring-white/30 transition-all duration-300 active:scale-95 md:hidden"
             aria-label="الرئيسية"
           >
-            <Car size={14} />
+            <InteractiveCarPartsLogo size={20} interactive={false} />
           </div>
           <div className="flex flex-col">
             <h1 className="text-sm font-extrabold leading-tight text-[var(--app-text)] md:text-base">

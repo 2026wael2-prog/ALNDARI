@@ -86,7 +86,10 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
   if (isMaximized) return null;
 
   return (
-    <div className="flex-none bg-[var(--app-surface)] border-b border-[var(--app-border)] shadow-none transition-all no-print z-40">
+    <div
+      data-micro-header="true"
+      className="flex-none bg-[var(--app-surface)] border-b border-[var(--app-border)] shadow-none transition-all no-print z-40"
+    >
       <div className="max-w-none mx-auto">
         {/* Main Row */}
         <div className="flex h-9 items-center justify-between px-2.5 max-md:px-1.5 md:px-3">
@@ -139,7 +142,10 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
 
         {/* Unified Search & Tab Row - MERGED TO SAVE SPACE */}
         {(tabs || onSearchChange || extraRow) && (
-          <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2 py-1 px-2 bg-[var(--app-surface)] border-t border-[var(--app-border)]">
+          <div
+            data-micro-header-tabs="true"
+            className="flex flex-col md:flex-row items-center gap-1 md:gap-2 py-1 px-2 bg-[var(--app-surface)] border-t border-[var(--app-border)]"
+          >
             {/* Tabs Section */}
             {tabs && onTabChange && activeTab && (
               <div className="flex-1 w-full overflow-x-auto no-scrollbar min-w-0">

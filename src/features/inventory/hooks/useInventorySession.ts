@@ -137,15 +137,30 @@ export function useInventorySession({
   // user-entered quantities that were saved in the sessionStorage / server draft.
   useEffect(() => {
     if (initialItems.length > 0) {
-      // For completed sessions always show server data.
-      // For active sessions only seed the state if restoration hasn't happened yet,
-      // so that a saved draft is never wiped by the server baseline.
       if (isCompleted || (items.length === 0 && !hasRestoredRef.current)) {
         setItems(initialItems);
         lastItemsRef.current = initialItems;
+        return;
+      }
+
+      // If restore() ran before initialItems arrived, items may contain bare draft stubs
+      // missing `.products` or `.expected_quantity`. Enrich them with server data while
+      // keeping any local `counted_quantity`.
+      const hasMissingProductMeta = items.some(item => !item.products);
+      if (hasMissingProductMeta) {
+        const enriched = initialItems.map(serverItem => {
+          const key = identifierOf(serverItem);
+          const local = items.find(i => identifierOf(i) === key);
+          const localQty = local?.counted_quantity;
+          return localQty !== null && localQty !== undefined && localQty !== ''
+            ? { ...serverItem, counted_quantity: localQty }
+            : serverItem;
+        });
+        setItems(enriched);
+        lastItemsRef.current = enriched;
       }
     }
-  }, [initialItems, isCompleted, items.length]);
+  }, [initialItems, isCompleted, items]);
 
   // Restore session on mount (only for active sessions, never for completed)
   useEffect(() => {
@@ -302,18 +317,35 @@ export function useInventorySession({
   const mergeWithServer = useCallback((serverItems: Array<Record<string, unknown>>) => {
     setItems(prev => {
       const merged = [...prev];
-      const known = new Set(merged.map(item => identifierOf(item)));
-      let didAdd = false;
+      const indexByKey = new Map<string, number>();
+      merged.forEach((item, idx) => {
+        const k = identifierOf(item);
+        if (k !== '') indexByKey.set(k, idx);
+      });
+      let didChange = false;
       serverItems.forEach(serverItem => {
         const key = identifierOf(serverItem);
-        if (known.has(key)) return;
-        known.add(key);
+        const existingIdx = indexByKey.get(key);
+        if (existingIdx !== undefined) {
+          const existing = merged.at(existingIdx);
+          if (existing !== undefined && (!existing.products || (!existing.id && serverItem.id))) {
+            const localQty = existing.counted_quantity;
+            merged[existingIdx] = {
+              ...serverItem,
+              counted_quantity:
+                localQty !== null && localQty !== undefined && localQty !== ''
+                  ? localQty
+                  : serverItem.counted_quantity,
+            };
+            didChange = true;
+          }
+          return;
+        }
+        indexByKey.set(key, 0);
         merged.unshift(serverItem);
-        didAdd = true;
+        didChange = true;
       });
-      // [PERF-FIX] كان يُرجع مصفوفة جديدة دائماً حتى بلا أي إضافة، فيُشعل
-      // إعادة رسم + مزامنة نموذج + مقارنة حفظ مع كل إعادة جلب.
-      if (!didAdd) return prev;
+      if (!didChange) return prev;
       lastItemsRef.current = merged;
       return merged;
     });

@@ -125,7 +125,7 @@ const isSameQuantity = (left: unknown, right: unknown): boolean => {
  * سبب وجوده: كان `displayItems` يفضّل `sessionItems` بعد أول مزامنة، فلا يصل
  * تعديل المستخدم إلى الجدول أبداً ⇒ عمود «الفرق» والتذييل وبلاطات الإحصاء
  * تتجمّد حتى يغادر الحقل (blur). الدمج هنا **للعرض فقط** (بمفتاح `product_id`،
- * لا بالترتيب) فلا يغيّر ترتيب الصفوف ولا فهارس `register` ولا أي كمية محفوظة.
+ * أو بالفهرس عند عدم تسجيل `product_id` بعد) فلا يغيّر ترتيب الصفوف ولا فهارس `register`.
  */
 const mergeLiveQuantities = (
   base: Array<Record<string, unknown>>,
@@ -138,15 +138,22 @@ const mergeLiveQuantities = (
     const id = itemProductId(item);
     if (id !== '') liveQuantityById.set(id, item.counted_quantity);
   }
-  if (liveQuantityById.size === 0) return base;
 
   // حاوية حالة: المُصرِّف لا يتتبّع الإسناد داخل `map`، فالمتغيّر العادي كان
   // يُرى دائماً `false`. الحاوية تُبقي الشرط مقروءاً بلا وصول بالفهرس.
   const state = { changed: false };
-  const merged = base.map(item => {
+  const merged = base.map((item, idx) => {
     const id = itemProductId(item);
-    if (id === '' || !liveQuantityById.has(id)) return item;
-    const liveQuantity = liveQuantityById.get(id);
+    const byId = id !== '' && liveQuantityById.has(id) ? liveQuantityById.get(id) : undefined;
+    const byIndexItem = live.at(idx);
+    const byIndex =
+      byId === undefined &&
+      byIndexItem !== undefined &&
+      (itemProductId(byIndexItem) === '' || itemProductId(byIndexItem) === id)
+        ? byIndexItem.counted_quantity
+        : undefined;
+    const liveQuantity = byId !== undefined ? byId : byIndex;
+    if (liveQuantity === undefined) return item;
     if (isSameQuantity(item.counted_quantity, liveQuantity)) return item;
     state.changed = true;
     return { ...item, counted_quantity: liveQuantity };

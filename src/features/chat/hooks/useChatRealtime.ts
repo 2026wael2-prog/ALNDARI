@@ -258,7 +258,7 @@ export const useChatRealtime = () => {
           reconnectAttempts += 1;
           const backoffMs = Math.min(60000, 5000 * Math.pow(2, Math.min(reconnectAttempts - 1, 4)));
           if (reconnectAttempts === 1) {
-            logger.warn(
+            logger.debug(
               'ChatRealtime',
               `Realtime channel unavailable (${status}); using controlled backoff (${backoffMs}ms)`
             );

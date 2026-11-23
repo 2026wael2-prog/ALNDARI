@@ -49,7 +49,10 @@ const DOMAIN_KEYS = {
   inventory: [
     'products',
     'product_search',
+    'products_search',
     'products_paginated',
+    'stocked_products',
+    'warehouse_products',
     'product_details',
     'warehouses',
     'inventory_categories',

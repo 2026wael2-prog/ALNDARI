@@ -82,9 +82,9 @@ const pollNow = async (
 const startFallbackPolling = (channelId: string, queryClient: QueryClient): void => {
   if (fallbackPolls.has(channelId)) return;
   const intervalSec = String(FALLBACK_POLL_BASE_MS / 1000);
-  logger.warn(
+  logger.debug(
     'Realtime',
-    `⚠️ Channel down — starting fallback polling (every ${intervalSec}s, active stale queries only)`
+    `Channel down — starting fallback polling (every ${intervalSec}s, active stale queries only)`
   );
 
   const state: FallbackPollState = {
@@ -302,8 +302,8 @@ const setupCompanyRealtimeChannel = (companyId: string, queryClient: QueryClient
       setRealtimeStatus('disconnected');
     } else {
       // سبب الرفض الحقيقي من الخادم (Unauthorized / topic already exists / timeout…)
-      // ضروري للتشخيص: بدونه لا يظهر سوى CHANNEL_ERROR بلا تفاصيل.
-      logger.warn('Realtime', `⚠️ Realtime channel status: ${status}`, {
+      // يُسجّل بمستوى debug لتفادي إغراق وحدة التحكم بتحذيرات متكررة مع تفعيل الاستطلاع البديل التلقائي.
+      logger.debug('Realtime', `Realtime channel status: ${status}`, {
         channel: channelId,
         reason: err?.message ?? 'unknown',
       });

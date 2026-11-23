@@ -21,6 +21,7 @@ export interface AuditItemActionsOptions {
   isCompleted: boolean;
   warehouseId: string | undefined;
   getValues: UseFormReturn<AuditFormValues>['getValues'];
+  displayItems?: AuditItems | undefined;
   /** يحدّث النموذج + المسودة + البصمة في خطوة واحدة. */
   syncItems: (items: AuditItems) => void;
   addItemToAudit: AddItemToAudit;
@@ -47,12 +48,14 @@ export const useAuditItemActions = (
     isCompleted: options.isCompleted,
     warehouseId: options.warehouseId,
     getValues: options.getValues,
+    displayItems: options.displayItems,
     syncItems: options.syncItems,
     addItemToAudit: options.addItemToAudit,
   });
   const removal = useAuditItemRemoval({
     sessionId: options.sessionId,
     getValues: options.getValues,
+    displayItems: options.displayItems,
     syncItems: options.syncItems,
     removeItemFromAudit: options.removeItemFromAudit,
   });

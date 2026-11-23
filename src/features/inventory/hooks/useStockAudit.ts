@@ -10,6 +10,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { logger } from '../../../core/utils/logger';
 import { syncStore } from '../../../core/lib/sync-store';
 import { parseError } from '../../../core/utils/errorUtils';
+import { invalidateByPreset } from '../../../lib/invalidation';
 import { useBranchFilter } from '../../branches/hooks/useBranchFilter';
 
 /** جلب قائمة جلسات الجرد */
@@ -174,7 +175,12 @@ export const useInventoryMutations = () => {
       });
     },
     onSuccess: async () => {
+      invalidateByPreset(queryClient, 'inventory');
       await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['products_paginated'] });
+      await queryClient.invalidateQueries({ queryKey: ['products_search'] });
+      await queryClient.invalidateQueries({ queryKey: ['stocked_products'] });
+      await queryClient.invalidateQueries({ queryKey: ['warehouse_products'] });
       await queryClient.invalidateQueries({ queryKey: ['transfers'] });
       showToast('تمت المناقلة بنجاح', 'success');
     },
@@ -234,9 +240,14 @@ export const useInventoryMutations = () => {
       return inventoryService.finalizeAudit(sessionId, items, user.id, user.company_id);
     },
     onSuccess: async (_, { sessionId }) => {
+      invalidateByPreset(queryClient, 'inventory');
       await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
       await queryClient.invalidateQueries({ queryKey: ['audit_session', sessionId] });
       await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['products_paginated'] });
+      await queryClient.invalidateQueries({ queryKey: ['products_search'] });
+      await queryClient.invalidateQueries({ queryKey: ['stocked_products'] });
+      await queryClient.invalidateQueries({ queryKey: ['warehouse_products'] });
       showToast('تم إغلاق الجرد وترحيل الفروقات', 'success');
     },
     onError: err => {
@@ -290,7 +301,12 @@ export const useInventoryMutations = () => {
       return inventoryService.quickAdjustStock(user.company_id, items, user.id);
     },
     onSuccess: async () => {
+      invalidateByPreset(queryClient, 'inventory');
       await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['products_paginated'] });
+      await queryClient.invalidateQueries({ queryKey: ['products_search'] });
+      await queryClient.invalidateQueries({ queryKey: ['stocked_products'] });
+      await queryClient.invalidateQueries({ queryKey: ['warehouse_products'] });
       await queryClient.invalidateQueries({ queryKey: ['audit_sessions'] });
       showToast('تم إضافة التسويات السريعة بنجاح', 'success');
     },
@@ -318,7 +334,10 @@ export const useInventoryMutations = () => {
       );
     },
     onSuccess: async (_, { sessionId }) => {
-      await queryClient.invalidateQueries({ queryKey: ['audit_session', sessionId] });
+      // Do not trigger immediate full refetch of ['audit_session', sessionId] while the user
+      // is typing quantities into the newly added row; `useAuditItemAddition` already patches
+      // the returned server `id` into the form and draft state.
+      void sessionId;
     },
     onError: err => {
       showToast('فشل إضافة الصنف: ' + parseError(err).message, 'error');

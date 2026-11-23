@@ -40,9 +40,19 @@ const buildProgressItems = (
   formItems: Array<Record<string, unknown>>,
   sourceList: Array<Record<string, unknown>>
 ): AuditProgressItem[] =>
-  sourceList.map(item => {
+  sourceList.map((item, idx) => {
     const productId = itemProductId(item);
-    const matched = formItems.find(formItem => itemProductId(formItem) === productId);
+    const matchedById =
+      productId !== ''
+        ? formItems.find(formItem => itemProductId(formItem) === productId)
+        : undefined;
+    const byIndex = formItems.at(idx);
+    const matched =
+      matchedById ??
+      (byIndex !== undefined &&
+      (itemProductId(byIndex) === '' || itemProductId(byIndex) === productId)
+        ? byIndex
+        : undefined);
     const formValue = matched?.counted_quantity;
     const rawCounted =
       formValue !== undefined && formValue !== '' ? formValue : item.counted_quantity;
@@ -55,6 +65,38 @@ const buildProgressItems = (
     return result;
   });
 
+/** يدمج الكميات المجرودة من النموذج الحيّ داخل أصناف المصدر الكاملة (مع الحفاظ على products/expected_quantity). */
+const mergeFormQuantitiesIntoSource = (
+  formItems: Array<Record<string, unknown>>,
+  sourceList: Array<Record<string, unknown>>
+): Array<Record<string, unknown>> => {
+  if (sourceList.length === 0) return formItems;
+  if (formItems.length === 0) return sourceList;
+
+  return sourceList.map((item, idx) => {
+    const productId = itemProductId(item);
+    const matchedById =
+      productId !== ''
+        ? formItems.find(formItem => itemProductId(formItem) === productId)
+        : undefined;
+    const byIndex = formItems.at(idx);
+    const matched =
+      matchedById ??
+      (byIndex !== undefined &&
+      (itemProductId(byIndex) === '' || itemProductId(byIndex) === productId)
+        ? byIndex
+        : undefined);
+
+    if (matched === undefined || matched.counted_quantity === undefined) {
+      return item;
+    }
+    return {
+      ...item,
+      counted_quantity: toCountedQuantity(matched.counted_quantity),
+    };
+  });
+};
+
 /**
  * يحفظ التقدّم عند إغلاق المتصفح أو مغادرة الصفحة داخل التطبيق (SPA).
  * يُسجّل المستمع مرة واحدة، ويقرأ أحدث القيم من مرجع — فلا حفظ عند كل ضغطة مفتاح.
@@ -66,14 +108,17 @@ const usePersistOnUnload = (
 ): void => {
   useEffect(() => {
     const persist = (toServer: boolean): void => {
-      const { isCompleted, sessionId, getValues, updateItems } = latestRef.current;
+      const { isCompleted, sessionId, getValues, displayItems, serverItems, updateItems } =
+        latestRef.current;
       if (isCompleted) return;
       const formItems = getValues('items');
-      if (formItems.length === 0) return;
-      updateItems(formItems);
+      const sourceList = displayItems.length > 0 ? displayItems : serverItems;
+      const mergedItems = mergeFormQuantitiesIntoSource(formItems, sourceList);
+      if (mergedItems.length === 0) return;
+      updateItems(mergedItems);
       if (!toServer || sessionId === undefined) return;
       // لا نُكرّر حفظ نفس المحتوى (يمنع الكتابة المزدوجة في وضع React StrictMode).
-      const signature = computeItemsSignature(formItems);
+      const signature = computeItemsSignature(mergedItems);
       if (signature === lastPersistedSignatureRef.current) return;
       const itemsToSave = prepareProgressItems();
       if (itemsToSave.length === 0) return;
@@ -82,7 +127,7 @@ const usePersistOnUnload = (
     };
 
     const onBeforeUnload = (): void => {
-      persist(false);
+      persist(true);
     };
 
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -96,16 +141,6 @@ const usePersistOnUnload = (
 export const useAuditProgressPersistence = (
   options: UseAuditProgressPersistenceOptions
 ): UseAuditProgressPersistenceReturn => {
-  // [PERF-FIX — حلقة حفظ لا نهائية] كان الـ effect أدناه يعتمد على
-  // `prepareProgressItems`، وهو يُعاد إنشاؤه كلّما تغيّر `displayItems` أو
-  // `serverItems` — أي عند كل ضغطة مفتاح وعند كل إعادة جلب. وبما أنّ دالة
-  // التنظيف (cleanup) تنفّذ حفظاً على الخادم، كان كل رسم يُطلق
-  // `save_audit_progress` ← أحداث Realtime على `audit_items` ← إبطال
-  // `['audit_session']` ← إعادة جلب ← مصفوفة أصناف جديدة ← حفظ مجدداً…
-  // حلقة تُغرق الشبكة وتُعيد `reset` للنموذج أثناء الكتابة (اهتزاز الحقول)،
-  // وتُظهر مؤشر «اتصال غير مستقر» باستمرار.
-  // الحل: أحدث القيم تُقرأ من مرجع (ref)، والدوال صارت ثابتة الهوية،
-  // فتبقى دالة التنظيف تعمل مرة واحدة عند المغادرة الفعلية فقط.
   const latestRef = useRef(options);
   const lastPersistedSignatureRef = useRef<string>('');
 
@@ -120,14 +155,31 @@ export const useAuditProgressPersistence = (
   }, []);
 
   const handleSaveProgress = useCallback((): void => {
-    const { isCompleted, getValues, updateItems, lastSyncedRef } = latestRef.current;
+    const {
+      isCompleted,
+      sessionId,
+      getValues,
+      displayItems,
+      serverItems,
+      updateItems,
+      lastSyncedRef,
+    } = latestRef.current;
     if (isCompleted) return;
     const formItems = getValues('items');
-    if (formItems.length === 0) return;
-    const serialized = computeItemsSignature(formItems);
+    const sourceList = displayItems.length > 0 ? displayItems : serverItems;
+    const mergedItems = mergeFormQuantitiesIntoSource(formItems, sourceList);
+    if (mergedItems.length === 0) return;
+    const serialized = computeItemsSignature(mergedItems);
     if (serialized === lastSyncedRef.current) return;
     lastSyncedRef.current = serialized;
-    updateItems(formItems);
+    updateItems(mergedItems);
+    if (sessionId !== undefined && serialized !== lastPersistedSignatureRef.current) {
+      const itemsToSave = buildProgressItems(formItems, sourceList);
+      if (itemsToSave.length > 0) {
+        lastPersistedSignatureRef.current = serialized;
+        void inventoryService.saveAuditProgress({ sessionId, items: itemsToSave });
+      }
+    }
   }, []);
 
   // حفظ إجباري عند إغلاق المتصفح أو مغادرة الصفحة داخل التطبيق (SPA).

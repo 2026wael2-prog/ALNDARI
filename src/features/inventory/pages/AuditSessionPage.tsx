@@ -113,6 +113,7 @@ const AuditSessionPage: React.FC = () => {
     isCompleted,
     warehouseId,
     getValues,
+    displayItems,
     syncItems: syncItemsMutation,
     addItemToAudit,
     removeItemFromAudit,

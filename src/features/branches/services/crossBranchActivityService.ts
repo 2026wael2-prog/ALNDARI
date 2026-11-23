@@ -368,7 +368,7 @@ export const subscribeToCrossBranchActivity = (
       if (status === 'SUBSCRIBED') {
         logger.debug('CrossBranchActivity', `Subscribed to live cross-branch activity for company [${companyId}]`);
       } else if (err) {
-        logger.warn('CrossBranchActivity', 'Cross-branch activity subscription error:', err);
+        logger.debug('CrossBranchActivity', 'Cross-branch activity subscription error:', err);
       }
     });
 

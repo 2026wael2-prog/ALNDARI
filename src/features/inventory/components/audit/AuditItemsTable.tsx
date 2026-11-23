@@ -168,7 +168,7 @@ const AuditItemsTable: React.FC<Props> = ({
 
               return (
                 <tr
-                  key={field.id || field.audit_item_id || field.product_id || `item-${index}`}
+                  key={field.product_id || product?.id || field.id || field.audit_item_id || `item-${index}`}
                   className={cn(
                     'transition-colors',
                     !isCounted && 'bg-amber-50/30 dark:bg-amber-900/5',
@@ -239,30 +239,44 @@ const AuditItemsTable: React.FC<Props> = ({
                         </span>
                       </div>
                     ) : (
-                      <input
-                        key={`qty-${field.id || field.audit_item_id || field.product_id}`}
-                        type="number"
-                        min={0}
-                        inputMode="numeric"
-                        aria-label={`الكمية الفعلية للصنف ${String(product?.name_ar || product?.name || '')}`}
-                        defaultValue={countedQty === null ? '' : countedQty}
-                        {...register(`items.${field.index}.counted_quantity`, {
-                          // [FIX — NaN] الحقل الفارغ كان يُرجع `NaN` (valueAsNumber)
-                          // فيظهر «NaN» في الفرق ويُرسل `null` يمسح الكمية المحفوظة.
-                          // الآن الفراغ = `null` صريح، وأي رقم صالح يبقى كما هو.
-                          setValueAs: parseCountedInput,
-                          onBlur: () => {
-                            if (onSave) onSave();
-                          },
-                        })}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            (e.target as HTMLInputElement).blur();
-                          }
-                        }}
-                        className="h-10 w-full rounded-lg border border-emerald-200 bg-white text-center font-mono text-base font-black text-gray-900 shadow-sm outline-none transition-all focus:border-emerald-500 dark:border-emerald-900/50 dark:bg-slate-950 dark:text-white sm:h-14 sm:rounded-xl sm:text-2xl"
-                        placeholder="0"
-                      />
+                      <>
+                        <input
+                          type="hidden"
+                          defaultValue={String(field.product_id || product?.id || '')}
+                          {...register(`items.${field.index}.product_id`)}
+                        />
+                        {field.id ? (
+                          <input
+                            type="hidden"
+                            defaultValue={String(field.id)}
+                            {...register(`items.${field.index}.id`)}
+                          />
+                        ) : null}
+                        <input
+                          key={`qty-${field.product_id || product?.id || field.id || field.audit_item_id}`}
+                          type="number"
+                          min={0}
+                          inputMode="numeric"
+                          aria-label={`الكمية الفعلية للصنف ${String(product?.name_ar || product?.name || '')}`}
+                          defaultValue={countedQty === null ? '' : countedQty}
+                          {...register(`items.${field.index}.counted_quantity`, {
+                            // [FIX — NaN] الحقل الفارغ كان يُرجع `NaN` (valueAsNumber)
+                            // فيظهر «NaN» في الفرق ويُرسل `null` يمسح الكمية المحفوظة.
+                            // الآن الفراغ = `null` صريح، وأي رقم صالح يبقى كما هو.
+                            setValueAs: parseCountedInput,
+                            onBlur: () => {
+                              if (onSave) onSave();
+                            },
+                          })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              (e.target as HTMLInputElement).blur();
+                            }
+                          }}
+                          className="h-10 w-full rounded-lg border border-emerald-200 bg-white text-center font-mono text-base font-black text-gray-900 shadow-sm outline-none transition-all focus:border-emerald-500 dark:border-emerald-900/50 dark:bg-slate-950 dark:text-white sm:h-14 sm:rounded-xl sm:text-2xl"
+                          placeholder="0"
+                        />
+                      </>
                     )}
                   </td>
                   <td

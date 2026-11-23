@@ -45,12 +45,13 @@ export const useDashboardData = (period: DashboardPeriod = 'today'): UseDashboar
         return result as unknown as RawDashboardData;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        if (err.name !== 'AbortError' && !signal.aborted) {
-          logger.warn('hooks', 'Dashboard data fetch failed, using fallback', {
-            message: err.message,
-          });
+        if (err.name === 'AbortError' || signal.aborted) {
+          return null;
         }
-        return null;
+        logger.warn('hooks', 'Dashboard data fetch failed', {
+          message: err.message,
+        });
+        throw err;
       }
     },
     enabled: !!companyId,

@@ -262,6 +262,10 @@ serve(async req => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
 
+    // [AUDIT FIX 20] Enforce server-side token & temperature bounds to prevent budget abuse
+    const safeMaxTokens = Math.min(Math.max(Math.floor(Number(maxTokens) || 1500), 64), 4096);
+    const safeTemperature = Math.min(Math.max(Number(temperature ?? 0.1), 0), 1.5);
+
     try {
       const response = await openai.chat.completions.create(
         {
@@ -269,8 +273,8 @@ serve(async req => {
             model ||
             (selectedProvider === 'deepseek' ? 'deepseek-chat' : 'google/gemini-2.5-flash'),
           messages: finalMessages,
-          temperature: temperature ?? 0.1,
-          max_tokens: maxTokens ?? 1500,
+          temperature: safeTemperature,
+          max_tokens: safeMaxTokens,
           response_format: jsonMode ? { type: 'json_object' } : undefined,
         },
         { signal: controller.signal }

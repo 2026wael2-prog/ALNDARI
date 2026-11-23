@@ -40,8 +40,9 @@ export const netUnitPrices = (
   if (subtotal <= 0) return items.map(item => ({ ...item }));
 
   const cappedDiscount = Math.min(safeDiscount, subtotal);
+  const targetNetTotal = Math.max(0, subtotal - cappedDiscount);
 
-  return items.map(item => {
+  const adjusted = items.map(item => {
     const qty = item.quantity > 0 ? item.quantity : 0;
     const unit = item.unitPrice > 0 ? item.unitPrice : 0;
     const lineGross = qty * unit;
@@ -50,4 +51,37 @@ export const netUnitPrices = (
     const netLine = lineGross - cappedDiscount * lineShare;
     return { ...item, unitPrice: roundTo4(Math.max(0, netLine) / qty) };
   });
+
+  // [AUDIT FIX 12] Reconcile rounding drift (e.g. 300 × 1 with 0.01 discount)
+  const actualNetTotal = adjusted.reduce(
+    (sum, item) => sum + (item.quantity > 0 ? item.quantity : 0) * Math.max(0, item.unitPrice),
+    0
+  );
+  const residual = targetNetTotal - actualNetTotal;
+  if (Math.abs(residual) >= 0.005) {
+    // Pick the eligible line with the smallest quantity (best unit-price granularity)
+    let bestIdx = -1;
+    let bestQty = Infinity;
+    adjusted.forEach((item, idx) => {
+      if (item.quantity > 0 && item.unitPrice > 0 && item.quantity < bestQty) {
+        bestQty = item.quantity;
+        bestIdx = idx;
+      }
+    });
+    if (bestIdx !== -1) {
+      const targetLine = adjusted[bestIdx];
+      const deltaPerUnit = residual / targetLine.quantity;
+      const newUnit = Math.max(0, targetLine.unitPrice + deltaPerUnit);
+      adjusted[bestIdx] = {
+        ...targetLine,
+        // Use up to 6 decimals only when 4 decimals would lose the residual on large quantities
+        unitPrice:
+          Math.abs(roundTo4(newUnit) * targetLine.quantity - (targetLine.unitPrice * targetLine.quantity + residual)) < 0.005
+            ? roundTo4(newUnit)
+            : Math.round((newUnit + Number.EPSILON) * 1_000_000) / 1_000_000,
+      };
+    }
+  }
+
+  return adjusted;
 };

@@ -68,29 +68,34 @@ Deno.serve(async (req: Request) => {
     try {
       // 1) Run Phase 2 scheduled maintenance (stale recommendations + daily availability snapshot)
       if (job.job_type === 'snapshot_refresh' || job.job_type === 'full_orchestration') {
-        await supabase.rpc('fn_run_scheduled_inventory_intelligence', { p_company_id: companyId });
+        const { error: maintErr } = await supabase.rpc('fn_run_scheduled_inventory_intelligence', {
+          p_company_id: companyId,
+        });
+        if (maintErr) throw new Error(`Maintenance RPC failed: ${maintErr.message}`);
       }
 
       // 2) Real DB outcome verification against stock_transfers & prc_purchase_orders
-      const { data: executedRecs } = await supabase
+      const { data: executedRecs, error: recsErr } = await supabase
         .from('inv_intelligence_recommendations')
         .select('id, rec_type, linked_transfer_id, linked_po_id, lifecycle_state')
         .eq('company_id', companyId)
         .eq('status', 'executed')
         .is('outcome_verified_at', null)
         .limit(50);
+      if (recsErr) throw new Error(`Failed reading executed recommendations: ${recsErr.message}`);
 
       let verifiedCount = 0;
       let escalatedCount = 0;
 
       for (const r of executedRecs ?? []) {
         if (r.rec_type === 'transfer' && r.linked_transfer_id) {
-          const { data: tr } = await supabase
+          const { data: tr, error: trReadErr } = await supabase
             .from('stock_transfers')
             .select('id, status, reversed_at')
             .eq('id', r.linked_transfer_id)
             .eq('company_id', companyId)
             .maybeSingle();
+          if (trReadErr) throw new Error(`Failed reading stock_transfer: ${trReadErr.message}`);
 
           if (!tr || tr.reversed_at || tr.status === 'cancelled') {
             const { error: trFailErr } = await supabase

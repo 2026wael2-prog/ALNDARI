@@ -90,8 +90,15 @@ export const buildRecentActivities = (
   const items: RecentActivityItem[] = [
     ...(invoices || []).map(inv => {
       const meta = INVOICE_ACTIVITY_META[inv.type ?? ''] ?? { title: 'فاتورة', color: 'gray' };
-      const amount = toNumber(inv.total_amount);
-      const currency = inv.currency_code || 'SAR';
+      const baseAmount = toNumber(inv.total_amount);
+      const docAmount = toNumber(
+        (inv as { total_document_amount?: number | string | null }).total_document_amount
+      );
+      const rawCurrency = (inv.currency_code || 'SAR').toUpperCase();
+      // [AUDIT FIX 11] Never pair a base SAR total_amount with a foreign currency symbol (e.g. YER)
+      const useDoc = rawCurrency !== 'SAR' && docAmount > 0;
+      const amount = useDoc ? docAmount : baseAmount;
+      const currency = useDoc ? rawCurrency : 'SAR';
       const formattedAmount = formatCurrency(amount, currency);
       const partyName = inv.parties?.name?.trim();
       const invoiceNum = inv.invoice_number ? `#${inv.invoice_number}` : '';

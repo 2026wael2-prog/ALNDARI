@@ -29,6 +29,8 @@ interface Size {
   height: number | string;
 }
 
+let openModalStackCounter = 0;
+
 const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
@@ -45,6 +47,7 @@ const Modal: React.FC<ModalProps> = ({
   const [isMaximized, setIsMaximized] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
   const [customSize, setCustomSize] = useState<Size | null>(null);
+  const [stackOrder, setStackOrder] = useState(1);
 
   const titleId = `modal-title-${title.replace(/\s/g, '-')}`;
   const descId = `modal-desc-${title.replace(/\s/g, '-')}`;
@@ -67,9 +70,11 @@ const Modal: React.FC<ModalProps> = ({
     initialY: number;
   } | null>(null);
 
-  // Reset state when modal opens
+  // Reset state & assign ascending stack z-index when modal opens so child modals always appear above fullscreen parent modals
   useEffect(() => {
     if (isOpen) {
+      openModalStackCounter += 1;
+      setStackOrder(openModalStackCounter);
       setPosition(null);
       setCustomSize(null);
       setIsMaximized(size === 'full');
@@ -201,6 +206,8 @@ const Modal: React.FC<ModalProps> = ({
     }
   };
 
+  const computedZIndex = 9990 + (stackOrder % 500) * 10;
+
   const modalStyle: React.CSSProperties = isMaximized
     ? {
         width: '100vw',
@@ -208,7 +215,7 @@ const Modal: React.FC<ModalProps> = ({
         position: 'fixed',
         top: 0,
         left: 0,
-        zIndex: 9999,
+        zIndex: computedZIndex,
       }
     : {
         ...(position
@@ -232,9 +239,10 @@ const Modal: React.FC<ModalProps> = ({
 
   return createPortal(
     <div
+      style={zIndex ? undefined : { zIndex: computedZIndex }}
       className={cn(
         'animate-in fade-in fixed inset-0 flex items-end justify-center p-0 transition-all duration-300 md:items-center md:p-4',
-        zIndex ?? (isMaximized || size === 'full' ? 'z-[9999]' : 'z-[100]'),
+        zIndex ?? 'z-[9999]',
         !isMaximized && 'bg-slate-950/40 backdrop-blur-[2px]'
       )}
       onClick={closeOnBackdropClick ? onClose : undefined}

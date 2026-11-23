@@ -8,23 +8,30 @@ interface InvoiceDetailsSummaryCardsProps {
   remainingAmount?: number | null | undefined;
 }
 
-const statusBadge = (status: string) => {
+const statusBadge = (status: string, paymentMethod?: string, remainingAmount?: number | null) => {
+  if (status === 'paid' || (paymentMethod === 'credit' && remainingAmount !== undefined && remainingAmount !== null && remainingAmount <= 0)) {
+    return {
+      label: 'مدفوع بالكامل',
+      cls: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    };
+  }
   switch (status) {
-    case 'paid':
-      return {
-        label: 'مدفوع بالكامل',
-        cls: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-      };
-    case 'posted':
-      return {
-        label: 'مرحّل',
-        cls: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-      };
     case 'partial':
     case 'partially_paid':
       return {
         label: 'مدفوع جزئياً',
         cls: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+      };
+    case 'posted':
+      if (paymentMethod === 'credit') {
+        return {
+          label: 'آجل - غير مسدد',
+          cls: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+        };
+      }
+      return {
+        label: 'مرحّل',
+        cls: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
       };
     default:
       return {
@@ -41,10 +48,29 @@ export const InvoiceDetailsSummaryCards: React.FC<InvoiceDetailsSummaryCardsProp
   invoice,
   remainingAmount,
 }) => {
-  const badge = statusBadge(invoice.status);
-  const docTotal = Number((invoice as Record<string, unknown>).total_document_amount);
+  const badge = statusBadge(invoice.status, invoice.payment_method, remainingAmount);
+  const explicitDocTotal = Number((invoice as Record<string, unknown>).total_document_amount) || 0;
+  const itemsSum = Array.isArray(invoice.invoice_items)
+    ? invoice.invoice_items.reduce(
+        (s, it) => s + Number(it.total || (Number(it.quantity) || 0) * (Number(it.unit_price) || 0) || 0),
+        0
+      )
+    : 0;
+  const baseTotal = Number(invoice.total_amount) || 0;
   const currency = invoice.currency_code || 'SAR';
+  const docTotal =
+    currency !== 'SAR'
+      ? explicitDocTotal > 0
+        ? explicitDocTotal
+        : itemsSum > baseTotal * 5
+          ? itemsSum
+          : baseTotal
+      : baseTotal;
   const showDocTotal = currency !== 'SAR' && docTotal > 0;
+  const docRemaining =
+    showDocTotal && baseTotal > 0 && remainingAmount != null
+      ? Math.round((remainingAmount / baseTotal) * docTotal)
+      : remainingAmount;
 
   return (
     <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
@@ -105,7 +131,8 @@ export const InvoiceDetailsSummaryCards: React.FC<InvoiceDetailsSummaryCardsProp
         )}
         {remainingAmount != null && remainingAmount > 0 && (
           <p className="mt-0.5 font-mono text-[10px] font-bold text-rose-600">
-            متبقي: {formatCurrency(remainingAmount, currency)}
+            متبقي: {formatCurrency(docRemaining ?? remainingAmount, currency)}
+            {showDocTotal && ` (≈ ${formatCurrency(remainingAmount, 'SAR')})`}
           </p>
         )}
       </div>

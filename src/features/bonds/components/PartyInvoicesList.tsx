@@ -216,25 +216,52 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                       </td>
 
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-left font-mono font-bold text-slate-700 dark:border-slate-800/80 dark:text-slate-300">
-                        {formatCurrency(inv._total, currency)}
+                        <div className="flex flex-col items-end leading-tight">
+                          <span>{formatCurrency(inv._docTotal ?? inv._total, currency)}</span>
+                          {inv._isForeign && (
+                            <span className="text-[10px] font-normal text-slate-400">
+                              ≈ {formatCurrency(inv._total, 'SAR')}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-left font-mono text-emerald-600 dark:border-slate-800/80 dark:text-emerald-400">
-                        {inv._paid > 0 ? formatCurrency(inv._paid, currency) : '-'}
+                        {inv._paid > 0 ? (
+                          <div className="flex flex-col items-end leading-tight">
+                            <span className="font-bold">
+                              {formatCurrency(inv._docPaid ?? inv._paid, currency)}
+                            </span>
+                            {inv._isForeign && (
+                              <span className="text-[10px] font-normal text-emerald-600/75 dark:text-emerald-400/75">
+                                ≈ {formatCurrency(inv._paid, 'SAR')}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          '-'
+                        )}
                       </td>
 
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-left font-mono font-black text-rose-600 dark:border-slate-800/80 dark:text-rose-400">
-                        {formatCurrency(inv._remaining, currency)}
+                        <div className="flex flex-col items-end leading-tight">
+                          <span>{formatCurrency(inv._docRemaining ?? inv._remaining, currency)}</span>
+                          {inv._isForeign && (
+                            <span className="text-[10px] font-bold text-rose-500/80">
+                              ≈ {formatCurrency(inv._remaining, 'SAR')}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="whitespace-nowrap border border-slate-200/80 px-3 py-2 text-center dark:border-slate-800/80">
                         {inv._isPartial ? (
-                          <span className="inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                            جزئي
+                          <span className="inline-block rounded-md border border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/40 dark:text-amber-300">
+                            مسدد جزئياً
                           </span>
                         ) : (
-                          <span className="inline-block rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
-                            معلق
+                          <span className="inline-block rounded-md border border-rose-200 bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-800 dark:border-rose-800/60 dark:bg-rose-900/40 dark:text-rose-300">
+                            غير مسدد
                           </span>
                         )}
                       </td>

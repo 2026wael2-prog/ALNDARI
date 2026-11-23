@@ -31,13 +31,54 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
     let list = invoices.map((inv: any) => {
       const total = Number(inv.total_amount || 0);
       const paid = Number(inv.paid_amount || 0);
-      const remaining = Math.max(0, total - paid);
-      const isPartial = paid > 0;
+      const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
+      const isPartial = paid > 0 && remaining > 0;
+      const currency = (inv.currency_code || inv.currency || 'SAR').toUpperCase();
+      const isForeign = currency !== 'SAR';
+      const rate = Number(inv.exchange_rate) || 0;
+
+      // Resolve transaction-currency (document) amounts so YER invoices show 100,000 YER (not 222.00 YER)
+      const explicitDocTotal = Number(inv.total_document_amount) || 0;
+      const itemsSum = Array.isArray(inv.invoice_items)
+        ? inv.invoice_items.reduce(
+            (sum: number, it: any) =>
+              sum + Number(it.total || (Number(it.quantity) || 0) * (Number(it.unit_price) || 0) || 0),
+            0
+          )
+        : 0;
+
+      let docTotal = total;
+      if (isForeign) {
+        if (explicitDocTotal > 0) {
+          docTotal = explicitDocTotal;
+        } else if (itemsSum > total * 5) {
+          docTotal = itemsSum;
+        } else if (rate > 0 && rate < 1) {
+          docTotal = Math.round(total / rate);
+        }
+      }
+
+      const docPaid = !isForeign
+        ? paid
+        : paid <= 0
+          ? 0
+          : total > 0 && docTotal > 0
+            ? Math.round((paid / total) * docTotal)
+            : rate > 0 && rate < 1
+              ? Math.round(paid / rate)
+              : paid;
+
+      const docRemaining = !isForeign ? remaining : Math.max(0, docTotal - docPaid);
+
       return {
         ...inv,
         _total: total,
         _paid: paid,
         _remaining: remaining,
+        _docTotal: docTotal,
+        _docPaid: docPaid,
+        _docRemaining: docRemaining,
+        _isForeign: isForeign,
         _isPartial: isPartial,
       };
     });
@@ -56,6 +97,8 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
         if (inv.issue_date?.includes(lowerQuery)) return true;
         if (inv._total.toString().includes(lowerQuery)) return true;
         if (inv._remaining.toString().includes(lowerQuery)) return true;
+        if (inv._docTotal?.toString().includes(lowerQuery)) return true;
+        if (inv._docRemaining?.toString().includes(lowerQuery)) return true;
 
         if (inv.invoice_items && inv.invoice_items.length > 0) {
           return inv.invoice_items.some((item: any) => {

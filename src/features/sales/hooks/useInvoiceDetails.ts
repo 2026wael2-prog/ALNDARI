@@ -95,6 +95,15 @@ export const useInvoiceDetails = (
         if (hit != null) return hit;
       }
 
+      // Also check unpaid_invoices queries (used in Bond receipt/payment credit invoices list)
+      const unpaidQueries = queryClient.getQueriesData<CachedInvoiceRow[]>({
+        queryKey: ['unpaid_invoices'],
+      });
+      for (const [, list] of unpaidQueries) {
+        const hit = searchList(list, invoiceId);
+        if (hit != null) return hit;
+      }
+
       return undefined;
     },
   });

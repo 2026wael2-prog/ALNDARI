@@ -194,19 +194,31 @@ export const useCreatePurchase = (): UseMutationResult<
     },
     onError: (err: Error, variables): void => {
       if (!isOnline || getErrorMessage(err, '').includes('Failed to fetch')) {
-        void syncStore.enqueue({
-          mutationKey: ['purchases', 'create'],
-          variables: {
-            ...variables,
-            branchId: variables.branchId || branchId,
-            company_id: user?.company_id,
-            user_id: user?.id,
-          },
-        });
-        showToast(
-          'تم حفظ فاتورة المشتريات محلياً (وضع عدم الاتصال). سيتم المزامنة تلقائياً.',
-          'info'
-        );
+        const stableOpKey =
+          (variables as CreatePurchaseDTO & { idempotencyKey?: string }).idempotencyKey ||
+          (variables.invoiceNumber
+            ? `purchase:${user?.company_id ?? ''}:${variables.invoiceNumber}`
+            : `purchase:${user?.company_id ?? ''}:${crypto.randomUUID()}`);
+        void syncStore
+          .enqueue({
+            mutationKey: ['purchases', 'create'],
+            variables: {
+              ...variables,
+              idempotencyKey: stableOpKey,
+              branchId: variables.branchId || branchId,
+              company_id: user?.company_id,
+              user_id: user?.id,
+            },
+          })
+          .then(() => {
+            showToast(
+              'تم حفظ فاتورة المشتريات محلياً (وضع عدم الاتصال). سيتم المزامنة تلقائياً.',
+              'info'
+            );
+          })
+          .catch(() => {
+            showToast('فشل حفظ فاتورة المشتريات محلياً في طابور عدم الاتصال', 'error');
+          });
         return;
       }
       showToast(getErrorMessage(err, 'فشل توريد الفاتورة'), 'error');

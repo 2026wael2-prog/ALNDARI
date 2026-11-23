@@ -25,18 +25,30 @@ export async function listCommissionCalculations(
   companyId: string,
   periodId: string
 ): Promise<CommissionCalculation[]> {
-  const { data, error } = await db
-    .from('incentive_calculations')
-    .select(
-      'id, period_id, user_id, gross_sales, net_sales, collected_amount, invoice_count, customer_count, base_commission, bonus_amount, adjustment_amount, deduction_amount, total_commission, currency_code, status'
-    )
-    .eq('company_id', companyId)
-    .eq('period_id', periodId)
-    .not('status', 'in', '(cancelled,reversed)')
-    .order('total_commission', { ascending: false })
-    .limit(500);
-  if (error) throw safeError(error, 'تعذر تحميل حسابات العمولات');
-  return data.map(parseCommissionCalculation);
+  const PAGE_SIZE = 1000;
+  const allRows: CommissionCalculation[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await db
+      .from('incentive_calculations')
+      .select(
+        'id, period_id, user_id, gross_sales, net_sales, collected_amount, invoice_count, customer_count, base_commission, bonus_amount, adjustment_amount, deduction_amount, total_commission, currency_code, status'
+      )
+      .eq('company_id', companyId)
+      .eq('period_id', periodId)
+      .not('status', 'in', '(cancelled,reversed)')
+      .order('total_commission', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw safeError(error, 'تعذر تحميل حسابات العمولات');
+    const batch = (data ?? []).map(parseCommissionCalculation);
+    allRows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return allRows;
 }
 
 export async function calculateCommissionPeriod(

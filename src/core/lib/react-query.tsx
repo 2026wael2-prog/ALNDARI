@@ -150,9 +150,21 @@ const useSyncQueue = (queryClient: QueryClient): void => {
         if (mutation.retryCount >= MAX_SYNC_RETRIES) {
           logger.error(
             'SyncModule',
-            `Dropping mutation ${mutation.id} after ${String(MAX_SYNC_RETRIES)} failed attempts`,
+            `Moving mutation ${mutation.id} to dead-letter archive after ${String(MAX_SYNC_RETRIES)} failed attempts`,
             { key: mutation.mutationKey }
           );
+          try {
+            const dlqKey = 'alnadary_sync_dead_letter_v1';
+            const existing = JSON.parse(localStorage.getItem(dlqKey) || '[]') as unknown[];
+            existing.push({
+              ...mutation,
+              archivedAt: new Date().toISOString(),
+              reason: `Exceeded ${String(MAX_SYNC_RETRIES)} retry attempts`,
+            });
+            localStorage.setItem(dlqKey, JSON.stringify(existing.slice(-50)));
+          } catch {
+            // Best-effort dead-letter archival
+          }
           await syncStore.dequeue(mutation.id);
           continue;
         }

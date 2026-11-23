@@ -5,8 +5,10 @@ import type { AutoBackupConfig } from '../types.ts';
 import { useFeedbackStore } from '../../feedback/store';
 import { GoogleDriveService } from '../services/googleDriveService';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
+import { useAuthStore } from '../../auth/store';
 
 export const useBackupManager = () => {
+  const { user } = useAuthStore();
   const { exportData, importData } = useBackupActions();
   const { showToast } = useFeedbackStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,9 +37,9 @@ export const useBackupManager = () => {
     try {
       const token = await GoogleDriveService.authenticateAndGetToken();
       showToast('جاري تجهيز بيانات النظام...', 'info');
-      const data = await settingsService.exportSystemData();
+      const data = await settingsService.exportSystemData(user?.company_id);
       showToast('جاري الرفع إلى Google Drive...', 'info');
-      const fileName = `AlJaafari_Backup_${formatLocalDate()}`;
+      const fileName = `AlNadary_Backup_${formatLocalDate()}`;
       await GoogleDriveService.uploadJSONFile(fileName, data, token);
       showToast('تم الرفع إلى حسابك في جوجل درايف بنجاح', 'success');
     } catch (error: unknown) {

@@ -156,7 +156,8 @@ export const settingsService = {
     localStorage.setItem(STORAGE_KEYS.BACKUP_LOGS, JSON.stringify([newLog, ...logs].slice(0, 10)));
   },
 
-  exportSystemData: async () => {
+  exportSystemData: async (explicitCompanyId?: string) => {
+    const companyId = explicitCompanyId;
     const tables = [
       'companies',
       'branches',
@@ -172,11 +173,14 @@ export const settingsService = {
       'stock_transfer_items',
       'parties',
       'party_categories',
+      'party_opening_balances',
       'invoices',
       'invoice_items',
       'accounts',
       'journal_entries',
       'journal_entry_lines',
+      'payments',
+      'payment_allocations',
       'fiscal_years',
       'supported_currencies',
       'exchange_rates',
@@ -184,26 +188,70 @@ export const settingsService = {
       'expense_categories',
     ];
 
+    const PAGE_SIZE = 1000;
+    const tableCounts: Record<string, number> = {};
+    let totalRows = 0;
+
     const exportData: Record<string, unknown> = {
-      version: '2.0',
+      version: '2.1',
+      companyId: companyId ?? null,
       exportedAt: new Date().toISOString(),
+      tableCounts,
       data: {},
     };
 
+    const failedTables: string[] = [];
+
     for (const table of tables) {
       try {
-        // تجنب التقييم العميق لـ keyof Tables (كان يسبب TS2589)
-        const { data, error } = await supabase.from(table as unknown as never).select('*');
-        if (!error && data) {
-          (exportData.data as Record<string, unknown>)[table] = data;
+        const allRows: unknown[] = [];
+        let from = 0;
+        while (true) {
+          let query = supabase
+            .from(table as unknown as never)
+            .select('*')
+            .range(from, from + PAGE_SIZE - 1);
+
+          if (companyId) {
+            if (table === 'companies') {
+              query = query.eq('id', companyId);
+            } else if (table !== 'supported_currencies') {
+              query = query.eq('company_id', companyId);
+            }
+          }
+
+          const { data, error } = await query;
+          if (error) {
+            throw error;
+          }
+          const batch = Array.isArray(data) ? data : [];
+          allRows.push(...batch);
+          if (batch.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
         }
+        (exportData.data as Record<string, unknown>)[table] = allRows;
+        tableCounts[table] = allRows.length;
+        totalRows += allRows.length;
       } catch (err) {
-        logger.warn('SettingsService', `Failed to export table ${table}`, err);
+        logger.error('SettingsService', `Failed to export table ${table}`, err);
+        failedTables.push(table);
       }
     }
 
+    if (failedTables.length > 0) {
+      settingsService.addBackupLog(
+        `Export Failed (${failedTables.join(', ')})`,
+        '0 MB',
+        'Error'
+      );
+      throw new Error(
+        `فشل تصدير النسخة الاحتياطية بالكامل — تعذّر تصدير الجداول: ${failedTables.join(', ')}`
+      );
+    }
+
+    exportData.totalRows = totalRows;
     settingsService.addBackupLog(
-      'Export Full Data Archive',
+      `Export Full Data Archive (${totalRows} rows)`,
       `${(JSON.stringify(exportData).length / 1024 / 1024).toFixed(2)} MB`,
       'Success'
     );

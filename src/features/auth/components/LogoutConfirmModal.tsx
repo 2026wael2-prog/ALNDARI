@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LogOut, AlertTriangle } from 'lucide-react';
 import Modal from '../../../ui/base/Modal';
 import Button from '../../../ui/base/Button';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
+import { syncStore } from '../../../core/lib/sync-store';
 
 interface LogoutConfirmModalProps {
     isOpen: boolean;
@@ -19,6 +20,23 @@ const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
     isLoading
 }) => {
     const { t } = useTranslation();
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        let cancelled = false;
+        void syncStore
+            .getPending()
+            .then(list => {
+                if (!cancelled) setPendingSyncCount(Array.isArray(list) ? list.length : 0);
+            })
+            .catch(() => {
+                if (!cancelled) setPendingSyncCount(0);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen]);
 
     const footer = (
         <div className="flex w-full gap-2 p-1">
@@ -59,6 +77,11 @@ const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
                     {t('logout_warning') || 'سيتم مسح كافة البيانات المؤقتة وسيتم توجيهك إلى صفحة تسجيل الدخول.'}
                 </p>
+                {pendingSyncCount > 0 && (
+                    <div className="mt-4 w-full rounded-xl border border-amber-300 bg-amber-50 p-3 text-right text-xs font-bold text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                        ⚠️ تنبيه هام: يوجد حالياً ({pendingSyncCount}) معاملة محلية غير متزامنة بعد في طابور عدم الاتصال. تسجيل الخروج الآن سيمسحها؛ يُفضل الانتظار حتى تكتمل المزامنة أولاً.
+                    </div>
+                )}
             </div>
         </Modal>
     );

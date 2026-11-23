@@ -17,6 +17,24 @@ function clearSessionClientState(): void {
   queryClient.clear();
   useBranchFilterStore.getState().ensureCompany(null);
   useWorkspaceTabStore.getState().closeAllTabs();
+  // [AUDIT FIX 16] Clear persisted invoice/purchase/POS drafts so the next user/company on this device never sees stale drafts
+  try {
+    const draftKeys = [
+      'sales-invoice-storage',
+      'sales_drafts_v1',
+      'purchase-invoice-storage',
+      'purchases_drafts_v1',
+      'pos-storage',
+      'pos_cart_v1',
+      'alzahra_sales_draft',
+      'alzahra_purchase_draft',
+    ];
+    for (const key of draftKeys) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore storage access errors in restricted environments
+  }
   Promise.resolve(syncStore.clear()).catch(() => undefined);
   Promise.resolve(persister.removeClient()).catch(() => undefined);
 }

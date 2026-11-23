@@ -21,6 +21,7 @@
 // ============================================================
 
 const PRODUCTION_ORIGINS = [
+  'https://alndari.vercel.app',
   'https://alzhra-erp.vercel.app',
   'https://alzhra-erp.netlify.app',
   'https://alzhra-2030karim2-devs-projects.vercel.app',

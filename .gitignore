@@ -111,3 +111,6 @@ push-detached.ps1
 .pg/
 pg-test/
 
+
+# privacy: never commit customer/party balance audit CSV dumps
+audit-evidence/*.csv

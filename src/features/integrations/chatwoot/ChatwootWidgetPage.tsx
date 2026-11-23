@@ -43,7 +43,8 @@ const isAllowedChatwootOrigin = (origin: string): boolean => {
   if (configuredChatwootOrigin.length > 0) {
     return origin === configuredChatwootOrigin;
   }
-  return origin.startsWith('https://');
+  // Fail-closed: never accept arbitrary external HTTPS origins when VITE_CHATWOOT_ORIGIN is unset
+  return false;
 };
 
 const isTrustedMessageEvent = (event: MessageEvent): boolean => {

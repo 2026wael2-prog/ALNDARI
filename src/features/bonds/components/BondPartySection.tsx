@@ -1,9 +1,14 @@
 import React from 'react';
 import { Search, Landmark, Building, Wallet } from 'lucide-react';
 import type { UseFormRegister } from 'react-hook-form';
-import { cn } from '../../../core/utils';
+import { cn, formatCurrency } from '../../../core/utils';
 import type { BondType, BondFormData } from '../types';
 import type { Party } from '../../parties/types';
+import {
+  resolveBondPartyBalance,
+  type BondPartyBalanceSummary,
+} from '../utils/bondPartyBalance';
+import { PartyBalanceCard } from './PartyBalanceCard';
 
 interface AccountOption {
   id: string;
@@ -24,6 +29,10 @@ interface BondPartySectionProps {
   cashAccounts: AccountOption[];
   otherAccounts: AccountOption[];
   handlePartySelect: (party: Party) => void;
+  selectedParty?: Party | null | undefined;
+  partyBalanceSummary?: BondPartyBalanceSummary | null | undefined;
+  selectedCurrency?: string | undefined;
+  enteredAmount?: number | undefined;
 }
 
 /** Shared styled select shell for account pickers. */
@@ -70,6 +79,10 @@ export const BondPartySection: React.FC<BondPartySectionProps> = ({
   cashAccounts,
   otherAccounts,
   handlePartySelect,
+  selectedParty,
+  partyBalanceSummary,
+  selectedCurrency = 'SAR',
+  enteredAmount = 0,
 }) => {
   const isPartyMode = counterpartyType === 'party';
 
@@ -102,15 +115,26 @@ export const BondPartySection: React.FC<BondPartySectionProps> = ({
         />
 
         {isPartyMode ? (
-          <PartySearchDropdown
-            type={type}
-            partyQuery={partyQuery}
-            setPartyQuery={setPartyQuery}
-            showPartyDropdown={showPartyDropdown}
-            setShowPartyDropdown={setShowPartyDropdown}
-            parties={parties}
-            handlePartySelect={handlePartySelect}
-          />
+          <div className="space-y-3">
+            <PartySearchDropdown
+              type={type}
+              partyQuery={partyQuery}
+              setPartyQuery={setPartyQuery}
+              showPartyDropdown={showPartyDropdown}
+              setShowPartyDropdown={setShowPartyDropdown}
+              parties={parties}
+              selectedCurrency={selectedCurrency}
+              handlePartySelect={handlePartySelect}
+            />
+            {selectedParty && partyBalanceSummary && (
+              <PartyBalanceCard
+                summary={partyBalanceSummary}
+                bondType={type}
+                enteredAmount={enteredAmount}
+                partyName={selectedParty.name}
+              />
+            )}
+          </div>
         ) : (
           <AccountSelector
             label={type === 'transfer' ? 'الحساب المحول إليه (الهدف)' : 'الحساب المقابل في القيد'}
@@ -198,17 +222,19 @@ interface PartySearchDropdownProps {
   showPartyDropdown: boolean;
   setShowPartyDropdown: (show: boolean) => void;
   parties: Party[];
+  selectedCurrency: string;
   handlePartySelect: (party: Party) => void;
 }
 
 // eslint-disable-next-line max-lines-per-function -- search input + dropdown list is one cohesive widget.
 const PartySearchDropdown: React.FC<PartySearchDropdownProps> = ({
-  type: _type,
+  type,
   partyQuery,
   setPartyQuery,
   showPartyDropdown,
   setShowPartyDropdown,
   parties,
+  selectedCurrency,
   handlePartySelect,
 }) => {
   const showDropdown = showPartyDropdown && partyQuery.length > 0 && parties.length > 0;
@@ -234,37 +260,72 @@ const PartySearchDropdown: React.FC<PartySearchDropdownProps> = ({
       />
       {showDropdown && (
         <div className="animate-in fade-in zoom-in-95 absolute z-30 mt-2 max-h-56 w-full overflow-auto rounded-2xl border bg-white shadow-2xl backdrop-blur-xl dark:border-slate-700 dark:bg-slate-800">
-          {parties.map(p => (
-            <button
-              type="button"
-              key={p.id}
-              onClick={() => {
-                handlePartySelect(p);
-              }}
-              className="flex w-full cursor-pointer items-center justify-between border-b p-3.5 text-right transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-700/50 dark:hover:bg-slate-700/50"
-            >
-              <div className="flex flex-col">
-                <span className="text-sm font-black text-gray-800 dark:text-slate-100">
-                  {p.name}
-                </span>
-                <span className="font-mono text-[10px] font-bold text-gray-400">
-                  {partyDisplayCode(p)}
-                </span>
-              </div>
-              <span
-                className={cn(
-                  'rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm',
-                  p.type === 'customer'
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30'
-                    : p.type === 'employee'
-                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30'
-                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30'
-                )}
+          {parties.map(p => {
+            const balSummary = resolveBondPartyBalance({
+              party: p,
+              bondType: type,
+              bondCurrency: selectedCurrency,
+              bondAmount: 0,
+            });
+            const prevDir = balSummary?.previousDirection;
+            const prevCurr = balSummary?.previous.primaryCurrency ?? selectedCurrency;
+            return (
+              <button
+                type="button"
+                key={p.id}
+                onClick={() => {
+                  handlePartySelect(p);
+                }}
+                className="flex w-full cursor-pointer items-center justify-between gap-2 border-b p-3.5 text-right transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-700/50 dark:hover:bg-slate-700/50"
               >
-                {p.type === 'customer' ? 'عميل' : p.type === 'employee' ? 'موظف' : 'مورد'}
-              </span>
-            </button>
-          ))}
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm font-black text-gray-800 dark:text-slate-100">
+                    {p.name}
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-gray-400">
+                    {partyDisplayCode(p)}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {prevDir && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black',
+                        prevDir.status === 'debit'
+                          ? 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                          : prevDir.status === 'credit'
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                            : 'bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-300'
+                      )}
+                    >
+                      {prevDir.status === 'settled' ? (
+                        <span>متوازن</span>
+                      ) : (
+                        <>
+                          <span>{prevDir.label}</span>
+                          <span dir="ltr" className="font-mono">
+                            {formatCurrency(prevDir.absAmount, prevCurr)}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      'rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm',
+                      p.type === 'customer'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30'
+                        : p.type === 'employee'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30'
+                    )}
+                  >
+                    {p.type === 'customer' ? 'عميل' : p.type === 'employee' ? 'موظف' : 'مورد'}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

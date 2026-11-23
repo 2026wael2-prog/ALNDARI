@@ -33,6 +33,7 @@ export interface Bond {
   amount: number;
   currency_code: string;
   type: BondType;
+  party_id?: string | null;
   party_name?: string;
   account_name: string;
   status: 'posted' | 'draft' | 'void';

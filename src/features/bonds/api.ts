@@ -20,6 +20,7 @@ export const bondsApi = {
         type,
         notes,
         status,
+        party_id,
         party:parties!fk_payments_company_party(name),
         account:accounts!fk_payments_company_account(name_ar, code)
       `
@@ -61,6 +62,7 @@ export const bondsApi = {
         type,
         notes,
         status,
+        party_id,
         party:parties!fk_payments_company_party(name),
         account:accounts!fk_payments_company_account(name_ar, code)
       `

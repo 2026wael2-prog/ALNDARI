@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import {
   FileText,
@@ -19,6 +19,12 @@ import { PdfCaptureHost } from '@/core/components/PdfCaptureHost';
 import { buildWhatsappHeader } from '@/core/utils/whatsappHeader';
 import { logger } from '../../../core/utils/logger';
 import WhatsAppShareChoiceModal from '@/ui/common/WhatsAppShareChoiceModal';
+import { useAuthStore } from '../../auth/store';
+import { partiesService } from '../../parties/service';
+import {
+  resolveVoucherBalanceFromStatement,
+  type VoucherBalanceSnapshot,
+} from '../utils/bondPartyBalance';
 
 interface BondVoucherModalProps {
   isOpen: boolean;
@@ -30,11 +36,61 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [voucherBalance, setVoucherBalance] = useState<VoucherBalanceSnapshot | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
   const { data: settingsCompany } = useCompany();
   const invoiceSettings = useInvoiceSettings();
   const headerConfig = useDocumentHeaderSettings();
+  const companyId = useAuthStore(s => s.user?.company_id);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isOpen || !bond || !bond.party_id || !companyId || bond.type === 'transfer') {
+      setVoucherBalance(null);
+      return;
+    }
+
+    const loadBalance = async () => {
+      try {
+        const movements = await partiesService.getStatement(
+          bond.party_id as string,
+          'all',
+          { currencyCode: bond.currency_code || 'SAR' },
+          companyId
+        );
+        if (cancelled) return;
+        const snapshot = resolveVoucherBalanceFromStatement({
+          movements,
+          bondId: bond.id,
+          paymentNumber: bond.payment_number,
+          bondCurrency: bond.currency_code || 'SAR',
+          bondType: bond.type,
+          bondAmount: bond.amount,
+          bondStatus: bond.status,
+        });
+        setVoucherBalance(snapshot);
+      } catch (err) {
+        logger.warn('BondVoucherModal', 'Failed to load party balance for voucher', err);
+        if (!cancelled) setVoucherBalance(null);
+      }
+    };
+
+    void loadBalance();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isOpen,
+    bond?.id,
+    bond?.party_id,
+    bond?.payment_number,
+    bond?.currency_code,
+    bond?.type,
+    bond?.amount,
+    bond?.status,
+    companyId,
+  ]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -156,10 +212,63 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
     `🏦 *الصندوق / الحساب:* ${bond.account_name || '—'}`,
     `💳 *طريقة الدفع:* ${paymentMethodLabel}`,
     `💰 *المبلغ:* ${formatCurrency(bond.amount, bond.currency_code)}`,
+    voucherBalance
+      ? `📊 *الرصيد السابق:* ${formatCurrency(voucherBalance.previousDirection.absAmount, voucherBalance.currency)} (${voucherBalance.previousDirection.label})`
+      : '',
+    voucherBalance
+      ? `📌 *الرصيد بعد السند:* ${formatCurrency(voucherBalance.afterDirection.absAmount, voucherBalance.currency)} (${voucherBalance.afterDirection.label})`
+      : '',
     bond.description ? `📝 *البيان:* ${bond.description}` : '',
   ]
     .filter(Boolean)
     .join('\n');
+
+  const renderVoucherBalanceStrip = () => {
+    if (!voucherBalance) return null;
+    const prevColor =
+      voucherBalance.previousDirection.status === 'debit'
+        ? '#be123c'
+        : voucherBalance.previousDirection.status === 'credit'
+          ? '#047857'
+          : '#334155';
+    const afterColor =
+      voucherBalance.afterDirection.status === 'debit'
+        ? '#be123c'
+        : voucherBalance.afterDirection.status === 'credit'
+          ? '#047857'
+          : '#334155';
+
+    return (
+      <table className="alnadary-table" style={{ marginBottom: '12px' }}>
+        <thead>
+          <tr>
+            <th style={{ width: '34%' }}>الرصيد السابق (قبل السند)</th>
+            <th style={{ width: '32%' }}>مبلغ السند الحالي</th>
+            <th style={{ width: '34%' }}>الرصيد بعد السند</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style={{ textAlign: 'center', fontWeight: 900, fontSize: '13px', color: prevColor }}>
+              <span dir="ltr">
+                {formatCurrency(voucherBalance.previousDirection.absAmount, voucherBalance.currency)}
+              </span>{' '}
+              <span>({voucherBalance.previousDirection.label})</span>
+            </td>
+            <td style={{ textAlign: 'center', fontWeight: 900, fontSize: '13px' }}>
+              <span dir="ltr">{formatCurrency(bond.amount, bond.currency_code)}</span>
+            </td>
+            <td style={{ textAlign: 'center', fontWeight: 900, fontSize: '13px', color: afterColor }}>
+              <span dir="ltr">
+                {formatCurrency(voucherBalance.afterDirection.absAmount, voucherBalance.currency)}
+              </span>{' '}
+              <span>({voucherBalance.afterDirection.label})</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  };
 
   return (
     <>
@@ -351,6 +460,8 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
                   </tbody>
                 </table>
 
+                {renderVoucherBalanceStrip()}
+
                 <div className="alnadary-totals-section">
                   <div className="alnadary-total-bar">
                     <div className="alnadary-total-bar-label">إجمالي السند</div>
@@ -445,6 +556,8 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
               </tbody>
             </table>
 
+            {renderVoucherBalanceStrip()}
+
             <div className="alnadary-totals-section">
               <div className="alnadary-total-bar">
                 <div className="alnadary-total-bar-label">إجمالي السند</div>
@@ -533,6 +646,8 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
                 </tr>
               </tbody>
             </table>
+
+            {renderVoucherBalanceStrip()}
 
             <div className="alnadary-totals-section">
               <div className="alnadary-total-bar">

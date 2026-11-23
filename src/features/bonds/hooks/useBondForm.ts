@@ -20,6 +20,7 @@ import {
 } from '../invoiceAllocationGuard';
 import { useBondNumericInputs } from './useBondNumericInputs';
 import { useBondCurrencyConversion } from './useBondCurrencyConversion';
+import { resolveBondPartyBalance } from '../utils/bondPartyBalance';
 
 /**
  * تعبئة مسبقة لنموذج السند — تُستخدم من منظومة الديون («تحصيل الآن»).
@@ -384,6 +385,27 @@ export function useBondForm(
     return null;
   }, [counterpartyType, counterpartyId, parties]);
 
+  const currentExchangeRate = Number(watch('exchange_rate')) || 1;
+  const partyBalanceSummary = useMemo(() => {
+    if (counterpartyType !== 'party' || !selectedParty) return null;
+    return resolveBondPartyBalance({
+      party: selectedParty,
+      bondType: type,
+      bondCurrency: selectedCurrency,
+      bondAmount: enteredAmount,
+      exchangeRate: currentExchangeRate,
+      exchangeOperator: isDivide ? 'divide' : 'multiply',
+    });
+  }, [
+    counterpartyType,
+    selectedParty,
+    type,
+    selectedCurrency,
+    enteredAmount,
+    currentExchangeRate,
+    isDivide,
+  ]);
+
   const selectedCommissionAccount = useMemo(() => {
     return otherAccounts.find(a => a.id === commissionAccountId);
   }, [otherAccounts, commissionAccountId]);
@@ -445,6 +467,7 @@ export function useBondForm(
     selectedCashAccount,
     selectedCounterpartyAccount,
     selectedParty,
+    partyBalanceSummary,
     selectedCommissionAccount,
     tafqeetText,
     theme,

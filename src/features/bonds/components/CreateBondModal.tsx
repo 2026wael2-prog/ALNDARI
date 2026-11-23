@@ -65,6 +65,7 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
     selectedCashAccount,
     selectedCounterpartyAccount,
     selectedParty,
+    partyBalanceSummary,
     selectedCommissionAccount,
     tafqeetText,
     theme,
@@ -175,6 +176,10 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
                 cashAccounts={cashAccounts}
                 otherAccounts={otherAccounts}
                 handlePartySelect={handlePartySelect}
+                selectedParty={selectedParty}
+                partyBalanceSummary={partyBalanceSummary}
+                selectedCurrency={selectedCurrency}
+                enteredAmount={enteredAmount}
               />
 
               {/* Step 2: Date, Reference & Description */}
@@ -328,6 +333,7 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
                 selectedCashAccount={selectedCashAccount}
                 selectedCounterpartyAccount={selectedCounterpartyAccount}
                 selectedParty={selectedParty}
+                partyBalanceSummary={partyBalanceSummary}
                 selectedInvoiceId={selectedInvoiceId}
               />
             </div>

@@ -19,6 +19,7 @@ interface RawPaymentRow {
   type: string;
   notes: string | null;
   status: string;
+  party_id?: string | null;
   foreign_amount?: number;
   party?: { name: string } | null;
   account?: { name_ar: string; code: string } | null;
@@ -63,6 +64,7 @@ export const bondsService = {
         currency_code: p.currency_code ?? 'SAR',
         exchange_rate: safeRate,
         type: (p.type === 'disbursement' ? 'payment' : p.type) as BondType,
+        party_id: p.party_id ?? null,
         party_name: p.party?.name ?? '',
         account_name: p.account?.name_ar ?? p.account?.code ?? '',
         status: p.status as Bond['status'],
@@ -155,6 +157,7 @@ export const bondsService = {
       amount: Number(data.amount) || 0,
       currency_code: data.currency_code ?? 'SAR',
       type: (data.type === 'disbursement' ? 'payment' : data.type) as BondType,
+      party_id: (data as { party_id?: string | null }).party_id ?? null,
       party_name: (data.party as { name?: string } | null)?.name ?? '',
       account_name: (data.account as { name_ar?: string } | null)?.name_ar ?? '',
       status: data.status as Bond['status'],

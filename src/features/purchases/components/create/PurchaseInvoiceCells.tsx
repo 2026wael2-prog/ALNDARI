@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, Trash2 } from 'lucide-react';
 import type { PurchaseInvoiceItem } from '../../store';
 import type { PurchaseNavigationField } from './usePurchaseTableKeyboard';
-import { normalizeArabicDigits } from '@/core/utils';
+import { CalculatorInput } from '@/ui/common/CalculatorInput';
 
 interface ProductCellProps {
   item: PurchaseInvoiceItem;
@@ -68,51 +68,26 @@ export const PurchaseNumericCell: React.FC<NumericCellProps> = ({
   className = '',
   onChange,
   onKeyDown,
-}) => {
-  const [localVal, setLocalVal] = React.useState<string>(
-    value !== 0 && value !== undefined && !isNaN(value) ? String(value) : ''
-  );
-
-  React.useEffect(() => {
-    const num = parseFloat(localVal) || 0;
-    if (num !== value) {
-      setLocalVal(value !== 0 && value !== undefined && !isNaN(value) ? String(value) : '');
-    }
-  }, [value]);
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    let raw = normalizeArabicDigits(event.target.value).replace(/[،٫]/g, '.');
-    if (raw.includes(',') && !raw.includes('.')) {
-      raw = raw.replace(',', '.');
-    }
-    // منع القيم السالبة لحقول الكمية والتكلفة والخصم
-    if (raw === '' || raw === '.' || /^\d*\.?\d*$/.test(raw)) {
-      setLocalVal(raw);
-      const parsed = parseFloat(raw);
-      const clamped = isNaN(parsed) ? 0 : Math.max(0, parsed);
-      onChange(index, field, clamped);
-    }
-  };
-
-  return (
-    <td className="border-l p-0 dark:border-slate-800">
-      <input
-        type="text"
-        inputMode="decimal"
-        value={localVal}
-        onChange={handleChange}
-        onKeyDown={event => {
-          onKeyDown(event, index, field);
-        }}
-        data-row-index={index}
-        data-col-field={field}
-        className={`h-full min-h-8 w-full bg-transparent p-2 text-center font-mono text-sm font-bold outline-none max-md:min-h-7 max-md:p-1 md:text-base ${className}`}
-        placeholder={placeholder}
-        dir="ltr"
-      />
-    </td>
-  );
-};
+}) => (
+  <td className="border-l p-0 dark:border-slate-800">
+    <CalculatorInput
+      value={value}
+      onValueChange={val => {
+        onChange(index, field, Math.max(0, val));
+      }}
+      onKeyDown={event => {
+        onKeyDown(event, index, field);
+      }}
+      allowNegative={false}
+      compact={true}
+      data-row-index={index}
+      data-col-field={field}
+      wrapperClassName="h-full"
+      className={`h-full min-h-8 w-full bg-transparent p-2 text-center font-mono text-sm font-bold outline-none max-md:min-h-7 max-md:p-1 md:text-base ${className}`}
+      placeholder={placeholder}
+    />
+  </td>
+);
 
 interface TotalCellProps {
   item: PurchaseInvoiceItem;
@@ -149,24 +124,22 @@ export const PurchaseTotalCell: React.FC<TotalCellProps> = ({
 
   return (
     <td className="border-l bg-blue-50/50 p-0 dark:border-slate-800 dark:bg-slate-950/30">
-      <input
-        type="number"
-        step="any"
-        value={total !== 0 ? Number(total.toFixed(2)) : ''}
-        onChange={event => {
-          let raw = normalizeArabicDigits(event.target.value).replace(/[،٫]/g, '.');
-          if (raw.includes(',') && !raw.includes('.')) raw = raw.replace(',', '.');
-          handleTotalChange(parseFloat(raw) || 0);
+      <CalculatorInput
+        value={total !== 0 ? Number(total.toFixed(2)) : 0}
+        onValueChange={val => {
+          handleTotalChange(val);
         }}
         onKeyDown={event => {
           onKeyDown(event, index, 'total');
         }}
+        allowNegative={false}
+        compact={true}
         data-row-index={index}
         data-col-field="total"
+        wrapperClassName="h-full"
         className="h-full min-h-8 w-full bg-transparent p-2 text-left font-mono text-sm font-bold text-blue-900 outline-none transition-colors focus:bg-blue-100/70 dark:text-white dark:focus:bg-slate-800 max-md:min-h-7 max-md:p-1 md:text-base"
         placeholder="0.00"
-        dir="ltr"
-        title="يمكنك تعديل إجمالي الصنف مباشرة وسيتم تعديل سعر التكلفة تلقائياً"
+        title="يمكنك تعديل إجمالي الصنف مباشرة أو استخدام العمليات الحسابية (+ - × ÷) وسيتم تعديل سعر التكلفة تلقائياً"
       />
     </td>
   );

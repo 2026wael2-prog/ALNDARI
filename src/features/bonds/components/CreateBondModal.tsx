@@ -5,6 +5,7 @@ import { useBondForm, type BondPrefill } from '../hooks/useBondForm';
 
 import Modal from '../../../ui/base/Modal';
 import { BondModalFooter } from './BondModalFooter';
+import { CalculatorInput } from '../../../ui/common/CalculatorInput';
 import Input from '../../../ui/base/Input';
 import { cn, formatLocalDate } from '../../../core/utils';
 import PartyInvoicesList from './PartyInvoicesList';
@@ -70,15 +71,18 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
     tafqeetText,
     theme,
     amountInputStr,
+    setAmountInputStr,
     rateInputStr,
+    setRateInputStr,
     equivalentSarInputStr,
+    setEquivalentSarInputStr,
     commissionInputStr,
-    handleAmountChange,
-    handleRateChange,
-    handleEquivalentSarChange,
+    setCommissionInputStr,
+    setAmountNumeric,
+    setRateNumeric,
+    setCommissionNumeric,
     handleCalculateRateFromEquivalent,
     handleCurrencyQuickSwitch,
-    handleCommissionChange,
   } = bond;
 
   const footer = (
@@ -148,14 +152,16 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
                 currencies={currencies}
                 selectedCurrency={selectedCurrency}
                 amountInputStr={amountInputStr}
+                setAmountInputStr={setAmountInputStr}
+                setAmountNumeric={setAmountNumeric}
                 rateInputStr={rateInputStr}
+                setRateInputStr={setRateInputStr}
+                setRateNumeric={setRateNumeric}
                 equivalentSarInputStr={equivalentSarInputStr}
+                setEquivalentSarInputStr={setEquivalentSarInputStr}
                 isDivide={isDivide}
                 enteredAmount={enteredAmount}
                 tafqeetText={tafqeetText}
-                handleAmountChange={handleAmountChange}
-                handleRateChange={handleRateChange}
-                handleEquivalentSarChange={handleEquivalentSarChange}
                 handleCalculateRateFromEquivalent={handleCalculateRateFromEquivalent}
                 handleCurrencyQuickSwitch={handleCurrencyQuickSwitch}
                 handleQuickAmount={handleQuickAmount}
@@ -264,16 +270,19 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
                         مبلغ الخصم / العمولة
                       </span>
                       <div className="relative">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={commissionInputStr}
-                          onChange={handleCommissionChange}
+                        <CalculatorInput
+                          value={commissionAmount}
+                          rawValue={commissionInputStr}
+                          onRawChange={setCommissionInputStr}
+                          onValueChange={setCommissionNumeric}
+                          showKeypadToggle={true}
+                          compact={true}
+                          allowNegative={false}
                           className="w-full rounded-xl border-2 border-gray-100 bg-white p-2.5 pr-9 font-mono text-xs font-bold outline-none focus:border-amber-500/50 dark:border-slate-700 dark:bg-slate-800"
                           placeholder="0.00"
                         />
                         <DollarSign
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                           size={14}
                         />
                       </div>

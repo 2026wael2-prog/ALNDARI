@@ -5,6 +5,7 @@ import { formatCurrency, cn, toBaseCurrency } from '../../../../core/utils';
 import { Wallet, HandCoins, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 import { CustomerCreditAlertCard } from './CustomerCreditAlertCard';
 import { InvoiceProfitMarginCard } from './InvoiceProfitMarginCard';
+import { CalculatorInput } from '@/ui/common/CalculatorInput';
 
 interface InvoiceTotalsProps {
   notes: string;
@@ -216,20 +217,18 @@ const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({ notes, onNotesChange }) =
 
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <input
-                    type="number"
-                    min="0"
-                    max={summary.totalAmount}
-                    step="any"
-                    placeholder="0.00"
-                    value={paidAmount > 0 ? paidAmount : ''}
-                    onChange={e => {
-                      const val = parseFloat(e.target.value);
-                      setMetadata('paidAmount', isNaN(val) || val < 0 ? 0 : val);
+                  <CalculatorInput
+                    value={paidAmount || 0}
+                    onValueChange={val => {
+                      setMetadata('paidAmount', val < 0 ? 0 : val);
                     }}
-                    className="w-full rounded-lg border border-amber-300/80 bg-white px-2.5 py-1.5 font-mono text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-amber-700/60 dark:bg-slate-900 dark:text-slate-100"
+                    showKeypadToggle={true}
+                    compact={true}
+                    allowNegative={false}
+                    placeholder="0.00"
+                    className="w-full rounded-lg border border-amber-300/80 bg-white py-1.5 pr-12 pl-10 font-mono text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-amber-700/60 dark:bg-slate-900 dark:text-slate-100"
                   />
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
                     {currency}
                   </span>
                 </div>

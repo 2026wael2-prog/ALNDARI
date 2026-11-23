@@ -3,7 +3,10 @@ import type React from 'react';
 import { useState, useCallback } from 'react';
 import type { UseFormSetValue, UseFormWatch } from 'react-hook-form';
 import type { BondFormData } from '../types';
-import { sanitizeNumericInput } from '../../../core/utils/currencyUtils';
+import {
+  evaluateMathExpression,
+  sanitizeMathInput,
+} from '../../../core/utils/mathExpression';
 
 interface UseBondNumericInputsProps {
   selectedCurrency: string;
@@ -29,12 +32,9 @@ export function useBondNumericInputs({
     setCommissionInputStr('');
   }, []);
 
-  const handleAmountChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const sanitized = sanitizeNumericInput(e.target.value);
-      setAmountInputStr(sanitized);
-      const numVal = sanitized === '' ? 0 : parseFloat(sanitized);
-      const cleanNum = isNaN(numVal) ? 0 : numVal;
+  const setAmountNumeric = useCallback(
+    (numVal: number) => {
+      const cleanNum = Number.isFinite(numVal) && numVal >= 0 ? numVal : 0;
       if (selectedCurrency === 'SAR') {
         setValue('amount', cleanNum);
       } else {
@@ -44,19 +44,48 @@ export function useBondNumericInputs({
     [selectedCurrency, setValue]
   );
 
-  const handleRateChange = useCallback(
+  const handleAmountChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const sanitized = sanitizeNumericInput(e.target.value);
-      setRateInputStr(sanitized);
-      const numVal = sanitized === '' ? 1 : parseFloat(sanitized);
-      const cleanNum = isNaN(numVal) || numVal <= 0 ? 1 : numVal;
+      const sanitized = sanitizeMathInput(e.target.value);
+      setAmountInputStr(sanitized);
+      if (sanitized.trim() === '') {
+        setAmountNumeric(0);
+        return;
+      }
+      const evaluated = evaluateMathExpression(sanitized, { allowNegative: false, maxDecimals: 4 });
+      if (evaluated !== null) {
+        setAmountNumeric(evaluated);
+      }
+    },
+    [setAmountNumeric]
+  );
+
+  const setRateNumeric = useCallback(
+    (numVal: number) => {
+      const cleanNum = Number.isFinite(numVal) && numVal > 0 ? numVal : 1;
       setValue('exchange_rate', cleanNum);
     },
     [setValue]
   );
 
+  const handleRateChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const sanitized = sanitizeMathInput(e.target.value);
+      setRateInputStr(sanitized);
+      if (sanitized.trim() === '') {
+        setRateNumeric(1);
+        return;
+      }
+      const evaluated = evaluateMathExpression(sanitized, { allowNegative: false, maxDecimals: 6 });
+      if (evaluated !== null && evaluated > 0) {
+        setRateNumeric(evaluated);
+      }
+    },
+    [setRateNumeric]
+  );
+
   const handleEquivalentSarChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const sanitized = sanitizeNumericInput(e.target.value);
+    const sanitized = sanitizeMathInput(e.target.value);
     setEquivalentSarInputStr(sanitized);
   }, []);
 
@@ -85,14 +114,27 @@ export function useBondNumericInputs({
     setEquivalentSarInputStr('');
   }, [selectedCurrency, setValue]);
 
-  const handleCommissionChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const sanitized = sanitizeNumericInput(e.target.value);
-      setCommissionInputStr(sanitized);
-      const numVal = sanitized === '' ? 0 : parseFloat(sanitized);
-      setValue('commission_amount', isNaN(numVal) ? 0 : numVal);
+  const setCommissionNumeric = useCallback(
+    (numVal: number) => {
+      setValue('commission_amount', Number.isFinite(numVal) && numVal >= 0 ? numVal : 0);
     },
     [setValue]
+  );
+
+  const handleCommissionChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const sanitized = sanitizeMathInput(e.target.value);
+      setCommissionInputStr(sanitized);
+      if (sanitized.trim() === '') {
+        setCommissionNumeric(0);
+        return;
+      }
+      const evaluated = evaluateMathExpression(sanitized, { allowNegative: false, maxDecimals: 4 });
+      if (evaluated !== null) {
+        setCommissionNumeric(evaluated);
+      }
+    },
+    [setCommissionNumeric]
   );
 
   return {
@@ -105,6 +147,9 @@ export function useBondNumericInputs({
     commissionInputStr,
     setCommissionInputStr,
     resetNumericInputs,
+    setAmountNumeric,
+    setRateNumeric,
+    setCommissionNumeric,
     handleAmountChange,
     handleRateChange,
     handleEquivalentSarChange,

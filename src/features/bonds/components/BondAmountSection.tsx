@@ -1,8 +1,9 @@
 import React from 'react';
-import { DollarSign, Tag, Calculator, Coins } from 'lucide-react';
+import { Tag, Calculator, Coins } from 'lucide-react';
 import type { UseFormRegister, UseFormWatch } from 'react-hook-form';
 import { cn, formatCurrency, formatNumber } from '../../../core/utils';
 import type { BondType, BondFormData } from '../types';
+import { CalculatorInput } from '../../../ui/common/CalculatorInput';
 
 interface CurrencyOption {
   code: string;
@@ -16,14 +17,19 @@ interface BondAmountSectionProps {
 
   selectedCurrency: string;
   amountInputStr: string;
+  setAmountInputStr: (val: string) => void;
+  setAmountNumeric: (val: number) => void;
   rateInputStr: string;
+  setRateInputStr: (val: string) => void;
+  setRateNumeric: (val: number) => void;
   equivalentSarInputStr: string;
+  setEquivalentSarInputStr: (val: string) => void;
   isDivide: boolean;
   enteredAmount: number;
   tafqeetText: string;
-  handleAmountChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleRateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleEquivalentSarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleAmountChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleRateChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleEquivalentSarChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleCalculateRateFromEquivalent: () => void;
   handleCurrencyQuickSwitch: (code: string) => void;
   handleQuickAmount: (amount: number) => void;
@@ -55,14 +61,16 @@ export const BondAmountSection: React.FC<BondAmountSectionProps> = ({
   currencies,
   selectedCurrency,
   amountInputStr,
+  setAmountInputStr,
+  setAmountNumeric,
   rateInputStr,
+  setRateInputStr,
+  setRateNumeric,
   equivalentSarInputStr,
+  setEquivalentSarInputStr,
   isDivide,
   enteredAmount,
   tafqeetText,
-  handleAmountChange,
-  handleRateChange,
-  handleEquivalentSarChange,
   handleCalculateRateFromEquivalent,
   handleCurrencyQuickSwitch,
   handleQuickAmount,
@@ -136,7 +144,7 @@ export const BondAmountSection: React.FC<BondAmountSectionProps> = ({
       <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
         {/* Primary Amount Input */}
         <div className="relative w-full flex-1">
-          <div className="mb-1 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between gap-2">
             <span
               className={cn(
                 'inline-block rounded-t-xl px-3 py-0.5 text-xs font-black uppercase tracking-widest text-white',
@@ -149,19 +157,22 @@ export const BondAmountSection: React.FC<BondAmountSectionProps> = ({
             >
               المبلغ المطلوب ({selectedCurrency})
             </span>
-            {selectedCurrency === 'YER' && (
-              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
-                ⚡ دعم مبالغ الريال اليمني الكبيرة
-              </span>
-            )}
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+              {selectedCurrency === 'YER'
+                ? '⚡ يدعم مبالغ YER والحاسبة (+ - × ÷)'
+                : '🧮 يدعم الحاسبة مباشرة (+ - × ÷)'}
+            </span>
           </div>
           <div className="group relative">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amountInputStr}
-              onChange={handleAmountChange}
+            <CalculatorInput
+              value={enteredAmount}
+              rawValue={amountInputStr}
+              onRawChange={setAmountInputStr}
+              onValueChange={setAmountNumeric}
+              showKeypadToggle={true}
+              allowNegative={false}
               placeholder="0.00"
+              aria-label={`المبلغ المطلوب (${selectedCurrency})`}
               className={cn(
                 'w-full rounded-2xl border-2 bg-white px-4 py-3 font-mono text-2xl font-black outline-none transition-all dark:bg-slate-950 sm:px-5 sm:py-3.5 sm:text-3xl',
                 type === 'receipt'
@@ -170,17 +181,6 @@ export const BondAmountSection: React.FC<BondAmountSectionProps> = ({
                     ? 'border-blue-200 text-blue-600 focus:border-blue-500 dark:border-blue-800/50'
                     : 'border-rose-200 text-rose-600 focus:border-rose-500 dark:border-rose-800/50'
               )}
-            />
-            <DollarSign
-              className={cn(
-                'absolute left-4 top-1/2 -translate-y-1/2 opacity-20 sm:left-5',
-                type === 'receipt'
-                  ? 'text-emerald-600'
-                  : type === 'transfer'
-                    ? 'text-blue-600'
-                    : 'text-rose-600'
-              )}
-              size={26}
             />
           </div>
 
@@ -214,11 +214,13 @@ export const BondAmountSection: React.FC<BondAmountSectionProps> = ({
                   </span>
                 )}
               </div>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={rateInputStr}
-                onChange={handleRateChange}
+              <CalculatorInput
+                value={Number(watch('exchange_rate')) || 1}
+                rawValue={rateInputStr}
+                onRawChange={setRateInputStr}
+                onValueChange={setRateNumeric}
+                maxDecimals={6}
+                compact={true}
                 placeholder="1.0"
                 className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-2 py-1.5 text-center font-mono text-xs font-black text-slate-800 outline-none transition-colors focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
@@ -245,11 +247,12 @@ export const BondAmountSection: React.FC<BondAmountSectionProps> = ({
                   <span>احسب الصرف</span>
                 </button>
               </div>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={equivalentSarInputStr}
-                onChange={handleEquivalentSarChange}
+              <CalculatorInput
+                value={Number(equivalentSarInputStr) || 0}
+                rawValue={equivalentSarInputStr}
+                onRawChange={setEquivalentSarInputStr}
+                onValueChange={val => setEquivalentSarInputStr(val > 0 ? String(val) : '')}
+                compact={true}
                 placeholder="0.00"
                 className="w-full rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/60 px-2 py-1.5 text-center font-mono text-xs font-black text-blue-700 outline-none transition-colors focus:border-blue-500 dark:border-blue-800/60 dark:bg-blue-900/20 dark:text-blue-300"
               />

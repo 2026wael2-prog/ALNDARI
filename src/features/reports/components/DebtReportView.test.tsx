@@ -13,7 +13,7 @@ vi.mock('../hooks', () => ({
     isLoading: false,
     data: {
       summary: {
-        receivables: 4500,
+        receivables: 4700,
         payables: 1200,
         currency: 'SAR',
       },
@@ -26,8 +26,11 @@ vi.mock('../hooks', () => ({
           currency: 'SAR',
           total_sales: 0,
           paid_amount: 0,
-          remaining_amount: 4500,
-          balances_by_currency: [{ currency: 'SAR', balance: 4500 }],
+          remaining_amount: 4700,
+          balances_by_currency: [
+            { currency: 'SAR', balance: 4500 },
+            { currency: 'YER', balance: 86000 },
+          ],
         },
         {
           id: 'p-2',
@@ -51,6 +54,7 @@ vi.mock('../../settings/hooks', () => ({
       name_ar: 'محلات النظاري لقطع غيار السيارات',
       address: 'المهرة - شحن',
       phone: '777123456',
+      tax_number: '123456789',
       logo_url: '/logo.png',
     },
   }),
@@ -79,18 +83,20 @@ vi.mock('../../settings/settingsStore', () => ({
 }));
 
 describe('DebtReportView', () => {
-  it('renders Al-Nadary identity, KPIs, party amounts, and exports non-empty Excel rows', () => {
+  it('renders separate currency columns (SAR, YER), PDF/WhatsApp buttons, and exports separated Excel columns', () => {
     exportMock.mockClear();
     render(<DebtReportView />);
 
     expect(screen.getAllByText(/محلات النظاري لقطع غيار السيارات/).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/الجعفري سمارت/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/سعودي \(SAR\)/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/يمني \(YER\)/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/86,000/).length).toBeGreaterThan(0);
 
-    expect(screen.getAllByText(/شركة النور للتجارة/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/مورد الخليج لقطع الغيار/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/4,500/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/1,200/).length).toBeGreaterThan(0);
+    // PDF & WhatsApp send buttons exist
+    expect(screen.getByRole('button', { name: /تصدير PDF/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /إرسال \(واتساب \/ PDF\)/i })).toBeInTheDocument();
 
+    // Excel export separates SAR and YER into distinct numeric columns + base equivalent
     fireEvent.click(screen.getByRole('button', { name: /تصدير Excel/i }));
     expect(exportMock).toHaveBeenCalledTimes(1);
 
@@ -100,20 +106,29 @@ describe('DebtReportView', () => {
       rows: unknown[][];
     };
     expect(payload.companyName).toBe('محلات النظاري لقطع غيار السيارات');
-    expect(payload.headers.length).toBe(7);
+    expect(payload.headers).toContain('سعودي (SAR)');
+    expect(payload.headers).toContain('يمني (YER)');
+    expect(payload.headers).toContain('المعادل الأساسي (SAR)');
+
     // 2 data rows + 1 totals row
-    expect(payload.rows.length).toBe(3);
-    expect(payload.rows[0][1]).toBe('شركة النور للتجارة');
+    expect(payload.rows).toHaveLength(3);
+    // Row 1: SAR = 4500, YER = 86000
     expect(payload.rows[0][5]).toBe(4500);
-    expect(payload.rows[1][1]).toBe('مورد الخليج لقطع الغيار');
-    expect(payload.rows[1][5]).toBe(1200);
+    expect(payload.rows[0][6]).toBe(86000);
+    // Row 2: SAR = -1200, YER = 0
+    expect(payload.rows[1][5]).toBe(-1200);
+    expect(payload.rows[1][6]).toBe(0);
+    // Totals row: SAR net = 3300, YER net = 86000
+    expect(payload.rows[2][5]).toBe(3300);
+    expect(payload.rows[2][6]).toBe(86000);
   });
 
-  it('buildDebtReportExcelPayload includes accurate numeric amounts and totals row', () => {
+  it('buildDebtReportExcelPayload keeps single currency clean without redundant equivalent column', () => {
     const payload = buildDebtReportExcelPayload({
       companyName: 'محلات النظاري',
+      activeCurrencies: ['SAR'],
       baseCurrency: 'SAR',
-      filterLabel: 'جميع الذمم',
+      filterLabel: 'مستحقات العملاء',
       rows: [
         {
           id: '1',
@@ -127,13 +142,14 @@ describe('DebtReportView', () => {
           direction: 'debit',
           directionLabel: 'عليه (مدين)',
           currency: 'SAR',
-          balances_by_currency: [],
-          currenciesText: '500 SAR',
+          balances_by_currency: [{ currency: 'SAR', balance: 500 }],
+          currencyAmounts: { SAR: 500 },
         },
       ],
     });
+    expect(payload.headers).toHaveLength(6);
     expect(payload.rows).toHaveLength(2);
-    expect(payload.rows[0]).toContain(500);
+    expect(payload.rows[0][5]).toBe(500);
     expect(payload.rows[1][5]).toBe(500);
   });
 });

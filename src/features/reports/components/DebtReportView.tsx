@@ -11,10 +11,21 @@ import {
   Phone,
   ArrowUpDown,
   Building2,
+  Download,
+  MessageCircle,
 } from 'lucide-react';
 import { useDebtReport } from '../hooks';
 import type { PartyDebt } from '../types';
 import { cn, formatCurrency, formatLocalDate } from '../../../core/utils';
+import ExcelTable, { type Column } from '../../../ui/common/ExcelTable';
+import { exportGenericTableToExcel } from '../../../core/utils/genericExcelExporter';
+import { useCompany } from '../../settings/hooks';
+import { useInvoiceSettings, useDocumentHeaderSettings } from '../../settings/settingsStore';
+import { AlNadaryPrintShell } from '@/ui/print/AlNadaryPrintShell';
+import { PdfCaptureHost } from '@/core/components/PdfCaptureHost';
+import WhatsAppShareChoiceModal from '@/ui/common/WhatsAppShareChoiceModal';
+import { buildWhatsappHeader } from '@/core/utils/whatsappHeader';
+import { logger } from '../../../core/utils/logger';
 
 const normalizeArabicSearch = (text: string): string =>
   text
@@ -24,17 +35,27 @@ const normalizeArabicSearch = (text: string): string =>
     .replace(/ى/g, 'ي')
     .replace(/[\u064B-\u065F]/g, '')
     .trim();
-import ShareButton from '../../../ui/common/ShareButton';
-import ExcelTable, { type Column } from '../../../ui/common/ExcelTable';
-import { exportGenericTableToExcel } from '../../../core/utils/genericExcelExporter';
-import { useCompany } from '../../settings/hooks';
-import { useInvoiceSettings } from '../../settings/settingsStore';
-import { AlNadaryPrintShell } from '@/ui/print/AlNadaryPrintShell';
+
+const CURRENCY_PRIORITY = ['SAR', 'YER', 'OMR', 'USD', 'AED'];
+
+const CURRENCY_LABELS: Record<string, string> = {
+  SAR: 'سعودي (SAR)',
+  YER: 'يمني (YER)',
+  OMR: 'عماني (OMR)',
+  USD: 'دولار (USD)',
+  AED: 'إماراتي (AED)',
+};
+
+export const getCurrencyColumnLabel = (code: string): string => {
+  const upper = code.toUpperCase();
+  // eslint-disable-next-line security/detect-object-injection -- lookup on static label dictionary
+  return CURRENCY_LABELS[upper] ?? upper;
+};
 
 type DebtFilterTab = 'all' | 'customers' | 'suppliers';
 type DebtSortMode = 'amount_desc' | 'amount_asc' | 'name_asc';
 
-interface EnrichedDebtRow {
+export interface EnrichedDebtRow {
   id: string;
   rowIndex: number;
   name: string;
@@ -47,20 +68,24 @@ interface EnrichedDebtRow {
   directionLabel: string;
   currency: string;
   balances_by_currency: Array<{ currency: string; balance: number }>;
-  currenciesText: string;
+  /** Signed native balance per currency code (+ = عليه, - = له) */
+  currencyAmounts: Record<string, number>;
 }
 
 /**
- * Pure helper to build clean Excel export rows & headers for the Debt Report.
- * Exported for unit testing to guarantee Excel exports are never empty.
+ * Pure helper to build clean Excel export rows & headers with SEPARATE columns per currency.
+ * Exported for unit testing to guarantee Excel exports are never empty and currencies stay separated.
  */
 export const buildDebtReportExcelPayload = (params: {
   rows: EnrichedDebtRow[];
+  activeCurrencies: string[];
   baseCurrency: string;
   companyName: string;
   filterLabel: string;
 }) => {
-  const { rows, baseCurrency, companyName, filterLabel } = params;
+  const { rows, activeCurrencies, baseCurrency, companyName, filterLabel } = params;
+  const currencies = activeCurrencies.length > 0 ? activeCurrencies : [baseCurrency];
+  const hasMultipleCurrencies = currencies.length > 1;
 
   const headers = [
     '#',
@@ -68,8 +93,8 @@ export const buildDebtReportExcelPayload = (params: {
     'رقم الهاتف',
     'الفئة',
     'حالة الرصيد',
-    `المبلغ (${baseCurrency})`,
-    'تفصيل العملات',
+    ...currencies.map(curr => getCurrencyColumnLabel(curr)),
+    ...(hasMultipleCurrencies ? [`المعادل الأساسي (${baseCurrency})`] : []),
   ];
 
   const dataRows: Array<Array<string | number>> = rows.map((row, idx) => [
@@ -78,33 +103,39 @@ export const buildDebtReportExcelPayload = (params: {
     row.phone || '—',
     row.typeLabel,
     row.directionLabel,
-    Number(row.absAmount.toFixed(2)),
-    row.currenciesText || `${row.absAmount.toFixed(2)} ${baseCurrency}`,
+    ...currencies.map(curr => {
+      // eslint-disable-next-line security/detect-object-injection -- curr comes from normalized activeCurrencies list
+      const val = Number(row.currencyAmounts[curr] ?? 0);
+      return Math.abs(val) > 0.005 ? Number(val.toFixed(2)) : 0;
+    }),
+    ...(hasMultipleCurrencies ? [Number(row.remaining_amount.toFixed(2))] : []),
   ]);
 
-  const totalDebit = rows
-    .filter(r => r.direction === 'debit')
-    .reduce((sum, r) => sum + r.absAmount, 0);
-  const totalCredit = rows
-    .filter(r => r.direction === 'credit')
-    .reduce((sum, r) => sum + r.absAmount, 0);
-  const net = totalDebit - totalCredit;
-
   if (dataRows.length > 0) {
+    const currencySums = currencies.map(curr => {
+      const total = rows.reduce((sum, r) => {
+        // eslint-disable-next-line security/detect-object-injection -- curr comes from normalized activeCurrencies list
+        return sum + (Number(r.currencyAmounts[curr]) || 0);
+      }, 0);
+      return Number(total.toFixed(2));
+    });
+
+    const netBase = rows.reduce((sum, r) => sum + r.remaining_amount, 0);
+
     dataRows.push([
       '',
-      `الإجمالي (${rows.length} جهة)`,
+      `الإجمالي الصافي (${rows.length} جهة)`,
       '',
       filterLabel,
-      net >= 0 ? 'صافي مستحق لنا (عليه)' : 'صافي التزام علينا (له)',
-      Number(Math.abs(net).toFixed(2)),
-      `مستحقات: ${totalDebit.toFixed(2)} | التزامات: ${totalCredit.toFixed(2)}`,
+      netBase >= 0 ? 'صافي مستحق لنا (عليه)' : 'صافي التزام علينا (له)',
+      ...currencySums,
+      ...(hasMultipleCurrencies ? [Number(netBase.toFixed(2))] : []),
     ]);
   }
 
   return {
     title: `تقرير الديون والمركز المالي — ${filterLabel}`,
-    subtitle: `العملة الأساسية: ${baseCurrency}`,
+    subtitle: `العملات المفصولة: ${currencies.join(' • ')}`,
     companyName,
     headers,
     rows: dataRows,
@@ -113,18 +144,23 @@ export const buildDebtReportExcelPayload = (params: {
   };
 };
 
-// eslint-disable-next-line max-lines-per-function, complexity -- complete executive report view with KPIs, filters, table, Excel export, and A4 print shell.
+// eslint-disable-next-line max-lines-per-function, complexity -- complete executive report view with separated currency columns, KPIs, Excel export, PDF export, and WhatsApp PDF share.
 const DebtReportView: React.FC = () => {
   const { data, isLoading } = useDebtReport();
   const { data: settingsCompany } = useCompany();
   const invoiceSettings = useInvoiceSettings();
+  const headerConfig = useDocumentHeaderSettings();
 
   const [activeTab, setActiveTab] = useState<DebtFilterTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState<DebtSortMode>('amount_desc');
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
 
   const printRef = useRef<HTMLDivElement>(null);
+  const pdfCaptureRef = useRef<HTMLDivElement>(null);
+
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `تقرير_الديون_${formatLocalDate(new Date())}`,
@@ -138,12 +174,13 @@ const DebtReportView: React.FC = () => {
         'محلات النظاري لقطع غيار السيارات',
       address: invoiceSettings?.company_address || settingsCompany?.address || '',
       phone: invoiceSettings?.company_phone || settingsCompany?.phone || '',
+      taxNumber: settingsCompany?.tax_number || '',
       logoUrl: settingsCompany?.logo_url || '',
     }),
     [invoiceSettings, settingsCompany]
   );
 
-  const baseCurrency = data?.summary.currency || 'SAR';
+  const baseCurrency = (data?.summary.currency || 'SAR').toUpperCase();
 
   const enrichedAll: EnrichedDebtRow[] = useMemo(() => {
     const rawList: PartyDebt[] = data?.debts ?? [];
@@ -154,15 +191,18 @@ const DebtReportView: React.FC = () => {
         const absAmount = Math.abs(remaining);
         const direction: 'debit' | 'credit' = remaining >= 0 ? 'debit' : 'credit';
         const byCurr = (d.balances_by_currency ?? []).filter(b => Math.abs(b.balance) > 0.01);
-        const currenciesText =
-          byCurr.length > 0
-            ? byCurr
-                .map(
-                  b =>
-                    `${formatCurrency(Math.abs(b.balance), b.currency)} (${b.balance >= 0 ? 'عليه' : 'له'})`
-                )
-                .join(' | ')
-            : `${formatCurrency(absAmount, baseCurrency)} (${direction === 'debit' ? 'عليه' : 'له'})`;
+
+        const currencyAmounts: Record<string, number> = {};
+        if (byCurr.length > 0) {
+          for (const entry of byCurr) {
+            const code = entry.currency.toUpperCase();
+            // eslint-disable-next-line security/detect-object-injection -- normalized uppercase currency code
+            currencyAmounts[code] = Math.round(((currencyAmounts[code] ?? 0) + entry.balance) * 100) / 100;
+          }
+        } else {
+          // eslint-disable-next-line security/detect-object-injection -- normalized base currency code
+          currencyAmounts[baseCurrency] = Math.round(remaining * 100) / 100;
+        }
 
         return {
           id: d.id,
@@ -177,10 +217,29 @@ const DebtReportView: React.FC = () => {
           directionLabel: direction === 'debit' ? 'عليه (مدين)' : 'له (دائن)',
           currency: baseCurrency,
           balances_by_currency: byCurr,
-          currenciesText,
+          currencyAmounts,
         };
       });
   }, [data?.debts, baseCurrency]);
+
+  // Discover all active currencies across debts in canonical display order (SAR, YER, OMR, USD, ...)
+  const activeCurrencies = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of enrichedAll) {
+      for (const [code, val] of Object.entries(row.currencyAmounts)) {
+        if (Math.abs(val) > 0.005) set.add(code.toUpperCase());
+      }
+    }
+    if (set.size === 0) set.add(baseCurrency);
+    return Array.from(set).sort((a, b) => {
+      const ia = CURRENCY_PRIORITY.indexOf(a);
+      const ib = CURRENCY_PRIORITY.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [enrichedAll, baseCurrency]);
 
   const receivables = useMemo(
     () => enrichedAll.filter(d => d.type === 'customer'),
@@ -214,21 +273,31 @@ const DebtReportView: React.FC = () => {
     return sorted.map((r, i) => ({ ...r, rowIndex: i + 1 }));
   }, [activeTab, receivables, payables, enrichedAll, searchTerm, sortMode]);
 
+  // Per-currency totals for the currently filtered rows
+  const filteredCurrencyTotals = useMemo(() => {
+    return activeCurrencies.map(code => {
+      let debit = 0;
+      let credit = 0;
+      for (const row of filteredRows) {
+        // eslint-disable-next-line security/detect-object-injection -- normalized uppercase currency code
+        const val = Number(row.currencyAmounts[code] ?? 0);
+        if (val > 0) debit += val;
+        else if (val < 0) credit += Math.abs(val);
+      }
+      return {
+        currency: code,
+        debit: Math.round(debit * 100) / 100,
+        credit: Math.round(credit * 100) / 100,
+        net: Math.round((debit - credit) * 100) / 100,
+      };
+    });
+  }, [activeCurrencies, filteredRows]);
+
   const totalReceivables = data?.summary?.receivables ?? 0;
   const totalPayables = data?.summary?.payables ?? 0;
   const netPosition = totalReceivables - totalPayables;
   const grossVolume = totalReceivables + totalPayables;
   const receivablesRatio = grossVolume > 0 ? Math.round((totalReceivables / grossVolume) * 100) : 0;
-
-  const filteredTotals = useMemo(() => {
-    const debit = filteredRows
-      .filter(r => r.direction === 'debit')
-      .reduce((s, r) => s + r.absAmount, 0);
-    const credit = filteredRows
-      .filter(r => r.direction === 'credit')
-      .reduce((s, r) => s + r.absAmount, 0);
-    return { debit, credit, net: debit - credit };
-  }, [filteredRows]);
 
   const activeFilterLabel =
     activeTab === 'customers'
@@ -239,26 +308,126 @@ const DebtReportView: React.FC = () => {
 
   const handleExportExcel = async () => {
     if (filteredRows.length === 0) return;
-    setIsExporting(true);
+    setIsExportingExcel(true);
     try {
       const payload = buildDebtReportExcelPayload({
         rows: filteredRows,
+        activeCurrencies,
         baseCurrency,
         companyName: company.nameAr,
         filterLabel: activeFilterLabel,
       });
       await exportGenericTableToExcel(payload);
     } finally {
-      setIsExporting(false);
+      setIsExportingExcel(false);
     }
   };
 
-  const columns: Array<Column<EnrichedDebtRow>> = useMemo(
-    () => [
+  const handleExportPdf = async () => {
+    if (filteredRows.length === 0) return;
+    setIsExportingPdf(true);
+    await new Promise(resolve => setTimeout(resolve, 60));
+    try {
+      const target = pdfCaptureRef.current || printRef.current;
+      if (target) {
+        const { exportToPDF } = await import('../../../core/utils/pdfExporter');
+        await exportToPDF(target, `تقرير_الديون_${formatLocalDate(new Date())}`);
+      }
+    } catch (err) {
+      logger.error('DebtReportView', 'PDF export failed', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const generateReportPdfBlob = async (): Promise<Blob> => {
+    setIsExportingPdf(true);
+    await new Promise(resolve => setTimeout(resolve, 80));
+    try {
+      const target = pdfCaptureRef.current || printRef.current;
+      if (!target) throw new Error('Debt report PDF target not ready');
+      const { generatePDFBlob } = await import('../../../core/utils/pdfExporter');
+      return await generatePDFBlob(target);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const waHeader = headerConfig?.whatsapp
+    ? buildWhatsappHeader(headerConfig.whatsapp, {
+        name: headerConfig.details.companyNameOverride || company.nameAr,
+        phone: company.phone || undefined,
+        taxNumber: company.taxNumber || undefined,
+        slogan: headerConfig.details.sloganText || undefined,
+      })
+    : '';
+
+  const currencySummaryLines = filteredCurrencyTotals
+    .filter(c => c.debit > 0 || c.credit > 0)
+    .map(
+      c =>
+        `• ${getCurrencyColumnLabel(c.currency)}: صافي ${formatCurrency(Math.abs(c.net), c.currency)} (${c.net >= 0 ? 'عليه' : 'له'})`
+    );
+
+  const whatsAppText = [
+    waHeader ? waHeader.trim() : `🏢 *${company.nameAr}*`,
+    `📊 *تقرير الديون والمركز المالي (${activeFilterLabel})*`,
+    `📅 *التاريخ:* ${formatLocalDate(new Date())}`,
+    `━━━━━━━━━━━━━━`,
+    `✅ *مستحقات العملاء (عليه):* ${formatCurrency(totalReceivables, baseCurrency)} (${receivables.length} عميل)`,
+    `🔴 *التزامات الموردين (له):* ${formatCurrency(totalPayables, baseCurrency)} (${payables.length} مورد)`,
+    `⚖️ *صافي المركز (${baseCurrency}):* ${formatCurrency(Math.abs(netPosition), baseCurrency)} (${netPosition >= 0 ? 'فائض لصالح المنشأة' : 'التزامات على المنشأة'})`,
+    currencySummaryLines.length > 0 ? `\n💱 *تفصيل الأرصدة حسب العملة:*` : '',
+    ...currencySummaryLines,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const hasMultipleCurrencies = activeCurrencies.length > 1;
+
+  const columns: Array<Column<EnrichedDebtRow>> = useMemo(() => {
+    const currencyCols: Array<Column<EnrichedDebtRow>> = activeCurrencies.map(curr => ({
+      header: getCurrencyColumnLabel(curr),
+      width: '160px',
+      align: 'left',
+      accessor: row => {
+        // eslint-disable-next-line security/detect-object-injection -- curr from normalized activeCurrencies
+        const amount = Number(row.currencyAmounts[curr] ?? 0);
+        if (Math.abs(amount) < 0.005) {
+          return <span className="font-mono text-xs text-slate-300 dark:text-slate-600">—</span>;
+        }
+        const isDebit = amount > 0;
+        return (
+          <div className="inline-flex items-center gap-1.5">
+            <span
+              dir="ltr"
+              className={cn(
+                'inline-block rounded-lg border px-2.5 py-0.5 font-mono text-xs font-black sm:text-sm',
+                isDebit
+                  ? 'border-rose-200/80 bg-rose-50/80 text-rose-700 dark:border-rose-800/50 dark:bg-rose-950/40 dark:text-rose-300'
+                  : 'border-emerald-200/80 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300'
+              )}
+            >
+              {formatCurrency(Math.abs(amount), curr)}
+            </span>
+            <span
+              className={cn(
+                'text-[10px] font-black',
+                isDebit ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+              )}
+            >
+              {isDebit ? 'عليه' : 'له'}
+            </span>
+          </div>
+        );
+      },
+    }));
+
+    const baseCols: Array<Column<EnrichedDebtRow>> = [
       {
         header: '#',
         accessorKey: 'rowIndex',
-        width: '56px',
+        width: '54px',
         align: 'center',
         accessor: row => (
           <span className="font-mono text-xs font-bold text-slate-400">{row.rowIndex}</span>
@@ -268,7 +437,7 @@ const DebtReportView: React.FC = () => {
         header: 'الجهة المالية',
         accessorKey: 'name',
         sortKey: 'name',
-        width: '260px',
+        width: '240px',
         accessor: row => (
           <div className="flex flex-col py-0.5 text-right">
             <span className="text-xs font-black text-slate-800 dark:text-slate-100 sm:text-sm">
@@ -289,7 +458,7 @@ const DebtReportView: React.FC = () => {
       {
         header: 'الفئة',
         accessorKey: 'typeLabel',
-        width: '95px',
+        width: '90px',
         align: 'center',
         accessor: row => (
           <span
@@ -307,7 +476,7 @@ const DebtReportView: React.FC = () => {
       {
         header: 'الموقف',
         accessorKey: 'directionLabel',
-        width: '115px',
+        width: '110px',
         align: 'center',
         accessor: row => (
           <span
@@ -322,62 +491,147 @@ const DebtReportView: React.FC = () => {
           </span>
         ),
       },
-      {
-        header: `المبلغ المتبقي (${baseCurrency})`,
+      ...currencyCols,
+    ];
+
+    if (hasMultipleCurrencies) {
+      baseCols.push({
+        header: `المعادل (${baseCurrency})`,
         accessorKey: 'absAmount',
         sortKey: 'absAmount',
-        width: '175px',
+        width: '150px',
         align: 'left',
         accessor: row => (
           <span
             dir="ltr"
-            className={cn(
-              'inline-block rounded-lg border px-3 py-1 font-mono text-sm font-black',
-              row.direction === 'debit'
-                ? 'border-rose-200/80 bg-rose-50/80 text-rose-700 dark:border-rose-800/50 dark:bg-rose-950/40 dark:text-rose-300'
-                : 'border-emerald-200/80 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-300'
-            )}
+            className="font-mono text-xs font-black text-slate-600 dark:text-slate-300"
           >
             {formatCurrency(row.absAmount, baseCurrency)}
           </span>
         ),
-      },
-      {
-        header: 'تفصيل العملات',
-        accessorKey: 'currenciesText',
-        width: '220px',
-        accessor: row => {
-          if (row.balances_by_currency.length === 0) {
-            return (
-              <span className="font-mono text-xs font-bold text-slate-400" dir="ltr">
-                {formatCurrency(row.absAmount, baseCurrency)}
-              </span>
-            );
-          }
-          return (
-            <div className="flex flex-wrap items-center gap-1">
-              {row.balances_by_currency.map(entry => (
-                <span
-                  key={entry.currency}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-black',
-                    entry.balance >= 0
-                      ? 'border-rose-200/70 bg-rose-50/60 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300'
-                      : 'border-emerald-200/70 bg-emerald-50/60 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300'
-                  )}
-                >
-                  <span dir="ltr" className="font-mono">
-                    {formatCurrency(Math.abs(entry.balance), entry.currency)}
-                  </span>
-                  <span>{entry.balance >= 0 ? 'عليه' : 'له'}</span>
-                </span>
-              ))}
-            </div>
-          );
+      });
+    }
+
+    return baseCols;
+  }, [activeCurrencies, baseCurrency, hasMultipleCurrencies]);
+
+  const renderPrintableBody = () => (
+    <AlNadaryPrintShell
+      documentTitle={`تقرير الديون والمركز المالي — ${activeFilterLabel}`}
+      documentDate={formatLocalDate(new Date())}
+      documentNumber={`${filteredRows.length} جهة`}
+      documentNumberLabel="عدد الجهات"
+      company={{
+        nameAr: company.nameAr,
+        logoUrl: company.logoUrl,
+        address: company.address,
+        phone: company.phone,
+      }}
+      rightMeta={[
+        {
+          label: 'مستحقات العملاء (عليه)',
+          value: formatCurrency(totalReceivables, baseCurrency),
         },
-      },
-    ],
-    [baseCurrency]
+        {
+          label: 'التزامات الموردين (له)',
+          value: formatCurrency(totalPayables, baseCurrency),
+        },
+      ]}
+      leftMeta={[
+        {
+          label: 'صافي المركز المالي',
+          value: `${formatCurrency(Math.abs(netPosition), baseCurrency)} (${netPosition >= 0 ? 'فائض' : 'التزام'})`,
+        },
+        { label: 'العملات', value: activeCurrencies.join(' • ') },
+      ]}
+      showDefaultTerms={false}
+      signatures={['إعداد المحاسب', 'مراجعة المدير المالي', 'الاعتماد']}
+    >
+      <table className="alnadary-table">
+        <thead>
+          <tr>
+            <th style={{ width: '5%' }}>#</th>
+            <th style={{ width: '26%' }}>الجهة المالية</th>
+            <th style={{ width: '12%' }}>الهاتف</th>
+            <th style={{ width: '8%' }}>الفئة</th>
+            <th style={{ width: '11%' }}>الموقف</th>
+            {activeCurrencies.map(curr => (
+              <th key={curr}>{getCurrencyColumnLabel(curr)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredRows.map(row => (
+            <tr key={row.id}>
+              <td style={{ textAlign: 'center', fontWeight: 700 }}>{row.rowIndex}</td>
+              <td className="alnadary-td-right" style={{ fontWeight: 800 }}>
+                {row.name}
+              </td>
+              <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>
+                {row.phone || '—'}
+              </td>
+              <td style={{ textAlign: 'center', fontWeight: 700 }}>{row.typeLabel}</td>
+              <td
+                style={{
+                  textAlign: 'center',
+                  fontWeight: 800,
+                  color: row.direction === 'debit' ? '#be123c' : '#047857',
+                }}
+              >
+                {row.directionLabel}
+              </td>
+              {activeCurrencies.map(curr => {
+                // eslint-disable-next-line security/detect-object-injection -- normalized uppercase currency code
+                const val = Number(row.currencyAmounts[curr] ?? 0);
+                if (Math.abs(val) < 0.005) {
+                  return (
+                    <td key={curr} style={{ textAlign: 'center', color: '#94a3b8' }}>
+                      —
+                    </td>
+                  );
+                }
+                const isDebit = val > 0;
+                return (
+                  <td
+                    key={curr}
+                    style={{
+                      textAlign: 'left',
+                      fontFamily: 'monospace',
+                      fontWeight: 900,
+                      color: isDebit ? '#be123c' : '#047857',
+                    }}
+                    dir="ltr"
+                  >
+                    {formatCurrency(Math.abs(val), curr)} ({isDebit ? 'عليه' : 'له'})
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr style={{ backgroundColor: '#f1f5f9', fontWeight: 900 }}>
+            <td colSpan={5} className="alnadary-td-right" style={{ fontWeight: 900 }}>
+              الإجمالي الصافي حسب العملة ({filteredRows.length} جهة)
+            </td>
+            {filteredCurrencyTotals.map(ct => (
+              <td
+                key={ct.currency}
+                style={{
+                  textAlign: 'left',
+                  fontFamily: 'monospace',
+                  fontWeight: 900,
+                  color: ct.net >= 0 ? '#be123c' : '#047857',
+                }}
+                dir="ltr"
+              >
+                {formatCurrency(Math.abs(ct.net), ct.currency)} ({ct.net >= 0 ? 'عليه' : 'له'})
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
+    </AlNadaryPrintShell>
   );
 
   if (isLoading) {
@@ -413,23 +667,46 @@ const DebtReportView: React.FC = () => {
                 تقرير الديون والمركز المالي
               </h2>
               <p className="mt-0.5 text-xs font-medium text-slate-300">
-                كشف شامل لمستحقات العملاء والتزامات الموردين بجميع العملات
+                كشف شامل لمستحقات العملاء والتزامات الموردين بأعمدة منفصلة لكل عملة (
+                {activeCurrencies.join(' • ')})
               </p>
             </div>
           </div>
 
-          {/* Official Export & Print Actions */}
+          {/* Official Export, PDF, Print & WhatsApp Actions */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => {
                 void handleExportExcel();
               }}
-              disabled={isExporting || filteredRows.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isExportingExcel || filteredRows.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2.5 text-xs font-black text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <FileSpreadsheet size={16} />
-              <span>{isExporting ? 'جاري التصدير...' : 'تصدير Excel'}</span>
+              <FileSpreadsheet size={15} />
+              <span>{isExportingExcel ? 'جاري التصدير...' : 'تصدير Excel'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                void handleExportPdf();
+              }}
+              disabled={isExportingPdf || filteredRows.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 py-2.5 text-xs font-black text-white shadow-sm transition-all hover:bg-rose-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={15} />
+              <span>{isExportingPdf ? 'جاري إنشاء PDF...' : 'تصدير PDF'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsWhatsAppModalOpen(true)}
+              disabled={filteredRows.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-3.5 py-2.5 text-xs font-black text-white shadow-sm transition-all hover:bg-green-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <MessageCircle size={15} />
+              <span>إرسال (واتساب / PDF)</span>
             </button>
 
             <button
@@ -438,26 +715,17 @@ const DebtReportView: React.FC = () => {
                 handlePrint();
               }}
               disabled={filteredRows.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition-all hover:bg-white/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs font-black text-white transition-all hover:bg-white/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Printer size={16} />
-              <span>طباعة رسمية</span>
+              <Printer size={15} />
+              <span>طباعة</span>
             </button>
-
-            <ShareButton
-              size="sm"
-              eventType="debt_report"
-              title="مشاركة"
-              className="rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs font-black text-white transition-all hover:bg-white/20"
-              message={`📊 تقرير الديون والمركز المالي — ${company.nameAr}\n━━━━━━━━━━━━━━\n✅ مستحقات العملاء (عليه): ${formatCurrency(totalReceivables, baseCurrency)} (${receivables.length} عميل)\n🔴 التزامات الموردين (له): ${formatCurrency(totalPayables, baseCurrency)} (${payables.length} مورد)\n⚖️ صافي المركز: ${formatCurrency(Math.abs(netPosition), baseCurrency)} (${netPosition >= 0 ? 'فائض لصالح المنشأة' : 'التزامات على المنشأة'})\n📅 التاريخ: ${formatLocalDate(new Date())}`}
-            />
           </div>
         </div>
       </div>
 
       {/* 4 Executive KPI Cards */}
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-        {/* Receivables */}
         <div className="rounded-2xl border border-emerald-200/70 bg-[var(--app-surface)] p-4 shadow-sm dark:border-emerald-900/40">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
@@ -479,7 +747,6 @@ const DebtReportView: React.FC = () => {
           </div>
         </div>
 
-        {/* Payables */}
         <div className="rounded-2xl border border-rose-200/70 bg-[var(--app-surface)] p-4 shadow-sm dark:border-rose-900/40">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-rose-700 dark:text-rose-400">
@@ -501,7 +768,6 @@ const DebtReportView: React.FC = () => {
           </div>
         </div>
 
-        {/* Net Financial Position */}
         <div
           className={cn(
             'rounded-2xl border p-4 shadow-sm',
@@ -542,9 +808,7 @@ const DebtReportView: React.FC = () => {
             <span
               className={cn(
                 'rounded-full px-2 py-0.5',
-                netPosition >= 0
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-amber-600 text-white'
+                netPosition >= 0 ? 'bg-blue-600 text-white' : 'bg-amber-600 text-white'
               )}
             >
               {netPosition >= 0 ? 'فائض لصالح المنشأة' : 'التزامات على المنشأة'}
@@ -552,7 +816,6 @@ const DebtReportView: React.FC = () => {
           </div>
         </div>
 
-        {/* Ratio / Concentration */}
         <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-slate-700 dark:text-slate-200">
@@ -579,16 +842,14 @@ const DebtReportView: React.FC = () => {
             </div>
           </div>
           <p className="mt-2.5 text-[10px] font-bold text-slate-400">
-            العملة المرجعية للتقرير: {baseCurrency}
+            العملات النشطة: {activeCurrencies.join(' • ')}
           </p>
         </div>
       </div>
 
       {/* Unified Full-Width Filterable Table Card */}
       <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm">
-        {/* Filter Tabs + Search + Sort */}
         <div className="flex flex-col gap-3 border-b border-[var(--app-border)] bg-slate-50/70 p-4 dark:bg-slate-900/40 lg:flex-row lg:items-center lg:justify-between">
-          {/* Segmented Tabs */}
           <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
             {(
               [
@@ -623,7 +884,6 @@ const DebtReportView: React.FC = () => {
             ))}
           </div>
 
-          {/* Search & Sort Controls */}
           <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
             <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
               <input
@@ -658,15 +918,17 @@ const DebtReportView: React.FC = () => {
           </div>
         </div>
 
-        {/* Full-Width Data Table */}
+        {/* Full-Width Data Table with Separate Columns Per Currency */}
         <div className="overflow-x-auto">
           <ExcelTable
             columns={columns}
             data={filteredRows}
             title={`تقرير الديون — ${activeFilterLabel}`}
-            subtitle={`إجمالي ${filteredRows.length} جهة`}
+            subtitle={`العملات: ${activeCurrencies.join(' • ')} | ${filteredRows.length} جهة`}
             emptyMessage="لا توجد ذمم مطابقة لمعايير البحث الحالية"
-            colorTheme={activeTab === 'suppliers' ? 'orange' : activeTab === 'customers' ? 'green' : 'blue'}
+            colorTheme={
+              activeTab === 'suppliers' ? 'orange' : activeTab === 'customers' ? 'green' : 'blue'
+            }
             showSearch={false}
             isRTL={true}
             pageSize={25}
@@ -676,38 +938,34 @@ const DebtReportView: React.FC = () => {
           />
         </div>
 
-        {/* Filtered Totals Footer */}
+        {/* Separated Per-Currency Totals Footer */}
         {filteredRows.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-border)] bg-slate-50 px-5 py-3 dark:bg-slate-900/60">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-border)] bg-slate-50 px-5 py-3.5 dark:bg-slate-900/60">
             <span className="text-xs font-black text-slate-600 dark:text-slate-300">
-              ملخص النتائج المعروضة ({filteredRows.length} جهة)
+              إجمالي النتائج المعروضة حسب العملة ({filteredRows.length} جهة)
             </span>
-            <div className="flex flex-wrap items-center gap-4 text-xs font-black">
-              {filteredTotals.debit > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500">إجمالي (عليه):</span>
-                  <span dir="ltr" className="font-mono text-rose-600 dark:text-rose-400">
-                    {formatCurrency(filteredTotals.debit, baseCurrency)}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {filteredCurrencyTotals.map(ct => (
+                <div
+                  key={ct.currency}
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-black shadow-2xs',
+                    ct.net >= 0
+                      ? 'border-rose-200 bg-rose-50/80 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200'
+                      : 'border-emerald-200 bg-emerald-50/80 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200'
+                  )}
+                >
+                  <span className="text-[10px] opacity-80">
+                    {getCurrencyColumnLabel(ct.currency)}:
+                  </span>
+                  <span dir="ltr" className="font-mono">
+                    {formatCurrency(Math.abs(ct.net), ct.currency)}
+                  </span>
+                  <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] dark:bg-slate-900/50">
+                    {ct.net >= 0 ? 'عليه' : 'له'}
                   </span>
                 </div>
-              )}
-              {filteredTotals.credit > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500">إجمالي (له):</span>
-                  <span dir="ltr" className="font-mono text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(filteredTotals.credit, baseCurrency)}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1 text-white dark:bg-blue-600">
-                <span>الصافي:</span>
-                <span dir="ltr" className="font-mono">
-                  {formatCurrency(Math.abs(filteredTotals.net), baseCurrency)}
-                </span>
-                <span className="text-[10px] opacity-80">
-                  ({filteredTotals.net >= 0 ? 'عليه' : 'له'})
-                </span>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -719,81 +977,25 @@ const DebtReportView: React.FC = () => {
         aria-hidden="true"
       >
         <div ref={printRef} id="debt-report-printable">
-          <AlNadaryPrintShell
-            documentTitle={`تقرير الديون والمركز المالي — ${activeFilterLabel}`}
-            documentDate={formatLocalDate(new Date())}
-            documentNumber={`${filteredRows.length} جهة`}
-            documentNumberLabel="عدد الجهات"
-            company={company}
-            rightMeta={[
-              {
-                label: 'مستحقات العملاء (عليه)',
-                value: formatCurrency(totalReceivables, baseCurrency),
-              },
-              {
-                label: 'التزامات الموردين (له)',
-                value: formatCurrency(totalPayables, baseCurrency),
-              },
-            ]}
-            leftMeta={[
-              {
-                label: 'صافي المركز المالي',
-                value: `${formatCurrency(Math.abs(netPosition), baseCurrency)} (${netPosition >= 0 ? 'فائض' : 'التزام'})`,
-              },
-              { label: 'العملة الأساسية', value: baseCurrency },
-            ]}
-            showDefaultTerms={false}
-            signatures={['إعداد المحاسب', 'مراجعة المدير المالي', 'الاعتماد']}
-          >
-            <table className="alnadary-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '6%' }}>#</th>
-                  <th style={{ width: '32%' }}>الجهة المالية</th>
-                  <th style={{ width: '14%' }}>الهاتف</th>
-                  <th style={{ width: '10%' }}>الفئة</th>
-                  <th style={{ width: '14%' }}>الموقف</th>
-                  <th style={{ width: '24%' }}>المبلغ ({baseCurrency})</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map(row => (
-                  <tr key={row.id}>
-                    <td style={{ textAlign: 'center', fontWeight: 700 }}>{row.rowIndex}</td>
-                    <td className="alnadary-td-right" style={{ fontWeight: 800 }}>
-                      {row.name}
-                    </td>
-                    <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>
-                      {row.phone || '—'}
-                    </td>
-                    <td style={{ textAlign: 'center', fontWeight: 700 }}>{row.typeLabel}</td>
-                    <td
-                      style={{
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        color: row.direction === 'debit' ? '#be123c' : '#047857',
-                      }}
-                    >
-                      {row.directionLabel}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'left',
-                        fontFamily: 'monospace',
-                        fontWeight: 900,
-                        color: row.direction === 'debit' ? '#be123c' : '#047857',
-                      }}
-                      dir="ltr"
-                    >
-                      {formatCurrency(row.absAmount, baseCurrency)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </AlNadaryPrintShell>
+          {renderPrintableBody()}
         </div>
       </div>
+
+      {/* Dedicated High-Resolution PDF Capture Host */}
+      <PdfCaptureHost innerRef={pdfCaptureRef}>
+        <div style={{ width: '210mm', backgroundColor: '#ffffff' }}>{renderPrintableBody()}</div>
+      </PdfCaptureHost>
+
+      {/* WhatsApp Share Modal (Text OR Ready-to-Send PDF) */}
+      <WhatsAppShareChoiceModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        title={`تقرير الديون والمركز المالي — ${activeFilterLabel}`}
+        textMessage={whatsAppText}
+        pdfFileName={`تقرير_الديون_${formatLocalDate(new Date())}`}
+        pdfCaption={`مرفق تقرير الديون والمركز المالي (${activeFilterLabel}) بتاريخ ${formatLocalDate(new Date())} بصيغة PDF`}
+        onGeneratePdfBlob={generateReportPdfBlob}
+      />
     </div>
   );
 };

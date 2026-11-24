@@ -10,8 +10,11 @@ describe('resolveExpectedQuantity', () => {
     name_ar: 'بطارية 50 ايسي ديلكو اكتروني يمين R',
     sku: '1011799',
     part_number: 'N50MFR',
+    alternative_numbers: null,
     brand: 'ACDelco',
     category: 'بطاريات',
+    size: null,
+    specifications: null,
     stock_quantity: -79, // Total from other warehouses
     cost_price: 100,
     sale_price: 150,
@@ -19,6 +22,7 @@ describe('resolveExpectedQuantity', () => {
     is_core: false,
     item_type: 'stock',
     unit: 'حبة',
+    created_at: '2026-11-01',
     warehouse_distribution: [
       {
         warehouse_id: 'wh-wael',

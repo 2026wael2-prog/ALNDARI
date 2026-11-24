@@ -8,7 +8,6 @@ const baseView = (overrides: Partial<ReconciliationView> = {}): ReconciliationVi
   expectedCash: 911.78,
   cashVarianceInfo: {
     variance: -911.78,
-    absVariance: 911.78,
     status: 'shortage',
     isWithinTolerance: false,
   },

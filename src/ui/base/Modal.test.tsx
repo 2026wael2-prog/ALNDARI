@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 import Modal from './Modal';
 
 describe('Modal Component', () => {
@@ -26,7 +25,7 @@ describe('Modal Component', () => {
 
   it('does not call onClose when clicking backdrop if closeOnBackdropClick is false', () => {
     const handleClose = vi.fn();
-    const { container } = render(
+    render(
       <Modal
         isOpen={true}
         onClose={handleClose}

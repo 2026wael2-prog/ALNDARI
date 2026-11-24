@@ -106,7 +106,7 @@ const AccountTreeRow: React.FC<{
             </span>
             <span
               className={cn(
-                'ms-1.5 rounded px-1.5 py-0.5 text-[9px] font-bold',
+                'ms-1.5 rounded px-1.5 py-0.5 text-[10px] font-bold',
                 isParent
                   ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                   : 'bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300'

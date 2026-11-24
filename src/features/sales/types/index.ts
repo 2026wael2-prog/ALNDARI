@@ -26,6 +26,7 @@ export type {
   CartItem,
   InvoiceSummary,
   CreateInvoicePayload,
+  UpdateInvoicePayload,
   CreateInvoiceDTO,
   InvoiceResponse,
   InvoiceListItem,

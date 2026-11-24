@@ -175,7 +175,7 @@ export const BranchStockAvailabilityCell: React.FC<BranchStockAvailabilityCellPr
           <>
             {availableOnlyInOtherBranches && (
               <span
-                className="inline-flex shrink-0 items-center rounded-md border border-amber-300/80 bg-amber-50 px-1 py-0.5 text-[9px] font-black text-amber-700 dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-300"
+                className="inline-flex shrink-0 items-center rounded-md border border-amber-300/80 bg-amber-50 px-1 py-0.5 text-[10px] font-black text-amber-700 dark:border-amber-800/70 dark:bg-amber-950/50 dark:text-amber-300"
                 title="غير متوفر في فرعك — متوفر في فرع آخر"
               >
                 <ArrowUpRight size={10} />
@@ -270,7 +270,7 @@ export const BranchStockAvailabilityCell: React.FC<BranchStockAvailabilityCellPr
                           {branch.branchName}
                         </span>
                         {branch.isCurrentBranch && (
-                          <span className="shrink-0 rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-black text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
+                          <span className="shrink-0 rounded bg-emerald-100 px-1 py-0.5 text-[10px] font-black text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
                             فرعك
                           </span>
                         )}
@@ -311,7 +311,7 @@ export const BranchStockAvailabilityCell: React.FC<BranchStockAvailabilityCellPr
                             <Warehouse size={10} className="shrink-0 opacity-70" />
                             <span className="truncate">{wh.warehouseName}</span>
                             {wh.location && (
-                              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9px] opacity-75">
+                              <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] opacity-75">
                                 <MapPin size={8} />
                                 {wh.location}
                               </span>

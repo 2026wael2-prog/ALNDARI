@@ -53,7 +53,7 @@ const renderCurrencyBalanceCell = (params: {
       )}
     >
       <span dir="ltr">{formatCurrency(Math.abs(val), currency)}</span>
-      <span className="font-sans text-[9px] font-black opacity-80">{dirLabel}</span>
+      <span className="font-sans text-[10px] font-black opacity-80">{dirLabel}</span>
     </span>
   );
 
@@ -104,13 +104,13 @@ export function usePartiesColumns({
                   {isOppositeSign ? (
                     <span
                       title="رصيد مدين بعملة ودائن بعملة أخرى — يتم الفصل بين العملتين بدقة"
-                      className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                      className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
                     >
                       <AlertTriangle size={9} />
                       متعاكس العملات
                     </span>
                   ) : isMulti ? (
-                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-black text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
                       SAR + YER
                     </span>
                   ) : null}

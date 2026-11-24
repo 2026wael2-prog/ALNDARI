@@ -372,7 +372,7 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                           </span>
                           <span
                             className={cn(
-                              'rounded px-1 py-0.2 font-mono text-[9px] font-black',
+                              'rounded px-1 py-0.2 font-mono text-[10px] font-black',
                               currency === 'YER'
                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                                 : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'

@@ -68,7 +68,7 @@ export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
           'border-blue-500/45 bg-blue-500/12 text-blue-700 hover:scale-110 hover:border-blue-600 hover:bg-blue-600 hover:text-white',
           'dark:border-blue-400/45 dark:bg-blue-400/15 dark:text-blue-300 dark:hover:bg-blue-500 dark:hover:text-white',
           'focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-95',
-          size === 'xs' ? 'h-4 w-4 text-[9px]' : 'h-[18px] w-[18px] text-[10px]',
+          size === 'xs' ? 'h-4 w-4 text-[10px]' : 'h-[18px] w-[18px] text-[10px]',
           className
         )}
       >

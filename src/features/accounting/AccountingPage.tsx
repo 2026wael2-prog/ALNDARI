@@ -1,10 +1,10 @@
-import React, { useMemo, Suspense, lazy } from 'react';
+import React, { useEffect, useMemo, Suspense, lazy, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 // Fix: Corrected import path to point to the barrel file.
-import { useJournalMutation, useAccountingView } from './hooks/index';
+import { useAccountingView } from './hooks/index';
 import type { AccountingView } from './types/index';
 import {
   Calculator,
-  Plus,
   FileText,
   Calendar,
   BookOpen,
@@ -20,12 +20,11 @@ import MicroHeader from '../../ui/base/MicroHeader';
 import PageLoader from '../../ui/base/PageLoader';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import FullscreenContainer from '../../ui/base/FullscreenContainer';
-import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn, formatLocalDate, getLocalYearStart } from '../../core/utils';
 import type { LucideIcon } from 'lucide-react';
 import { DOMAIN_KEYS } from '../../lib/invalidation';
-import type { JournalEntryFormData } from './types/models';
+import { ROUTES } from '../../core/routes/paths';
 import Button from '../../ui/base/Button';
 
 // إبطال موجّه لمفاتيح صفحة المحاسبة ذاتها فقط — بدل الإبطال الشامل لكاش التطبيق كله.
@@ -48,7 +47,6 @@ const REFRESH_KEYS: readonly string[] = [
 
 // Lazy loading for components
 const AccountingOverview = lazy(() => import('./components/layout/AccountingOverview'));
-const JournalTable = lazy(() => import('./components/journals/JournalTable'));
 const AccountsTable = lazy(() => import('./components/accounts/AccountsTable'));
 const TreasuryView = lazy(() => import('./components/treasury/TreasuryView'));
 const LedgerView = lazy(() => import('./components/reports/LedgerView'));
@@ -56,33 +54,25 @@ const IncomeStatement = lazy(() => import('./components/reports/IncomeStatement'
 const BalanceSheet = lazy(() => import('./components/reports/BalanceSheet'));
 const FixedAssetsView = lazy(() => import('./components/assets/FixedAssetsView'));
 const VatReturnView = lazy(() => import('./components/reports/VatReturnView'));
-const AddJournalEntryModal = lazy(() => import('./components/journals/AddJournalEntryModal'));
 
 const AccountingPage: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const {
-    activeView,
-    setActiveView,
-    isModalOpen,
-    openJournalModal,
-    closeJournalModal,
-    dateRange,
-    setDateRange,
-  } = useAccountingView();
+  const { activeView, setActiveView, dateRange, setDateRange } = useAccountingView();
   const { t } = useTranslation();
   const [isMaximized, setIsMaximized] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { createJournal, isCreating } = useJournalMutation();
+  // Redirect legacy /accounting?tab=journal links to BondsPage -> Journal tab
+  useEffect(() => {
+    if (activeView === 'journal') {
+      navigate(`${ROUTES.DASHBOARD.BONDS}?tab=journal`, { replace: true });
+    }
+  }, [activeView, navigate]);
 
-  const handleCreate = (data: JournalEntryFormData) => {
-    if (isCreating) return;
-    createJournal(data, {
-      onSuccess: () => {
-        closeJournalModal();
-      },
-    });
+  const handleOpenNewJournalInBonds = () => {
+    navigate(`${ROUTES.DASHBOARD.BONDS}?tab=journal&action=new`);
   };
 
   // ينتظر اكتمال عمليات الإبطال/إعادة الجلب فعلياً — لا تأخير اصطناعي بعد الآن
@@ -99,7 +89,6 @@ const AccountingPage: React.FC = () => {
 
   const TABS: Array<{ id: AccountingView; label: string; icon: LucideIcon }> = [
     { id: 'overview', label: t('accounting_overview'), icon: LayoutDashboard },
-    { id: 'journal', label: t('journal'), icon: BookOpen },
     { id: 'treasury', label: t('treasury'), icon: Wallet },
     { id: 'ledger', label: t('ledger'), icon: BookOpen },
     { id: 'income', label: t('income_statement'), icon: FileText },
@@ -112,22 +101,14 @@ const AccountingPage: React.FC = () => {
   const headerActions = (
     <div className="flex gap-2 print:hidden">
       <Button
-        onClick={openJournalModal}
-        variant="primary"
+        onClick={() => navigate(`${ROUTES.DASHBOARD.BONDS}?tab=journal`)}
+        variant="outline"
         size="sm"
-        leftIcon={<Plus size={14} strokeWidth={3} />}
-        className="hidden uppercase tracking-tighter sm:inline-flex"
+        leftIcon={<BookOpen size={14} />}
+        className="hidden sm:inline-flex"
       >
-        {t('new_journal_entry')}
+        {t('journal')}
       </Button>
-      <Button
-        onClick={openJournalModal}
-        variant="primary"
-        size="sm"
-        aria-label={t('new_journal_entry')}
-        leftIcon={<Plus size={14} strokeWidth={3} />}
-        className="sm:hidden"
-      />
     </div>
   );
 
@@ -229,13 +210,11 @@ const AccountingPage: React.FC = () => {
       case 'overview':
         return (
           <AccountingOverview
-            onNewJournal={openJournalModal}
+            onNewJournal={handleOpenNewJournalInBonds}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
           />
         );
-      case 'journal':
-        return <JournalTable />;
       case 'accounts':
         return <AccountsTable />;
       case 'treasury':
@@ -251,7 +230,13 @@ const AccountingPage: React.FC = () => {
       case 'vat_return':
         return <VatReturnView dateRange={dateRange} />;
       default:
-        return <AccountingOverview dateRange={dateRange} onDateRangeChange={setDateRange} />;
+        return (
+          <AccountingOverview
+            onNewJournal={handleOpenNewJournalInBonds}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
+        );
     }
   };
 
@@ -298,15 +283,6 @@ const AccountingPage: React.FC = () => {
             </div>
           </Suspense>
         </div>
-
-        <Suspense fallback={null}>
-          <AddJournalEntryModal
-            isOpen={isModalOpen}
-            onClose={closeJournalModal}
-            onSubmit={handleCreate}
-            isSubmitting={isCreating}
-          />
-        </Suspense>
       </div>
     </FullscreenContainer>
   );

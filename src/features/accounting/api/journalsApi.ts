@@ -98,10 +98,15 @@ export const journalsApi = {
           credit_amount,
           description,
           account_id,
+          party_id,
           account:accounts (
             id,
             name_ar,
             code
+          ),
+          party:parties (
+            id,
+            name
           )
         ),
         created_by_profile:profiles(id, full_name)
@@ -134,11 +139,70 @@ export const journalsApi = {
     if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
       const sanitized = filters.searchTerm.trim().replace(/[%_\\*(),]/g, '');
       if (sanitized) {
-        if (/^\d+$/.test(sanitized)) {
-          query = query.or(`description.ilike.%${sanitized}%,entry_number.eq.${sanitized}`);
-        } else {
-          query = query.ilike('description', `%${sanitized}%`);
+        // Also find journal entries matching party names or account names/codes
+        const matchedJournalIds = new Set<string>();
+        try {
+          const [partyMatches, accountMatches] = await Promise.all([
+            supabase
+              .from('parties')
+              .select('id')
+              .eq('company_id', companyId)
+              .is('deleted_at', null)
+              .ilike('name', `%${sanitized}%`)
+              .limit(50),
+            supabase
+              .from('accounts')
+              .select('id')
+              .eq('company_id', companyId)
+              .is('deleted_at', null)
+              .or(`name_ar.ilike.%${sanitized}%,code.ilike.%${sanitized}%`)
+              .limit(50),
+          ]);
+
+          const partyIds = (partyMatches.data ?? []).map(p => p.id);
+          const accountIds = (accountMatches.data ?? []).map(a => a.id);
+
+          const lineQueries: Array<PromiseLike<{ data: Array<{ journal_entry_id: string }> | null }>> = [];
+          if (partyIds.length > 0) {
+            lineQueries.push(
+              supabase
+                .from('journal_entry_lines')
+                .select('journal_entry_id')
+                .eq('company_id', companyId)
+                .in('party_id', partyIds)
+                .limit(200)
+            );
+          }
+          if (accountIds.length > 0) {
+            lineQueries.push(
+              supabase
+                .from('journal_entry_lines')
+                .select('journal_entry_id')
+                .eq('company_id', companyId)
+                .in('account_id', accountIds)
+                .limit(200)
+            );
+          }
+          if (lineQueries.length > 0) {
+            const lineResults = await Promise.all(lineQueries);
+            for (const res of lineResults) {
+              for (const row of res.data ?? []) {
+                if (row.journal_entry_id) matchedJournalIds.add(row.journal_entry_id);
+              }
+            }
+          }
+        } catch {
+          // Non-fatal: fallback to description / entry_number search
         }
+
+        const orConditions: string[] = [`description.ilike.%${sanitized}%`];
+        if (/^\d+$/.test(sanitized)) {
+          orConditions.push(`entry_number.eq.${sanitized}`);
+        }
+        if (matchedJournalIds.size > 0) {
+          orConditions.push(`id.in.(${Array.from(matchedJournalIds).slice(0, 150).join(',')})`);
+        }
+        query = query.or(orConditions.join(','));
       }
     }
 

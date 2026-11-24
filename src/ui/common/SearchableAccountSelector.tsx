@@ -1,8 +1,11 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, ChevronDown, Check, X, Building2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { cn, normalizeSearch } from '../../core/utils';
 import type { Account, AccountType } from '../../features/accounting/types/models';
+
+const MAX_VISIBLE_ACCOUNTS = 80;
+const DROPDOWN_MAX_HEIGHT = 350;
 
 interface SearchableAccountSelectorProps {
   accounts: Account[];
@@ -58,7 +61,14 @@ const SearchableAccountSelector: React.FC<SearchableAccountSelectorProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    openUpward: boolean;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedAccount = useMemo(
     () => accounts.find(a => a.id === selectedId),
@@ -93,31 +103,210 @@ const SearchableAccountSelector: React.FC<SearchableAccountSelectorProps> = ({
     );
   }, [selectableAccounts, search, selectedAccount]);
 
-  // Close when clicking outside
+  const visibleAccounts = useMemo(
+    () => filteredAccounts.slice(0, MAX_VISIBLE_ACCOUNTS),
+    [filteredAccounts]
+  );
+
+  const updateDropdownPosition = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const desiredWidth = Math.min(Math.max(rect.width, 380), Math.min(460, viewportW - 16));
+
+    // Align right edge to input's right edge for RTL, clamped within viewport
+    let left = rect.right - desiredWidth;
+    if (left < 8) left = 8;
+    if (left + desiredWidth > viewportW - 8) left = Math.max(8, viewportW - desiredWidth - 8);
+
+    const spaceBelow = viewportH - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const openUpward = spaceBelow < 240 && spaceAbove > spaceBelow;
+    const top = openUpward
+      ? Math.max(8, rect.top - Math.min(DROPDOWN_MAX_HEIGHT, spaceAbove) - 6)
+      : rect.bottom + 6;
+
+    setDropdownPos({ top, left, width: desiredWidth, openUpward });
+  }, []);
+
   useEffect(() => {
+    if (!isOpen) return;
+    updateDropdownPosition();
+    const handleReposition = () => {
+      updateDropdownPosition();
+    };
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [isOpen, updateDropdownPosition]);
+
+  // Close when clicking outside both trigger and portaled dropdown
+  useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(target))
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [isOpen]);
+
+  const dropdownPortal =
+    isOpen && dropdownPos && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            dir="rtl"
+            style={{
+              position: 'fixed',
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              width: dropdownPos.width,
+              maxHeight: DROPDOWN_MAX_HEIGHT,
+              zIndex: 20000,
+            }}
+            className="flex flex-col overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl ring-1 ring-black/10 dark:ring-white/10"
+          >
+            {/* Header / Search hint */}
+            <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface-hover)] px-3 py-2 text-[11px] font-bold text-[var(--app-text-secondary)]">
+              <span>اختر الحساب المحاسبي ({filteredAccounts.length})</span>
+              {search && (
+                <button
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => setSearch('')}
+                  className="text-[10px] text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  عرض الكل
+                </button>
+              )}
+            </div>
+
+            {/* Accounts List */}
+            <div className="custom-scrollbar max-h-[268px] divide-y divide-gray-100/60 overflow-y-auto dark:divide-slate-800/60">
+              {filteredAccounts.length === 0 ? (
+                <div className="space-y-2 p-8 text-center">
+                  <div className="flex justify-center text-gray-300 dark:text-slate-700">
+                    <Building2 size={36} />
+                  </div>
+                  <p className="text-xs font-bold text-gray-400">
+                    {selectableAccounts.length === 0
+                      ? 'لا توجد حسابات متاحة حالياً'
+                      : 'لا توجد حسابات مطابقة للبحث'}
+                  </p>
+                  <p className="text-[10px] text-gray-400">جرب كتابة رقم الحساب أو جزء من اسمه</p>
+                </div>
+              ) : (
+                <>
+                  {visibleAccounts.map(acc => {
+                    const isSelected = selectedId === acc.id;
+                    const typeLabel = getAccountTypeLabel(acc.type);
+                    const typeClass = getAccountTypeBadgeClass(acc.type);
+
+                    return (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => {
+                          onSelect(acc.id);
+                          setIsOpen(false);
+                          setSearch(`${acc.code} - ${acc.name}`);
+                        }}
+                        className={cn(
+                          'font-cairo group flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-right outline-none transition-colors',
+                          isSelected
+                            ? 'bg-blue-50/90 font-bold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
+                            : 'text-[var(--app-text)] hover:bg-[var(--app-surface-hover)]'
+                        )}
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <span
+                            className={cn(
+                              'shrink-0 rounded-md border px-2 py-0.5 font-mono text-xs font-black tracking-tight',
+                              isSelected
+                                ? 'border-blue-300 bg-blue-100 text-blue-800 dark:border-blue-700 dark:bg-blue-900/60 dark:text-blue-200'
+                                : 'border-gray-200 bg-gray-100 text-gray-600 group-hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                            )}
+                          >
+                            {acc.code}
+                          </span>
+                          <span className="break-words text-start text-xs font-bold leading-snug">
+                            {acc.name || acc.name_ar}
+                          </span>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2">
+                          {typeLabel && (
+                            <span
+                              className={cn(
+                                'rounded-full border px-2 py-0.5 text-[10px] font-bold',
+                                typeClass
+                              )}
+                            >
+                              {typeLabel}
+                            </span>
+                          )}
+                          {isSelected && (
+                            <Check size={16} className="shrink-0 text-blue-600 dark:text-blue-400" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {filteredAccounts.length > visibleAccounts.length && (
+                    <div className="bg-[var(--app-surface-hover)]/60 px-3 py-2 text-center text-[11px] font-bold text-[var(--app-text-secondary)]">
+                      عرض أول {visibleAccounts.length} حساباً من أصل {filteredAccounts.length} — اكتب
+                      للبحث السريع برقم أو اسم الحساب
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="border-t border-[var(--app-border)] bg-[var(--app-surface-hover)] px-3 py-1.5 text-center">
+              <span className="text-[10px] font-bold text-[var(--app-text-secondary)]">
+                {postableOnly ? 'الحسابات القابلة للترحيل فقط' : 'جميع الحسابات'}
+              </span>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
-    <div className={cn('relative', isOpen ? 'z-50' : 'z-20', className)} ref={containerRef}>
+    <div className={cn('relative', className)} ref={containerRef}>
       <div className="group relative flex items-center">
         <Search
-          size={16}
-          className="absolute right-3.5 text-gray-400 transition-colors group-focus-within:text-blue-500 pointer-events-none"
+          size={15}
+          className="pointer-events-none absolute right-3 text-gray-400 transition-colors group-focus-within:text-blue-500"
         />
         <input
           type="text"
           value={search}
           onFocus={() => {
             setIsOpen(true);
+            updateDropdownPosition();
           }}
           onChange={e => {
             setSearch(e.target.value);
@@ -128,11 +317,11 @@ const SearchableAccountSelector: React.FC<SearchableAccountSelectorProps> = ({
           }}
           placeholder={placeholder}
           className={cn(
-            'font-cairo w-full rounded-xl border bg-[var(--app-surface)] py-2 pl-9 pr-10 text-xs sm:text-sm font-bold outline-none transition-all shadow-sm',
+            'font-cairo w-full rounded-xl border bg-[var(--app-surface)] py-2 pl-9 pr-9 text-xs font-bold shadow-sm outline-none transition-all sm:text-sm',
             isOpen
-              ? 'ring-2 ring-blue-500/20 border-blue-500 shadow-md bg-[var(--app-surface)]'
+              ? 'border-blue-500 bg-[var(--app-surface)] shadow-md ring-2 ring-blue-500/20'
               : selectedAccount
-                ? 'border-blue-200 dark:border-blue-900/50 bg-blue-50/20 dark:bg-blue-900/10'
+                ? 'border-blue-200 bg-blue-50/20 dark:border-blue-900/50 dark:bg-blue-900/10'
                 : 'border-[var(--app-border)] hover:border-gray-300 dark:hover:border-slate-700'
           )}
         />
@@ -145,7 +334,7 @@ const SearchableAccountSelector: React.FC<SearchableAccountSelectorProps> = ({
               setSearch('');
               setIsOpen(true);
             }}
-            className="absolute left-8 p-1 text-gray-400 transition-colors hover:text-red-500"
+            className="absolute left-7 p-1 text-gray-400 transition-colors hover:text-red-500"
             title="مسح الاختيار"
           >
             <X size={14} />
@@ -154,119 +343,23 @@ const SearchableAccountSelector: React.FC<SearchableAccountSelectorProps> = ({
         <button
           type="button"
           onClick={() => {
-            setIsOpen(!isOpen);
+            setIsOpen(prev => {
+              const next = !prev;
+              if (next) updateDropdownPosition();
+              return next;
+            });
           }}
-          className="absolute left-2.5 p-1 text-gray-400 transition-colors hover:text-blue-500"
+          className="absolute left-2 p-1 text-gray-400 transition-colors hover:text-blue-500"
           title={isOpen ? 'إغلاق القائمة' : 'عرض الحسابات'}
         >
           <ChevronDown
-            size={16}
+            size={15}
             className={cn('transition-transform duration-200', isOpen && 'rotate-180 text-blue-500')}
           />
         </button>
       </div>
 
-      {/* Dropdown Panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-1.5 z-[100] w-[460px] min-w-full max-w-[88vw] flex max-h-[350px] flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl backdrop-blur-xl ring-1 ring-black/10 dark:ring-white/10 overflow-hidden"
-          >
-            {/* Header / Search hint */}
-            <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface-hover)] px-3 py-2 text-[11px] font-bold text-[var(--app-text-secondary)]">
-              <span>اختر الحساب المحاسبي ({filteredAccounts.length})</span>
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="text-blue-600 dark:text-blue-400 hover:underline text-[10px]"
-                >
-                  عرض الكل
-                </button>
-              )}
-            </div>
-
-            {/* Accounts List */}
-            <div className="custom-scrollbar divide-y divide-gray-100/60 dark:divide-slate-800/60 overflow-y-auto max-h-[280px]">
-              {filteredAccounts.length === 0 ? (
-                <div className="space-y-2 p-8 text-center">
-                  <div className="flex justify-center text-gray-300 dark:text-slate-700">
-                    <Building2 size={36} />
-                  </div>
-                  <p className="text-xs font-bold text-gray-400">لا توجد حسابات مطابقة للبحث</p>
-                  <p className="text-[10px] text-gray-400">جرب كتابة رقم الحساب أو جزء من اسمه</p>
-                </div>
-              ) : (
-                filteredAccounts.map(acc => {
-                  const isSelected = selectedId === acc.id;
-                  const typeLabel = getAccountTypeLabel(acc.type);
-                  const typeClass = getAccountTypeBadgeClass(acc.type);
-
-                  return (
-                    <button
-                      key={acc.id}
-                      type="button"
-                      onClick={() => {
-                        onSelect(acc.id);
-                        setIsOpen(false);
-                        setSearch(`${acc.code} - ${acc.name}`);
-                      }}
-                      className={cn(
-                        'font-cairo flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-right outline-none transition-colors group',
-                        isSelected
-                          ? 'bg-blue-50/90 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 font-bold'
-                          : 'text-[var(--app-text)] hover:bg-[var(--app-surface-hover)]'
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <span
-                          className={cn(
-                            'shrink-0 rounded-md border px-2 py-0.5 font-mono text-xs font-black tracking-tight',
-                            isSelected
-                              ? 'border-blue-300 bg-blue-100 text-blue-800 dark:border-blue-700 dark:bg-blue-900/60 dark:text-blue-200'
-                              : 'border-gray-200 bg-gray-100 text-gray-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 group-hover:border-blue-300'
-                          )}
-                        >
-                          {acc.code}
-                        </span>
-                        <span className="text-xs font-bold leading-snug break-words text-start">
-                          {acc.name || acc.name_ar}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {typeLabel && (
-                          <span
-                            className={cn(
-                              'text-[10px] font-bold px-2 py-0.5 rounded-full border',
-                              typeClass
-                            )}
-                          >
-                            {typeLabel}
-                          </span>
-                        )}
-                        {isSelected && (
-                          <Check size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="border-t border-[var(--app-border)] bg-[var(--app-surface-hover)] px-3 py-1.5 text-center">
-              <span className="text-[10px] font-bold text-[var(--app-text-secondary)]">
-                {postableOnly ? 'الحسابات القابلة للترحيل فقط' : 'جميع الحسابات'}
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {dropdownPortal}
     </div>
   );
 };

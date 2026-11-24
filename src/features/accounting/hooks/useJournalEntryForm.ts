@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { JournalEntryFormData } from '../types/index';
 import { useAccounts } from './index';
+import { useParties } from '../../parties/hooks';
 import { useCurrencies } from '../../settings/hooks';
 import { SOX_BALANCE_TOLERANCE } from '../../../core/utils/decimalUtils/constants';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
@@ -16,6 +17,7 @@ const BALANCE_TOLERANCE = Number(SOX_BALANCE_TOLERANCE.toString());
 const journalLineSchema = z
   .object({
     account_id: z.string().min(1, 'يجب اختيار الحساب'),
+    party_id: z.string().optional().nullable(),
     description: z.string(),
     debit_amount: z.number().min(0),
     credit_amount: z.number().min(0),
@@ -55,7 +57,13 @@ export const useJournalEntryForm = (
   onSubmit: (data: JournalEntryFormData) => void,
   isOpen: boolean
 ) => {
-  const { data: accounts, isLoading: isLoadingAccounts } = useAccounts();
+  const {
+    data: accounts,
+    isLoading: isLoadingAccounts,
+    isError: isAccountsError,
+    refetch: refetchAccounts,
+  } = useAccounts();
+  const { data: parties, isLoading: isLoadingParties } = useParties('all');
   const { currencies, rates } = useCurrencies();
 
   const form = useForm<JournalEntryFormData>({
@@ -66,8 +74,8 @@ export const useJournalEntryForm = (
       currency_code: 'SAR',
       exchange_rate: 1,
       lines: [
-        { account_id: '', description: '', debit_amount: 0, credit_amount: 0 },
-        { account_id: '', description: '', debit_amount: 0, credit_amount: 0 },
+        { account_id: '', party_id: '', description: '', debit_amount: 0, credit_amount: 0 },
+        { account_id: '', party_id: '', description: '', debit_amount: 0, credit_amount: 0 },
       ],
     },
   });
@@ -175,8 +183,8 @@ export const useJournalEntryForm = (
         currency_code: 'SAR',
         exchange_rate: 1,
         lines: [
-          { account_id: '', description: '', debit_amount: 0, credit_amount: 0 },
-          { account_id: '', description: '', debit_amount: 0, credit_amount: 0 },
+          { account_id: '', party_id: '', description: '', debit_amount: 0, credit_amount: 0 },
+          { account_id: '', party_id: '', description: '', debit_amount: 0, credit_amount: 0 },
         ],
       });
     }
@@ -193,10 +201,15 @@ export const useJournalEntryForm = (
     errors,
     setValue,
     fields,
+    watchedLines: lines,
     append,
     remove,
     accounts,
     isLoadingAccounts,
+    isAccountsError,
+    refetchAccounts,
+    parties,
+    isLoadingParties,
     currencies,
     selectedCurrency,
     exchangeRate,

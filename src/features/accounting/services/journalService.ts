@@ -8,8 +8,10 @@ interface RawJournalLine {
   debit_amount: number | null;
   credit_amount: number | null;
   account_id?: string;
+  party_id?: string | null;
   description?: string | null;
   account?: { name_ar?: string; code?: string } | null;
+  party?: { id?: string; name?: string } | Array<{ id?: string; name?: string }> | null;
 }
 
 interface RawInvoiceParty {
@@ -70,16 +72,53 @@ export const journalService = {
     const journals = (rawData || []) as RawJournal[];
 
     return journals.map((j): UIJournalEntry => {
-      // Extract party name from polymorphic reference (invoices for now)
-      let partyName: string | null = null;
-      const inv = j.invoice;
-      if (inv && !Array.isArray(inv)) {
-        if (inv.party && !Array.isArray(inv.party)) {
-          partyName = inv.party.name || null;
+      const lines = j.journal_entry_lines || [];
+
+      const formattedLines = lines.map(l => {
+        const rawParty = Array.isArray(l.party) ? l.party[0] : l.party;
+        return {
+          debit_amount: l.debit_amount || 0,
+          credit_amount: l.credit_amount || 0,
+          description: l.description || '',
+          ...(l.party_id ? { party_id: l.party_id } : {}),
+          ...(rawParty?.name
+            ? {
+                party: {
+                  ...(rawParty.id ? { id: rawParty.id } : {}),
+                  name: rawParty.name,
+                },
+              }
+            : {}),
+          ...(l.account
+            ? {
+                account: {
+                  name_ar: l.account.name_ar ?? '',
+                  name: l.account.name_ar ?? '',
+                  code: l.account.code ?? '',
+                },
+              }
+            : {}),
+        };
+      });
+
+      // Extract unique party names from journal entry lines first, fallback to invoice.party
+      const linePartyNames = Array.from(
+        new Set(
+          formattedLines
+            .map(l => l.party?.name?.trim())
+            .filter((name): name is string => Boolean(name))
+        )
+      );
+
+      let partyName: string | null = linePartyNames.length > 0 ? linePartyNames.join(' ، ') : null;
+      if (!partyName) {
+        const inv = j.invoice;
+        if (inv && !Array.isArray(inv)) {
+          if (inv.party && !Array.isArray(inv.party)) {
+            partyName = inv.party.name || null;
+          }
         }
       }
-
-      const lines = j.journal_entry_lines || [];
 
       return {
         id: j.id,
@@ -92,20 +131,7 @@ export const journalService = {
         status: (j.status || 'posted') as JournalStatus,
         created_at: j.created_at,
         created_by: j.created_by || '',
-        journal_entry_lines: lines.map(l => ({
-          debit_amount: l.debit_amount || 0,
-          credit_amount: l.credit_amount || 0,
-          description: l.description || '',
-          ...(l.account
-            ? {
-                account: {
-                  name_ar: l.account.name_ar ?? '',
-                  name: l.account.name_ar ?? '',
-                  code: l.account.code ?? '',
-                },
-              }
-            : {}),
-        })),
+        journal_entry_lines: formattedLines,
         total_amount: Math.max(
           lines.reduce((sum, l) => sum + (l.debit_amount || 0), 0),
           lines.reduce((sum, l) => sum + (l.credit_amount || 0), 0)

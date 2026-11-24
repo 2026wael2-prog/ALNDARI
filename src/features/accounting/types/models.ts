@@ -34,10 +34,12 @@ export interface JournalLine {
   id?: string | undefined;
   journal_entry_id?: string | undefined;
   account_id: string;
+  party_id?: string | null | undefined;
   description: string;
   debit_amount: number;
   credit_amount: number;
   account_name?: string | undefined; // Optional for UI display
+  party_name?: string | undefined; // Optional for UI display
 }
 
 export interface JournalEntry {
@@ -60,6 +62,11 @@ export interface UIJournalLine {
   description?: string;
   debit_amount?: number;
   credit_amount?: number;
+  party_id?: string | null;
+  party?: {
+    id?: string;
+    name?: string;
+  } | null;
   account?: {
     name?: string;
     name_ar?: string;

@@ -81,6 +81,7 @@ export const invoiceSchema = z.object({
 export const journalLineSchema = z
   .object({
     account_id: uuidSchema,
+    party_id: z.union([uuidSchema, z.literal('')]).optional().nullable(),
     debit_amount: nonNegativeNumberSchema.default(0),
     credit_amount: nonNegativeNumberSchema.default(0),
     description: z.string().optional(),

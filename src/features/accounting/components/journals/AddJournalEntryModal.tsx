@@ -27,10 +27,15 @@ const AddJournalEntryModal: React.FC<AddJournalEntryModalProps> = ({
     errors,
     setValue,
     fields,
+    watchedLines,
     append,
     remove,
     accounts,
     isLoadingAccounts,
+    isAccountsError,
+    refetchAccounts,
+    parties,
+    isLoadingParties,
     currencies,
     selectedCurrency,
     exchangeRate,
@@ -67,7 +72,7 @@ const AddJournalEntryModal: React.FC<AddJournalEntryModalProps> = ({
       icon={Calculator}
       title="قيد يومية جديد"
       description="إنشاء قيد محاسبي يدوي في دفتر اليومية المزدوج"
-      size="2xl"
+      size="3xl"
       footer={footer}
     >
       <form id="add-journal-entry-form" onSubmit={handleSubmit} className="flex flex-col">
@@ -146,6 +151,7 @@ const AddJournalEntryModal: React.FC<AddJournalEntryModalProps> = ({
           {/* Lines Table */}
           <JournalEntryTable
             fields={fields}
+            watchedLines={watchedLines}
             append={append}
             remove={remove}
             register={register}
@@ -153,6 +159,12 @@ const AddJournalEntryModal: React.FC<AddJournalEntryModalProps> = ({
             setValue={setValue}
             accounts={accounts}
             isLoadingAccounts={isLoadingAccounts}
+            isAccountsError={isAccountsError}
+            onRetryAccounts={() => {
+              void refetchAccounts();
+            }}
+            parties={parties}
+            isLoadingParties={isLoadingParties}
           />
 
           {/* Totals Section */}

@@ -64,10 +64,12 @@ const JournalTable: React.FC = () => {
       result = result.filter(
         j =>
           j.description?.toLowerCase().includes(lowerTerm) ||
+          j.party_name?.toLowerCase().includes(lowerTerm) ||
           j.entry_number?.toString().includes(lowerTerm) ||
           j.journal_entry_lines?.some(
             (l: UIJournalLine) =>
               l.description?.toLowerCase().includes(lowerTerm) ||
+              l.party?.name?.toLowerCase().includes(lowerTerm) ||
               l.account?.name?.toLowerCase().includes(lowerTerm) ||
               l.account?.name_ar?.toLowerCase().includes(lowerTerm) ||
               l.account?.code?.toLowerCase().includes(lowerTerm)
@@ -165,7 +167,7 @@ const JournalTable: React.FC = () => {
             />
             <input
               type="text"
-              placeholder="بحث برقم القيد، الوصف، أو اسم الحساب..."
+              placeholder="بحث برقم القيد، الوصف، الحساب، أو العميل..."
               className="h-9 w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] pe-9 ps-3 text-xs font-semibold text-[var(--app-text)] outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               value={searchTerm}
               onChange={e => {

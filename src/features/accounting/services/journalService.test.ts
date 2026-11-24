@@ -130,6 +130,47 @@ describe('journalService', () => {
             expect(formatted.total_amount).toBe(1500); // Fallback to max amount across all lines
         });
 
+        it('should extract party names directly from journal_entry_lines when present', async () => {
+            const rawData = [
+                {
+                    id: 'j-3',
+                    company_id: mockCompanyId,
+                    entry_number: 1003,
+                    entry_date: '2026-11-24',
+                    description: 'Manual customer adjustment',
+                    reference_type: 'manual',
+                    reference_id: null,
+                    status: 'posted',
+                    created_at: '2026-11-24T12:00:00Z',
+                    created_by: mockUserId,
+                    journal_entry_lines: [
+                        {
+                            debit_amount: 300,
+                            credit_amount: 0,
+                            party_id: 'p-1',
+                            party: { id: 'p-1', name: 'شركة النور' },
+                            account: { name_ar: 'ذمم العملاء', code: '1100' },
+                        },
+                        {
+                            debit_amount: 0,
+                            credit_amount: 300,
+                            party_id: null,
+                            party: null,
+                            account: { name_ar: 'الصندوق الرئيسي', code: '1010' },
+                        },
+                    ],
+                },
+            ];
+
+            vi.mocked(journalsApi.fetchJournals).mockResolvedValue({ data: rawData, error: null } as unknown as Awaited<ReturnType<typeof journalsApi.fetchJournals>>);
+
+            const result = await journalService.formatJournalsForUI(mockCompanyId, undefined, 0);
+
+            expect(result[0].party_name).toBe('شركة النور');
+            expect(result[0].journal_entry_lines[0].party?.name).toBe('شركة النور');
+            expect(result[0].journal_entry_lines[0].party_id).toBe('p-1');
+        });
+
         it('should throw a parsed network error when the API fails (raw internals masked)', async () => {
             const apiError = new Error('Fetch failed');
             vi.mocked(journalsApi.fetchJournals).mockResolvedValue({ data: null, error: apiError } as unknown as Awaited<ReturnType<typeof journalsApi.fetchJournals>>);

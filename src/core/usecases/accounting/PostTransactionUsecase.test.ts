@@ -174,4 +174,55 @@ describe('PostTransactionUsecase', () => {
 
     expect(journalsApi.postJournalEntryRPC).not.toHaveBeenCalled();
   });
+
+  it('should forward optional party_id per line when provided', async () => {
+    const validPartyUUID = 'c3c30000-0000-0000-0000-000000000003';
+    const mockInputData = {
+      date: '2026-11-24',
+      description: 'Customer settlement',
+      lines: [
+        {
+          account_id: validUUID1,
+          party_id: validPartyUUID,
+          debit_amount: 250,
+          credit_amount: 0,
+          description: 'Customer debit',
+        },
+        {
+          account_id: validUUID2,
+          party_id: '',
+          debit_amount: 0,
+          credit_amount: 250,
+          description: 'Cash credit',
+        },
+      ],
+    };
+
+    (journalsApi.postJournalEntryRPC as any).mockResolvedValue('journal-party-1');
+
+    await PostTransactionUsecase.execute(mockInputData, mockCompanyId, mockUserId);
+
+    expect(journalsApi.postJournalEntryRPC).toHaveBeenCalledWith(mockCompanyId, mockUserId, {
+      date: '2026-11-24',
+      description: 'Customer settlement',
+      lines: [
+        {
+          account_id: validUUID1,
+          party_id: validPartyUUID,
+          debit: 250,
+          credit: 0,
+          description: 'Customer debit',
+        },
+        {
+          account_id: validUUID2,
+          debit: 0,
+          credit: 250,
+          description: 'Cash credit',
+        },
+      ],
+      reference_type: 'manual',
+      currency_code: 'SAR',
+      exchange_rate: 1,
+    });
+  });
 });

@@ -17,6 +17,7 @@ export class PostTransactionUsecase {
       description: validatedData.description,
       lines: validatedData.lines.map(line => ({
         account_id: line.account_id,
+        ...(line.party_id ? { party_id: line.party_id } : {}),
         debit: line.debit_amount,
         credit: line.credit_amount,
         description: line.description,

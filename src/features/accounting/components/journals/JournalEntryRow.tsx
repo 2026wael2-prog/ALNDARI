@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle2, Clock, XCircle } from 'lucide-react';
-import {  formatNumberDisplay } from '../../../../core/utils';
+import { ChevronDown, ChevronRight, CheckCircle2, Clock, XCircle, User } from 'lucide-react';
+import { formatNumberDisplay } from '../../../../core/utils';
 import Badge from '../../../../ui/base/Badge';
 
 import type { UIJournalEntry, UIJournalLine } from '../../types/models';
@@ -78,8 +78,9 @@ const JournalEntryRow: React.FC<JournalEntryRowProps> = ({ entry }) => {
                 <td className="px-3 py-2 border-s border-[var(--app-border)] text-right min-w-[250px] text-sm text-[var(--app-text)] font-medium">
                     {entry.description}
                     {entry.party_name && (
-                        <span className="block text-[11px] text-[var(--app-text-secondary)] mt-0.5 font-normal">
-                            {entry.party_name}
+                        <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            <User size={11} />
+                            <span>{entry.party_name}</span>
                         </span>
                     )}
                 </td>
@@ -116,6 +117,7 @@ const JournalEntryRow: React.FC<JournalEntryRowProps> = ({ entry }) => {
                                     <tr>
                                         <th className="px-4 py-2 border-s border-[var(--app-border)] text-right w-1/4">الحساب</th>
                                         <th className="px-4 py-2 border-s border-[var(--app-border)] text-right w-24">رمز الحساب</th>
+                                        <th className="px-4 py-2 border-s border-[var(--app-border)] text-right w-44">العميل / الطرف</th>
                                         <th className="px-4 py-2 border-s border-[var(--app-border)] text-right">البيان / الشرح</th>
                                         <th className="px-4 py-2 border-s border-[var(--app-border)] text-start w-32 text-emerald-700">مدين</th>
                                         <th className="px-4 py-2 text-start w-32 text-red-700">دائن</th>
@@ -129,6 +131,9 @@ const JournalEntryRow: React.FC<JournalEntryRowProps> = ({ entry }) => {
                                             </td>
                                             <td className="px-4 py-2 border-s border-[var(--app-border)] font-mono text-[var(--app-text-secondary)] text-center">
                                                 {line.account?.code || '---'}
+                                            </td>
+                                            <td className="px-4 py-2 border-s border-[var(--app-border)] text-xs font-bold text-blue-700 dark:text-blue-300">
+                                                {line.party?.name || '-'}
                                             </td>
                                             <td className="px-4 py-2 border-s border-[var(--app-border)] text-[var(--app-text-secondary)] text-xs">
                                                 {line.description || '-'}
@@ -144,7 +149,7 @@ const JournalEntryRow: React.FC<JournalEntryRowProps> = ({ entry }) => {
                                 </tbody>
                                 <tfoot className="bg-[var(--app-surface-hover)] font-bold border-t border-[var(--app-border)]">
                                     <tr>
-                                        <td colSpan={3} className="px-4 py-2 text-start bg-[var(--app-surface-hover)] border-s border-[var(--app-border)]">الإجمالي</td>
+                                        <td colSpan={4} className="px-4 py-2 text-start bg-[var(--app-surface-hover)] border-s border-[var(--app-border)]">الإجمالي</td>
                                         <td className="px-4 py-2 text-start font-mono text-emerald-800 border-s border-[var(--app-border)]">{formatNumberDisplay(totalDebit)}</td>
                                         <td className="px-4 py-2 text-start font-mono text-red-800">{formatNumberDisplay(totalCredit)}</td>
                                     </tr>

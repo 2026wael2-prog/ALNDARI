@@ -148,10 +148,13 @@ export const useUpdateInvoice = () => {
       const rpcRes = (res ?? {}) as {
         total_amount?: number;
         total_document_amount?: number;
+        currency_code?: string;
+        exchange_rate?: number;
         status?: string;
       };
       const newBaseTotal = Number(rpcRes.total_amount);
       const newDocTotal = Number(rpcRes.total_document_amount);
+      const newCurrency = (rpcRes.currency_code || vars.currency || 'SAR').toUpperCase();
       const hasNewTotal = Number.isFinite(newBaseTotal) && newBaseTotal >= 0;
 
       if (hasNewTotal) {
@@ -159,13 +162,16 @@ export const useUpdateInvoice = () => {
           if (!Array.isArray(old)) return old;
           return old.map((row: Record<string, unknown>) => {
             if (row?.id !== vars.invoiceId) return row;
-            const isForeign = String(row.currencyCode || row.currency_code || 'SAR') !== 'SAR';
+            const isForeign = newCurrency !== 'SAR';
             const displayTotal =
               isForeign && Number.isFinite(newDocTotal) && newDocTotal > 0
                 ? newDocTotal
                 : newBaseTotal;
             return {
               ...row,
+              currencyCode: newCurrency,
+              currency_code: newCurrency,
+              ...(rpcRes.exchange_rate ? { exchange_rate: rpcRes.exchange_rate } : {}),
               total: displayTotal,
               baseTotal: newBaseTotal,
               total_amount: newBaseTotal,

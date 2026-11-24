@@ -24,7 +24,7 @@ const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center rounded-[var(--radius)] font-semibold tracking-wide transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed border';
+    'inline-flex items-center justify-center rounded-[var(--radius)] font-semibold tracking-wide transition-[background-color,border-color,color,transform] duration-75 ease-out active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed border';
 
   const variants = {
     primary:

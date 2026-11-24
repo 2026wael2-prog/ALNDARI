@@ -320,11 +320,11 @@ export const supabase: ReturnType<typeof createClient<Database>> = (() => {
       db: {
         schema: 'public',
       },
-      // Realtime channel configuration: stable heartbeat + bounded reconnect backoff
-      // so transient network drops recover cleanly without connection storms.
+      // Realtime channel configuration: 12s heartbeat stays well under ISP/NAT 25-30s
+      // idle WebSocket timeouts and prevents the 28-second disconnect/reconnect loop.
       realtime: {
-        timeout: 20000,
-        heartbeatIntervalMs: 25000,
+        timeout: 30000,
+        heartbeatIntervalMs: 12000,
         reconnectAfterMs: (tries: number) =>
           [2000, 5000, 10000, 20000, 30000][Math.min(Math.max(tries - 1, 0), 4)] ?? 30000,
       },

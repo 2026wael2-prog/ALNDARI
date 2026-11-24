@@ -76,7 +76,7 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
         <CheckCircle2 size={10} />
         خالص
       </span>
-    ) : row.payment_status === 'partially_paid' ? (
+    ) : row.payment_status === 'partially_paid' || row.payment_status === 'partial' ? (
       <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
         <Clock size={10} />
         جزئي

@@ -62,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     <div className="no-print sticky top-0 z-50 flex-shrink-0">
       <header
         data-main-header="true"
-        className="flex h-11 items-center justify-between border-b border-slate-200/90 bg-[var(--app-surface)]/95 px-3 shadow-xs backdrop-blur-md transition-colors dark:border-slate-800 md:px-4"
+        className="flex h-11 items-center justify-between border-b border-slate-200/90 bg-[var(--app-surface)] px-3 shadow-xs dark:border-slate-800 md:px-4"
       >
         {/* Left side: Logo/Title (Mobile) / Page Title (Desktop) */}
         <div className="flex flex-1 items-center gap-3 md:flex-none">

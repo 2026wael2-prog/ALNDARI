@@ -1,22 +1,41 @@
 import React, { useState } from 'react';
-import { FileText, CheckCircle2, Eye, ArrowUpDown } from 'lucide-react';
+import {
+  FileText,
+  CheckCircle2,
+  Eye,
+  ArrowUpDown,
+  AlertTriangle,
+  Percent,
+  CheckCheck,
+  Edit3,
+  X,
+} from 'lucide-react';
 import { formatCurrency, formatLocalDate, cn } from '../../../core/utils';
 import InvoiceDetailsModal from '../../sales/components/details/InvoiceDetailsModal';
 import { usePartyInvoicesFilter } from '../hooks/usePartyInvoicesFilter';
 import { PartyInvoicesToolbar } from './PartyInvoicesToolbar';
+import type { InvoicePaymentPreset, SelectedInvoiceSnapshot } from '../hooks/useBondForm';
+import type { InvoiceSettlementEvaluation } from '../invoiceAllocationGuard';
 
 interface PartyInvoicesListProps {
   partyId: string;
   partyType: 'customer' | 'supplier';
   onSelectInvoice: (invoice: any) => void;
   selectedInvoiceId?: string | undefined;
+  selectedInvoice?: SelectedInvoiceSnapshot | null | undefined;
+  settlementPreview?: InvoiceSettlementEvaluation | null | undefined;
+  onApplyPreset?: ((preset: InvoicePaymentPreset) => void) | undefined;
 }
 
+/* eslint-disable max-lines-per-function, complexity */
 const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
   partyId,
   partyType,
   onSelectInvoice,
   selectedInvoiceId,
+  selectedInvoice,
+  settlementPreview,
+  onApplyPreset,
 }) => {
   const {
     invoices,
@@ -25,9 +44,12 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
     setSearchQuery,
     statusFilter,
     setStatusFilter,
+    currencyFilter,
+    setCurrencyFilter,
+    availableCurrencies,
     handleSort,
     processedInvoices,
-    totals,
+    totalsByCurrency,
   } = usePartyInvoicesFilter(partyId, partyType);
   const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
 
@@ -72,9 +94,156 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
           count={processedInvoices.length}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
+          currencyFilter={currencyFilter}
+          onCurrencyFilterChange={setCurrencyFilter}
+          availableCurrencies={availableCurrencies}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
         />
+
+        {/* Selected Invoice Partial/Full Settlement Control Panel */}
+        {selectedInvoice && settlementPreview && (
+          <div
+            data-testid="selected-invoice-settlement-panel"
+            className={cn(
+              'space-y-2.5 border-b p-3 text-xs transition-colors',
+              settlementPreview.mode === 'over_remaining' ||
+                settlementPreview.mode === 'currency_mismatch'
+                ? 'border-rose-200 bg-rose-50/80 dark:border-rose-900/40 dark:bg-rose-950/20'
+                : settlementPreview.mode === 'partial'
+                  ? 'border-amber-200 bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/20'
+                  : 'border-blue-200 bg-blue-50/70 dark:border-blue-900/40 dark:bg-blue-950/20'
+            )}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg bg-blue-600 px-2 py-0.5 font-mono text-[11px] font-black text-white">
+                  #{selectedInvoice.invoiceNumber}
+                </span>
+                <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  {selectedInvoice.currency}
+                </span>
+                {settlementPreview.mode === 'partial' && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    <Percent size={11} />
+                    سداد جزئي (ستبقى الفاتورة مفتوحة بالمتبقي)
+                  </span>
+                )}
+                {settlementPreview.mode === 'full' && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <CheckCheck size={11} />
+                    سداد كامل المتبقي (ستُغلق الفاتورة)
+                  </span>
+                )}
+                {settlementPreview.mode === 'over_remaining' && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-800 dark:border-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+                    <AlertTriangle size={11} />
+                    المبلغ يتجاوز المتبقي على الفاتورة
+                  </span>
+                )}
+                {settlementPreview.mode === 'currency_mismatch' && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-800 dark:border-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+                    <AlertTriangle size={11} />
+                    عملة السند ({settlementPreview.bondCurrency}) تختلف عن عملة الفاتورة (
+                    {settlementPreview.invoiceCurrency})
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onSelectInvoice(null)}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600 hover:border-rose-300 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                title="إلغاء ربط السند بفاتورة محددة"
+              >
+                <X size={11} />
+                <span>إلغاء الربط</span>
+              </button>
+            </div>
+
+            {/* Quick Settlement Mode Buttons */}
+            {onApplyPreset && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                  طريقة سداد الفاتورة:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onApplyPreset('full')}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black transition-all',
+                    settlementPreview.mode === 'full'
+                      ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                  )}
+                >
+                  <CheckCheck size={11} />
+                  <span>تسديد كامل المتبقي</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onApplyPreset('half')}
+                  className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-white px-2 py-1 text-[10px] font-black text-amber-700 transition-all hover:bg-amber-50 dark:border-amber-800/60 dark:bg-slate-800 dark:text-amber-300"
+                >
+                  <span>دفعة جزئية 50%</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onApplyPreset('quarter')}
+                  className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-white px-2 py-1 text-[10px] font-black text-amber-700 transition-all hover:bg-amber-50 dark:border-amber-800/60 dark:bg-slate-800 dark:text-amber-300"
+                >
+                  <span>دفعة جزئية 25%</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onApplyPreset('custom')}
+                  className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-2 py-1 text-[10px] font-black text-blue-700 transition-all hover:bg-blue-50 dark:border-blue-800/60 dark:bg-slate-800 dark:text-blue-300"
+                >
+                  <Edit3 size={11} />
+                  <span>مبلغ جزئي مخصص</span>
+                </button>
+              </div>
+            )}
+
+            {/* Live Before/After Invoice Remaining Numbers */}
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/80 bg-white/90 p-2 dark:border-slate-800 dark:bg-slate-900/80">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-400">المتبقي حالياً</span>
+                <span dir="ltr" className="font-mono text-xs font-black text-slate-800 dark:text-slate-100">
+                  {formatCurrency(selectedInvoice.docRemaining, selectedInvoice.currency)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-400">الدفعة الحالية</span>
+                <span
+                  dir="ltr"
+                  className={cn(
+                    'font-mono text-xs font-black',
+                    settlementPreview.mode === 'over_remaining'
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
+                  )}
+                >
+                  {formatCurrency(settlementPreview.enteredAmount, settlementPreview.bondCurrency)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-400">المتبقي بعد السند</span>
+                <span
+                  dir="ltr"
+                  className={cn(
+                    'font-mono text-xs font-black',
+                    settlementPreview.remainingAfter > 0
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
+                  )}
+                >
+                  {formatCurrency(settlementPreview.remainingAfter, selectedInvoice.currency)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Excel Spreadsheet Table */}
         <div className="custom-scrollbar max-h-72 overflow-x-auto overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800">
@@ -155,7 +324,7 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
               ) : (
                 processedInvoices.map((inv: any, idx: number) => {
                   const isSelected = selectedInvoiceId === inv.id;
-                  const currency = inv.currency_code || inv.currency || 'SAR';
+                  const currency = inv._currency || inv.currency_code || inv.currency || 'SAR';
 
                   return (
                     <tr
@@ -200,6 +369,16 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
                             )}
                           >
                             {inv.invoice_number}
+                          </span>
+                          <span
+                            className={cn(
+                              'rounded px-1 py-0.2 font-mono text-[9px] font-black',
+                              currency === 'YER'
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                            )}
+                          >
+                            {currency}
                           </span>
                         </div>
                       </td>
@@ -291,39 +470,50 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
           </table>
         </div>
 
-        {/* Excel Summary Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 py-2.5 text-xs dark:border-slate-800 dark:bg-slate-850">
-          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-            <span>عدد الفواتير المعروضة:</span>
-            <span className="font-mono text-slate-900 dark:text-white">
-              {processedInvoices.length}
-            </span>
-            {selectedInvoiceId && (
-              <span className="mr-2 rounded bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                تم تحديد فاتورة للسداد
+        {/* Strict Per-Currency Summary Footer */}
+        <div className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50 px-4 py-2.5 text-xs dark:border-slate-800 dark:bg-slate-850">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-2">
+              <span>عدد الفواتير المعروضة:</span>
+              <span className="font-mono text-slate-900 dark:text-white">
+                {processedInvoices.length}
               </span>
-            )}
+            </div>
+            <span className="text-[10px] text-slate-400">
+              اضغط على أي فاتورة لاختيار سدادها بالكامل أو تسديد دفعة جزئية منها
+            </span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1 font-mono">
-              <span className="text-[10px] font-bold text-slate-400">الإجمالي:</span>
-              <span className="font-bold text-slate-700 dark:text-slate-300">
-                {formatCurrency(totals.total)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 font-mono">
-              <span className="text-[10px] font-bold text-slate-400">المسدد:</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                {formatCurrency(totals.paid)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 font-mono">
-              <span className="text-[10px] font-bold text-slate-400">المتبقي:</span>
-              <span className="font-black text-rose-600 dark:text-rose-400">
-                {formatCurrency(totals.remaining)}
-              </span>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {totalsByCurrency.map(ct => (
+              <div
+                key={ct.currency}
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900"
+              >
+                <span
+                  className={cn(
+                    'rounded px-1.5 py-0.5 font-mono text-[10px] font-black',
+                    ct.currency === 'YER'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                  )}
+                >
+                  {ct.currency} ({ct.count})
+                </span>
+                <span className="font-mono text-slate-600 dark:text-slate-300" dir="ltr">
+                  <span className="ml-1 font-sans text-[10px] text-slate-400">الإجمالي:</span>
+                  {formatCurrency(ct.total, ct.currency)}
+                </span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400" dir="ltr">
+                  <span className="ml-1 font-sans text-[10px] text-slate-400">المسدد:</span>
+                  {formatCurrency(ct.paid, ct.currency)}
+                </span>
+                <span className="font-mono font-black text-rose-600 dark:text-rose-400" dir="ltr">
+                  <span className="ml-1 font-sans text-[10px] text-slate-400">المتبقي:</span>
+                  {formatCurrency(ct.remaining, ct.currency)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -339,5 +529,6 @@ const PartyInvoicesList: React.FC<PartyInvoicesListProps> = ({
     </>
   );
 };
+/* eslint-enable max-lines-per-function, complexity */
 
 export default PartyInvoicesList;

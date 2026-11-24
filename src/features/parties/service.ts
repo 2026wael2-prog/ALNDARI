@@ -5,6 +5,7 @@ import {
   calculatePartyStats,
   fetchPartyStatement,
   fetchStatementTransactionDetails,
+  getPartyCurrencyBalance,
 } from './services/partyStatementService';
 import { validateAndSanitizePartyData } from './services/partyValidationService';
 import type { Party, PartyCategory, PartyFormData, PartyType } from './types';
@@ -27,12 +28,23 @@ export const partiesService = {
       const balanceRecords = p.party_balances as Array<{ balance: number; type: string }> | null;
       const firstRecord = balanceRecords?.[0];
       const balance = firstRecord ? firstRecord.balance : 0;
+      const balancesByCurrency = (p.balances_by_currency as Party['balances_by_currency']) ?? [];
+      const sar_balance = getPartyCurrencyBalance(
+        { balance, balances_by_currency: balancesByCurrency },
+        'SAR'
+      );
+      const yer_balance = getPartyCurrencyBalance(
+        { balance, balances_by_currency: balancesByCurrency },
+        'YER'
+      );
       return {
         ...p,
         category_id: p.category_id,
         category: (p.party_categories as Record<string, unknown>)?.name || 'عام',
         balance,
-        balances_by_currency: (p.balances_by_currency as Party['balances_by_currency']) ?? [],
+        sar_balance,
+        yer_balance,
+        balances_by_currency: balancesByCurrency,
         status: p.status || 'active',
       };
     }) as Party[];

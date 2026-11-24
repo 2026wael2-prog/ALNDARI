@@ -2,6 +2,8 @@ import React from 'react';
 import { cn, formatCurrency } from '../../../core/utils';
 import type { BondType } from '../types';
 import type { BondPartyBalanceSummary } from '../utils/bondPartyBalance';
+import type { SelectedInvoiceSnapshot } from '../hooks/useBondForm';
+import type { InvoiceSettlementEvaluation } from '../invoiceAllocationGuard';
 
 interface PartyLike {
   name?: string | null;
@@ -21,6 +23,8 @@ interface BondSummaryProps {
   selectedParty: PartyLike | null | undefined;
   partyBalanceSummary?: BondPartyBalanceSummary | null | undefined;
   selectedInvoiceId: string | null | undefined;
+  selectedInvoice?: SelectedInvoiceSnapshot | null | undefined;
+  invoiceSettlementPreview?: InvoiceSettlementEvaluation | null | undefined;
 }
 
 interface SummaryRowProps {
@@ -71,6 +75,8 @@ export const BondSummary: React.FC<BondSummaryProps> = ({
   selectedParty,
   partyBalanceSummary,
   selectedInvoiceId,
+  selectedInvoice,
+  invoiceSettlementPreview,
 }) => {
   const prevDir = partyBalanceSummary?.previousDirection;
   const prevCurr = partyBalanceSummary?.previous.primaryCurrency ?? selectedCurrency;
@@ -128,11 +134,43 @@ export const BondSummary: React.FC<BondSummaryProps> = ({
         )}
         <SummaryRow label="الصندوق / البنك:" value={selectedCashAccount?.name ?? UNSET_LABEL} />
         {hasLinkedInvoice(selectedInvoiceId) && (
-          <SummaryRow
-            label="الفاتورة المرتبطة:"
-            value="نعم (محددة للسداد)"
-            valueClassName="font-mono font-bold text-blue-600 dark:text-blue-400"
-          />
+          <>
+            <SummaryRow
+              label="الفاتورة المرتبطة:"
+              value={
+                selectedInvoice
+                  ? `#${selectedInvoice.invoiceNumber} (${
+                      invoiceSettlementPreview?.mode === 'partial'
+                        ? 'سداد جزئي'
+                        : invoiceSettlementPreview?.mode === 'full'
+                          ? 'سداد كامل'
+                          : selectedInvoice.currency
+                    })`
+                  : 'نعم (محددة للسداد)'
+              }
+              valueClassName={cn(
+                'font-mono font-bold',
+                invoiceSettlementPreview?.mode === 'partial'
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-blue-600 dark:text-blue-400'
+              )}
+            />
+            {selectedInvoice && invoiceSettlementPreview && (
+              <SummaryRow
+                label="المتبقي على الفاتورة بعد السند:"
+                value={
+                  <span dir="ltr" className="font-mono">
+                    {formatCurrency(invoiceSettlementPreview.remainingAfter, selectedInvoice.currency)}
+                  </span>
+                }
+                valueClassName={
+                  invoiceSettlementPreview.remainingAfter > 0
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-emerald-600 dark:text-emerald-400'
+                }
+              />
+            )}
+          </>
         )}
         <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
           <span className="font-bold text-slate-700 dark:text-slate-300">المبلغ الصافي:</span>

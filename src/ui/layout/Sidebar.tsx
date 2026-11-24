@@ -97,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Sidebar - Nimble, Sleek & Compact */}
       <aside
         className={cn(
-          'fixed inset-y-0 z-50 flex w-60 max-w-[72vw] flex-col bg-[var(--app-surface)] shadow-2xl transition-transform duration-300 ease-out sm:w-64 md:hidden',
+          'fixed inset-y-0 z-50 flex w-60 max-w-[72vw] flex-col bg-[var(--app-surface)] shadow-2xl transition-transform duration-100 ease-out sm:w-64 md:hidden',
           dir === 'rtl'
             ? 'right-0 rounded-l-3xl border-l border-[var(--app-border)]'
             : 'left-0 rounded-r-3xl border-r border-[var(--app-border)]',

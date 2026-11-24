@@ -284,13 +284,18 @@ export function invalidateByPreset(
     const primaryDomain = PRESET_PRIMARY_DOMAIN[preset];
     const primaryKeys = primaryDomain ? new Set<string>(DOMAIN_KEYS[primaryDomain]) : uniqueKeys;
 
-    void queryClient.invalidateQueries({
-      predicate: query => {
-        const firstKey = query.queryKey[0];
-        return typeof firstKey === 'string' && primaryKeys.has(firstKey);
+    // cancelRefetch: false prevents background Realtime events from aborting
+    // already in-flight user fetches (which previously caused AbortError storms).
+    void queryClient.invalidateQueries(
+      {
+        predicate: query => {
+          const firstKey = query.queryKey[0];
+          return typeof firstKey === 'string' && primaryKeys.has(firstKey);
+        },
+        refetchType: 'active',
       },
-      refetchType: 'active',
-    });
+      { cancelRefetch: false }
+    );
 
     void queryClient.invalidateQueries({
       predicate: query => {

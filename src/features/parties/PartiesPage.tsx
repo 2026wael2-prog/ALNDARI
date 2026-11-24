@@ -4,7 +4,7 @@ import { Users, UserPlus, FileText, LayoutGrid, BarChart3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useParties, usePartyMutations, usePartiesView } from './hooks';
-import type { Party, PartyView, PartyType, PartyFormData } from './types';
+import type { Party, PartyCurrencyFilter, PartyView, PartyType, PartyFormData } from './types';
 import { useAIPrefillStore } from '../ai/store';
 import MicroHeader from '../../ui/base/MicroHeader';
 import PartyTypeSwitcher from './components/PartyTypeSwitcher';
@@ -57,8 +57,18 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
           const next = new URLSearchParams(prev);
           if (nextTab === 'list') {
             next.delete('tab');
+            next.delete('party');
+            next.delete('currency');
+            next.delete('from');
+            next.delete('to');
           } else {
             next.set('tab', nextTab);
+            if (nextTab !== 'statements') {
+              next.delete('party');
+              next.delete('currency');
+              next.delete('from');
+              next.delete('to');
+            }
           }
           return next;
         },
@@ -82,7 +92,37 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
   }, [searchParams, setActiveView, handleAddNew, setSearchParams]);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
-  const [selectedPartyForStatementId, setSelectedPartyForStatementId] = useState<string>('');
+  const [currencyFilter, setCurrencyFilter] = useState<PartyCurrencyFilter>('ALL');
+  const [selectedPartyForStatementId, setSelectedPartyForStatementId] = useState<string>(
+    () => searchParams.get('party') || ''
+  );
+  const [selectedStatementCurrency, setSelectedStatementCurrency] = useState<string>(
+    () => searchParams.get('currency') || 'ALL'
+  );
+
+  const openPartyStatement = useCallback(
+    (party: Party, currencyCode?: string) => {
+      const nextCurr = currencyCode || 'ALL';
+      setSelectedPartyForStatementId(party.id);
+      setSelectedStatementCurrency(nextCurr);
+      setActiveView('statements');
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.set('tab', 'statements');
+          next.set('party', party.id);
+          if (nextCurr && nextCurr !== 'ALL') {
+            next.set('currency', nextCurr);
+          } else {
+            next.delete('currency');
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setActiveView, setSearchParams]
+  );
 
   const { data: parties, isLoading, stats } = useParties(partyType, searchTerm);
   const { saveParty, deleteParty, isSaving } = usePartyMutations(partyType);
@@ -126,6 +166,7 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
 
   const columns = usePartiesColumns({
     partyType,
+    currencyFilter,
     onEdit: handleEdit,
     onDelete: deleteParty,
     onOpenTimeline: party => {
@@ -136,9 +177,8 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
       setSelectedSupplierForPortal(party);
       setIsPortalModalOpen(true);
     },
-    onViewStatement: party => {
-      setSelectedPartyForStatementId(party.id);
-      setActiveView('statements');
+    onViewStatement: (party, currencyCode) => {
+      openPartyStatement(party, currencyCode);
     },
   });
 
@@ -178,12 +218,18 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
             stats={stats}
             columns={columns}
             onEdit={handleEdit}
+            currencyFilter={currencyFilter}
+            onCurrencyFilterChange={setCurrencyFilter}
           />
         );
       case 'statements':
         return (
           <Suspense fallback={null}>
-            <StatementView partyType={partyType} initialPartyId={selectedPartyForStatementId} />
+            <StatementView
+              partyType={partyType}
+              initialPartyId={selectedPartyForStatementId}
+              initialCurrency={selectedStatementCurrency}
+            />
           </Suspense>
         );
       case 'analytics':
@@ -194,8 +240,7 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
               parties={parties}
               isLoading={isLoading}
               onViewStatement={party => {
-                setSelectedPartyForStatementId(party.id);
-                setActiveView('statements');
+                openPartyStatement(party);
               }}
             />
           </Suspense>

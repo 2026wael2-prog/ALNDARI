@@ -1,24 +1,82 @@
 import { useMemo } from 'react';
-import { Edit, Trash2, History, Globe, MessageCircle, FileText } from 'lucide-react';
-import type { Party, PartyType } from '../types';
+import { Edit, Trash2, History, Globe, MessageCircle, FileText, AlertTriangle } from 'lucide-react';
+import type { Party, PartyCurrencyFilter, PartyType } from '../types';
 import type { Column } from '../../../ui/common/ExcelTable';
 import Avatar from '../../../ui/base/Avatar';
 import { formatCurrency, cn } from '../../../core/utils';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { buildWhatsAppLink, hasValidWhatsAppPhone } from '../../debts/lib/whatsapp';
 import { EntityInfoDot } from '../../entity-inspector';
+import {
+  classifyPartyBalance,
+  getPartyActiveCurrencies,
+  getPartyCurrencyBalance,
+  hasMultipleActiveCurrencies,
+  PARTY_BALANCE_EPSILON,
+} from '../services/partyStatementService';
 
 interface UsePartiesColumnsProps {
   partyType: PartyType;
+  currencyFilter?: PartyCurrencyFilter;
   onEdit: (party: Party) => void;
   onDelete: (partyId: string) => void;
   onOpenTimeline: (party: Party) => void;
   onOpenPortal: (party: Party) => void;
-  onViewStatement?: (party: Party) => void;
+  onViewStatement?: (party: Party, currencyCode?: string) => void;
 }
 
+const renderCurrencyBalanceCell = (params: {
+  row: Party;
+  currency: 'SAR' | 'YER';
+  onViewStatement?: ((party: Party, currencyCode?: string) => void) | undefined;
+  isHighlighted: boolean;
+}) => {
+  const { row, currency, onViewStatement, isHighlighted } = params;
+  const val = getPartyCurrencyBalance(row, currency);
+
+  if (Math.abs(val) <= PARTY_BALANCE_EPSILON) {
+    return <span className="font-mono text-xs text-slate-300 dark:text-slate-600">—</span>;
+  }
+
+  const isDebit = val > 0;
+  const dirLabel = isDebit ? 'عليه' : 'له';
+
+  const content = (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs font-bold tracking-tighter transition-all',
+        isDebit
+          ? 'border-emerald-200/70 bg-emerald-50 text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-400'
+          : 'border-rose-200/70 bg-rose-50 text-rose-700 dark:border-rose-800/40 dark:bg-rose-950/40 dark:text-rose-400',
+        isHighlighted && 'ring-1 ring-blue-400/60',
+        onViewStatement && 'cursor-pointer hover:brightness-95'
+      )}
+    >
+      <span dir="ltr">{formatCurrency(Math.abs(val), currency)}</span>
+      <span className="font-sans text-[9px] font-black opacity-80">{dirLabel}</span>
+    </span>
+  );
+
+  if (!onViewStatement) return content;
+
+  return (
+    <button
+      type="button"
+      onClick={e => {
+        e.stopPropagation();
+        onViewStatement(row, currency);
+      }}
+      title={`عرض كشف حساب ${row.name} بعملة ${currency}`}
+    >
+      {content}
+    </button>
+  );
+};
+
+/* eslint-disable max-lines-per-function */
 export function usePartiesColumns({
   partyType,
+  currencyFilter = 'ALL',
   onEdit,
   onDelete,
   onOpenTimeline,
@@ -31,22 +89,39 @@ export function usePartiesColumns({
     () => [
       {
         header: t('name'),
-        accessor: (row: Party) => (
-          <div className="flex items-center gap-3">
-            <Avatar name={row.name} size="sm" />
-            <div className="flex translate-y-[1px] flex-col items-start">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold leading-tight text-gray-900 dark:text-white">
-                  {row.name}
-                </span>
-                <EntityInfoDot type="party" id={row.id} label={row.name} subType={partyType} />
+        accessor: (row: Party) => {
+          const isMulti = hasMultipleActiveCurrencies(row);
+          const isOppositeSign = classifyPartyBalance(row) === 'mixed_currency';
+          return (
+            <div className="flex items-center gap-3">
+              <Avatar name={row.name} size="sm" />
+              <div className="flex translate-y-[1px] flex-col items-start">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-bold leading-tight text-gray-900 dark:text-white">
+                    {row.name}
+                  </span>
+                  <EntityInfoDot type="party" id={row.id} label={row.name} subType={partyType} />
+                  {isOppositeSign ? (
+                    <span
+                      title="رصيد مدين بعملة ودائن بعملة أخرى — يتم الفصل بين العملتين بدقة"
+                      className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                    >
+                      <AlertTriangle size={9} />
+                      متعاكس العملات
+                    </span>
+                  ) : isMulti ? (
+                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-black text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                      SAR + YER
+                    </span>
+                  ) : null}
+                </div>
+                {row.email && (
+                  <span className="text-[10px] font-medium text-gray-400">{row.email}</span>
+                )}
               </div>
-              {row.email && (
-                <span className="text-[10px] font-medium text-gray-400">{row.email}</span>
-              )}
             </div>
-          </div>
-        ),
+          );
+        },
         accessorKey: 'name',
         sortKey: 'name',
         align: 'right',
@@ -59,7 +134,7 @@ export function usePartiesColumns({
           </span>
         ),
         accessorKey: 'phone',
-        width: '140px',
+        width: '130px',
         align: 'center',
       },
       {
@@ -70,7 +145,35 @@ export function usePartiesColumns({
           </span>
         ),
         accessorKey: 'category',
-        width: '100px',
+        width: '95px',
+        align: 'center',
+      },
+      {
+        header: 'رصيد (ر.س SAR)',
+        accessor: (row: Party) =>
+          renderCurrencyBalanceCell({
+            row,
+            currency: 'SAR',
+            onViewStatement,
+            isHighlighted: currencyFilter === 'SAR',
+          }),
+        accessorKey: 'sar_balance',
+        sortKey: 'sar_balance',
+        width: '145px',
+        align: 'center',
+      },
+      {
+        header: 'رصيد (ر.ي YER)',
+        accessor: (row: Party) =>
+          renderCurrencyBalanceCell({
+            row,
+            currency: 'YER',
+            onViewStatement,
+            isHighlighted: currencyFilter === 'YER',
+          }),
+        accessorKey: 'yer_balance',
+        sortKey: 'yer_balance',
+        width: '155px',
         align: 'center',
       },
       {
@@ -88,49 +191,7 @@ export function usePartiesColumns({
           </span>
         ),
         accessorKey: 'status',
-        width: '80px',
-        align: 'center',
-      },
-      {
-        header: t('balance'),
-        accessor: (row: Party) => {
-          const currencies = row.balances_by_currency?.filter(c => c.balance !== 0) || [];
-          if (currencies.length > 0) {
-            return (
-              <div className="flex flex-col items-center gap-1">
-                {currencies.map(c => (
-                  <span
-                    key={c.currency}
-                    dir="ltr"
-                    className={cn(
-                      'rounded-md px-2 py-0.5 font-mono text-xs font-bold tracking-tighter',
-                      c.balance > 0
-                        ? 'border border-emerald-200/60 bg-emerald-50 text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-400'
-                        : 'border border-rose-200/60 bg-rose-50 text-rose-700 dark:border-rose-800/40 dark:bg-rose-950/40 dark:text-rose-400'
-                    )}
-                  >
-                    {formatCurrency(c.balance, c.currency)}
-                  </span>
-                ))}
-              </div>
-            );
-          }
-          const val = Number(row.balance);
-          return (
-            <span
-              dir="ltr"
-              className={cn(
-                'font-mono text-sm font-bold tracking-tighter',
-                val === 0 ? 'text-gray-400' : val > 0 ? 'text-emerald-600' : 'text-rose-600'
-              )}
-            >
-              {formatCurrency(val)}
-            </span>
-          );
-        },
-        accessorKey: 'balance',
-        sortKey: 'balance',
-        width: '140px',
+        width: '75px',
         align: 'center',
       },
       {
@@ -142,17 +203,20 @@ export function usePartiesColumns({
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
-                  const bal = Number(row.balance) || 0;
+                  const activeCurrencies = getPartyActiveCurrencies(row);
+                  const debtParts = activeCurrencies
+                    .filter(c => c.balance > PARTY_BALANCE_EPSILON)
+                    .map(c => formatCurrency(c.balance, c.currency));
                   const msg =
                     partyType === 'customer'
-                      ? bal > 0
-                        ? `مرحباً ${row.name}، نود تذكيركم برصيد حسابكم الحالي وقدره ${formatCurrency(bal)}.`
+                      ? debtParts.length > 0
+                        ? `مرحباً ${row.name}، نود تذكيركم برصيد حسابكم الحالي: ${debtParts.join(' و ')}.`
                         : `مرحباً ${row.name}، نأمل أن تكونوا بخير.`
                       : `مرحباً ${row.name}، بخصوص حسابات التوريد والمشتريات.`;
                   window.open(buildWhatsAppLink(row.phone!, msg), '_blank', 'noopener,noreferrer');
                 }}
                 className="rounded-lg p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                title="مراسلة عبر واتساب"
+                title="مراسلة عبر واتساب (بأرصدة كل عملة على حدة)"
               >
                 <MessageCircle size={14} />
               </button>
@@ -162,7 +226,11 @@ export function usePartiesColumns({
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
-                  onViewStatement(row);
+                  const targetCurr =
+                    currencyFilter === 'SAR' || currencyFilter === 'YER'
+                      ? currencyFilter
+                      : undefined;
+                  onViewStatement(row, targetCurr);
                 }}
                 className="rounded-lg p-1.5 text-sky-600 transition-colors hover:bg-sky-50 dark:hover:bg-sky-900/20"
                 title="عرض كشف الحساب"
@@ -224,8 +292,9 @@ export function usePartiesColumns({
         align: 'center',
       },
     ],
-    [t, partyType, onEdit, onDelete, onOpenTimeline, onOpenPortal, onViewStatement]
+    [t, partyType, currencyFilter, onEdit, onDelete, onOpenTimeline, onOpenPortal, onViewStatement]
   );
 }
+/* eslint-enable max-lines-per-function */
 
 export default usePartiesColumns;

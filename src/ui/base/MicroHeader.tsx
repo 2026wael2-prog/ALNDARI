@@ -45,7 +45,6 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
   extraRow,
   enableDragDrop = false,
   enableKeyboardNav = true,
-  enable3D = true,
   isMaximized = false,
   onToggleMaximize,
   isZenMode = false,
@@ -159,12 +158,12 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
                   size="micro"
                   theme="auto"
                   animation={{
-                    transitionDuration: 400,
-                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-                    enable3D: enable3D,
-                    enableGlassmorphism: true,
-                    enablePulsing: true,
-                    enableMultiLayerShadows: true,
+                    transitionDuration: 80,
+                    easing: 'ease-out',
+                    enable3D: false,
+                    enableGlassmorphism: false,
+                    enablePulsing: false,
+                    enableMultiLayerShadows: false,
                   }}
                   a11y={{
                     ariaLabel: `${title} navigation tabs`,

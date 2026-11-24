@@ -10,10 +10,12 @@ import {
   Search,
   Check,
   User,
+  Coins,
 } from 'lucide-react';
 import { useInvoiceDetails, useUpdateInvoice } from '../../hooks';
 import { useParties } from '../../../parties/hooks';
 import { usePaymentAccounts } from '../../../accounting/hooks';
+import { useCurrencies } from '../../../settings/hooks';
 import { useProductSearch, type ProductSearchResult } from '../../hooks/useProductSearch';
 import { useAuthStore } from '../../../auth/store';
 import { formatCurrency, cn } from '../../../../core/utils';
@@ -55,6 +57,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
 
   const { mutate: updateInvoice, isPending: isUpdating } = useUpdateInvoice();
   const { data: paymentAccounts } = usePaymentAccounts();
+  const { rates } = useCurrencies();
 
   // Local form state
   const [partyId, setPartyId] = useState<string | null>(null);
@@ -64,8 +67,20 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
   const [issueDate, setIssueDate] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [currencyCode, setCurrencyCode] = useState<string>('SAR');
+  const [exchangeRateDisplay, setExchangeRateDisplay] = useState<number>(1);
   const [items, setItems] = useState<EditItemRow[]>([]);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
+
+  const defaultYerRate = useMemo(() => {
+    const yerRow = rates.data?.find(
+      (r: { currency_code: string; rate_to_base: number }) => r.currency_code === 'YER'
+    );
+    const raw = Number(yerRow?.rate_to_base || 0);
+    if (raw > 0 && raw < 1) return Math.round(1 / raw);
+    if (raw > 1) return raw;
+    return 425;
+  }, [rates.data]);
 
   // Customer dropdown search
   const [partySearchQuery, setPartySearchQuery] = useState('');
@@ -91,6 +106,16 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
       setIssueDate(invoice.issue_date || '');
       setDueDate(invoice.due_date || '');
       setNotes(invoice.notes || '');
+      const initCurr = String(invoice.currency_code || 'SAR').toUpperCase();
+      setCurrencyCode(initCurr);
+      const rawRate = Number(invoice.exchange_rate || 1);
+      if (initCurr === 'YER') {
+        setExchangeRateDisplay(
+          rawRate > 0 && rawRate < 1 ? Math.round(1 / rawRate) : rawRate > 1 ? rawRate : defaultYerRate
+        );
+      } else {
+        setExchangeRateDisplay(rawRate > 0 ? rawRate : 1);
+      }
 
       const rawItems = invoice.invoice_items || invoice.items || [];
       const initialItems: EditItemRow[] = rawItems.map((ii: any) => {
@@ -145,13 +170,51 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
     };
   }, [items]);
 
+  const originalCurrency = String(invoice?.currency_code || 'SAR').toUpperCase();
+  const isCurrencyChanged = currencyCode !== originalCurrency;
   const oldTotal = Number(invoice?.total_amount || 0);
   const oldDocumentTotal =
     invoice?.total_document_amount != null && Number(invoice.total_document_amount) > 0
       ? Number(invoice.total_document_amount)
       : oldTotal;
-  const difference = summary.total - oldDocumentTotal;
-  const currencyCode = invoice?.currency_code || 'SAR';
+  const difference = isCurrencyChanged ? 0 : summary.total - oldDocumentTotal;
+
+  // تحويل عملة الفاتورة بالكامل (YER <-> SAR) مع تحويل أسعار الأصناف تلقائياً
+  const handleCurrencyChange = (nextCurrency: 'SAR' | 'YER') => {
+    if (nextCurrency === currencyCode) return;
+    const rate =
+      nextCurrency === 'YER'
+        ? exchangeRateDisplay > 1
+          ? exchangeRateDisplay
+          : defaultYerRate
+        : exchangeRateDisplay > 1
+          ? exchangeRateDisplay
+          : defaultYerRate;
+
+    if (currencyCode === 'YER' && nextCurrency === 'SAR') {
+      // YER -> SAR: divide by rate (e.g. 425)
+      setItems(prev =>
+        prev.map(item => ({
+          ...item,
+          unitPrice: Math.round((item.unitPrice / rate) * 100) / 100,
+          discount: Math.round((item.discount / rate) * 100) / 100,
+        }))
+      );
+      setCurrencyCode('SAR');
+      setExchangeRateDisplay(1);
+    } else if (currencyCode === 'SAR' && nextCurrency === 'YER') {
+      // SAR -> YER: multiply by rate (e.g. 425)
+      setItems(prev =>
+        prev.map(item => ({
+          ...item,
+          unitPrice: Math.round(item.unitPrice * rate),
+          discount: Math.round(item.discount * rate),
+        }))
+      );
+      setCurrencyCode('YER');
+      setExchangeRateDisplay(rate);
+    }
+  };
 
   // Item handlers
   const handleQuantityChange = (index: number, newQty: number) => {
@@ -247,10 +310,12 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
         dueDate: dueDate || undefined,
         notes: notes.trim() || undefined,
         currency: currencyCode,
-        exchangeRate: invoice?.exchange_rate || 1,
+        exchangeRate: currencyCode === 'SAR' ? 1 : exchangeRateDisplay > 1 ? exchangeRateDisplay : defaultYerRate,
         paidAmount:
           paymentMethod === 'credit'
-            ? invoice?.payment_method === 'credit' && Number(invoice?.advance_payment || 0) > 0
+            ? !isCurrencyChanged &&
+              invoice?.payment_method === 'credit' &&
+              Number(invoice?.advance_payment || 0) > 0
               ? Math.round(
                   (Number(invoice.advance_payment) / (Number(invoice?.exchange_rate) || 1)) * 100
                 ) / 100
@@ -454,6 +519,68 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                   onChange={e => setIssueDate(e.target.value)}
                   className="w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text)] focus:outline-none focus:border-blue-500 font-mono"
                 />
+              </div>
+
+              {/* Currency Switcher (YER <-> SAR) + Exchange Rate */}
+              <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-border)] pt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-[var(--app-text-secondary)]">
+                    <Coins size={14} className="text-amber-500" />
+                    عملة الفاتورة:
+                  </span>
+                  <div className="flex rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleCurrencyChange('SAR')}
+                      className={cn(
+                        'rounded-md px-3 py-1 text-xs font-black transition-colors',
+                        currencyCode === 'SAR'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text)]'
+                      )}
+                    >
+                      ريال سعودي (SAR)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCurrencyChange('YER')}
+                      className={cn(
+                        'rounded-md px-3 py-1 text-xs font-black transition-colors',
+                        currencyCode === 'YER'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text)]'
+                      )}
+                    >
+                      ريال يمني (YER)
+                    </button>
+                  </div>
+
+                  {currencyCode === 'YER' && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-bold text-[var(--app-text-secondary)]">
+                        سعر الصرف (1 ر.س =):
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        step="any"
+                        value={exchangeRateDisplay}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          if (Number.isFinite(val) && val > 0) setExchangeRateDisplay(val);
+                        }}
+                        className="w-20 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 text-center font-mono text-xs font-bold text-[var(--app-text)]"
+                      />
+                      <span className="text-[11px] font-bold text-amber-600">ر.ي</span>
+                    </div>
+                  )}
+                </div>
+
+                {isCurrencyChanged && (
+                  <span className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                    تحويل كامل: ستُنقل الفاتورة من حساب ({originalCurrency}) إلى حساب ({currencyCode}) وتُلغى من العملة القديمة تلقائياً
+                  </span>
+                )}
               </div>
             </div>
 
@@ -681,23 +808,31 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
                 {/* Comparison with Old Total */}
                 <div className="mt-3 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 text-xs space-y-1">
                   <div className="flex justify-between text-[var(--app-text-secondary)] font-medium">
-                    <span>الإجمالي السابق:</span>
+                    <span>الإجمالي السابق ({originalCurrency}):</span>
                     <span className="font-mono font-bold text-[var(--app-text)]" dir="ltr">
-                      {formatCurrency(oldDocumentTotal, currencyCode)}
+                      {formatCurrency(oldDocumentTotal, originalCurrency)}
                     </span>
                   </div>
-                  <div className="flex justify-between font-bold text-[var(--app-text)]">
-                    <span>الفارق المحاسبي:</span>
-                    <span
-                      className={cn(
-                        'font-mono font-black',
-                        difference > 0 ? 'text-amber-600 dark:text-amber-400' : difference < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--app-text-secondary)]'
-                      )}
-                      dir="ltr"
-                    >
-                      {difference > 0 ? `+${formatCurrency(difference, currencyCode)}` : formatCurrency(difference, currencyCode)}
-                    </span>
-                  </div>
+                  {!isCurrencyChanged && (
+                    <div className="flex justify-between font-bold text-[var(--app-text)]">
+                      <span>الفارق المحاسبي:</span>
+                      <span
+                        className={cn(
+                          'font-mono font-black',
+                          difference > 0
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : difference < 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-[var(--app-text-secondary)]'
+                        )}
+                        dir="ltr"
+                      >
+                        {difference > 0
+                          ? `+${formatCurrency(difference, currencyCode)}`
+                          : formatCurrency(difference, currencyCode)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

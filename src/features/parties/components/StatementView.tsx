@@ -15,10 +15,37 @@ import { RentTrackerView } from './statement/RentTrackerView';
 interface StatementViewProps {
   partyType: PartyType;
   initialPartyId?: string | undefined;
+  initialCurrency?: string | undefined;
 }
 
-const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId }) => {
-  const [statementDisplayMode, setStatementDisplayMode] = useState<'standard' | 'excel'>('standard');
+const DISPLAY_MODE_STORAGE_KEY = 'erp_statement_display_mode';
+
+const readSavedDisplayMode = (): 'standard' | 'excel' => {
+  try {
+    const saved = localStorage.getItem(DISPLAY_MODE_STORAGE_KEY);
+    if (saved === 'standard' || saved === 'excel') return saved;
+  } catch {
+    // ignore storage errors
+  }
+  return 'excel';
+};
+
+const StatementView: React.FC<StatementViewProps> = ({
+  partyType,
+  initialPartyId,
+  initialCurrency,
+}) => {
+  const [statementDisplayMode, setStatementDisplayModeState] = useState<'standard' | 'excel'>(
+    readSavedDisplayMode
+  );
+  const setStatementDisplayMode = (mode: 'standard' | 'excel') => {
+    setStatementDisplayModeState(mode);
+    try {
+      localStorage.setItem(DISPLAY_MODE_STORAGE_KEY, mode);
+    } catch {
+      // ignore storage errors
+    }
+  };
   const {
     parties,
     selectedParty,
@@ -64,7 +91,7 @@ const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId
     handleClearSelection,
     handleCloseInvoiceModal,
     handleCloseBondModal,
-  } = useStatementController({ partyType, initialPartyId });
+  } = useStatementController({ partyType, initialPartyId, initialCurrency });
 
   return (
     <div className="print-area space-y-4 font-sans">
@@ -143,12 +170,26 @@ const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId
                       selectedCurrency={selectedCurrency}
                       setSelectedCurrency={setSelectedCurrency}
                       availableCurrencies={availableCurrencies}
+                      currencyBalances={selectedParty?.balances_by_currency}
                       searchQuery={searchQuery}
                       setSearchQuery={setSearchQuery}
                     />
 
-                    {/* طريقة العرض: كشف حساب اعتيادي أو جدول إكسل شامل */}
+                    {/* طريقة العرض: جدول إكسل جريد (افتراضي) أو العرض الكلاسيكي */}
                     <div className="flex items-center gap-1 rounded-xl border border-slate-200/90 bg-slate-100/80 p-1 dark:border-slate-800 dark:bg-slate-900/60">
+                      <button
+                        type="button"
+                        onClick={() => setStatementDisplayMode('excel')}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                          statementDisplayMode === 'excel'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                        }`}
+                        title="عرض كشف الحساب كجدول إكسل Grid متطور مع التلوين والتوسيع والإجماليات"
+                      >
+                        <FileSpreadsheet size={13} />
+                        <span>جدول إكسل (Grid)</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => setStatementDisplayMode('standard')}
@@ -157,35 +198,21 @@ const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId
                             ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-800 dark:text-blue-300'
                             : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                         }`}
-                        title="العرض الاعتيادي لكشف الحساب"
+                        title="العرض الكلاسيكي لكشف الحساب"
                       >
                         <ListFilter size={13} />
-                        <span>العرض الافتراضي</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatementDisplayMode('excel')}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                          statementDisplayMode === 'excel'
-                            ? 'bg-white text-emerald-700 shadow-sm dark:bg-slate-800 dark:text-emerald-300'
-                            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                        }`}
-                        title="عرض كشف الحساب كجدول إكسل متطور مع الألوان وتحديد المعاملات"
-                      >
-                        <FileSpreadsheet size={13} />
-                        <span>جدول إكسل ملون</span>
+                        <span>العرض الكلاسيكي</span>
                       </button>
                     </div>
                   </div>
 
-                  {statementDisplayMode === 'standard' ? (
-                    <StatementMovementsTable
+                  {statementDisplayMode === 'excel' ? (
+                    <StatementExcelView
                       filteredMovements={filteredMovements}
                       selectedRowIds={selectedRowIds}
                       expandedRowIds={expandedRowIds}
                       rowColors={rowColors}
                       activeColorPickerRowId={activeColorPickerRowId}
-                      isPrintingSelectedOnly={isPrintingSelectedOnly}
                       partyName={selectedParty?.name || ''}
                       isAllSelected={isAllSelected}
                       onToggleSelectAll={handleToggleSelectAll}
@@ -198,14 +225,18 @@ const StatementView: React.FC<StatementViewProps> = ({ partyType, initialPartyId
                       onOpenBondModal={handleOpenBondModal}
                     />
                   ) : (
-                    <StatementExcelView
+                    <StatementMovementsTable
                       filteredMovements={filteredMovements}
                       selectedRowIds={selectedRowIds}
+                      expandedRowIds={expandedRowIds}
                       rowColors={rowColors}
                       activeColorPickerRowId={activeColorPickerRowId}
+                      isPrintingSelectedOnly={isPrintingSelectedOnly}
                       partyName={selectedParty?.name || ''}
+                      isAllSelected={isAllSelected}
                       onToggleSelectAll={handleToggleSelectAll}
                       onToggleRowSelection={handleToggleRowSelection}
+                      onToggleRowExpand={handleToggleRowExpand}
                       onOpenColorPicker={setActiveColorPickerRowId}
                       onApplyColorToSingleRow={handleApplyColorToSingleRow}
                       onPrintSingleTransaction={handlePrintSingleTransaction}

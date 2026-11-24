@@ -182,21 +182,12 @@ const REALTIME_SUBSCRIBED_TABLES: readonly string[] = [
   'payments',
   'expenses',
   'journal_entries',
-  'accounts',
   'products',
   'product_stock',
   'stock_transfers',
-  'stock_transfer_requests',
-  'audit_sessions',
   'parties',
-  'warehouses',
-  'branches',
   'exchange_rates',
   'daily_reconciliations',
-  'incentive_periods',
-  'incentive_calculations',
-  'debt_payment_promises',
-  'customer_activities',
 ];
 
 /**
@@ -231,9 +222,10 @@ const bindChannelListeners = (
   companyId: string,
   queryClient: QueryClient
 ): RealtimeChannel => {
-  // Per-preset coalesce timers so bursts on one table coalesce without dropping events on other tables.
+  // Per-preset coalesce timers so multi-table DB transactions (invoice + stock + journal + party)
+  // coalesce cleanly instead of aborting in-flight queries with rapid-fire invalidations.
   const pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  const COALESCE_MS = 400;
+  const COALESCE_MS = 1200;
 
   const schedulePresetInvalidation = (key: string, run: () => void): void => {
     const existing = pendingTimers.get(key);
@@ -301,14 +293,17 @@ const setupCompanyRealtimeChannel = (companyId: string, queryClient: QueryClient
       logger.debug('Realtime', `ℹ️ Realtime channel closed: ${status}`);
       setRealtimeStatus('disconnected');
     } else {
-      // سبب الرفض الحقيقي من الخادم (Unauthorized / topic already exists / timeout…)
-      // يُسجّل بمستوى debug لتفادي إغراق وحدة التحكم بتحذيرات متكررة مع تفعيل الاستطلاع البديل التلقائي.
       logger.debug('Realtime', `Realtime channel status: ${status}`, {
         channel: channelId,
         reason: err?.message ?? 'unknown',
       });
       setRealtimeStatus('disconnected');
-      startFallbackPolling(channelId, queryClient);
+      // Only start fallback polling if channel stays down beyond a brief transient drop
+      setTimeout(() => {
+        if (useConnectionStore.getState().realtimeStatus !== 'connected') {
+          startFallbackPolling(channelId, queryClient);
+        }
+      }, 6000);
     }
   });
 

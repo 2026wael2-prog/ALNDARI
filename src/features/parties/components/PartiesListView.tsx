@@ -1,14 +1,21 @@
+/* eslint-disable max-lines-per-function, complexity */
 import React, { useState, useMemo } from 'react';
-import { Filter, X } from 'lucide-react';
-import type { Party, PartyType, PartyStats } from '../types';
+import { Filter, X, Coins, AlertTriangle } from 'lucide-react';
+import type { Party, PartyCurrencyFilter, PartyType, PartyStats } from '../types';
 import type { Column } from '../../../ui/common/ExcelTable';
 import PartiesStats from './PartiesStats';
 import ExcelTable from '../../../ui/common/ExcelTable';
 import { cn } from '../../../core/utils';
 import { useAccompanyingInfoStore } from '../../accompanying-info';
-import { calculatePartyStats } from '../services/partyStatementService';
-
-type FilterChip = 'all' | 'debtors' | 'creditors' | 'settled' | 'active' | 'blocked';
+import {
+  calculatePartyStats,
+  classifyPartyBalance,
+  filterPartiesStrict,
+  getPartyCurrencyBalance,
+  hasMultipleActiveCurrencies,
+  PARTY_BALANCE_EPSILON,
+  type PartyListStatusFilter,
+} from '../services/partyStatementService';
 
 interface PartiesListViewProps {
   partyType: PartyType;
@@ -17,6 +24,8 @@ interface PartiesListViewProps {
   stats?: PartyStats;
   columns: Array<Column<Party>>;
   onEdit: (party: Party) => void;
+  currencyFilter?: PartyCurrencyFilter;
+  onCurrencyFilterChange?: (currency: PartyCurrencyFilter) => void;
 }
 
 export const PartiesListView: React.FC<PartiesListViewProps> = ({
@@ -26,9 +35,16 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
   stats,
   columns,
   onEdit,
+  currencyFilter: controlledCurrencyFilter,
+  onCurrencyFilterChange,
 }) => {
-  const [activeFilter, setActiveFilter] = useState<FilterChip>('all');
+  const [activeFilter, setActiveFilter] = useState<PartyListStatusFilter>('all');
+  const [internalCurrencyFilter, setInternalCurrencyFilter] =
+    useState<PartyCurrencyFilter>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const currencyFilter = controlledCurrencyFilter ?? internalCurrencyFilter;
+  const setCurrencyFilter = onCurrencyFilterChange ?? setInternalCurrencyFilter;
 
   // Extract unique categories from parties
   const categories = useMemo(() => {
@@ -39,87 +55,135 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
     return Array.from(set).sort();
   }, [parties]);
 
-  // Filter parties by chip and category
-  const filteredParties = useMemo(() => {
-    return parties.filter(p => {
-      // Category filter
-      if (selectedCategory !== 'all' && p.category !== selectedCategory) {
-        return false;
-      }
+  // Strict per-currency counts (always computed on full list so tabs show exact coverage)
+  const currencyTabCounts = useMemo(() => {
+    let sar = 0;
+    let yer = 0;
+    let mixed = 0;
+    for (const p of parties) {
+      if (Math.abs(getPartyCurrencyBalance(p, 'SAR')) > PARTY_BALANCE_EPSILON) sar += 1;
+      if (Math.abs(getPartyCurrencyBalance(p, 'YER')) > PARTY_BALANCE_EPSILON) yer += 1;
+      if (hasMultipleActiveCurrencies(p)) mixed += 1;
+    }
+    return { all: parties.length, sar, yer, mixed };
+  }, [parties]);
 
-      // Chip filter
-      const bal = p.balance ?? 0;
-      switch (activeFilter) {
-        case 'debtors':
-          return bal > 0;
-        case 'creditors':
-          return bal < 0;
-        case 'settled':
-          return bal === 0;
-        case 'active':
-          return (p.status ?? 'active') === 'active';
-        case 'blocked':
-          return p.status === 'blocked';
-        case 'all':
-        default:
-          return true;
-      }
+  // Scope parties by currency + category first so status chip counts reflect the active currency!
+  const currencyScopedParties = useMemo(() => {
+    return filterPartiesStrict({
+      parties,
+      currencyFilter,
+      statusFilter: 'all',
+      selectedCategory,
     });
-  }, [parties, activeFilter, selectedCategory]);
+  }, [parties, currencyFilter, selectedCategory]);
 
-  // Counts for filter chips
+  // Final filtered parties
+  const filteredParties = useMemo(() => {
+    return filterPartiesStrict({
+      parties,
+      currencyFilter,
+      statusFilter: activeFilter,
+      selectedCategory,
+    });
+  }, [parties, currencyFilter, activeFilter, selectedCategory]);
+
+  // Status chip counts strictly scoped to active currency
   const counts = useMemo(() => {
     let debtors = 0;
     let creditors = 0;
+    let mixed = 0;
     let settled = 0;
     let active = 0;
     let blocked = 0;
 
-    parties.forEach(p => {
-      const bal = p.balance ?? 0;
-      if (bal > 0) debtors++;
-      else if (bal < 0) creditors++;
-      else settled++;
+    for (const p of currencyScopedParties) {
+      if ((p.status ?? 'active') === 'active') active += 1;
+      else if (p.status === 'blocked') blocked += 1;
 
-      if ((p.status ?? 'active') === 'active') active++;
-      else if (p.status === 'blocked') blocked++;
-    });
+      const cls = classifyPartyBalance(p);
+      if (cls === 'mixed_currency') mixed += 1;
+
+      if (currencyFilter === 'SAR' || currencyFilter === 'YER') {
+        const curBal = getPartyCurrencyBalance(p, currencyFilter);
+        if (curBal > PARTY_BALANCE_EPSILON) debtors += 1;
+        else if (curBal < -PARTY_BALANCE_EPSILON) creditors += 1;
+        else settled += 1;
+      } else {
+        if (cls === 'debtor') debtors += 1;
+        else if (cls === 'creditor') creditors += 1;
+        else if (cls === 'settled') settled += 1;
+      }
+    }
 
     return {
-      all: parties.length,
+      all: currencyScopedParties.length,
       debtors,
       creditors,
+      mixed,
       settled,
       active,
       blocked,
     };
-  }, [parties]);
+  }, [currencyScopedParties, currencyFilter]);
 
-  const chips: Array<{ id: FilterChip; label: string; count: number; color?: string }> = [
+  const currencyTabs: Array<{
+    id: PartyCurrencyFilter;
+    label: string;
+    count: number;
+    tone: string;
+  }> = [
+    { id: 'ALL', label: 'جميع العملات', count: currencyTabCounts.all, tone: 'blue' },
+    { id: 'SAR', label: 'ريال سعودي (SAR)', count: currencyTabCounts.sar, tone: 'emerald' },
+    { id: 'YER', label: 'ريال يمني (YER)', count: currencyTabCounts.yer, tone: 'amber' },
+    { id: 'MIXED', label: 'عملات متعددة (SAR + YER)', count: currencyTabCounts.mixed, tone: 'indigo' },
+  ];
+
+  const chips: Array<{ id: PartyListStatusFilter; label: string; count: number; color?: string }> = [
     { id: 'all', label: 'الكل', count: counts.all },
     {
       id: 'debtors',
-      label: partyType === 'customer' ? 'عليهم مديونية' : 'مدينون لنا',
+      label:
+        currencyFilter === 'SAR' || currencyFilter === 'YER'
+          ? `عليهم مديونية (${currencyFilter})`
+          : partyType === 'customer'
+            ? 'عليهم مديونية'
+            : 'مدينون لنا',
       count: counts.debtors,
       color: 'emerald',
     },
     {
       id: 'creditors',
-      label: partyType === 'customer' ? 'لهم أرصدة دائنة' : 'مستحق للمورد',
+      label:
+        currencyFilter === 'SAR' || currencyFilter === 'YER'
+          ? `لهم أرصدة دائنة (${currencyFilter})`
+          : partyType === 'customer'
+            ? 'لهم أرصدة دائنة'
+            : 'مستحق للمورد',
       count: counts.creditors,
       color: 'amber',
     },
+    ...(counts.mixed > 0
+      ? [{ id: 'mixed' as const, label: 'متعاكس العملات', count: counts.mixed, color: 'amber' }]
+      : []),
     { id: 'settled', label: 'رصيد مسوّى', count: counts.settled },
     { id: 'active', label: 'نشط', count: counts.active },
     { id: 'blocked', label: 'محظور', count: counts.blocked, color: 'rose' },
   ];
 
-  const isFiltered = activeFilter !== 'all' || selectedCategory !== 'all';
+  const isFiltered =
+    activeFilter !== 'all' || currencyFilter !== 'ALL' || selectedCategory !== 'all';
 
   const effectiveStats: PartyStats = useMemo(() => {
     if (!isFiltered && stats) return stats;
     return calculatePartyStats(filteredParties, partyType);
   }, [isFiltered, stats, filteredParties, partyType]);
+
+  const handleResetAll = () => {
+    setActiveFilter('all');
+    setCurrencyFilter('ALL');
+    setSelectedCategory('all');
+  };
 
   return (
     <div className="animate-in fade-in space-y-3 duration-500">
@@ -128,14 +192,64 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
         type={partyType}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
+        activeCurrencyFilter={currencyFilter}
+        onCurrencyFilterChange={setCurrencyFilter}
         isFiltered={isFiltered}
-        onResetFilters={() => {
-          setActiveFilter('all');
-          setSelectedCategory('all');
-        }}
+        onResetFilters={handleResetAll}
       />
 
-      {/* Filter Chips Toolbar */}
+      {/* Dedicated Strict Per-Currency Tabs Strip */}
+      <div
+        data-testid="parties-currency-filter-bar"
+        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-2 shadow-2xs dark:border-slate-800 dark:bg-slate-900"
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1 px-1 text-[11px] font-black text-slate-600 dark:text-slate-300">
+            <Coins size={14} className="text-amber-500" />
+            <span>فصل حسب العملة:</span>
+          </div>
+          {currencyTabs.map(tab => {
+            const isSelected = currencyFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setCurrencyFilter(tab.id)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-black transition-all',
+                  isSelected
+                    ? tab.id === 'YER'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : tab.id === 'SAR'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : tab.id === 'MIXED'
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                )}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 py-0.2 font-mono text-[10px]',
+                    isSelected
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-200/80 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  )}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <span className="text-[10px] font-bold text-slate-400">
+          اضغط على أي رصيد SAR أو YER لفتح كشف حسابه بعملته مباشرة
+        </span>
+      </div>
+
+      {/* Status & Category Filter Chips Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center gap-1">
           {chips.map(chip => {
@@ -150,10 +264,13 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
                 className={cn(
                   'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all',
                   isSelected
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? chip.id === 'mixed'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-blue-600 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                 )}
               >
+                {chip.id === 'mixed' && <AlertTriangle size={11} />}
                 <span>{chip.label}</span>
                 <span
                   className={cn(
@@ -192,13 +309,10 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
             </div>
           )}
 
-          {(activeFilter !== 'all' || selectedCategory !== 'all') && (
+          {isFiltered && (
             <button
               type="button"
-              onClick={() => {
-                setActiveFilter('all');
-                setSelectedCategory('all');
-              }}
+              onClick={handleResetAll}
               className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
               title="إلغاء التصفية"
             >
@@ -235,5 +349,6 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
     </div>
   );
 };
+/* eslint-enable max-lines-per-function, complexity */
 
 export default PartiesListView;

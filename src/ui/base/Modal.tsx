@@ -241,9 +241,9 @@ const Modal: React.FC<ModalProps> = ({
     <div
       style={zIndex ? undefined : { zIndex: computedZIndex }}
       className={cn(
-        'animate-in fade-in fixed inset-0 flex items-end justify-center p-0 transition-all duration-300 md:items-center md:p-4',
+        'animate-in fade-in fixed inset-0 flex items-end justify-center p-0 duration-100 md:items-center md:p-4',
         zIndex ?? 'z-[9999]',
-        !isMaximized && 'bg-slate-950/40 backdrop-blur-[2px]'
+        !isMaximized && 'bg-slate-950/45'
       )}
       onClick={closeOnBackdropClick ? onClose : undefined}
     >
@@ -258,9 +258,9 @@ const Modal: React.FC<ModalProps> = ({
         }}
         style={modalStyle}
         className={cn(
-          'animate-in flex w-full flex-col border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl transition-shadow duration-300',
+          'animate-in flex w-full flex-col border border-[var(--app-border)] bg-[var(--app-surface)] shadow-xl duration-100',
           !position && sizeClasses[isMaximized ? 'full' : size === 'resizable' ? 'lg' : size],
-          !isMaximized && 'md:zoom-in-95 max-h-[95vh] rounded-t-2xl md:max-h-[85vh] md:rounded-2xl',
+          !isMaximized && 'max-h-[95vh] rounded-t-2xl md:max-h-[85vh] md:rounded-2xl',
           isMaximized && 'rounded-none'
         )}
       >

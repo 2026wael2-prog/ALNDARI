@@ -100,18 +100,26 @@ export const BondAmountSection: React.FC<BondAmountSectionProps> = ({
             عملة السند:
           </span>
           <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-            {CURRENCY_TABS.map(tab => (
-              <button
-                key={tab.code}
-                type="button"
-                onClick={() => {
-                  handleCurrencyQuickSwitch(tab.code);
-                }}
-                className="rounded-lg px-2.5 py-1 font-mono text-[11px] font-black transition-all"
-              >
-                {tab.label}
-              </button>
-            ))}
+            {CURRENCY_TABS.map(tab => {
+              const isActive = (selectedCurrency || 'SAR').toUpperCase() === tab.code;
+              return (
+                <button
+                  key={tab.code}
+                  type="button"
+                  onClick={() => {
+                    handleCurrencyQuickSwitch(tab.code);
+                  }}
+                  className={cn(
+                    'rounded-lg px-2.5 py-1 font-mono text-[11px] font-black transition-all',
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
+                      : 'text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

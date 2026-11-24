@@ -1,18 +1,28 @@
 import { useMemo, useState } from 'react';
 import { useUnpaidPartyInvoices } from '../hooks';
+import { resolveInvoiceDocumentAmounts } from '../invoiceAllocationGuard';
 
 export type SortField = 'issue_date' | 'total_amount' | 'remaining_amount' | 'invoice_number';
 export type SortOrder = 'asc' | 'desc';
 export type FilterStatus = 'all' | 'unpaid' | 'partial';
 
+export interface InvoiceCurrencyTotals {
+  currency: string;
+  count: number;
+  total: number;
+  paid: number;
+  remaining: number;
+}
+
 /**
- * Fetches unpaid party invoices and handles status filtering, smart item/number search,
- * column sorting, and base-currency SAR totals computation.
+ * Fetches unpaid party invoices and handles status filtering, currency filtering,
+ * smart item/number search, column sorting, and strict per-currency totals computation.
  */
 export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 'supplier') => {
   const { data: invoices, isLoading } = useUnpaidPartyInvoices(partyId, partyType);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
+  const [currencyFilter, setCurrencyFilter] = useState<string>('ALL');
   const [sortField, setSortField] = useState<SortField>('issue_date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
@@ -25,63 +35,41 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
     }
   };
 
-  const processedInvoices = useMemo(() => {
+  const normalizedInvoices = useMemo(() => {
     if (!invoices) return [];
 
-    let list = invoices.map((inv: any) => {
-      const total = Number(inv.total_amount || 0);
-      const paid = Number(inv.paid_amount || 0);
-      const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
-      const isPartial = paid > 0 && remaining > 0;
-      const currency = (inv.currency_code || inv.currency || 'SAR').toUpperCase();
-      const isForeign = currency !== 'SAR';
-      const rate = Number(inv.exchange_rate) || 0;
-
-      // Resolve transaction-currency (document) amounts so YER invoices show 100,000 YER (not 222.00 YER)
-      const explicitDocTotal = Number(inv.total_document_amount) || 0;
-      const itemsSum = Array.isArray(inv.invoice_items)
-        ? inv.invoice_items.reduce(
-            (sum: number, it: any) =>
-              sum + Number(it.total || (Number(it.quantity) || 0) * (Number(it.unit_price) || 0) || 0),
-            0
-          )
-        : 0;
-
-      let docTotal = total;
-      if (isForeign) {
-        if (explicitDocTotal > 0) {
-          docTotal = explicitDocTotal;
-        } else if (itemsSum > total * 5) {
-          docTotal = itemsSum;
-        } else if (rate > 0 && rate < 1) {
-          docTotal = Math.round(total / rate);
-        }
-      }
-
-      const docPaid = !isForeign
-        ? paid
-        : paid <= 0
-          ? 0
-          : total > 0 && docTotal > 0
-            ? Math.round((paid / total) * docTotal)
-            : rate > 0 && rate < 1
-              ? Math.round(paid / rate)
-              : paid;
-
-      const docRemaining = !isForeign ? remaining : Math.max(0, docTotal - docPaid);
-
+    return invoices.map((inv: any) => {
+      const resolved = resolveInvoiceDocumentAmounts(inv);
       return {
         ...inv,
-        _total: total,
-        _paid: paid,
-        _remaining: remaining,
-        _docTotal: docTotal,
-        _docPaid: docPaid,
-        _docRemaining: docRemaining,
-        _isForeign: isForeign,
-        _isPartial: isPartial,
+        _currency: resolved.currency,
+        _total: resolved.baseTotal,
+        _paid: resolved.basePaid,
+        _remaining: resolved.baseRemaining,
+        _docTotal: resolved.docTotal,
+        _docPaid: resolved.docPaid,
+        _docRemaining: resolved.docRemaining,
+        _displayRate: resolved.displayRate,
+        _isForeign: resolved.isForeign,
+        _isPartial: resolved.isPartial,
       };
     });
+  }, [invoices]);
+
+  const availableCurrencies = useMemo(() => {
+    const set = new Set<string>();
+    normalizedInvoices.forEach((inv: any) => {
+      if (inv._currency) set.add(inv._currency);
+    });
+    return Array.from(set).sort();
+  }, [normalizedInvoices]);
+
+  const processedInvoices = useMemo(() => {
+    let list = [...normalizedInvoices];
+
+    if (currencyFilter !== 'ALL') {
+      list = list.filter((inv: any) => inv._currency === currencyFilter);
+    }
 
     if (statusFilter === 'partial') {
       list = list.filter((inv: any) => inv._isPartial);
@@ -95,6 +83,7 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
         if (inv.invoice_number?.toLowerCase().includes(lowerQuery)) return true;
         if (inv.notes?.toLowerCase().includes(lowerQuery)) return true;
         if (inv.issue_date?.includes(lowerQuery)) return true;
+        if (inv._currency?.toLowerCase().includes(lowerQuery)) return true;
         if (inv._total.toString().includes(lowerQuery)) return true;
         if (inv._remaining.toString().includes(lowerQuery)) return true;
         if (inv._docTotal?.toString().includes(lowerQuery)) return true;
@@ -130,10 +119,9 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
     });
 
     return list;
-  }, [invoices, searchQuery, statusFilter, sortField, sortOrder]);
+  }, [normalizedInvoices, currencyFilter, searchQuery, statusFilter, sortField, sortOrder]);
 
   const totals = useMemo(() => {
-    // invoices.total_amount and paid_amount are ALREADY stored in base currency (SAR)
     return processedInvoices.reduce(
       (acc, curr) => {
         acc.total += curr._total;
@@ -145,6 +133,21 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
     );
   }, [processedInvoices]);
 
+  // Strict per-currency totals so SAR and YER unpaid invoices are never silently mixed
+  const totalsByCurrency = useMemo<InvoiceCurrencyTotals[]>(() => {
+    const map = new Map<string, InvoiceCurrencyTotals>();
+    for (const inv of processedInvoices) {
+      const code = inv._currency || 'SAR';
+      const entry = map.get(code) ?? { currency: code, count: 0, total: 0, paid: 0, remaining: 0 };
+      entry.count += 1;
+      entry.total = Math.round((entry.total + inv._docTotal) * 100) / 100;
+      entry.paid = Math.round((entry.paid + inv._docPaid) * 100) / 100;
+      entry.remaining = Math.round((entry.remaining + inv._docRemaining) * 100) / 100;
+      map.set(code, entry);
+    }
+    return Array.from(map.values());
+  }, [processedInvoices]);
+
   return {
     invoices,
     isLoading,
@@ -152,8 +155,12 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
     setSearchQuery,
     statusFilter,
     setStatusFilter,
+    currencyFilter,
+    setCurrencyFilter,
+    availableCurrencies,
     handleSort,
     processedInvoices,
     totals,
+    totalsByCurrency,
   };
 };

@@ -8,7 +8,7 @@ import { useParties } from '../../parties/hooks';
 import { useFeedbackStore } from '../../feedback/store';
 import { formatLocalDate } from '../../../core/utils';
 import {
-  convertFromBaseCurrency,
+  convertToBaseCurrency,
   ensureLatinDigits,
   getDefaultExchangeOperator,
 } from '../../../core/utils/currencyUtils';
@@ -16,7 +16,12 @@ import { createIdempotencyKey } from '../../../core/utils/idempotency';
 import {
   buildOverAllocationMessage,
   computeRequestedAllocation,
+  evaluateInvoiceSettlement,
   exceedsInvoiceRemaining,
+  INVOICE_AMOUNT_EPSILON,
+  resolveInvoiceDocumentAmounts,
+  type InvoiceDocumentAmountsInput,
+  type InvoiceSettlementEvaluation,
 } from '../invoiceAllocationGuard';
 import { useBondNumericInputs } from './useBondNumericInputs';
 import { useBondCurrencyConversion } from './useBondCurrencyConversion';
@@ -40,15 +45,28 @@ interface PartySelectOption {
   name: string;
 }
 
-interface InvoiceSelectOption {
+export interface InvoiceSelectOption extends InvoiceDocumentAmountsInput {
   id: string;
   invoice_number?: string;
-  total_amount?: number | string;
-  paid_amount?: number | string;
-  currency_code?: string;
-  currency?: string;
-  exchange_rate?: number | string;
+  issue_date?: string;
 }
+
+export interface SelectedInvoiceSnapshot {
+  id: string;
+  invoiceNumber: string;
+  issueDate?: string;
+  currency: string;
+  isForeign: boolean;
+  docTotal: number;
+  docPaid: number;
+  docRemaining: number;
+  baseTotal: number;
+  basePaid: number;
+  baseRemaining: number;
+  displayRate: number;
+}
+
+export type InvoicePaymentPreset = 'full' | 'half' | 'quarter' | 'custom';
 
 export function useBondForm(
   isOpen: boolean,
@@ -62,6 +80,7 @@ export function useBondForm(
   const { showToast } = useFeedbackStore();
   const [partyQuery, setPartyQuery] = useState('');
   const [showPartyDropdown, setShowPartyDropdown] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<SelectedInvoiceSnapshot | null>(null);
 
   const { data: allParties } = useParties('all', partyQuery);
 
@@ -70,9 +89,9 @@ export function useBondForm(
   }, [allParties]);
 
   const idempotencyKeyRef = React.useRef(createIdempotencyKey('bond'));
-  // المتبقي على الفاتورة المختارة (بعملة الفاتورة) — يُستخدم لاعتراض تجاوز المبلغ
-  // قبل الخادم بدل انتظار خرق القيد chk_invoices_paid_not_exceed_total (23514).
+  // المتبقي على الفاتورة المختارة بعملة الفاتورة الأصلية (SAR أو YER) — متطابق مع وحدة mainAmount.
   const invoiceRemainingRef = React.useRef<number | null>(null);
+  const preserveNextRateRef = React.useRef<boolean>(false);
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<BondFormData>({
     defaultValues: {
@@ -131,6 +150,7 @@ export function useBondForm(
     equivalentSarInputStr,
     setRateInputStr,
     setEquivalentSarInputStr,
+    preserveNextRateRef,
   });
 
   const {
@@ -148,6 +168,8 @@ export function useBondForm(
     if (isOpen) {
       idempotencyKeyRef.current = createIdempotencyKey('bond');
       invoiceRemainingRef.current = null;
+      preserveNextRateRef.current = false;
+      setSelectedInvoice(null);
       const targetAccount = defaultAccountId
         ? allAccounts?.find(a => a.id === defaultAccountId)
         : undefined;
@@ -179,9 +201,8 @@ export function useBondForm(
     setValue('currency_code', currency);
     setValue('description', prefill.description || `تحصيل دفعة من العميل${partyLabel}`);
     if (prefill.invoiceId) setValue('invoice_id', prefill.invoiceId);
-    // التعبئة المسبقة لا تحمل كامل بيانات الفاتورة — لا نفرض حداً على الواجهة،
-    // ويبقى الحارس الخادمي (FOR UPDATE) هو المرجع.
     invoiceRemainingRef.current = null;
+    setSelectedInvoice(null);
 
     setAmountInputStr(prefill.amount > 0 ? String(prefill.amount) : '');
     if (currency === 'SAR') {
@@ -221,7 +242,7 @@ export function useBondForm(
     return { cashAccounts: cash, otherAccounts: others };
   }, [allAccounts, paymentAccounts]);
 
-  // Auto-select branch cash account if none selected or if selected account does not belong to current branch's cashAccounts
+  // Auto-select branch cash account matching selectedCurrency if none selected or invalid
   useEffect(() => {
     const currentCashId = watch('cash_account_id');
     const isValid = Boolean(currentCashId && cashAccounts.some(a => a.id === currentCashId));
@@ -241,10 +262,60 @@ export function useBondForm(
       setValue('counterparty_id', party.id);
       setValue('invoice_id', undefined);
       invoiceRemainingRef.current = null;
+      setSelectedInvoice(null);
       setPartyQuery(party.name);
       setShowPartyDropdown(false);
     },
     [setValue]
+  );
+
+  const applyAmountForInvoice = useCallback(
+    (snapshot: SelectedInvoiceSnapshot, targetDocAmount: number, isPartialLabel: boolean) => {
+      const invCurrency = snapshot.currency;
+      const invRate = snapshot.displayRate;
+      const operator = getDefaultExchangeOperator(invCurrency);
+      const cleanDocAmount =
+        invCurrency === 'YER'
+          ? Math.round(Math.max(0, targetDocAmount))
+          : Math.round(Math.max(0, targetDocAmount) * 100) / 100;
+
+      if (invCurrency !== 'SAR') {
+        preserveNextRateRef.current = true;
+        setValue('currency_code', invCurrency);
+        setValue('exchange_rate', invRate);
+        setRateInputStr(String(invRate));
+        const baseEquiv =
+          cleanDocAmount > 0
+            ? convertToBaseCurrency({
+                amount: cleanDocAmount,
+                currencyCode: invCurrency,
+                exchangeRate: invRate,
+                exchangeOperator: operator,
+              })
+            : 0;
+        setValue('foreign_amount', cleanDocAmount);
+        setValue('amount', baseEquiv);
+        setAmountInputStr(cleanDocAmount > 0 ? String(cleanDocAmount) : '');
+        setEquivalentSarInputStr(baseEquiv > 0 ? String(baseEquiv) : '');
+      } else {
+        setValue('currency_code', 'SAR');
+        setValue('exchange_rate', 1);
+        setRateInputStr('1');
+        setValue('amount', cleanDocAmount);
+        setValue('foreign_amount', 0);
+        setAmountInputStr(cleanDocAmount > 0 ? String(cleanDocAmount) : '');
+        setEquivalentSarInputStr(cleanDocAmount > 0 ? String(cleanDocAmount) : '');
+      }
+
+      const invKind = type === 'receipt' ? 'مبيعات' : 'مشتريات';
+      setValue(
+        'description',
+        isPartialLabel
+          ? `دفعة جزئية من فاتورة ${invKind} رقم ${snapshot.invoiceNumber}`
+          : `سداد فاتورة ${invKind} رقم ${snapshot.invoiceNumber}`
+      );
+    },
+    [type, setValue, setRateInputStr, setAmountInputStr, setEquivalentSarInputStr]
   );
 
   const handleInvoiceSelect = useCallback(
@@ -252,59 +323,86 @@ export function useBondForm(
       if (!inv) {
         setValue('invoice_id', undefined);
         invoiceRemainingRef.current = null;
+        setSelectedInvoice(null);
         return;
       }
+
+      const resolved = resolveInvoiceDocumentAmounts(inv);
+      const snapshot: SelectedInvoiceSnapshot = {
+        id: inv.id,
+        invoiceNumber: inv.invoice_number ?? '',
+        ...(inv.issue_date ? { issueDate: inv.issue_date } : {}),
+        currency: resolved.currency,
+        isForeign: resolved.isForeign,
+        docTotal: resolved.docTotal,
+        docPaid: resolved.docPaid,
+        docRemaining: resolved.docRemaining,
+        baseTotal: resolved.baseTotal,
+        basePaid: resolved.basePaid,
+        baseRemaining: resolved.baseRemaining,
+        displayRate: resolved.displayRate,
+      };
+
       setValue('invoice_id', inv.id);
-      // invoices.total_amount & paid_amount are stored in base currency (SAR).
-      const remainingBase = Math.max(
-        0,
-        Math.round((Number(inv.total_amount || 0) - Number(inv.paid_amount || 0)) * 100) / 100
+      setSelectedInvoice(snapshot);
+      // خزّن المتبقي بعملة الفاتورة الأصلية (SAR أو YER) ليطابق mainAmount دائماً
+      invoiceRemainingRef.current = Number.isFinite(resolved.docRemaining)
+        ? resolved.docRemaining
+        : null;
+
+      // CRITICAL FIX:
+      // إذا كان المستخدم قد أدخل بالفعل مبلغاً جزئياً بنفس عملة الفاتورة قبل اختيار الفاتورة
+      // (مثلاً كتب 500 ر.س ثم ضغط على فاتورة بـ 1,360 ر.س)، نُبقي مبلغه الجزئي كما هو ولا نمسحه بكامل الفاتورة!
+      const currentCurrency = (watch('currency_code') || 'SAR').toUpperCase().trim();
+      const currentEntered = Number(
+        watch(currentCurrency === 'SAR' ? 'amount' : 'foreign_amount') || 0
       );
-      invoiceRemainingRef.current = Number.isFinite(remainingBase) ? remainingBase : null;
-      const invCurrency = (inv.currency_code || inv.currency || 'SAR').toUpperCase();
-      const rawInvRate = Number(inv.exchange_rate);
-      const operator =
-        (currencyObj?.exchange_operator as 'multiply' | 'divide') ||
-        getDefaultExchangeOperator(invCurrency);
-      // Normalize stored fractional rate (e.g. 0.002439 for YER) to display market rate (e.g. 410) for divide currencies
-      const invRate =
-        rawInvRate > 0
-          ? operator === 'divide' && rawInvRate < 1
-            ? Math.round(1 / rawInvRate)
-            : rawInvRate
-          : invCurrency === 'YER'
-            ? 410
-            : 1;
+      const hasValidPreEnteredPartial =
+        currentEntered > 0 &&
+        currentCurrency === resolved.currency &&
+        currentEntered < resolved.docRemaining - INVOICE_AMOUNT_EPSILON;
 
-      setValue('currency_code', invCurrency);
-      setValue('exchange_rate', invRate);
-      setRateInputStr(String(invRate));
-
-      if (invCurrency !== 'SAR') {
-        const foreignRemaining = convertFromBaseCurrency({
-          amount: remainingBase,
-          currencyCode: invCurrency,
-          exchangeRate: invRate,
-          exchangeOperator: operator,
-        });
-        setValue('foreign_amount', foreignRemaining);
-        setValue('amount', remainingBase);
-        setAmountInputStr(String(foreignRemaining));
-        setEquivalentSarInputStr(String(remainingBase));
+      if (hasValidPreEnteredPartial) {
+        applyAmountForInvoice(snapshot, currentEntered, true);
       } else {
-        setValue('amount', remainingBase);
-        setValue('foreign_amount', 0);
-        setAmountInputStr(String(remainingBase));
-        setEquivalentSarInputStr(String(remainingBase));
+        applyAmountForInvoice(snapshot, resolved.docRemaining, false);
       }
-
-      setValue(
-        'description',
-        `سداد فاتورة ${type === 'receipt' ? 'مبيعات' : 'مشتريات'} رقم ${inv.invoice_number ?? ''}`
-      );
     },
-    [type, currencyObj, setValue, setRateInputStr, setAmountInputStr, setEquivalentSarInputStr]
+    [setValue, watch, applyAmountForInvoice]
   );
+
+  const applyInvoicePaymentPreset = useCallback(
+    (preset: InvoicePaymentPreset) => {
+      if (!selectedInvoice) return;
+      if (preset === 'full') {
+        applyAmountForInvoice(selectedInvoice, selectedInvoice.docRemaining, false);
+        return;
+      }
+      if (preset === 'half') {
+        applyAmountForInvoice(selectedInvoice, selectedInvoice.docRemaining * 0.5, true);
+        return;
+      }
+      if (preset === 'quarter') {
+        applyAmountForInvoice(selectedInvoice, selectedInvoice.docRemaining * 0.25, true);
+        return;
+      }
+      // 'custom': clear amount so the user enters any exact partial payment immediately
+      applyAmountForInvoice(selectedInvoice, 0, true);
+    },
+    [selectedInvoice, applyAmountForInvoice]
+  );
+
+  const invoiceSettlementPreview = useMemo<InvoiceSettlementEvaluation | null>(() => {
+    if (!selectedInvoice) return null;
+    return evaluateInvoiceSettlement({
+      enteredAmount,
+      docTotal: selectedInvoice.docTotal,
+      docPaid: selectedInvoice.docPaid,
+      docRemaining: selectedInvoice.docRemaining,
+      invoiceCurrency: selectedInvoice.currency,
+      bondCurrency: selectedCurrency,
+    });
+  }, [selectedInvoice, enteredAmount, selectedCurrency]);
 
   const onValidSubmit = useCallback(
     (data: BondFormData) => {
@@ -328,31 +426,58 @@ export function useBondForm(
       }
 
       // 3. Validate positive amount
+      const bondCurrency = (data.currency_code || 'SAR').toUpperCase().trim();
       const mainAmount =
-        data.currency_code === 'SAR' ? data.amount : data.foreign_amount || data.amount;
+        bondCurrency === 'SAR' ? data.amount : data.foreign_amount || data.amount;
       if (!mainAmount || mainAmount <= 0) {
         showToast('يجب إدخال مبلغ صحيح أكبر من الصفر', 'error');
         return;
       }
 
-      // 4. لا تتجاوز المتبقي على الفاتورة المختارة (يمنع 23514 من الخادم)
-      if (data.invoice_id && invoiceRemainingRef.current !== null) {
-        const requestedAllocation = computeRequestedAllocation({
-          mainAmount,
-          commissionAmount: data.commission_amount,
-          currencyCode: data.currency_code,
-        });
-        if (exceedsInvoiceRemaining(requestedAllocation, invoiceRemainingRef.current)) {
+      // 4. التحقق من عملة الفاتورة وعدم تجاوز المتبقي (بنفس عملة الفاتورة الأصلية!)
+      if (data.invoice_id && selectedInvoice) {
+        if (bondCurrency !== selectedInvoice.currency) {
           showToast(
-            buildOverAllocationMessage(requestedAllocation, invoiceRemainingRef.current),
+            `عملة السند (${bondCurrency}) تختلف عن عملة الفاتورة المحددة (${selectedInvoice.currency}). غيّر عملة السند إلى ${selectedInvoice.currency} أو ألغِ ربط الفاتورة.`,
             'error'
           );
           return;
         }
       }
 
+      if (data.invoice_id && invoiceRemainingRef.current !== null) {
+        const requestedAllocation = computeRequestedAllocation({
+          mainAmount,
+          commissionAmount: data.commission_amount,
+          currencyCode: bondCurrency,
+        });
+        if (exceedsInvoiceRemaining(requestedAllocation, invoiceRemainingRef.current)) {
+          showToast(
+            buildOverAllocationMessage(
+              requestedAllocation,
+              invoiceRemainingRef.current,
+              selectedInvoice?.currency ?? bondCurrency
+            ),
+            'error'
+          );
+          return;
+        }
+
+        // إذا كان السداد جزئياً والبيان الافتراضي لا يزال "سداد فاتورة..." نحدّثه إلى "دفعة جزئية من فاتورة..."
+        const isPartialNow =
+          requestedAllocation < invoiceRemainingRef.current - INVOICE_AMOUNT_EPSILON;
+        if (
+          isPartialNow &&
+          selectedInvoice &&
+          typeof data.description === 'string' &&
+          data.description.startsWith('سداد فاتورة ')
+        ) {
+          data.description = data.description.replace(/^سداد فاتورة /, 'دفعة جزئية من فاتورة ');
+        }
+      }
+
       // 5. Validate exchange rate for foreign currency
-      if (data.currency_code !== 'SAR' && (!data.exchange_rate || data.exchange_rate <= 0)) {
+      if (bondCurrency !== 'SAR' && (!data.exchange_rate || data.exchange_rate <= 0)) {
         showToast('يجب تحديد سعر صرف صالح أكبر من الصفر', 'error');
         return;
       }
@@ -365,7 +490,7 @@ export function useBondForm(
 
       onSubmit({ ...data, idempotency_key: idempotencyKeyRef.current });
     },
-    [type, showToast, onSubmit]
+    [type, showToast, onSubmit, selectedInvoice]
   );
 
   // Derived Account Names for Live Journal Preview
@@ -456,6 +581,8 @@ export function useBondForm(
     counterpartyType,
     counterpartyId,
     selectedInvoiceId,
+    selectedInvoice,
+    invoiceSettlementPreview,
     cashAccountId,
     enteredAmount,
     commissionAmount,
@@ -465,6 +592,7 @@ export function useBondForm(
     otherAccounts,
     handlePartySelect,
     handleInvoiceSelect,
+    applyInvoicePaymentPreset,
     handleQuickAmount,
     handleClearAmount,
     onValidSubmit,

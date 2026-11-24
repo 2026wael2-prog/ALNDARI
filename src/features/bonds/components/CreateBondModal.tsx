@@ -53,6 +53,8 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
     counterpartyType,
     counterpartyId,
     selectedInvoiceId,
+    selectedInvoice,
+    invoiceSettlementPreview,
     enteredAmount,
     commissionAmount,
     isDivide,
@@ -60,6 +62,7 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
     otherAccounts,
     handlePartySelect,
     handleInvoiceSelect,
+    applyInvoicePaymentPreset,
     handleQuickAmount,
     handleClearAmount,
     onValidSubmit,
@@ -315,7 +318,10 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
                       partyId={counterpartyId}
                       partyType={type === 'receipt' ? 'customer' : 'supplier'}
                       selectedInvoiceId={selectedInvoiceId}
+                      selectedInvoice={selectedInvoice}
+                      settlementPreview={invoiceSettlementPreview}
                       onSelectInvoice={handleInvoiceSelect}
+                      onApplyPreset={applyInvoicePaymentPreset}
                     />
                   </div>
                 )}
@@ -344,6 +350,8 @@ const CreateBondModal: React.FC<CreateBondModalProps> = ({
                 selectedParty={selectedParty}
                 partyBalanceSummary={partyBalanceSummary}
                 selectedInvoiceId={selectedInvoiceId}
+                selectedInvoice={selectedInvoice}
+                invoiceSettlementPreview={invoiceSettlementPreview}
               />
             </div>
           </div>

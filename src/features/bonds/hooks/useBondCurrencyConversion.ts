@@ -16,6 +16,8 @@ interface UseBondCurrencyConversionProps {
   equivalentSarInputStr: string;
   setRateInputStr: (val: string) => void;
   setEquivalentSarInputStr: (val: string) => void;
+  /** عند التحديد من فاتورة أجنبية، يحفظ سعر صرف الفاتورة بدل استبداله تلقائياً بالسعر الافتراضي */
+  preserveNextRateRef?: { current: boolean } | undefined;
 }
 
 export function useBondCurrencyConversion({
@@ -26,6 +28,7 @@ export function useBondCurrencyConversion({
   equivalentSarInputStr,
   setRateInputStr,
   setEquivalentSarInputStr,
+  preserveNextRateRef,
 }: UseBondCurrencyConversionProps) {
   const { currencies, rates } = useCurrencies();
   const { showToast } = useFeedbackStore();
@@ -61,26 +64,36 @@ export function useBondCurrencyConversion({
   // Currency switch and default rate loader
   useEffect(() => {
     if (selectedCurrency === 'SAR') {
+      if (preserveNextRateRef) preserveNextRateRef.current = false;
       setValue('exchange_rate', 1);
       setValue('foreign_amount', 0);
       setRateInputStr('1');
       setEquivalentSarInputStr('');
     } else {
+      if (preserveNextRateRef?.current) {
+        preserveNextRateRef.current = false;
+        return;
+      }
       const rate = rates.data?.find(
         (r: { currency_code: string; rate_to_base: number }) => r.currency_code === selectedCurrency
       );
-      // For YER, if no rate or 1 is set, default to 410 (standard Yemeni Rial market divider)
+      // Normalize stored fractional rate (e.g. 0.002353 for YER) to display divisor (e.g. 425)
+      const rawRate = rate?.rate_to_base ?? 0;
+      const normalizedRate =
+        selectedCurrency === 'YER' && rawRate > 0 && rawRate < 1
+          ? Math.round(1 / rawRate)
+          : rawRate;
       const defaultRate =
-        rate?.rate_to_base && rate.rate_to_base !== 1
-          ? rate.rate_to_base
+        normalizedRate && normalizedRate !== 1
+          ? normalizedRate
           : selectedCurrency === 'YER'
-            ? 410
+            ? 425
             : 1;
 
       setValue('exchange_rate', defaultRate);
       setRateInputStr(String(defaultRate));
     }
-  }, [selectedCurrency, rates.data, setValue, setRateInputStr, setEquivalentSarInputStr]);
+  }, [selectedCurrency, rates.data, setValue, setRateInputStr, setEquivalentSarInputStr, preserveNextRateRef]);
 
   // Sync equivalent base amount (SAR)
   useEffect(() => {

@@ -91,6 +91,21 @@ export const parseError = (error: unknown): AppError => {
   const rawMessage = unwrapJsonMessage(isGenericHttpMsg && hint ? hint : rawMessageBase);
   const lowerMsg = rawMessage.toLowerCase();
 
+  // Abort / Cancelled requests (React Query invalidations, navigation, HMR, token refresh)
+  const isAbortError =
+    (error instanceof Error && error.name === 'AbortError') ||
+    (errorRecord?.name === 'AbortError') ||
+    lowerMsg.includes('request aborted') ||
+    lowerMsg.includes('signal is aborted') ||
+    lowerMsg.includes('aborterror');
+  if (isAbortError) {
+    return makeAppError(
+      'ABORTED',
+      'تم إلغاء الطلب السابق تلقائياً لتحديث البيانات.',
+      'low'
+    );
+  }
+
   // Network Errors - Catch generic fetch failures
   if (
     lowerMsg.includes('failed to fetch') ||

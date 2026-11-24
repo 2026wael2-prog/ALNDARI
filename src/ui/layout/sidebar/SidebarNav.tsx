@@ -100,7 +100,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
         aria-label={t(item.labelKey)}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'group relative flex w-full items-center gap-3 rounded-xl border px-2.5 py-2 text-start text-xs font-bold transition-all duration-200',
+          'group relative flex w-full items-center gap-3 rounded-xl border px-2.5 py-2 text-start text-xs font-bold transition-colors duration-75',
           isActive
             ? cn(theme.activeItemBg, 'shadow-sm')
             : 'border-transparent text-slate-800 hover:bg-slate-100/70 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-800/50 dark:hover:text-white',
@@ -120,7 +120,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
         {/* Vibrant Interactive Icon Badge */}
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border shadow-xs transition-all duration-200',
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border shadow-xs transition-colors duration-75',
             isActive
               ? theme.activeBadge
               : cn(theme.badgeBg, theme.badgeBorder, theme.iconColor, theme.hoverBadge)
@@ -129,7 +129,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
           <IconComponent
             size={isCollapsed ? 18 : 16}
             className={cn(
-              'transition-transform duration-200 group-hover:rotate-3 group-active:scale-90',
+              'transition-transform duration-75 group-active:scale-95',
               isActive ? 'text-white' : ''
             )}
           />
@@ -139,7 +139,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
         {!isCollapsed && (
           <span
             className={cn(
-              'overflow-hidden whitespace-nowrap transition-transform duration-200 group-hover:translate-x-0.5',
+              'overflow-hidden whitespace-nowrap',
               isActive
                 ? theme.activeItemText
                 : 'text-slate-900 group-hover:text-slate-950 dark:text-slate-100 dark:group-hover:text-white'

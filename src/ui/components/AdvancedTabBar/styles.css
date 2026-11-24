@@ -31,13 +31,13 @@
   --tab-text-hover: #0f172a;
   --tab-text-active: #ffffff;
 
-  /* Animation Timing */
-  --tab-transition-fast: 150ms;
-  --tab-transition-normal: 300ms;
-  --tab-transition-slow: 500ms;
-  --tab-easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --tab-easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  --tab-easing-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Animation Timing — Snappy native-desktop feel */
+  --tab-transition-fast: 60ms;
+  --tab-transition-normal: 80ms;
+  --tab-transition-slow: 110ms;
+  --tab-easing-smooth: ease-out;
+  --tab-easing-bounce: ease-out;
+  --tab-easing-elastic: ease-out;
 }
 
 /* Dark Mode Overrides */
@@ -194,15 +194,9 @@ html[data-preset='solar-noir'].dark {
   align-items: stretch;
   gap: 0.25rem;
   padding: 0.25rem;
-  background: var(--tab-glass-bg);
-  backdrop-filter: blur(var(--tab-glass-blur));
-  -webkit-backdrop-filter: blur(var(--tab-glass-blur));
-  border: 1px solid var(--tab-glass-border);
-  border-radius: 0.75rem;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.1),
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  background: var(--app-bg, #f4f6f9);
+  border: 1px solid var(--app-border, rgba(15, 23, 42, 0.08));
+  border-radius: 0.625rem;
 }
 
 .advanced-tab-bar__container::-webkit-scrollbar {
@@ -233,56 +227,31 @@ html[data-preset='solar-noir'].dark {
   /* Hardware acceleration */
   transform: translateZ(0);
 
-  /* Smooth transitions */
+  /* Snappy GPU-light transitions */
   transition:
-    color var(--tab-transition-fast) var(--tab-easing-smooth),
-    transform var(--tab-transition-normal) var(--tab-easing-elastic),
-    box-shadow var(--tab-transition-normal) var(--tab-easing-smooth),
-    background var(--tab-transition-fast) var(--tab-easing-smooth);
+    color var(--tab-transition-fast) ease-out,
+    background-color var(--tab-transition-fast) ease-out,
+    transform var(--tab-transition-fast) ease-out;
 }
 
 /* Tab Hover State */
 .advanced-tab:hover:not(:disabled):not(.advanced-tab--active) {
   color: var(--tab-text-hover);
-  background: linear-gradient(135deg,
-      rgba(255, 255, 255, 0.1),
-      rgba(255, 255, 255, 0.05));
-  transform: translateY(-1px);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 0 20px var(--tab-ambient-glow);
+  background: var(--app-surface-hover, rgba(148, 163, 184, 0.14));
 }
 
-/* Tab Active State with Gradient & Animation */
+/* Tab Active State — crisp, zero continuous GPU repaints */
 .advanced-tab--active {
   color: var(--tab-text-active);
   background: linear-gradient(135deg,
       var(--tab-gradient-active-start),
       var(--tab-gradient-active-end));
-  background-size: 200% auto;
-  will-change: transform, box-shadow, background;
-  animation:
-    rhythmicPulse 3s ease-in-out infinite,
-    shimmer 3s linear infinite;
-  transform: translateY(-1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
   z-index: 1;
 }
 
-/* Tab Active - Enhanced Glow Layer */
 .advanced-tab--active::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(135deg,
-      var(--tab-gradient-start),
-      var(--tab-gradient-end),
-      var(--tab-gradient-start));
-  background-size: 200% 200%;
-  border-radius: inherit;
-  z-index: -1;
-  opacity: 0.5;
-  filter: blur(8px);
-  animation: glowPulse 2s ease-in-out infinite;
+  content: none;
 }
 
 /* Tab Focus State (Keyboard Navigation) */
@@ -314,18 +283,15 @@ html[data-preset='solar-noir'].dark {
   flex-shrink: 0;
   width: 1rem;
   height: 1rem;
-  transition:
-    transform var(--tab-transition-normal) var(--tab-easing-elastic),
-    filter var(--tab-transition-fast) var(--tab-easing-smooth);
+  transition: transform var(--tab-transition-fast) ease-out;
 }
 
 .advanced-tab:hover .advanced-tab__icon {
-  transform: scale(1.1) rotate(-5deg);
+  transform: scale(1.05);
 }
 
 .advanced-tab--active .advanced-tab__icon {
-  transform: scale(1.15);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  transform: scale(1.06);
 }
 
 /* ============================================
@@ -334,17 +300,12 @@ html[data-preset='solar-noir'].dark {
 
 .advanced-tab__label {
   position: relative;
-  letter-spacing: 0.025em;
-  transition: transform var(--tab-transition-fast) var(--tab-easing-smooth);
+  letter-spacing: 0.015em;
 }
 
-.advanced-tab:hover .advanced-tab__label {
-  transform: translateX(2px);
-}
-
-/* RTL: reverse label shift direction */
+.advanced-tab:hover .advanced-tab__label,
 [dir="rtl"] .advanced-tab:hover .advanced-tab__label {
-  transform: translateX(-2px);
+  transform: none;
 }
 
 /* ============================================

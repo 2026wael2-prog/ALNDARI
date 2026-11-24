@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, MouseEvent, SetStateAction } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../auth/store';
 import { bondsService } from '../../bonds/service';
 import type { Bond } from '../../bonds/types';
@@ -12,7 +13,46 @@ import type { PartyType } from '../types';
 interface UseStatementControllerParams {
   partyType: PartyType;
   initialPartyId?: string | undefined;
+  initialCurrency?: string | undefined;
 }
+
+interface PersistedStatementState {
+  partyId: string;
+  currency: string;
+  startDate: string;
+  endDate: string;
+}
+
+const buildStatementStateKey = (companyId: string, partyType: PartyType) =>
+  `erp_last_statement_state_${companyId}_${partyType}`;
+
+const readPersistedStatementState = (key: string): PersistedStatementState | null => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedStatementState>;
+    return {
+      partyId: typeof parsed.partyId === 'string' ? parsed.partyId : '',
+      currency: typeof parsed.currency === 'string' && parsed.currency ? parsed.currency : 'ALL',
+      startDate: typeof parsed.startDate === 'string' ? parsed.startDate : '',
+      endDate: typeof parsed.endDate === 'string' ? parsed.endDate : '',
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writePersistedStatementState = (key: string, state: PersistedStatementState) => {
+  try {
+    if (!state.partyId) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, JSON.stringify(state));
+    }
+  } catch {
+    // ignore quota errors
+  }
+};
 
 const applyColorToKeys = (
   colorMap: Map<string, string>,
@@ -63,20 +103,101 @@ const persistRowColors = (storageKey: string | null, colorMap: Map<string, strin
 export const useStatementController = ({
   partyType,
   initialPartyId,
+  initialCurrency,
 }: UseStatementControllerParams) => {
-  const [selectedPartyId, setSelectedPartyId] = useState<string>(initialPartyId || '');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: settingsCompany } = useCompany();
+  const invoiceSettings = useInvoiceSettings();
+
+  const companyId =
+    settingsCompany?.id || useAuthStore.getState().user?.company_id || 'default_co';
+  const persistedStateKey = buildStatementStateKey(companyId, partyType);
+
+  // Restore last opened customer statement from URL params OR localStorage so reload/app update never loses it
+  const initialHydrated = useMemo(() => {
+    const saved = readPersistedStatementState(persistedStateKey);
+    const urlParty = searchParams.get('party') || '';
+    const urlCurrency = searchParams.get('currency') || '';
+    const urlFrom = searchParams.get('from') || '';
+    const urlTo = searchParams.get('to') || '';
+    return {
+      partyId: initialPartyId || urlParty || saved?.partyId || '',
+      currency:
+        (initialCurrency && initialCurrency !== 'ALL' ? initialCurrency : '') ||
+        urlCurrency ||
+        saved?.currency ||
+        'ALL',
+      startDate: urlFrom || saved?.startDate || '',
+      endDate: urlTo || saved?.endDate || '',
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial mount hydration only
+  }, []);
+
+  const [selectedPartyId, setSelectedPartyId] = useState<string>(initialHydrated.partyId);
   const [activeTab, setActiveTab] = useState<'statement' | 'rent'>('statement');
+  const [startDate, setStartDate] = useState(initialHydrated.startDate);
+  const [endDate, setEndDate] = useState(initialHydrated.endDate);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(initialHydrated.currency);
+  const [searchQuery, setSearchQuery] = useState('');
+  const prevInitialPartyRef = useRef<string | undefined>(initialPartyId);
+  const prevInitialCurrencyRef = useRef<string | undefined>(initialCurrency);
+
+  // Re-hydrate from localStorage if companyId resolves after mount and no party is selected yet
+  useEffect(() => {
+    if (selectedPartyId) return;
+    const saved = readPersistedStatementState(persistedStateKey);
+    if (saved?.partyId) {
+      setSelectedPartyId(saved.partyId);
+      if (saved.currency) setSelectedCurrency(saved.currency);
+      if (saved.startDate) setStartDate(saved.startDate);
+      if (saved.endDate) setEndDate(saved.endDate);
+    }
+  }, [persistedStateKey, selectedPartyId]);
 
   useEffect(() => {
-    if (initialPartyId) {
+    if (initialPartyId && initialPartyId !== prevInitialPartyRef.current) {
+      prevInitialPartyRef.current = initialPartyId;
       setSelectedPartyId(initialPartyId);
     }
   }, [initialPartyId]);
 
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  useEffect(() => {
+    if (initialCurrency && initialCurrency !== prevInitialCurrencyRef.current) {
+      prevInitialCurrencyRef.current = initialCurrency;
+      setSelectedCurrency(initialCurrency);
+    }
+  }, [initialCurrency]);
+
+  // Persist active statement selection to BOTH localStorage and URL search params
+  useEffect(() => {
+    writePersistedStatementState(persistedStateKey, {
+      partyId: selectedPartyId,
+      currency: selectedCurrency,
+      startDate,
+      endDate,
+    });
+
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', 'statements');
+        if (selectedPartyId) next.set('party', selectedPartyId);
+        else next.delete('party');
+
+        if (selectedCurrency && selectedCurrency !== 'ALL') next.set('currency', selectedCurrency);
+        else next.delete('currency');
+
+        if (startDate) next.set('from', startDate);
+        else next.delete('from');
+
+        if (endDate) next.set('to', endDate);
+        else next.delete('to');
+
+        return next.toString() === prev.toString() ? prev : next;
+      },
+      { replace: true }
+    );
+  }, [persistedStateKey, selectedPartyId, selectedCurrency, startDate, endDate, setSearchParams]);
 
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
   const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
@@ -95,11 +216,6 @@ export const useStatementController = ({
     currencyCode: selectedCurrency,
   });
 
-  const { data: settingsCompany } = useCompany();
-  const invoiceSettings = useInvoiceSettings();
-
-  const companyId =
-    settingsCompany?.id || useAuthStore.getState().user?.company_id || 'default_co';
   const storageKey = selectedPartyId
     ? `erp_statement_row_colors_${companyId}_${selectedPartyId}`
     : null;
@@ -144,11 +260,14 @@ export const useStatementController = ({
 
   const availableCurrencies = useMemo(() => {
     const currencies = new Set<string>();
-    movements.forEach(m => {
-      if (m.currency) currencies.add(m.currency);
+    (selectedParty?.balances_by_currency ?? []).forEach(bc => {
+      if (bc.currency) currencies.add(bc.currency.toUpperCase());
     });
-    return Array.from(currencies);
-  }, [movements]);
+    movements.forEach(m => {
+      if (m.currency) currencies.add(m.currency.toUpperCase());
+    });
+    return Array.from(currencies).sort((a, b) => (a === 'SAR' ? -1 : b === 'SAR' ? 1 : a.localeCompare(b)));
+  }, [movements, selectedParty?.balances_by_currency]);
 
   const filteredMovements = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();

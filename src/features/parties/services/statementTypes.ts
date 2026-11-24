@@ -15,6 +15,7 @@ export interface StatementMovement {
   reference_type?: string | null | undefined;
   payment_status?:
     | 'paid'
+    | 'partial'
     | 'partially_paid'
     | 'unpaid'
     | 'void'

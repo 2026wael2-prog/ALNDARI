@@ -1141,8 +1141,8 @@ html[data-preset='al-mizan-pro'].dark {
     font-weight: 700;
     color: var(--app-text);
     transition:
-      background-color 120ms ease,
-      border-color 120ms ease;
+      background-color 60ms ease-out,
+      border-color 60ms ease-out;
   }
 
   .classic-menu-btn:hover,
@@ -1186,7 +1186,7 @@ html[data-preset='al-mizan-pro'].dark {
     font-weight: 600;
     text-align: start;
     color: var(--app-text);
-    transition: background-color 120ms ease;
+    transition: background-color 60ms ease-out;
   }
 
   .classic-menu-item:hover,
@@ -1249,8 +1249,8 @@ html[data-preset='al-mizan-pro'].dark {
     text-align: center;
     color: var(--app-text);
     transition:
-      background-color 120ms ease,
-      border-color 120ms ease;
+      background-color 60ms ease-out,
+      border-color 60ms ease-out;
   }
 
   .classic-ribbon-item:hover {
@@ -1285,8 +1285,8 @@ html[data-preset='al-mizan-pro'].dark {
     background-color: var(--classic-icon);
     color: var(--classic-icon-fg);
     transition:
-      background-color 120ms ease,
-      color 120ms ease;
+      background-color 60ms ease-out,
+      color 60ms ease-out;
   }
 
   .classic-ribbon-item:hover .classic-ribbon-icon {
@@ -4043,5 +4043,50 @@ html.dark[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
 @media (prefers-reduced-motion: reduce) {
   .car-parts-logo .car-part {
     animation: none !important;
+  }
+}
+
+/* ============================================================
+   Snappy Native-Desktop Responsiveness for Buttons, Icons & Tabs
+   تسريع استجابة الأزرار والأيقونات والقوائم في كامل التطبيق
+   ============================================================ */
+button,
+a,
+[role='button'],
+[role='tab'],
+[role='menuitem'] {
+  touch-action: manipulation;
+  transition-duration: 75ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+button svg,
+a svg,
+[role='button'] svg,
+[role='tab'] svg {
+  transition-duration: 75ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+/* أسرع دخول للقوائم المنسدلة والنوافذ دون بطء أو ثقل */
+.animate-in {
+  animation-duration: 90ms !important;
+}
+
+/* إيقاف تأثيرات الضبابية الثقيلة على GPU في القوائم المنسدلة والأشرطة */
+[class*='backdrop-blur'] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  a,
+  [role='button'],
+  [role='tab'],
+  [role='menuitem'],
+  .animate-in {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

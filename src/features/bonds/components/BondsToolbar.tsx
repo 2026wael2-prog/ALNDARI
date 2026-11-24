@@ -29,6 +29,7 @@ interface BondsToolbarProps {
   sortOrder: BondSortOrder;
   setSortOrder: (order: BondSortOrder) => void;
   displayedCount: number;
+  totalServerCount?: number;
   hasActiveFilters: boolean;
   onResetFilters: () => void;
 }
@@ -47,6 +48,7 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
   sortOrder,
   setSortOrder,
   displayedCount,
+  totalServerCount,
   hasActiveFilters,
   onResetFilters,
 }) => {
@@ -121,7 +123,9 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
 
           {/* Counter */}
           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-            {displayedCount} سند
+            {totalServerCount && totalServerCount > displayedCount
+              ? `عرض ${displayedCount} من أصل ${totalServerCount} سند`
+              : `${displayedCount} سند`}
           </span>
 
           {/* Reset button */}

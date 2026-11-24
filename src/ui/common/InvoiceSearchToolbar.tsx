@@ -261,13 +261,12 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
                 aria-label="عدد الفواتير المعروضة"
                 className="focus:outline-hidden h-7 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-2 py-0.5 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500"
               >
-                <option value={50}>50 فاتورة</option>
-                <option value={100}>100 فاتورة</option>
-                <option value={250}>250 فاتورة</option>
-                <option value={500}>500 فاتورة</option>
-                <option value={1000}>1,000 فاتورة</option>
-                <option value={2500}>2,500 فاتورة</option>
-                <option value={5000}>الكل (5,000)</option>
+                <option value={25}>25 / صفحة</option>
+                <option value={50}>50 / صفحة</option>
+                <option value={100}>100 / صفحة</option>
+                <option value={250}>250 / صفحة</option>
+                <option value={500}>500 / صفحة</option>
+                <option value={1000}>1,000 / صفحة</option>
               </select>
             </div>
           )}

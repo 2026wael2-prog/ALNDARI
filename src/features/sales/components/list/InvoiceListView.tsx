@@ -43,8 +43,14 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   const [currencyFilter, setCurrencyFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'date' | 'total' | 'number'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(50);
+  const [page, setPage] = useState(0);
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+
+  // Reset to page 0 whenever filters or page size change
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, dateFrom, dateTo, statusFilter, paymentMethodFilter, viewType, limit]);
 
   useEffect(() => {
     if (searchTerm !== undefined && searchTerm !== internalSearch) {
@@ -69,9 +75,10 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
       status: statusFilter !== 'all' ? statusFilter : undefined,
       paymentMethod: paymentMethodFilter !== 'all' ? paymentMethodFilter : undefined,
       type: viewType,
+      page,
       limit,
     }),
-    [debouncedSearch, dateFrom, dateTo, statusFilter, paymentMethodFilter, viewType, limit]
+    [debouncedSearch, dateFrom, dateTo, statusFilter, paymentMethodFilter, viewType, page, limit]
   );
 
   const { data: invoices, isLoading, error, refetch } = useInvoices(searchParams);
@@ -296,6 +303,38 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
               }
             }}
           />
+          {(() => {
+            const totalServer = displayData[0]?.totalMatchingCount ?? displayData.length;
+            const totalPages = Math.max(1, Math.ceil(totalServer / limit));
+            if (totalPages <= 1 && page === 0) return null;
+            const rangeStart = page * limit + 1;
+            const rangeEnd = page * limit + displayData.length;
+            return (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--app-border)] bg-[var(--app-surface-hover)]/40 px-4 py-2 text-xs font-bold text-[var(--app-text-secondary)]">
+                <span>
+                  عرض {rangeStart}–{rangeEnd} من أصل {totalServer} فاتورة (صفحة {page + 1} من {totalPages})
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={page <= 0}
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-1 text-xs font-bold text-[var(--app-text)] transition-colors hover:bg-blue-50 disabled:opacity-40 dark:hover:bg-blue-900/20"
+                  >
+                    السابق
+                  </button>
+                  <button
+                    type="button"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                    className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-1 text-xs font-bold text-[var(--app-text)] transition-colors hover:bg-blue-50 disabled:opacity-40 dark:hover:bg-blue-900/20"
+                  >
+                    التالي
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ) : (
         <EmptyState

@@ -102,6 +102,15 @@ const BalanceSheet: React.FC<Props> = ({ dateRange }) => {
   const totalLiabilities = totals.liabilities;
   const totalEquity = totals.equity;
 
+  // Separate gross credit liabilities from contra-debit liability accounts (e.g. supplier advances)
+  // so Total Liabilities is transparent and never appears paradoxically smaller than supplier payables.
+  const creditLiabilitiesTotal = liabilities
+    .filter(item => item.net_balance > 0)
+    .reduce((sum, item) => sum + item.net_balance, 0);
+  const contraDebitLiabilitiesTotal = liabilities
+    .filter(item => item.net_balance < 0)
+    .reduce((sum, item) => sum + Math.abs(item.net_balance), 0);
+
   // Server already computes difference accurately
   const differenceAmount = difference || 0;
 
@@ -120,10 +129,39 @@ const BalanceSheet: React.FC<Props> = ({ dateRange }) => {
             </b>
           </p>
         </div>
-        <div className="bg-slate-900 p-3 text-white max-md:p-2">
-          <Landmark size={24} />
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold',
+              isBalanced
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
+                : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300'
+            )}
+          >
+            <ShieldCheck size={15} />
+            <span>
+              {isBalanced
+                ? 'معادلة الميزانية متوازنة (الأصول = الخصوم + حقوق الملكية)'
+                : `فارق في معادلة الميزانية: ${formatCurrency(differenceAmount)}`}
+            </span>
+          </div>
+          <div className="bg-slate-900 p-3 text-white max-md:p-2">
+            <Landmark size={24} />
+          </div>
         </div>
       </div>
+
+      {contraDebitLiabilitiesTotal > 0.01 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs font-bold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+          <span>
+            إيضاح الخصوم: إجمالي الالتزامات الدائنة{' '}
+            <b dir="ltr" className="font-mono">{formatCurrency(creditLiabilitiesTotal)}</b> مطروحاً منها
+            دفعات مقدمة وأرصدة موردين مدينة{' '}
+            <b dir="ltr" className="font-mono">({formatCurrency(contraDebitLiabilitiesTotal)})</b> = صافي
+            الخصوم <b dir="ltr" className="font-mono">{formatCurrency(totalLiabilities)}</b>
+          </span>
+        </div>
+      )}
 
       <div className="grid items-start gap-3 max-md:gap-3 lg:grid-cols-2">
         {/* Left Column: Assets */}

@@ -27,6 +27,8 @@ export interface PartyFormData {
   category_id?: string | null;
 }
 
+export type PartyBalanceClassification = 'debtor' | 'creditor' | 'mixed_currency' | 'settled';
+
 export interface PartyStats {
   /** Total number of parties (active + blocked). */
   totalCount: number;
@@ -40,6 +42,11 @@ export interface PartyStats {
   activeCount: number;
   /** Count of parties whose `status` is `blocked`. */
   blockedCount: number;
+  /** Canonical per-currency balance counts (never silently netting opposite-sign currencies). */
+  debtorCount?: number;
+  creditorCount?: number;
+  mixedCurrencyCount?: number;
+  settledCount?: number;
   /** Breakdown of total balances by currency (e.g. SAR, YER). */
   byCurrency?: Array<{ currency: string; balance: number; count: number }>;
 }

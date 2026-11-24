@@ -37,12 +37,13 @@ export function useBondsTotals(
     }
 
     const safeAnalytics = serverAnalytics as Record<string, unknown> | null;
-    const serverCount = (safeAnalytics?.count as number) || 0;
-    const serverTotal = (safeAnalytics?.totalAmount as number) || 0;
+    const serverCount =
+      Number(safeAnalytics?.totalCount ?? safeAnalytics?.count ?? 0) || 0;
+    const serverTotal = Number(safeAnalytics?.totalAmount ?? 0) || 0;
 
     const resolvedTotal = serverTotal > 0 ? serverTotal : localTotal;
     const resolvedCount = serverCount > 0 ? serverCount : localCount;
-    const serverAvg = (safeAnalytics?.avgAmount as number) || 0;
+    const serverAvg = Number(safeAnalytics?.avgAmount ?? 0) || 0;
     const resolvedAvg =
       serverAvg > 0 ? serverAvg : resolvedCount > 0 ? resolvedTotal / resolvedCount : 0;
 
@@ -70,16 +71,38 @@ export function useBondsTotals(
     }
 
     const safeAnalytics = serverAnalytics as Record<string, unknown> | null;
-    const safeTotals = (safeAnalytics?.totals as Record<string, number>) || {};
+    // Support both flat `get_bonds_stats` payload (receiptAmount/paymentAmount at root)
+    // and legacy nested `totals` shape so SQL aggregate totals are always authoritative.
+    const nestedTotals = (safeAnalytics?.totals as Record<string, number> | undefined) ?? undefined;
+    const serverReceiptCount = Number(
+      nestedTotals?.receiptCount ?? safeAnalytics?.receiptCount ?? 0
+    );
+    const serverReceiptAmount = Number(
+      nestedTotals?.receiptAmount ?? safeAnalytics?.receiptAmount ?? 0
+    );
+    const serverPaymentCount = Number(
+      nestedTotals?.paymentCount ?? safeAnalytics?.paymentCount ?? 0
+    );
+    const serverPaymentAmount = Number(
+      nestedTotals?.paymentAmount ?? safeAnalytics?.paymentAmount ?? 0
+    );
 
-    // Server data has real values — use it
-    if (safeTotals && (safeTotals.receiptAmount > 0 || safeTotals.paymentAmount > 0)) {
+    if (
+      serverReceiptCount > 0 ||
+      serverPaymentCount > 0 ||
+      serverReceiptAmount > 0 ||
+      serverPaymentAmount > 0
+    ) {
+      const netAmount =
+        nestedTotals?.netAmount !== undefined
+          ? Number(nestedTotals.netAmount)
+          : Math.round((serverReceiptAmount - serverPaymentAmount) * 100) / 100;
       return {
-        receiptCount: safeTotals.receiptCount || 0,
-        receiptAmount: safeTotals.receiptAmount || 0,
-        paymentCount: safeTotals.paymentCount || 0,
-        paymentAmount: safeTotals.paymentAmount || 0,
-        netAmount: safeTotals.netAmount || 0,
+        receiptCount: serverReceiptCount,
+        receiptAmount: serverReceiptAmount,
+        paymentCount: serverPaymentCount,
+        paymentAmount: serverPaymentAmount,
+        netAmount,
       };
     }
 

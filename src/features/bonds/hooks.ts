@@ -1,8 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bondsService } from './service';
 import { useAuthStore } from '../auth/store';
 import { useFeedbackStore } from '../feedback/store';
-import type { BondType, BondFormData } from './types';
+import type { Bond, BondType, BondFormData } from './types';
 import { assertPermission } from '../../core/hooks/usePermission';
 import { useBranchFilter } from '../branches/hooks/useBranchFilter';
 import { invalidateFinancialQueries } from '../../core/utils/querySyncUtils';
@@ -10,20 +10,45 @@ import { invalidateByPreset } from '../../lib/invalidation';
 import { parseError } from '../../core/utils/errorUtils';
 import { syncStore } from '../../core/lib/sync-store';
 
+const BONDS_PAGE_SIZE = 200;
+
 export const useBonds = (type?: BondType) => {
   const { user } = useAuthStore();
   const { branchId } = useBranchFilter();
-  return useQuery({
+
+  const query = useInfiniteQuery({
     queryKey: ['bonds', user?.company_id, branchId, type],
-    queryFn: () =>
+    initialPageParam: 0,
+    queryFn: ({ pageParam = 0 }) =>
       user?.company_id
-        ? bondsService.fetchBonds(user.company_id, branchId, type)
-        : Promise.resolve([]),
+        ? bondsService.fetchBondsPage(
+            user.company_id,
+            branchId,
+            type,
+            BONDS_PAGE_SIZE,
+            pageParam * BONDS_PAGE_SIZE
+          )
+        : Promise.resolve({ items: [] as Bond[], totalCount: 0 }),
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((sum, p) => sum + p.items.length, 0);
+      if (loaded < lastPage.totalCount && lastPage.items.length > 0) {
+        return allPages.length;
+      }
+      return undefined;
+    },
     enabled: !!user?.company_id,
     staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    placeholderData: prev => prev,
   });
+
+  const flatData = query.data?.pages.flatMap(p => p.items) ?? [];
+  const totalCount = query.data?.pages[0]?.totalCount ?? flatData.length;
+
+  return {
+    ...query,
+    data: flatData,
+    totalCount,
+  };
 };
 
 export const useBondsAnalytics = (period?: 'today' | 'week' | 'month' | 'quarter' | 'year') => {

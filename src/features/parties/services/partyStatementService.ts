@@ -1,7 +1,7 @@
 import { optArg } from '@/core/utils/rpcArgs';
 import { logger } from '../../../core/utils/logger';
 import { supabase } from '../../../lib/supabaseClient';
-import type { Party, PartyStats, PartyType } from '../types';
+import type { Party, PartyBalanceClassification, PartyStats, PartyType } from '../types';
 import type { StatementMovement, StatementTransactionDetails } from './statementTypes';
 
 interface RawStatementRpcRow {
@@ -114,6 +114,35 @@ export async function fetchStatementTransactionDetails(
   return data as StatementTransactionDetails | null;
 }
 
+const BALANCE_EPSILON = 0.01;
+
+/**
+ * Canonical per-currency balance classifier:
+ * - Never silently nets opposite-sign SAR & YER balances.
+ * - `debtor`: at least one currency > 0.01 and no currency < -0.01
+ * - `creditor`: at least one currency < -0.01 and no currency > 0.01
+ * - `mixed_currency`: positive in one currency AND negative in another
+ * - `settled`: all currencies within ±0.01
+ */
+export function classifyPartyBalance(party: Pick<Party, 'balance' | 'balances_by_currency'>): PartyBalanceClassification {
+  const entries =
+    party.balances_by_currency && party.balances_by_currency.length > 0
+      ? party.balances_by_currency.map(bc => Number(bc.balance) || 0)
+      : [Number(party.balance) || 0];
+
+  let hasPositive = false;
+  let hasNegative = false;
+  for (const val of entries) {
+    if (val > BALANCE_EPSILON) hasPositive = true;
+    else if (val < -BALANCE_EPSILON) hasNegative = true;
+  }
+
+  if (hasPositive && hasNegative) return 'mixed_currency';
+  if (hasPositive) return 'debtor';
+  if (hasNegative) return 'creditor';
+  return 'settled';
+}
+
 /** Computes aggregate counts, receivable/payable totals, and currency breakdowns for parties. */
 export function calculatePartyStats(parties: Party[], _type: PartyType = 'customer'): PartyStats {
   const activeCount = parties.filter(p => (p.status ?? 'active') === 'active').length;
@@ -122,15 +151,25 @@ export function calculatePartyStats(parties: Party[], _type: PartyType = 'custom
   let totalReceivable = 0;
   let totalPayable = 0;
   let totalBalance = 0;
+  let debtorCount = 0;
+  let creditorCount = 0;
+  let mixedCurrencyCount = 0;
+  let settledCount = 0;
 
   for (const p of parties) {
     const b = p.balance ?? 0;
     totalBalance += b;
-    if (b > 0) {
+    if (b > BALANCE_EPSILON) {
       totalReceivable += b;
-    } else if (b < 0) {
+    } else if (b < -BALANCE_EPSILON) {
       totalPayable += Math.abs(b);
     }
+
+    const cls = classifyPartyBalance(p);
+    if (cls === 'debtor') debtorCount += 1;
+    else if (cls === 'creditor') creditorCount += 1;
+    else if (cls === 'mixed_currency') mixedCurrencyCount += 1;
+    else settledCount += 1;
   }
 
   const currMap = new Map<string, { total: number; count: number }>();
@@ -144,28 +183,32 @@ export function calculatePartyStats(parties: Party[], _type: PartyType = 'custom
   for (const p of parties) {
     if (p.balances_by_currency && p.balances_by_currency.length > 0) {
       for (const bc of p.balances_by_currency) {
-        if (bc.balance !== 0) {
+        if (Math.abs(bc.balance) > BALANCE_EPSILON) {
           recordCurrencyBalance(bc.currency, bc.balance);
         }
       }
-    } else if (p.balance !== undefined && p.balance !== 0) {
+    } else if (p.balance !== undefined && Math.abs(p.balance) > BALANCE_EPSILON) {
       recordCurrencyBalance('SAR', p.balance);
     }
   }
 
   const byCurrency = Array.from(currMap.entries()).map(([currency, item]) => ({
     currency,
-    balance: item.total,
+    balance: Math.round(item.total * 100) / 100,
     count: item.count,
   }));
 
   return {
     totalCount: parties.length,
-    totalBalance,
-    totalReceivable,
-    totalPayable,
+    totalBalance: Math.round(totalBalance * 100) / 100,
+    totalReceivable: Math.round(totalReceivable * 100) / 100,
+    totalPayable: Math.round(totalPayable * 100) / 100,
     activeCount,
     blockedCount,
+    debtorCount,
+    creditorCount,
+    mixedCurrencyCount,
+    settledCount,
     byCurrency,
   };
 }

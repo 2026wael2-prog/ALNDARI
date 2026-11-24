@@ -26,15 +26,23 @@ interface RawPaymentRow {
 }
 
 export const bondsService = {
-  fetchBonds: async (
+  fetchBondsPage: async (
     companyId: string,
     branchId?: string | null,
-    type?: BondType
-  ): Promise<Bond[]> => {
-    const { data, error } = await bondsApi.getBonds(companyId, branchId, type);
+    type?: BondType,
+    limit = 200,
+    offset = 0
+  ): Promise<{ items: Bond[]; totalCount: number }> => {
+    const { data, count, error } = await bondsApi.getBonds(
+      companyId,
+      branchId,
+      type,
+      limit,
+      offset
+    );
     if (error) throw error;
 
-    return ((data as unknown as RawPaymentRow[]) || []).map((p: RawPaymentRow) => {
+    const items = ((data as unknown as RawPaymentRow[]) || []).map((p: RawPaymentRow) => {
       // payments.amount in DB stores the user-entered transaction amount in p.currency_code.
       const rawAmount = Number(p.amount) || 0;
       const safeRate = Number(p.exchange_rate) > 0 ? Number(p.exchange_rate) : 1;
@@ -71,6 +79,20 @@ export const bondsService = {
         payment_method: p.payment_method,
       };
     });
+
+    return {
+      items,
+      totalCount: typeof count === 'number' ? count : items.length,
+    };
+  },
+
+  fetchBonds: async (
+    companyId: string,
+    branchId?: string | null,
+    type?: BondType
+  ): Promise<Bond[]> => {
+    const page = await bondsService.fetchBondsPage(companyId, branchId, type, 1000, 0);
+    return page.items;
   },
 
   createBond: async (companyId: string, userId: string, data: BondFormData) => {

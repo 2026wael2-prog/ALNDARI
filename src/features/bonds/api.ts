@@ -5,7 +5,16 @@ import { supabase } from '../../lib/supabaseClient';
 import type { BondFormData, BondType } from './types';
 
 export const bondsApi = {
-  getBonds: async (companyId: string, branchId?: string | null, type?: BondType, limitNum = 1000) => {
+  getBonds: async (
+    companyId: string,
+    branchId?: string | null,
+    type?: BondType,
+    limitNum = 200,
+    offsetNum = 0
+  ) => {
+    const safeLimit = Math.max(1, limitNum);
+    const safeOffset = Math.max(0, offsetNum);
+
     let query = supabase
       .from('payments')
       .select(
@@ -23,13 +32,15 @@ export const bondsApi = {
         party_id,
         party:parties!fk_payments_company_party(name),
         account:accounts!fk_payments_company_account(name_ar, code)
-      `
+      `,
+        { count: 'exact' }
       )
       .eq('company_id', companyId)
       .is('deleted_at', null)
       .neq('status', 'void')
       .order('payment_date', { ascending: false })
-      .limit(limitNum);
+      .order('created_at', { ascending: false })
+      .range(safeOffset, safeOffset + safeLimit - 1);
 
     // Only filter by type when explicitly requested
     if (type === 'receipt') {

@@ -285,6 +285,12 @@ export const collectCommitBlockers = (input: {
     );
   }
 
+  if (view.expectedCash > view.tolerance && view.actualCashCounted <= 0 && varianceReason.trim().length === 0) {
+    blockers.push(
+      'لا يمكن اعتماد إقفال بصفر كاش مع وجود نقد متوقع في الدرج — أدخل الجرد الفعلي أو اكتب مبرر العجز الصريح'
+    );
+  }
+
   const cardOutsideTolerance =
     view.cardVariance !== null && Math.abs(view.cardVariance) > view.tolerance;
   const cashOutsideTolerance = !view.cashVarianceInfo.isWithinTolerance;

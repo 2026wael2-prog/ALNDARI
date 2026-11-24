@@ -27,13 +27,23 @@ export const safeToBase = (expense: Expense): number => {
 };
 
 export const expensesService = {
-  getExpensesList: async (companyId: string, branchId?: string | null): Promise<Expense[]> => {
-    const { data, error } = await expensesApi.getExpensesRaw(companyId, branchId);
+  getExpensesList: async (
+    companyId: string,
+    branchId?: string | null,
+    dateFrom?: string | null,
+    dateTo?: string | null
+  ): Promise<Expense[]> => {
+    const { data, error } = await expensesApi.getExpensesRaw(companyId, branchId, dateFrom, dateTo);
     if (error) throw error;
 
-    return (data || []).map((exp: Record<string, unknown>) => ({
+    return (data || []).map(exp => ({
       ...exp,
-      category_name: (exp.expense_categories as Record<string, unknown>)?.name || 'غير مصنف',
+      amount: Number(exp.amount ?? 0),
+      exchange_rate: Number(exp.exchange_rate ?? 1),
+      category_name:
+        (exp.category_name as string) ||
+        ((exp.expense_categories as Record<string, unknown> | null)?.name as string) ||
+        'غير مصنف',
     })) as Expense[];
   },
 
@@ -117,10 +127,17 @@ export const expensesService = {
   },
 
   // ⚡ Server-side stats via RPC — no frontend aggregation
-  getStatsFromServer: async (companyId: string, branchId?: string | null): Promise<ExpenseStats> => {
-    const { data, error } = await supabase.rpc('get_expense_stats', {
+  getStatsFromServer: async (
+    companyId: string,
+    branchId?: string | null,
+    dateFrom?: string | null,
+    dateTo?: string | null
+  ): Promise<ExpenseStats> => {
+    const { data, error } = await supabase.rpc('get_unified_expense_stats', {
       p_company_id: companyId,
       ...(branchId ? { p_branch_id: branchId } : {}),
+      ...(dateFrom ? { p_date_from: dateFrom } : {}),
+      ...(dateTo ? { p_date_to: dateTo } : {}),
     });
     if (error) throw error;
     const result = data as {
@@ -128,12 +145,16 @@ export const expensesService = {
       paidExpenses?: number;
       pendingExpenses?: number;
       categoriesCount?: number;
+      totalExpensesYER?: number;
+      totalExpensesSAR?: number;
     } | null;
     return {
       totalExpenses: result?.totalExpenses || 0,
       paidExpenses: result?.paidExpenses || 0,
       pendingExpenses: result?.pendingExpenses || 0,
       categoriesCount: result?.categoriesCount || 0,
+      totalExpensesYER: result?.totalExpensesYER || 0,
+      totalExpensesSAR: result?.totalExpensesSAR || 0,
     };
   },
 

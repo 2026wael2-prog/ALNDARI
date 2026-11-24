@@ -14544,6 +14544,39 @@ export type Database = {
         }[]
       }
       get_expense_stats: { Args: { p_company_id: string }; Returns: Json }
+      get_unified_expense_stats: {
+        Args: {
+          p_branch_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+        }
+        Returns: Json
+      }
+      get_unified_expenses: {
+        Args: {
+          p_branch_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+        }
+        Returns: {
+          amount: number
+          branch_id: string | null
+          category_id: string
+          category_name: string
+          created_at: string
+          currency_code: string
+          description: string
+          exchange_rate: number
+          expense_date: string
+          id: string
+          is_journal_sourced: boolean
+          payment_method: string
+          status: string
+          voucher_number: string | null
+        }[]
+      }
       get_inventory_movements_feed: {
         Args: {
           p_branch_id?: string

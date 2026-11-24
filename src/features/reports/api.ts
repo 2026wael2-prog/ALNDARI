@@ -430,6 +430,20 @@ export const reportsApi = {
     };
   },
 
+  getOperationalExpensesDetailed: async (
+    companyId: string,
+    fromDateISO: string,
+    toDateISO: string,
+    branchId?: string | null
+  ) => {
+    return await supabase.rpc('report_operational_expenses_detailed', {
+      p_company_id: companyId,
+      p_from: fromDateISO,
+      p_to: toDateISO,
+      ...(branchId ? { p_branch_id: branchId } : {}),
+    });
+  },
+
   getOperationalExpensesLines: async (
     companyId: string,
     fromDateISO: string,

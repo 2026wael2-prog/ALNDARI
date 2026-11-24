@@ -53,7 +53,12 @@ export const ExpenseLedgerView: React.FC<Props> = ({ initialAccountId, onBackToL
     if (accounts.length === 0) return;
     if (selectedAccountId && accounts.some(a => a.id === selectedAccountId)) return;
 
+    const firstLinkedCategoryAccId = categories.find((c: any) => c.account_id)?.account_id;
     const defaultExp =
+      accounts.find(a => a.code === 'MZ-121556') ||
+      (firstLinkedCategoryAccId ? accounts.find(a => a.id === firstLinkedCategoryAccId) : undefined) ||
+      accounts.find(a => a.code === 'MZ-36') ||
+      accounts.find(a => a.code === 'MZ-31007') ||
       accounts.find(a => a.code === '5600') ||
       accounts.find(a => a.code === '5300') ||
       accounts.find(a => a.code === '5400') ||
@@ -62,7 +67,7 @@ export const ExpenseLedgerView: React.FC<Props> = ({ initialAccountId, onBackToL
     if (defaultExp) {
       setSelectedAccountId(defaultExp.id);
     }
-  }, [accounts, selectedAccountId]);
+  }, [accounts, categories, selectedAccountId]);
 
   const { data: ledger = [], isLoading: isLoadingLedger } = useLedger(
     selectedAccountId || null,
@@ -78,16 +83,35 @@ export const ExpenseLedgerView: React.FC<Props> = ({ initialAccountId, onBackToL
   // Filter accounts for the selector tabs
   const filteredAccounts = useMemo(() => {
     if (accountFilterType === 'expense') {
-      return accounts.filter(
-        a => (a.type === 'expense' || a.code.startsWith('5')) && !a.code.startsWith('51')
-      );
+      return accounts.filter(a => {
+        const code = (a.code || '').toUpperCase();
+        if (
+          code === '5100' ||
+          code.startsWith('51') ||
+          code.startsWith('MZ-5') ||
+          code.startsWith('312') ||
+          code.startsWith('MZ-312')
+        ) {
+          return false;
+        }
+        return a.type === 'expense' || code.startsWith('5') || code === 'MZ-1211209';
+      });
     }
     if (accountFilterType === 'employee') {
-      return accounts.filter(a => a.code.startsWith('140') || a.name.includes('راتب'));
+      return accounts.filter(
+        a => a.code.startsWith('140') || a.name.includes('راتب') || a.name.includes('عمال')
+      );
     }
     if (accountFilterType === 'rent') {
       return accounts.filter(
-        a => a.code.startsWith('240') || a.name.includes('إيجار') || a.name.includes('ايجار')
+        a =>
+          a.code.startsWith('240') ||
+          a.code === 'MZ-121556' ||
+          a.code === 'MZ-1211209' ||
+          a.name.includes('إيجار') ||
+          a.name.includes('ايجار') ||
+          a.name.includes('أجار') ||
+          a.name.includes('اجار')
       );
     }
     if (accountFilterType === 'cash') {

@@ -42,13 +42,6 @@ interface ExpenseAccountRow {
 }
 
 const useOperationalExpenses = (days = 30) => {
-  /** سطر قيد خام من استعلام المصاريف التشغيلية. */
-  interface OperationalExpenseLine {
-    account?: { id: string; name_ar?: string | null; code?: string | null } | null;
-    debit_amount?: number | null;
-    credit_amount?: number | null;
-  }
-
   const { user } = useAuthStore();
   const { branchId } = useBranchFilter();
   return useQuery({
@@ -59,42 +52,29 @@ const useOperationalExpenses = (days = 30) => {
       const now = new Date();
       const fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days);
 
-      // Get all expense journal lines with their accounts
-      const { data: lines, error } = await reportsApi.getOperationalExpensesLines(
+      // استخدام RPC الخادمي report_operational_expenses_detailed (يشمل الإيجارات ويستبعد COGS والقيود الافتتاحية)
+      const { data: rows, error } = await reportsApi.getOperationalExpensesDetailed(
         user.company_id,
         formatLocalDate(fromDate),
+        formatLocalDate(now),
         branchId
       );
 
       if (error) throw error;
 
-      // Group by account
-      const accountMap: Record<
-        string,
-        { name: string; code: string; total: number; count: number }
-      > = {};
-      (lines || []).forEach((line: OperationalExpenseLine) => {
-        const accountCode = line.account?.code || '';
-        // استبعاد تكلفة البضاعة المباعة (COGS) من المصاريف التشغيلية
-        if (accountCode.startsWith('51') || accountCode === '5100') return;
-
-        const accountId = line.account?.id ?? '';
-        const accountName = line.account?.name_ar || 'غير محدد';
-
-        if (!accountMap[accountId]) {
-          accountMap[accountId] = { name: accountName, code: accountCode, total: 0, count: 0 };
-        }
-        accountMap[accountId].total +=
-          Number(line.debit_amount || 0) - Number(line.credit_amount || 0);
-        accountMap[accountId].count += 1;
-      });
-
-      const expensesByAccount = Object.entries(accountMap)
-        .map(([id, data]) => ({ id, ...data }))
+      const expensesByAccount: ExpenseAccountRow[] = (rows || [])
+        .map(row => ({
+          id: row.account_id,
+          code: row.account_code || '',
+          name: row.account_name || 'غير محدد',
+          total: Number(row.net_expense || 0),
+          count: Number(row.line_count || 0),
+        }))
         .filter(a => a.total > 0)
         .sort((a, b) => b.total - a.total);
 
       const totalExpenses = expensesByAccount.reduce((s, a) => s + a.total, 0);
+      const transactionCount = expensesByAccount.reduce((s, a) => s + a.count, 0);
 
       // Pie chart data
       const chartData = expensesByAccount.slice(0, 8).map((a, i) => ({
@@ -113,7 +93,7 @@ const useOperationalExpenses = (days = 30) => {
         expensesByAccount,
         totalExpenses,
         chartData,
-        transactionCount: (lines || []).length,
+        transactionCount,
       };
     },
     enabled: !!user?.company_id,

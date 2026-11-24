@@ -226,7 +226,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col space-y-3">
+    <div className="flex min-h-0 flex-1 flex-col space-y-2 md:space-y-3">
       {viewType === 'sale' && (
         <SalesStats
           dateFrom={dateFrom}
@@ -279,7 +279,7 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
       ) : isLoading ? (
         <PageLoader />
       ) : displayData.length > 0 ? (
-        <div className="flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-2xl border bg-[var(--app-surface)] shadow-sm dark:border-slate-800">
+        <div className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-xl border bg-[var(--app-surface)] shadow-sm dark:border-slate-800 md:min-h-[480px] md:rounded-2xl">
           <ExcelTable
             columns={columns}
             data={displayData.map(item => ({

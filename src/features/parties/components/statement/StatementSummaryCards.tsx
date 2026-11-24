@@ -88,12 +88,12 @@ export const StatementSummaryCards: React.FC<StatementSummaryCardsProps> = ({
         return (
           <div
             key={item.currency}
-            className="screen:max-md:mt-3 screen:max-md:p-3 group relative overflow-hidden rounded-2xl border border-slate-200 bg-[var(--app-surface)] p-5 shadow-lg shadow-blue-500/5 dark:border-slate-800"
+            className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-[var(--app-surface)] p-3 shadow-lg shadow-blue-500/5 dark:border-slate-800 md:p-5"
           >
             {/* Background Accent */}
             <div className="no-print absolute right-0 top-0 -mr-16 -mt-16 h-32 w-32 rounded-full bg-blue-500/5 blur-3xl transition-colors group-hover:bg-blue-500/10" />
 
-            <div className="relative grid grid-cols-1 items-center gap-6 md:grid-cols-3">
+            <div className="relative grid grid-cols-1 items-center gap-3 md:grid-cols-3 md:gap-6">
               {/* Status Indicator & Movement Totals */}
               <div className="space-y-3 md:col-span-1">
                 <div className="space-y-1">

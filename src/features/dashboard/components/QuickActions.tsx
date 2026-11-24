@@ -142,41 +142,41 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ className }) => {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
         {CORE_MODULES.map(module => {
           const IconComponent = module.icon;
           return (
             <div
               key={module.id}
               onMouseEnter={() => prefetchRoute(module.path)}
-              className="group flex flex-col justify-between gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)]/60 p-2.5 transition-all duration-200 hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)]"
+              className="group flex flex-col justify-between gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)]/60 p-2 transition-all duration-200 hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)] md:gap-2 md:p-2.5"
             >
               <button
                 type="button"
                 onClick={() => handleGo(module.path, module.path)}
-                className="flex w-full items-start gap-2.5 text-start"
+                className="flex w-full items-center gap-2 text-start sm:items-start md:gap-2.5"
               >
                 <div
                   className={cn(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200 group-hover:scale-105',
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200 group-hover:scale-105 md:h-8 md:w-8',
                     module.accentBg,
                     module.accentBorder,
                     module.accentText
                   )}
                 >
-                  <IconComponent size={16} />
+                  <IconComponent size={15} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="truncate text-xs font-black text-[var(--app-text)]">
+                    <span className="truncate text-[11px] font-black text-[var(--app-text)] sm:text-xs">
                       {module.title}
                     </span>
                     <ArrowUpLeft
                       size={12}
-                      className="shrink-0 text-[var(--app-text-secondary)] opacity-60 transition-transform group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+                      className="hidden shrink-0 text-[var(--app-text-secondary)] opacity-60 transition-transform group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100 sm:block"
                     />
                   </div>
-                  <p className="truncate text-[10px] font-medium text-[var(--app-text-secondary)]">
+                  <p className="hidden truncate text-[10px] font-medium text-[var(--app-text-secondary)] sm:block">
                     {module.subtitle}
                   </p>
                 </div>
@@ -187,8 +187,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ className }) => {
                 onClick={() => handleGo(module.createPath, module.path)}
                 className="flex w-full items-center justify-center gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 text-[10px] font-bold text-[var(--app-text)] transition-colors hover:border-[var(--accent)]/50 hover:bg-[var(--accent)] hover:text-white"
               >
-                <Plus size={12} />
-                <span>{module.createLabel}</span>
+                <Plus size={11} />
+                <span className="truncate">{module.createLabel}</span>
               </button>
             </div>
           );

@@ -389,26 +389,26 @@ const POSPage: React.FC = () => {
       </div>
 
       {!isDesktop && activeMobileTab === 'products' && items.length > 0 && (
-        <div className="animate-in slide-in-from-bottom-10 pointer-events-none fixed inset-x-0 bottom-0 z-40 h-24 p-4 max-md:p-4">
+        <div className="animate-in slide-in-from-bottom-10 pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1">
           <div
             onClick={() => {
               setActiveMobileTab('cart');
             }}
-            className="pointer-events-auto mx-auto flex h-full w-full max-w-md cursor-pointer items-center justify-between rounded-[2rem] bg-blue-600 px-6 py-3 text-white shadow-2xl shadow-blue-500/40 transition-all active:scale-[0.98]"
+            className="pointer-events-auto mx-auto flex w-full max-w-md cursor-pointer items-center justify-between rounded-2xl bg-blue-600 px-4 py-2.5 text-white shadow-xl shadow-blue-500/35 transition-all active:scale-[0.98]"
           >
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">
+              <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
                 إجمالي السلة ({items.length})
               </span>
-              <span dir="ltr" className="font-mono text-xl font-bold">
+              <span dir="ltr" className="font-mono text-base font-black leading-tight">
                 {formatCurrency(summary.totalAmount, currency)}
               </span>
             </div>
-            <div className="flex items-center gap-3 max-md:gap-3">
-              <div className="rounded-2xl bg-white/20 p-2 max-md:p-2.5">
-                <ShoppingCart size={20} />
+            <div className="flex items-center gap-2">
+              <div className="rounded-xl bg-white/20 p-1.5">
+                <ShoppingCart size={17} />
               </div>
-              <span className="text-sm font-bold">عرض السلة</span>
+              <span className="text-xs font-bold">عرض السلة</span>
             </div>
           </div>
         </div>

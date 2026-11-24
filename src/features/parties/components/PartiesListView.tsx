@@ -201,12 +201,12 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
       {/* Dedicated Strict Per-Currency Tabs Strip */}
       <div
         data-testid="parties-currency-filter-bar"
-        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-2 shadow-2xs dark:border-slate-800 dark:bg-slate-900"
+        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-1.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 md:p-2"
       >
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex items-center gap-1 px-1 text-[11px] font-black text-slate-600 dark:text-slate-300">
-            <Coins size={14} className="text-amber-500" />
-            <span>فصل حسب العملة:</span>
+        <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto sm:w-auto sm:flex-wrap">
+          <div className="flex shrink-0 items-center gap-1 px-1 text-[11px] font-black text-slate-600 dark:text-slate-300">
+            <Coins size={13} className="text-amber-500" />
+            <span className="hidden sm:inline">فصل حسب العملة:</span>
           </div>
           {currencyTabs.map(tab => {
             const isSelected = currencyFilter === tab.id;
@@ -216,7 +216,7 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
                 type="button"
                 onClick={() => setCurrencyFilter(tab.id)}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-black transition-all',
+                  'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-black transition-all sm:text-xs',
                   isSelected
                     ? tab.id === 'YER'
                       ? 'bg-amber-600 text-white shadow-sm'
@@ -244,14 +244,14 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
           })}
         </div>
 
-        <span className="text-[10px] font-bold text-slate-400">
+        <span className="hidden text-[10px] font-bold text-slate-400 md:inline">
           اضغط على أي رصيد SAR أو YER لفتح كشف حسابه بعملته مباشرة
         </span>
       </div>
 
       {/* Status & Category Filter Chips Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-1.5 dark:border-slate-800 dark:bg-slate-900 md:p-2">
+        <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap">
           {chips.map(chip => {
             const isSelected = activeFilter === chip.id;
             return (
@@ -262,7 +262,7 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
                   setActiveFilter(chip.id);
                 }}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all',
+                  'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all sm:text-xs',
                   isSelected
                     ? chip.id === 'mixed'
                       ? 'bg-amber-600 text-white shadow-sm'
@@ -323,7 +323,7 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
         </div>
       </div>
 
-      <div className="flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-xl border border-gray-100 bg-[var(--app-surface)] shadow-sm dark:border-slate-800">
+      <div className="flex min-h-[300px] flex-1 flex-col overflow-hidden rounded-xl border border-gray-100 bg-[var(--app-surface)] shadow-sm dark:border-slate-800 md:min-h-[480px]">
         <ExcelTable
           columns={columns}
           data={filteredParties}

@@ -88,10 +88,10 @@ export const SalesStats: React.FC<SalesStatsProps> = ({
       : `${formatNumberDisplay(stats?.invoiceCount ?? 0)} فاتورة (${periodLabel})`;
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Interactive Quick Period Filter Bar */}
+    <div className="flex flex-col gap-1.5 md:gap-2">
+      {/* Interactive Quick Period Filter Bar (Desktop only — InvoiceSearchToolbar already provides date presets below on mobile) */}
       {showPeriodFilter && (
-        <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-2.5 py-1.5 shadow-2xs backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/80">
+        <div className="hidden flex-wrap items-center justify-between gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-2.5 py-1.5 shadow-2xs backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/80 md:flex">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300">
             <Filter size={13} className="text-emerald-500" />
             <span>فلترة بطائق المبيعات:</span>

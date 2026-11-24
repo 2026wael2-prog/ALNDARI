@@ -104,23 +104,23 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
   return (
     <div
       className={cn(
-        'relative flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-xs transition-colors',
+        'relative flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xs transition-colors no-scrollbar md:flex-wrap md:gap-2 md:p-2',
         className
       )}
     >
       {/* Right side: Primary Segmented Filters */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex shrink-0 flex-nowrap items-center gap-1 md:flex-wrap md:gap-1.5">
         {/* Branch Filter (Manager Only) */}
         {showBranchFilter && isManager && (
-          <div className="flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-2 py-1">
-            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+          <div className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-0.5 dark:border-slate-800 dark:bg-slate-900/50 md:px-2 md:py-1">
+            <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
             <select
               value={branchId ?? 'ALL'}
               onChange={e =>
                 setBranchId(e.target.value === 'ALL' ? null : e.target.value)
               }
               aria-label="تصفية حسب الفرع"
-              className="bg-transparent text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+              className="cursor-pointer bg-transparent text-[11px] font-bold text-slate-700 outline-none dark:text-slate-200"
             >
               <option value="ALL">جميع الفروع</option>
               {activeBranches.map((b: any) => (
@@ -134,8 +134,8 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
 
         {/* Date / Period Filter */}
         {showDateFilter && (
-          <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-0.5">
-            <Calendar className="h-3 w-3 text-slate-400 mx-1 shrink-0" />
+          <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-900/50">
+            <Calendar className="mx-1 h-3 w-3 shrink-0 text-slate-400" />
             {periodOptions.map(opt => {
               const isSelected = period === opt.id;
               return (
@@ -144,7 +144,7 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
                   type="button"
                   onClick={() => handlePeriodChange(opt.id)}
                   className={cn(
-                    'rounded-md px-2 py-0.5 text-[10px] font-bold transition-all',
+                    'shrink-0 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-all md:px-2',
                     isSelected
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -159,8 +159,8 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
 
         {/* Currency Filter */}
         {showCurrencyFilter && (
-          <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-0.5">
-            <Coins className="h-3 w-3 text-amber-500 mx-1 shrink-0" />
+          <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-900/50">
+            <Coins className="mx-1 h-3 w-3 shrink-0 text-amber-500" />
             {currencyOptions.map(opt => {
               const isSelected = currency === opt.id;
               return (
@@ -169,7 +169,7 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
                   type="button"
                   onClick={() => setCurrency(opt.id)}
                   className={cn(
-                    'rounded-md px-2 py-0.5 text-[10px] font-bold transition-all',
+                    'shrink-0 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-all md:px-2',
                     isSelected
                       ? 'bg-amber-600 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -184,8 +184,8 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
 
         {/* Payment Type Filter */}
         {showPaymentFilter && (
-          <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-0.5">
-            <CreditCard className="h-3 w-3 text-emerald-500 mx-1 shrink-0" />
+          <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-900/50">
+            <CreditCard className="mx-1 h-3 w-3 shrink-0 text-emerald-500" />
             {paymentOptions.map(opt => {
               const isSelected = paymentType === opt.id;
               return (
@@ -194,7 +194,7 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
                   type="button"
                   onClick={() => setPaymentType(opt.id)}
                   className={cn(
-                    'rounded-md px-2 py-0.5 text-[10px] font-bold transition-all',
+                    'shrink-0 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-all md:px-2',
                     isSelected
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
@@ -209,7 +209,7 @@ export const AnalyticsUnifiedFilterBar: React.FC<AnalyticsUnifiedFilterBarProps>
       </div>
 
       {/* Left side: Date Badge, Refresh & Reset Actions */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
         {/* Active Range Display Badge */}
         <span className="hidden sm:inline-block rounded-md bg-slate-100 dark:bg-slate-800/80 px-2 py-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
           {startDate} ◄ {endDate}

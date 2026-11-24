@@ -108,7 +108,7 @@ export const PaymentMethodsChart: React.FC<PaymentMethodsChartProps> = ({
       </div>
 
       {/* Donut Chart Container */}
-      <div ref={containerRef} className="relative my-2 h-56 w-full" dir="ltr">
+      <div ref={containerRef} className="relative my-1.5 h-44 w-full md:my-2 md:h-56" dir="ltr">
         {isMounted && total > 0 ? (
           <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={150}>
             <PieChart>

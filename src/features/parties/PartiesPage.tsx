@@ -183,11 +183,12 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
   });
 
   const headerActions = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 md:gap-2">
       <Button
         onClick={() => navigate(ROUTES.DASHBOARD.POS)}
         variant="outline"
         size="sm"
+        className="hidden sm:inline-flex"
         leftIcon={<LayoutGrid size={14} />}
       >
         نقطة البيع
@@ -324,7 +325,7 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
             isZenMode ? 'bg-[var(--app-surface)]' : ''
           )}
         >
-          <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-24 pt-5 md:px-4 md:pt-6">
+          <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-20 pt-2 md:px-4 md:pb-24 md:pt-5">
             {renderContent()}
           </div>
         </div>

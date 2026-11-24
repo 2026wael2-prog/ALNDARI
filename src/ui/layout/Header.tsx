@@ -62,17 +62,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     <div className="no-print sticky top-0 z-50 flex-shrink-0">
       <header
         data-main-header="true"
-        className="flex h-11 items-center justify-between border-b border-slate-200/90 bg-[var(--app-surface)] px-3 shadow-xs dark:border-slate-800 md:px-4"
+        className="flex h-10 items-center justify-between gap-1.5 border-b border-slate-200/90 bg-[var(--app-surface)] px-2 shadow-xs dark:border-slate-800 md:h-11 md:px-4"
       >
         {/* Left side: Logo/Title (Mobile) / Page Title (Desktop) */}
-        <div className="flex flex-1 items-center gap-3 md:flex-none">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 md:flex-none md:gap-3">
           {/* Mobile Menu Button */}
           <button
             onClick={onMenuClick}
-            className="-ms-2 p-2.5 text-[var(--app-text-secondary)] md:hidden"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-hover)] active:scale-95 md:hidden"
             aria-label={t('menu') || 'فتح القائمة'}
           >
-            <Menu size={24} />
+            <Menu size={18} />
           </button>
           <div
             onClick={() => {
@@ -80,18 +80,15 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 navigate('/');
               });
             }}
-            className="cursor-pointer rounded-lg bg-gradient-to-tr from-orange-600 to-amber-500 p-1 text-white shadow-md shadow-orange-600/25 ring-1 ring-white/30 transition-all duration-300 active:scale-95 md:hidden"
+            className="shrink-0 cursor-pointer rounded-md bg-gradient-to-tr from-orange-600 to-amber-500 p-1 text-white shadow-xs shadow-orange-600/25 ring-1 ring-white/30 transition-all duration-300 active:scale-95 md:hidden"
             aria-label="الرئيسية"
           >
-            <InteractiveCarPartsLogo size={20} interactive={false} />
+            <InteractiveCarPartsLogo size={14} interactive={false} />
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-extrabold leading-tight text-[var(--app-text)] md:text-base">
+          <div className="flex min-w-0 flex-col">
+            <h1 className="truncate text-xs font-extrabold leading-tight text-[var(--app-text)] sm:text-sm md:text-base">
               {title}
             </h1>
-            <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--app-text-secondary)] md:hidden">
-              {t('app_title')}
-            </span>
           </div>
         </div>
 
@@ -163,7 +160,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         </div>
 
         {/* Right side: Global Actions (Profile, Theme, etc) */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
           <RealtimeStatusIndicator />
           <HeaderActions />
         </div>
@@ -171,7 +168,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
       {/* Mobile Page Search — يظهر فقط عندما تسجّل الصفحة حقل بحث في useSearchStore */}
       {isPageSearchActive && (
-        <div className="border-b border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 shadow-sm md:hidden">
+        <div className="border-b border-[var(--app-border)] bg-[var(--app-surface)] px-2.5 py-1.5 shadow-xs md:hidden">
           <div className="animate-in slide-in-from-top-2 relative duration-300">
             <input
               type="text"
@@ -182,11 +179,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 onPageSearchChange(e.target.value);
               }}
               aria-label={pageSearchPlaceholder}
-              className="w-full rounded-lg border border-blue-500/30 bg-blue-50/50 py-1.5 pe-9 ps-9 text-sm font-bold text-[var(--app-text)] placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-blue-900/20 dark:placeholder:text-blue-300"
+              className="w-full rounded-lg border border-blue-500/30 bg-blue-50/50 py-1 pe-8 ps-8 text-xs font-bold text-[var(--app-text)] placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-blue-900/20 dark:placeholder:text-blue-300"
             />
             <Search
-              className={`absolute top-2 text-blue-500 ${dir === 'rtl' ? 'right-3' : 'left-3'}`}
-              size={15}
+              className={`absolute top-1/2 -translate-y-1/2 text-blue-500 ${dir === 'rtl' ? 'right-2.5' : 'left-2.5'}`}
+              size={14}
             />
             {pageSearchValue && (
               <button
@@ -194,9 +191,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   onPageSearchChange('');
                 }}
                 aria-label="مسح البحث"
-                className={`absolute top-1.5 p-0.5 text-blue-400 transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-2' : 'right-2'}`}
+                className={`absolute top-1/2 -translate-y-1/2 p-0.5 text-blue-400 transition-colors hover:text-rose-500 ${dir === 'rtl' ? 'left-2' : 'right-2'}`}
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             )}
           </div>

@@ -89,18 +89,18 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
   const isViewingPrevious = Boolean(currentViewingInvoice);
 
   return (
-    <footer className="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200/90 bg-white/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all dark:border-slate-800/90 dark:bg-slate-900/95 sm:px-6 sm:py-2.5">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2.5">
+    <footer className="fixed inset-x-0 bottom-[calc(3.6rem_+_env(safe-area-inset-bottom))] z-40 border-t border-slate-200/90 bg-white/95 px-2 py-1.5 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all dark:border-slate-800/90 dark:bg-slate-900/95 sm:px-4 sm:py-2 md:bottom-0 md:px-6 md:py-2.5">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-1.5 sm:gap-2.5">
 
         {/* الجانب الأيمن: أزرار التنقل VCR على طريقة برنامج الميزان مع الأيقونات المطورة */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* الفاتورة الأولى (|◀) */}
           <button
             type="button"
             onClick={goToFirst}
             disabled={!canGoFirst || isNavigating}
             title="الفاتورة الأولى (|◀)"
-            className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400"
+            className="group hidden h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400 sm:flex md:h-9 md:w-9"
           >
             <ChevronsRight size={17} className="transition-transform group-hover:-translate-x-0.5" />
           </button>
@@ -111,15 +111,15 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
             onClick={goToPrev}
             disabled={!canGoPrev || isNavigating}
             title="الفاتورة السابقة (◀)"
-            className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400"
+            className="group flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400 md:h-9 md:w-9"
           >
-            <ChevronRight size={18} className="transition-transform group-hover:-translate-x-0.5" />
+            <ChevronRight size={17} className="transition-transform group-hover:-translate-x-0.5" />
           </button>
 
           {/* مربع إدخال رقم الفاتورة والقفز السريع */}
           <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-            <div className="pointer-events-none absolute right-2.5 flex items-center text-slate-400">
-              <Hash size={13} />
+            <div className="pointer-events-none absolute right-2 flex items-center text-slate-400 sm:right-2.5">
+              <Hash size={12} />
             </div>
             <input
               type="text"
@@ -127,20 +127,20 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
               onChange={e => {
                 setInputVal(e.target.value);
               }}
-              placeholder="رقم الفاتورة..."
-              className="h-9 w-32 rounded-xl border border-slate-300 bg-slate-50/80 pr-7 pl-8 text-center font-mono text-xs font-bold text-slate-900 shadow-inner transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-900 sm:w-44"
+              placeholder="رقم..."
+              className="h-8 w-24 rounded-xl border border-slate-300 bg-slate-50/80 pl-7 pr-6 text-center font-mono text-xs font-bold text-slate-900 shadow-inner transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-900 sm:w-40 md:h-9 md:w-44 md:pl-8 md:pr-7"
               dir="ltr"
             />
             <button
               type="submit"
               disabled={isNavigating || !inputVal.trim()}
               title="انتقال فوري لرقم الفاتورة (Enter)"
-              className="absolute left-1 flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm transition-all hover:bg-blue-700 active:scale-90 disabled:opacity-25"
+              className="absolute left-1 flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm transition-all hover:bg-blue-700 active:scale-90 disabled:opacity-25 md:h-7 md:w-7"
             >
               {isNavigating ? (
-                <Loader2 size={13} className="animate-spin" />
+                <Loader2 size={12} className="animate-spin" />
               ) : (
-                <CornerDownLeft size={13} />
+                <CornerDownLeft size={12} />
               )}
             </button>
           </form>
@@ -151,9 +151,9 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
             onClick={goToNext}
             disabled={!canGoNext || isNavigating}
             title="الفاتورة التالية (▶)"
-            className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400"
+            className="group flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400 md:h-9 md:w-9"
           >
-            <ChevronLeft size={18} className="transition-transform group-hover:translate-x-0.5" />
+            <ChevronLeft size={17} className="transition-transform group-hover:translate-x-0.5" />
           </button>
 
           {/* الفاتورة الأخيرة (▶|) */}
@@ -162,7 +162,7 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
             onClick={goToLast}
             disabled={!canGoLast || isNavigating}
             title="الفاتورة الأخيرة (▶|)"
-            className="group flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400"
+            className="group hidden h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:bg-slate-700 dark:hover:text-blue-400 sm:flex md:h-9 md:w-9"
           >
             <ChevronsLeft size={17} className="transition-transform group-hover:translate-x-0.5" />
           </button>
@@ -172,10 +172,10 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
             type="button"
             onClick={handleNewInvoice}
             title="فتح فاتورة مبيعات جديدة بيضاء"
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-50 px-3 font-medium text-emerald-800 shadow-sm transition-all hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 dark:border-emerald-500/40 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+            className="flex h-8 items-center gap-1 rounded-xl border border-emerald-600/30 bg-emerald-50 px-2 font-medium text-emerald-800 shadow-sm transition-all hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 dark:border-emerald-500/40 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60 sm:gap-1.5 sm:px-3 md:h-9"
           >
-            <FilePlus2 size={16} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs font-bold">فاتورة جديدة</span>
+            <FilePlus2 size={15} className="text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden text-xs font-bold sm:inline">فاتورة جديدة</span>
           </button>
         </div>
 
@@ -204,7 +204,7 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
 
         {/* الجانب الأيسر: أزرار العمليات المباشرة للحفظ والطباعة */}
         {!isViewingPrevious && onSave && (
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* حفظ كمسودة */}
             <button
               type="button"
@@ -213,7 +213,7 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
               }}
               disabled={isSaving || isSavingQuotation}
               title="حفظ محلي كمسودة دون ترحيل"
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="flex h-8 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:px-3 md:h-9"
             >
               <FileDown size={14} className="text-slate-500 dark:text-slate-400" />
               <span className="hidden sm:inline">مسودة</span>
@@ -226,14 +226,14 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
                 onClick={onSaveAsQuotation}
                 disabled={isSaving || isSavingQuotation}
                 title="حفظ الفاتورة الحالية كعرض سعر رسمي للعميل دون خصم المخزون"
-                className="flex h-9 items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-bold text-amber-800 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-100 hover:text-amber-900 active:scale-95 disabled:opacity-40 dark:border-amber-700/60 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-900/50"
+                className="flex h-8 items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-2 text-xs font-bold text-amber-800 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-100 hover:text-amber-900 active:scale-95 disabled:opacity-40 dark:border-amber-700/60 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-900/50 sm:gap-1.5 sm:px-3 md:h-9"
               >
                 {isSavingQuotation ? (
                   <Loader2 size={14} className="animate-spin text-amber-600 dark:text-amber-400" />
                 ) : (
                   <FileText size={14} className="text-amber-600 dark:text-amber-400" />
                 )}
-                <span>عرض سعر</span>
+                <span className="hidden xs:inline">عرض سعر</span>
               </button>
             )}
 
@@ -244,9 +244,9 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
                 onClick={onPrint}
                 disabled={isSaving || isSavingQuotation}
                 title="طباعة ومعاينة الفاتورة"
-                className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm transition-all hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="flex h-8 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2 text-xs font-bold text-slate-700 shadow-sm transition-all hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:px-3 md:h-9"
               >
-                <Printer size={15} className="text-indigo-600 dark:text-indigo-400" />
+                <Printer size={14} className="text-indigo-600 dark:text-indigo-400" />
                 <span className="hidden sm:inline">طباعة</span>
               </button>
             )}
@@ -259,12 +259,12 @@ export const InvoiceNavigatorBar: React.FC<InvoiceNavigatorBarProps> = ({
               }}
               disabled={isSaving || isSavingQuotation}
               title="اعتماد وترحيل الفاتورة رسمياً"
-              className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 text-xs font-black text-white shadow-md transition-all hover:from-emerald-700 hover:to-teal-700 hover:shadow-lg active:scale-95 disabled:opacity-50"
+              className="flex h-8 items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3 text-xs font-black text-white shadow-md transition-all hover:from-emerald-700 hover:to-teal-700 hover:shadow-lg active:scale-95 disabled:opacity-50 sm:gap-2 sm:px-4 md:h-9"
             >
               {isSaving ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin" />
               ) : (
-                <Save size={16} className="text-white" />
+                <Save size={15} className="text-white" />
               )}
               <span>حفظ وترحيل</span>
             </button>

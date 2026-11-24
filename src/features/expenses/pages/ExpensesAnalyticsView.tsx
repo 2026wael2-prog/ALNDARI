@@ -321,18 +321,18 @@ const ExpensesAnalyticsView: React.FC<ExpensesAnalyticsViewProps> = ({
       </div>
 
       {/* Payment Methods Chart */}
-      <div className="group relative overflow-hidden rounded-[3rem] border border-slate-100 bg-[var(--app-surface)] p-8 shadow-2xl dark:border-slate-800">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="rounded-xl bg-blue-500/10 p-2">
-            <Wallet size={16} className="text-blue-500" />
+      <div className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-[var(--app-surface)] p-3 shadow-lg dark:border-slate-800 md:rounded-[3rem] md:p-8 md:shadow-2xl">
+        <div className="mb-3 flex items-center gap-2 md:mb-8 md:gap-3">
+          <div className="rounded-xl bg-blue-500/10 p-1.5 md:p-2">
+            <Wallet size={15} className="text-blue-500" />
           </div>
-          <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+          <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
             توزيع طرق الدفع
           </h4>
         </div>
 
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height={256} minWidth={1} minHeight={1}>
+        <div className="h-44 md:h-64">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={160}>
             <BarChart
               data={analytics.paymentData}
               layout="vertical"

@@ -73,8 +73,8 @@ const FinancialPerformanceChart: React.FC<FinancialPerformanceChartProps> = ({ y
   }
 
   return (
-    <div ref={containerRef} className="group relative h-72 w-full p-2 max-md:p-1">
-      <div className="absolute end-0 top-0 z-10 p-4 opacity-0 transition-opacity group-hover:opacity-100 max-md:p-2">
+    <div ref={containerRef} className="group relative h-52 w-full p-1 md:h-72 md:p-2">
+      <div className="absolute end-0 top-0 z-10 p-2 opacity-0 transition-opacity group-hover:opacity-100 md:p-4">
         <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 shadow-xl backdrop-blur-md">
           <TrendingUp size={12} className="text-emerald-500" />
           <span className="text-[10px] font-bold uppercase tracking-tighter text-emerald-500">
@@ -84,7 +84,7 @@ const FinancialPerformanceChart: React.FC<FinancialPerformanceChartProps> = ({ y
       </div>
 
       {isMounted && (
-        <ResponsiveContainer width="100%" height={288} minWidth={1} debounce={1} minHeight={1}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} debounce={1} minHeight={180}>
           <BarChart data={data ?? []} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">

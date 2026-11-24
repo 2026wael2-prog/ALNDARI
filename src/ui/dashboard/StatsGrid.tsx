@@ -214,26 +214,26 @@ const StatsGrid: React.FC<StatsGridProps> = ({
           >
             <div
               className={cn(
-                'bg-[var(--app-surface)] relative h-full rounded-xl border border-[var(--app-border)] p-3 transition-all duration-200',
+                'relative h-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 transition-all duration-200 md:p-3',
                 'hover:-translate-y-0.5 hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)] hover:shadow-md'
               )}
             >
-              <div className="flex h-full flex-col justify-between gap-2">
+              <div className="flex h-full flex-col justify-between gap-1.5 md:gap-2">
                 {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col">
-                    <span className="mb-1 text-[10px] font-bold uppercase leading-none tracking-wider text-[var(--app-text-secondary)]">
+                <div className="flex items-start justify-between gap-1.5">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="mb-0.5 truncate text-[10px] font-bold uppercase leading-tight tracking-wider text-[var(--app-text-secondary)] md:mb-1">
                       {item.title}
                     </span>
                     {item.subtitle && (
-                      <span className="text-[10px] text-[var(--app-text-secondary)]">
+                      <span className="truncate text-[10px] text-[var(--app-text-secondary)]">
                         {item.subtitle}
                       </span>
                     )}
                   </div>
                   <div
                     className={cn(
-                      'rounded-lg p-2 transition-colors',
+                      'shrink-0 rounded-lg p-1.5 transition-colors md:p-2',
                       item.colorClass.includes('emerald')
                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                         : item.colorClass.includes('rose')
@@ -243,15 +243,16 @@ const StatsGrid: React.FC<StatsGridProps> = ({
                             : 'bg-[var(--app-surface-hover)] text-[var(--accent)]'
                     )}
                   >
-                    <item.icon size={18} />
+                    <item.icon size={15} className="md:h-[18px] md:w-[18px]" />
                   </div>
                 </div>
 
                 {/* Value + Sparkline Row */}
-                <div className="mt-1 flex items-end justify-between">
+                <div className="mt-0.5 flex items-end justify-between gap-1 md:mt-1">
                   <h3
+                    dir="ltr"
                     className={cn(
-                      'shrink-0 whitespace-nowrap font-mono text-lg font-bold leading-none tracking-tight md:text-xl',
+                      'min-w-0 truncate text-right font-mono text-sm font-bold leading-none tracking-tight sm:text-base md:text-xl',
                       item.title === (t('net_loss') || 'صافي الخسارة')
                         ? 'text-rose-600 dark:text-rose-400'
                         : 'text-[var(--app-text)]'
@@ -267,8 +268,8 @@ const StatsGrid: React.FC<StatsGridProps> = ({
                 </div>
 
                 {/* Trend Badge */}
-                <div className="mt-1 flex items-center justify-between">
-                  {trend ? (
+                {trend && (
+                  <div className="mt-0.5 flex items-center justify-between md:mt-1">
                     <div
                       className={cn(
                         'flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold',
@@ -280,10 +281,8 @@ const StatsGrid: React.FC<StatsGridProps> = ({
                       {trend.isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                       <span>{trend.value.toFixed(1)}%</span>
                     </div>
-                  ) : (
-                    <div />
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

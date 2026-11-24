@@ -56,8 +56,8 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
     <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
         {/* Date Presets Pills */}
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
+        <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap">
+          <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
             <Calendar size={12} />
             <span>الفترة:</span>
           </span>
@@ -73,7 +73,7 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
                   setDateFrom(range.from);
                   setDateTo(range.to);
                 }}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'

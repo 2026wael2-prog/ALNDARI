@@ -103,7 +103,7 @@ export const StatementSelectedActionsBar: React.FC<Props> = ({
   const singleMovement = selectedMovements[0];
 
   return (
-    <div className="dark:bg-slate-900/98 animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 left-1/2 z-40 flex w-[92%] max-w-4xl -translate-x-1/2 flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700 bg-slate-900/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
+    <div className="dark:bg-slate-900/98 animate-in fade-in slide-in-from-bottom-4 fixed bottom-[calc(4rem_+_env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[95%] max-w-4xl -translate-x-1/2 flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-700 bg-slate-900/95 p-2.5 text-white shadow-2xl backdrop-blur-md md:bottom-6 md:w-[92%] md:gap-3 md:p-3.5">
       {/* Selection Stats */}
       <div className="flex items-center gap-3">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 font-mono text-xs font-bold">

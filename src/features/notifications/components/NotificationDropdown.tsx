@@ -160,7 +160,7 @@ const NotificationDropdown: React.FC<Props> = ({ isOpen, onClose }) => {
       <div
         ref={dropdownRef}
         className={cn(
-          'fixed left-3 right-3 top-16 z-[9999] max-h-[82vh] md:top-[54px] md:max-h-[620px] md:w-[440px]',
+          'fixed left-2 right-2 top-14 z-[9999] max-h-[70dvh] md:top-[54px] md:max-h-[620px] md:w-[440px]',
           'rounded-2xl bg-[var(--app-surface)] shadow-2xl shadow-black/25 dark:shadow-black/60',
           'flex flex-col overflow-hidden border border-[var(--app-border)]',
           'animate-in slide-in-from-top-2 fade-in zoom-in-95 duration-200 ease-out',

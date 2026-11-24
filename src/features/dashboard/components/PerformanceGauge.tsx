@@ -66,13 +66,13 @@ const PerformanceGauge: React.FC<PerformanceGaugeProps> = ({
     return (
       <div
         className={cn(
-          'bg-[var(--app-surface)]/80 flex h-64 items-center justify-center rounded-2xl border border-[var(--app-border)] p-5 backdrop-blur-xl max-md:rounded-xl max-md:p-3',
+          'bg-[var(--app-surface)]/80 flex h-40 items-center justify-center rounded-xl border border-[var(--app-border)] p-3 backdrop-blur-xl md:h-64 md:rounded-2xl md:p-5',
           className
         )}
       >
         <div className="text-center">
-          <Target size={32} className="mx-auto mb-2 text-[var(--app-text-secondary)]" />
-          <p className="text-sm font-bold text-[var(--app-text-secondary)]">لا توجد بيانات</p>
+          <Target size={24} className="mx-auto mb-1.5 text-[var(--app-text-secondary)] md:h-8 md:w-8 md:mb-2" />
+          <p className="text-xs font-bold text-[var(--app-text-secondary)] md:text-sm">لا توجد بيانات</p>
         </div>
       </div>
     );
@@ -81,7 +81,7 @@ const PerformanceGauge: React.FC<PerformanceGaugeProps> = ({
   return (
     <div
       className={cn(
-        'bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] p-4 transition-colors',
+        'rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 transition-colors md:p-4',
         className
       )}
     >

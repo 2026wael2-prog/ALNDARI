@@ -289,11 +289,11 @@ const BondsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Fullscreen Toggle */}
+      {/* Fullscreen Toggle (Desktop only) */}
       <button
         type="button"
         onClick={toggleFullscreen}
-        className="rounded-lg border border-gray-200 bg-[var(--app-surface)] p-1.5 text-gray-500 shadow-sm transition-all hover:border-blue-300 hover:text-blue-600 dark:border-slate-800 dark:text-slate-400"
+        className="hidden rounded-lg border border-gray-200 bg-[var(--app-surface)] p-1.5 text-gray-500 shadow-sm transition-all hover:border-blue-300 hover:text-blue-600 dark:border-slate-800 dark:text-slate-400 md:inline-flex"
         title={isFullscreen ? 'الخروج من ملء الشاشة' : 'ملء الشاشة وضع الكمبيوتر'}
       >
         {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -310,7 +310,12 @@ const BondsPage: React.FC = () => {
       </Button>
 
       {!isJournalTab && (
-        <Button onClick={() => setViewType('analytics')} variant="outline" size="sm">
+        <Button
+          onClick={() => setViewType('analytics')}
+          variant="outline"
+          size="sm"
+          className="hidden sm:inline-flex"
+        >
           تحليلات
         </Button>
       )}

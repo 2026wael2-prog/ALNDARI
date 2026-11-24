@@ -248,8 +248,8 @@ export const UniversalEntityInspectorModal: React.FC = () => {
             />
 
             {/* Excel Worksheet Tabs */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--app-border)] pb-2">
-              <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-col gap-2 border-b border-[var(--app-border)] pb-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="no-scrollbar flex flex-nowrap items-center gap-1.5 overflow-x-auto sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
@@ -257,7 +257,7 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                     setSheetSearch('');
                   }}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition-all',
+                    'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-extrabold transition-all sm:px-3',
                     activeTab === 'overview'
                       ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
                       : 'border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] hover:bg-[var(--app-surface-hover)]'
@@ -278,7 +278,7 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                         setSheetSearch('');
                       }}
                       className={cn(
-                        'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-extrabold transition-all',
+                        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-extrabold transition-all sm:px-3',
                         isSelected
                           ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
                           : 'border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] hover:bg-[var(--app-surface-hover)]'

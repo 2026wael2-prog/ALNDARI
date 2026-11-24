@@ -250,36 +250,36 @@ const SmartImportView: React.FC<Props> = ({ mode, onConfirm }) => {
   return (
     <div className="animate-in fade-in font-cairo flex h-full flex-col gap-4 duration-500">
       {step === 'upload' ? (
-        <div className="flex flex-1 items-center justify-center p-4">
+        <div className="flex flex-1 items-center justify-center p-2 md:p-4">
           <div
             onClick={() => !isProcessing && fileInputRef.current?.click()}
             className={cn(
-              'group relative flex h-96 w-full max-w-2xl cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[2.5rem] border-2 border-dashed bg-[var(--app-surface)] shadow-2xl shadow-blue-500/5 transition-all',
+              'group relative flex h-56 w-full max-w-2xl cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-[var(--app-surface)] p-4 shadow-xl shadow-blue-500/5 transition-all sm:h-72 md:h-96 md:rounded-[2.5rem]',
               isProcessing
                 ? 'cursor-wait border-blue-500 bg-blue-50/10'
                 : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50 dark:border-slate-800'
             )}
           >
             {isProcessing ? (
-              <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-4 md:gap-6">
                 <div className="relative">
                   <div className="absolute inset-0 animate-ping rounded-full bg-blue-500 opacity-20"></div>
-                  <Loader2 size={64} className="relative z-10 animate-spin text-blue-600" />
+                  <Loader2 size={44} className="relative z-10 animate-spin text-blue-600 md:h-16 md:w-16" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-xl font-bold">جاري الاستخراج الذكي للأصناف...</h3>
-                  <p className="mt-2 text-xs font-bold text-gray-400">
+                  <h3 className="text-base font-bold md:text-xl">جاري الاستخراج الذكي للأصناف...</h3>
+                  <p className="mt-1.5 text-xs font-bold text-gray-400 md:mt-2">
                     جاري معالجة الماركات وأرقام القطع...
                   </p>
                 </div>
               </div>
             ) : (
               <>
-                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-blue-100 bg-blue-50 text-blue-600 transition-transform group-hover:scale-110 dark:bg-slate-800">
-                  <ScanLine size={40} />
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-600 transition-transform group-hover:scale-110 dark:bg-slate-800 md:mb-6 md:h-24 md:w-24 md:rounded-[2rem]">
+                  <ScanLine size={28} className="md:h-10 md:w-10" />
                 </div>
-                <div className="space-y-2 text-center">
-                  <h3 className="text-2xl font-bold">الاستيراد الذكي للبيانات</h3>
+                <div className="space-y-1.5 text-center md:space-y-2">
+                  <h3 className="text-lg font-bold md:text-2xl">الاستيراد الذكي للبيانات</h3>
                   <p className="mx-auto max-w-xs text-xs font-bold text-gray-400">
                     ارفع صورة الفاتورة لاستخراج كافة الأصناف، الشركات الصانعة، والمورد آلياً.
                   </p>

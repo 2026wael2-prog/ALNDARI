@@ -42,27 +42,27 @@ const ExcelTableToolbar: React.FC<ExcelTableToolbarProps> = ({
   settingsButton,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface-hover)] px-1 py-0.5 sm:flex-row">
-      <div className="flex w-full items-center gap-3 sm:w-auto">
+    <div className="flex flex-col items-stretch justify-between gap-1.5 border-b border-[var(--app-border)] bg-[var(--app-surface-hover)] px-1.5 py-1 sm:flex-row sm:items-center sm:px-1 sm:py-0.5">
+      <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start sm:gap-3">
         {title && (
-          <div className="flex items-center gap-2">
-            <span className={cn('h-3 w-1 rounded-full', currentTheme.accent)}></span>
-            <h3 className="text-[10px] font-bold uppercase tracking-tight text-[var(--app-text-secondary)]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className={cn('h-3 w-1 shrink-0 rounded-full', currentTheme.accent)}></span>
+            <h3 className="truncate text-[10px] font-bold uppercase tracking-tight text-[var(--app-text-secondary)]">
               {title}
             </h3>
           </div>
         )}
-        <div className="flex items-center gap-1 rounded-lg bg-[var(--app-bg)] p-1">
+        <div className="flex shrink-0 items-center gap-0.5 rounded-lg bg-[var(--app-bg)] p-0.5 sm:gap-1 sm:p-1">
           {enableResize && (
             <>
               <button
                 onClick={handleResetSize}
-                className="rounded p-1.5 text-[var(--app-text-secondary)] shadow-sm transition-colors hover:bg-[var(--app-surface)] hover:text-blue-500"
+                className="hidden rounded p-1.5 text-[var(--app-text-secondary)] shadow-sm transition-colors hover:bg-[var(--app-surface)] hover:text-blue-500 md:inline-flex"
                 title="إعادة الحجم الأصلي"
               >
                 <RotateCcw size={14} />
               </button>
-              <div className="mx-0.5 h-4 w-px bg-[var(--app-border)]" />
+              <div className="mx-0.5 hidden h-4 w-px bg-[var(--app-border)] md:block" />
             </>
           )}
           <button
@@ -70,7 +70,7 @@ const ExcelTableToolbar: React.FC<ExcelTableToolbarProps> = ({
             onClick={() => {
               setIsZoomed(!isZoomed);
             }}
-            className="rounded p-1.5 text-[var(--app-text-secondary)] shadow-sm transition-colors hover:bg-[var(--app-surface)] hover:text-blue-500"
+            className="rounded p-1 text-[var(--app-text-secondary)] shadow-sm transition-colors hover:bg-[var(--app-surface)] hover:text-blue-500 sm:p-1.5"
             title={isZoomed ? 'تصغير من ملء الشاشة' : 'تكبير الجدول لملء الشاشة'}
           >
             {isZoomed ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -80,7 +80,7 @@ const ExcelTableToolbar: React.FC<ExcelTableToolbarProps> = ({
               type="button"
               onClick={onTogglePanMode}
               className={cn(
-                'rounded p-1.5 shadow-sm transition-colors',
+                'hidden rounded p-1.5 shadow-sm transition-colors md:inline-flex',
                 isPanMode
                   ? 'bg-blue-600 text-white hover:bg-blue-500'
                   : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface)] hover:text-blue-500'

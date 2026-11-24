@@ -47,12 +47,12 @@ const AccountingOverview: React.FC<AccountingOverviewProps> = ({
   ];
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
+    <div className="animate-in fade-in space-y-2.5 duration-500 md:space-y-4">
       {/* Top Stats Bar */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-          <h3 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--app-text-secondary)]">
-            <Activity size={14} className="text-blue-500" /> الحالة المالية اللحظية
+      <div className="space-y-1.5 md:space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 px-1 md:gap-2">
+          <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--app-text-secondary)]">
+            <Activity size={13} className="text-blue-500" /> الحالة المالية اللحظية
             <span className="inline-flex items-center gap-1 rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-blue-600 dark:text-blue-400">
               <Calendar size={10} />
               {effectiveDateRange.from} → {effectiveDateRange.to}
@@ -60,7 +60,7 @@ const AccountingOverview: React.FC<AccountingOverviewProps> = ({
           </h3>
 
           {onDateRangeChange && (
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="hidden flex-wrap items-center gap-1 md:flex">
               {yearPresets.map(preset => {
                 const isSelected =
                   effectiveDateRange.from === preset.from && effectiveDateRange.to === preset.to;
@@ -87,11 +87,11 @@ const AccountingOverview: React.FC<AccountingOverviewProps> = ({
       </div>
 
       {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-md:gap-3 items-start">
+      <div className="grid grid-cols-1 items-start gap-2.5 md:gap-4 lg:grid-cols-3">
         {/* Main Column */}
-        <div className="lg:col-span-2 space-y-4">
-            <Card variant="ledger" className="p-4">
-              <h3 className="text-xs font-bold text-[var(--app-text)] mb-4 px-1 flex items-center justify-between gap-2">
+        <div className="space-y-2.5 md:space-y-4 lg:col-span-2">
+            <Card variant="ledger" className="p-2.5 md:p-4">
+              <h3 className="mb-2 flex items-center justify-between gap-2 px-1 text-xs font-bold text-[var(--app-text)] md:mb-4">
                 <span className="flex items-center gap-2">
                   <BarChart3 size={16} className="text-blue-500" />
                   أداء الإيرادات مقابل المصروفات

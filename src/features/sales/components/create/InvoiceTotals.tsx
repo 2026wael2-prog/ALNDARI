@@ -31,7 +31,7 @@ const NotesSection: React.FC<{ notes: string; onNotesChange: (v: string) => void
       }}
       rows={2}
       placeholder="أدخل أي ملاحظات على الفاتورة..."
-      className="mt-1 h-12 w-full resize-none rounded-lg border border-slate-200/50 bg-slate-50/50 p-2 text-xs font-bold outline-none focus:border-blue-500/50 dark:border-slate-800 dark:bg-slate-900/40 sm:h-14"
+      className="mt-0.5 h-9 w-full resize-none rounded-lg border border-slate-200/50 bg-slate-50/50 p-1.5 text-xs font-bold outline-none focus:border-blue-500/50 dark:border-slate-800 dark:bg-slate-900/40 sm:mt-1 sm:h-14 sm:p-2"
     />
   </div>
 );
@@ -50,7 +50,7 @@ const TotalsBreakdown: React.FC<BreakdownProps> = ({
   discountEnabled,
 }) => (
   <div className={cn('grid', discountEnabled ? 'grid-cols-2' : 'grid-cols-1')}>
-    <div className="border-b p-2.5 text-right dark:border-slate-800 sm:p-3">
+    <div className="border-b p-2 text-right dark:border-slate-800 sm:p-3">
       <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">
         المجموع الفرعي
       </span>
@@ -62,7 +62,7 @@ const TotalsBreakdown: React.FC<BreakdownProps> = ({
       </span>
     </div>
     {discountEnabled && (
-      <div className="border-b border-l p-2.5 text-right dark:border-slate-800 sm:p-3">
+      <div className="border-b border-l p-2 text-right dark:border-slate-800 sm:p-3">
         <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">
           إجمالي الخصم
         </span>
@@ -97,19 +97,19 @@ const NetTotalDisplay: React.FC<{
   }
 
   return (
-    <div className="group relative flex flex-1 flex-col justify-between overflow-hidden bg-slate-950 p-3 text-white sm:p-4">
+    <div className="group relative flex flex-1 flex-col justify-between overflow-hidden bg-slate-950 p-2.5 text-white sm:p-4">
       <div className="flex items-start justify-between">
         <div className="relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.15em] text-blue-400">
               صافي الفاتورة
             </span>
             <span
               className={cn(
                 'rounded-md px-1.5 py-0.5 text-[10px] font-black',
                 currency === 'YER'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                  ? 'border border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                  : 'border border-blue-500/40 bg-blue-500/20 text-blue-300'
               )}
             >
               {currency === 'YER' ? 'الريال اليمني (YER)' : 'الريال السعودي (SAR)'}
@@ -117,18 +117,18 @@ const NetTotalDisplay: React.FC<{
           </div>
           <h2
             dir="ltr"
-            className="mt-1 font-mono text-xl font-bold leading-none tracking-tighter transition-transform duration-500 group-hover:scale-105 sm:text-2xl lg:text-3xl text-white"
+            className="mt-0.5 font-mono text-lg font-bold leading-none tracking-tighter text-white transition-transform duration-500 group-hover:scale-105 sm:mt-1 sm:text-2xl lg:text-3xl"
           >
             {formatCurrency(totalAmount, currency)}
           </h2>
           {isForeign && (
-            <p className="mt-1 font-mono text-xs font-bold text-amber-300">
+            <p className="mt-0.5 font-mono text-[11px] font-bold text-amber-300 sm:mt-1 sm:text-xs">
               المعادل: ≈ {formatCurrency(baseEquivalent, 'SAR')} (صرف {effectiveRate})
             </p>
           )}
         </div>
-        <div className="relative z-10 rounded-xl bg-blue-600 p-2.5 shadow-lg shadow-blue-500/40 sm:p-3">
-          <Wallet size={18} className="sm:h-5 sm:w-5" />
+        <div className="relative z-10 rounded-lg bg-blue-600 p-1.5 shadow-lg shadow-blue-500/40 sm:rounded-xl sm:p-3">
+          <Wallet size={16} className="sm:h-5 sm:w-5" />
         </div>
       </div>
       <div className="absolute left-0 top-0 h-0.5 w-full animate-pulse bg-blue-500"></div>

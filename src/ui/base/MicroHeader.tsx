@@ -91,29 +91,31 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
     >
       <div className="max-w-none mx-auto">
         {/* Main Row */}
-        <div className="flex h-9 items-center justify-between px-2.5 max-md:px-1.5 md:px-3">
-          <div className="flex items-center gap-1.5 overflow-hidden">
+        <div className="flex min-h-[2.15rem] flex-wrap items-center justify-between gap-x-1.5 gap-y-0.5 px-1.5 py-0.5 sm:h-9 sm:flex-nowrap sm:px-2 sm:py-0 md:px-3">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
             {!isRoot && (
               <button
                 onClick={() => navigate(-1)}
-                className="p-1 hover:bg-[var(--app-surface-hover)] rounded-lg transition-transform active:scale-90"
+                className="shrink-0 rounded-lg p-1 transition-transform hover:bg-[var(--app-surface-hover)] active:scale-90"
                 aria-label="Go back"
               >
                 <BackIcon size={15} className="text-[var(--app-text-secondary)]" />
               </button>
             )}
-            <div className="flex items-center gap-1.5 bg-[var(--app-bg)]/60 px-2.5 py-0.5 rounded-full border border-[var(--app-border)]">
-              <Icon className={iconColor} size={15} />
-              <h1 className="text-xs font-extrabold text-[var(--app-text)] whitespace-nowrap tracking-wide">{title}</h1>
+            <div className="flex min-w-0 items-center gap-1.5 rounded-full border border-[var(--app-border)] bg-[var(--app-bg)]/60 px-2.5 py-0.5">
+              <Icon className={cn('shrink-0', iconColor)} size={14} />
+              <h1 className="truncate whitespace-nowrap text-xs font-extrabold tracking-wide text-[var(--app-text)]">
+                {title}
+              </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-0.5 md:gap-1.5">
+          <div className="no-scrollbar flex max-w-full shrink-0 items-center gap-1 overflow-x-auto md:gap-1.5">
             {isMaximized && onToggleZen && (
               <button
                 onClick={onToggleZen}
                 className={cn(
-                  "p-1 rounded-md border transition-all active:scale-95 shadow-sm",
+                  "hidden md:inline-flex p-1 rounded-md border transition-all active:scale-95 shadow-sm",
                   "bg-white dark:bg-slate-800 text-gray-500 hover:text-indigo-500 border-[var(--app-border)]"
                 )}
                 title={isZenMode ? "Show Header" : "Zen Mode (Hide Header)"}
@@ -125,7 +127,7 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
               <button
                 onClick={onToggleMaximize}
                 className={cn(
-                  "p-1 rounded-md border transition-all active:scale-95 shadow-sm",
+                  "hidden md:inline-flex p-1 rounded-md border transition-all active:scale-95 shadow-sm",
                   isMaximized 
                     ? "bg-rose-500 text-white border-rose-400 hover:bg-rose-600 shadow-rose-500/20" 
                     : "bg-white dark:bg-slate-800 text-gray-500 hover:text-blue-500 border-[var(--app-border)]"
@@ -143,7 +145,7 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
         {(tabs || onSearchChange || extraRow) && (
           <div
             data-micro-header-tabs="true"
-            className="flex flex-col md:flex-row items-center gap-1 md:gap-2 py-1 px-2 bg-[var(--app-surface)] border-t border-[var(--app-border)]"
+            className="flex flex-col items-center gap-0.5 border-t border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-0.5 md:flex-row md:gap-2 md:px-2 md:py-1"
           >
             {/* Tabs Section */}
             {tabs && onTabChange && activeTab && (

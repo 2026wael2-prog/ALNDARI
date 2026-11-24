@@ -69,30 +69,30 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       className={cn(
-        'animate-in fade-in zoom-in flex flex-col items-center justify-center p-8 text-center duration-300 md:p-12',
+        'animate-in fade-in zoom-in flex flex-col items-center justify-center p-4 text-center duration-300 md:p-12',
         className
       )}
     >
-      <div className="relative mb-5 md:mb-6">
+      <div className="relative mb-2.5 md:mb-6">
         <div
           className={cn(
-            'flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--app-bg)] transition-colors md:h-24 md:w-24',
+            'flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--app-bg)] transition-colors md:h-24 md:w-24',
             displayColor,
             'opacity-40'
           )}
         >
           <DisplayIcon size={44} strokeWidth={1.5} className="hidden md:block" />
-          <DisplayIcon size={36} strokeWidth={1.5} className="md:hidden" />
+          <DisplayIcon size={26} strokeWidth={1.5} className="md:hidden" />
         </div>
-        <div className="absolute -bottom-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--app-border)] bg-[var(--app-surface)] shadow-lg md:h-8 md:w-8">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-rose-500"></div>
+        <div className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--app-border)] bg-[var(--app-surface)] shadow-md md:-bottom-2 md:-right-2 md:h-8 md:w-8">
+          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500 md:h-2 md:w-2"></div>
         </div>
       </div>
 
-      <h3 className="mb-2 text-base font-bold tracking-tight text-[var(--app-text)] md:text-lg">
+      <h3 className="mb-1 text-sm font-bold tracking-tight text-[var(--app-text)] md:mb-2 md:text-lg">
         {title || def.titleFallback}
       </h3>
-      <p className="mb-6 max-w-xs text-xs font-normal leading-relaxed text-[var(--app-text-secondary)] md:mb-8 md:text-sm">
+      <p className="mb-3 max-w-xs text-xs font-normal leading-relaxed text-[var(--app-text-secondary)] md:mb-8 md:text-sm">
         {description || def.descFallback}
       </p>
 

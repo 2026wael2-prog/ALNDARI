@@ -431,7 +431,7 @@ const extractTextFromReactNode = (node: React.ReactNode): string => {
       <div
         className={cn(
           'relative flex min-h-0 w-full flex-1 flex-col transition-all duration-300',
-          isZoomed ? 'h-full bg-[var(--app-surface)] p-4' : 'h-full min-h-[420px]'
+          isZoomed ? 'h-full bg-[var(--app-surface)] p-2 md:p-4' : 'h-full min-h-[260px] md:min-h-[420px]'
         )}
       >
         <ExcelTableToolbar

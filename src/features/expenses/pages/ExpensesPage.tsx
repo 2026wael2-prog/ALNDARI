@@ -58,65 +58,23 @@ const ExpensesPage: React.FC = () => {
   };
 
   const headerActions = (
-    <div className="flex flex-wrap items-center gap-2">
-      {/* View Segment Control */}
-      <div className="shadow-2xs flex rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-0.5">
-        <button
-          type="button"
-          onClick={() => {
-            setViewType('list');
-          }}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all ${
-            viewType === 'list'
-              ? 'bg-rose-600 text-white shadow-xs'
-              : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
-          }`}
-        >
-          <Receipt size={13} />
-          <span>سجل المصروفات</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setViewType('analytics');
-          }}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all ${
-            viewType === 'analytics'
-              ? 'bg-rose-600 text-white shadow-xs'
-              : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
-          }`}
-        >
-          <BarChart3 size={13} />
-          <span>التحليلات</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            handleOpenLedger();
-          }}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all ${
-            viewType === 'ledger'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
-          }`}
-        >
-          <FileText size={13} />
-          <span>كشف حساب تفصيلي</span>
-        </button>
-      </div>
-
-      <Button
-        onClick={() => {
-          setIsModalOpen(true);
-        }}
-        variant="danger"
-        size="sm"
-        leftIcon={<Plus size={14} />}
-      >
-        {t('add_expense')}
-      </Button>
-    </div>
+    <Button
+      onClick={() => {
+        setIsModalOpen(true);
+      }}
+      variant="danger"
+      size="sm"
+      leftIcon={<Plus size={14} />}
+    >
+      {t('add_expense')}
+    </Button>
   );
+
+  const EXPENSE_TABS = [
+    { id: 'list', label: 'سجل المصروفات', icon: Receipt },
+    { id: 'analytics', label: 'التحليلات', icon: BarChart3 },
+    { id: 'ledger', label: 'كشف حساب تفصيلي', icon: FileText },
+  ];
 
   return (
     <div className="font-cairo flex h-full flex-col bg-[#f8fafc] dark:bg-slate-950">
@@ -131,6 +89,15 @@ const ExpensesPage: React.FC = () => {
         icon={viewType === 'ledger' ? FileText : viewType === 'analytics' ? BarChart3 : Receipt}
         iconColor={viewType === 'ledger' ? 'text-blue-600' : 'text-rose-600'}
         actions={headerActions}
+        tabs={EXPENSE_TABS}
+        activeTab={viewType}
+        onTabChange={id => {
+          if (id === 'ledger') {
+            handleOpenLedger();
+          } else {
+            setViewType(id as ViewType);
+          }
+        }}
         {...(viewType === 'list'
           ? {
               searchPlaceholder: t('search_expenses_placeholder'),
@@ -140,7 +107,7 @@ const ExpensesPage: React.FC = () => {
           : {})}
       />
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-28 pt-4">
+      <div className="custom-scrollbar flex-1 overflow-y-auto px-2 pb-20 pt-2 md:px-4 md:pb-24 md:pt-4">
         {viewType === 'ledger' && (
           <Suspense fallback={null}>
             <ExpenseLedgerView
@@ -153,13 +120,13 @@ const ExpensesPage: React.FC = () => {
         )}
 
         {viewType === 'analytics' && (
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {/* Period Filter Bar for Analytics */}
-            <div className="shadow-2xs flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5">
+            <div className="shadow-2xs flex flex-col items-start justify-between gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 sm:flex-row sm:items-center">
               <span className="text-xs font-bold text-[var(--app-text-secondary)]">
                 فترة التحليل المالي:
               </span>
-              <div className="flex rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] p-0.5">
+              <div className="no-scrollbar flex w-full overflow-x-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] p-0.5 sm:w-auto">
                 {(['today', 'week', 'month', 'quarter', 'year'] as PeriodType[]).map(p => (
                   <button
                     key={p}
@@ -167,7 +134,7 @@ const ExpensesPage: React.FC = () => {
                     onClick={() => {
                       setPeriod(p);
                     }}
-                    className={`rounded-md px-3 py-1 text-xs font-bold transition-all ${
+                    className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-bold transition-all sm:px-3 ${
                       period === p
                         ? 'bg-rose-600 text-white shadow-xs'
                         : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text)]'

@@ -30,13 +30,13 @@ const AgingTile: React.FC<AgingTileProps> = ({
         onSelect(bucketKey);
       }}
       title={`عرض عملاء شريحة: ${meta.label}`}
-      className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-3 text-right transition-all hover:border-blue-400 hover:shadow-sm active:scale-[0.98] max-md:p-2.5"
+      className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-2 text-right transition-all hover:border-blue-400 hover:shadow-sm active:scale-[0.98] md:p-3"
     >
       <span className={`flex items-center gap-1.5 text-[10px] font-bold ${meta.colorClass}`}>
         <span className={`h-2 w-2 shrink-0 rounded-full ${meta.barClass}`} />
         {meta.label}
       </span>
-      <span className="mt-1.5 block font-mono text-sm font-bold text-[var(--app-text)] md:text-base">
+      <span className="mt-1 block truncate font-mono text-xs font-bold text-[var(--app-text)] sm:text-sm md:mt-1.5 md:text-base">
         {formatCurrency(value, baseCurrency)}
       </span>
       <span className="mt-0.5 block text-[10px] text-[var(--app-text-secondary)]">

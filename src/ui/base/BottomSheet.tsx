@@ -9,11 +9,12 @@ export interface BottomSheetProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
-  height?: '25%' | '50%' | '75%' | '90%';
+  height?: 'auto' | '25%' | '50%' | '75%' | '90%';
   showHandle?: boolean;
 }
 
 const heightMap: Record<string, string> = {
+  auto: 'h-auto max-h-[72dvh]',
   '25%': 'h-[25dvh]',
   '50%': 'h-[50dvh]',
   '75%': 'h-[75dvh]',
@@ -25,7 +26,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   onClose,
   title,
   children,
-  height = '50%',
+  height = 'auto',
   showHandle = true,
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
@@ -95,12 +96,12 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--app-border)]">
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--app-border)] px-4 py-2.5">
             <h3 className="text-sm font-bold text-[var(--app-text)]">{title}</h3>
             <button
               onClick={onClose}
               aria-label="إغلاق"
-              className="p-1.5 rounded-lg text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] transition-colors"
+              className="rounded-lg p-1.5 text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-hover)]"
             >
               <X size={18} />
             </button>
@@ -108,7 +109,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="custom-scrollbar flex-1 overflow-y-auto px-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-5">
           {children}
         </div>
       </div>

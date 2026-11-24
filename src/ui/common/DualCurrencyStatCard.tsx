@@ -60,7 +60,7 @@ export const DualCurrencyStatCard: React.FC<DualCurrencyStatCardProps> = ({
           }
         : {})}
       className={cn(
-        'group relative flex flex-col justify-between overflow-hidden rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 shadow-xs transition-all duration-200',
+        'group relative flex flex-col justify-between overflow-hidden rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-xs transition-all duration-200 md:p-2.5',
         isInteractive &&
           'cursor-pointer hover:border-[var(--app-border-hover,#94a3b8)] hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30',
         isActive && 'border-blue-500 bg-blue-50/40 dark:border-blue-400 dark:bg-blue-950/20 ring-1 ring-blue-500',
@@ -144,7 +144,12 @@ export const DualCurrencyStatCard: React.FC<DualCurrencyStatCardProps> = ({
 
       {/* Footer: Trend or Subtext */}
       {(subtext || trend) && (
-        <div className="mt-2 flex items-center justify-between gap-1 border-t border-slate-100 dark:border-slate-800/60 pt-1 text-[10px]">
+        <div
+          className={cn(
+            'mt-1.5 items-center justify-between gap-1 border-t border-slate-100 pt-1 text-[10px] dark:border-slate-800/60 md:mt-2',
+            isDual && !trend ? 'hidden sm:flex' : 'flex'
+          )}
+        >
           {subtext && (
             <span className="text-slate-400 dark:text-slate-500 truncate">
               {subtext}

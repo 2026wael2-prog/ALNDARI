@@ -142,10 +142,11 @@ export const StatementControls: React.FC<StatementControlsProps> = ({
   };
 
   return (
-    <div className="no-print flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-[var(--app-surface)] p-4 shadow-sm dark:border-slate-800 max-md:gap-2.5 max-md:p-3">
-      <div className="min-w-[240px] flex-1 max-md:w-full">
-        <label className="mb-1 block text-xs font-bold text-slate-500 dark:text-slate-400">
-          اختر {partyType === 'customer' ? 'العميل' : 'المورد'} (بحث ذكي بالاسم أو الهاتف)
+    <div className="no-print flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-[var(--app-surface)] p-2 shadow-sm dark:border-slate-800 md:gap-3 md:p-4">
+      <div className="min-w-[200px] flex-1 max-md:w-full">
+        <label className="mb-0.5 block text-[11px] font-bold text-slate-500 dark:text-slate-400 md:mb-1 md:text-xs">
+          اختر {partyType === 'customer' ? 'العميل' : 'المورد'}
+          <span className="hidden sm:inline"> (بحث ذكي بالاسم أو الهاتف)</span>
         </label>
         <SmartPartySelect
           partyType={partyType}
@@ -155,60 +156,64 @@ export const StatementControls: React.FC<StatementControlsProps> = ({
         />
       </div>
       <div className="w-36 max-md:flex-1">
-        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">من تاريخ</label>
+        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 md:text-xs">من تاريخ</label>
         <input
           type="date"
           value={startDate}
           onChange={e => {
             onStartDateChange(e.target.value);
           }}
-          className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-bold text-slate-700 transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200"
+          className="mt-0.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700 transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 md:mt-1 md:px-3 md:py-1.5 md:text-sm"
         />
       </div>
       <div className="w-36 max-md:flex-1">
-        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">إلى تاريخ</label>
+        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 md:text-xs">إلى تاريخ</label>
         <input
           type="date"
           value={endDate}
           onChange={e => {
             onEndDateChange(e.target.value);
           }}
-          className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-bold text-slate-700 transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200"
+          className="mt-0.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700 transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 md:mt-1 md:px-3 md:py-1.5 md:text-sm"
         />
       </div>
       {selectedPartyId && selectedParty && (
-        <div className="mt-auto flex flex-wrap gap-2 max-md:grid max-md:w-full max-md:grid-cols-2">
+        <div className="mt-auto grid w-full grid-cols-4 gap-1 sm:flex sm:w-auto sm:flex-wrap sm:gap-2">
           <Button
+            size="sm"
             variant="outline"
             onClick={handleWhatsAppShare}
-            className="gap-2 rounded-lg border-emerald-200 font-bold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-800/60 dark:hover:bg-emerald-950/30"
+            className="gap-1 rounded-lg border-emerald-200 px-1.5 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-800/60 dark:hover:bg-emerald-950/30 sm:gap-2 sm:px-3 sm:text-xs"
           >
-            <Share2 size={15} />
+            <Share2 size={13} />
             واتساب
           </Button>
           <Button
+            size="sm"
             variant="outline"
             onClick={handleShareExcel}
-            className="gap-2 rounded-lg border-blue-200 font-bold text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-800/60 dark:hover:bg-blue-950/30"
+            className="gap-1 rounded-lg border-blue-200 px-1.5 text-[11px] font-bold text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-800/60 dark:hover:bg-blue-950/30 sm:gap-2 sm:px-3 sm:text-xs"
             disabled={isExporting}
           >
-            <FileDown size={15} />
+            <FileDown size={13} />
             مشاركة
           </Button>
           <Button
+            size="sm"
             onClick={handleExportExcel}
             isLoading={isExporting}
-            className="rounded-lg bg-emerald-600 font-bold text-white shadow-sm hover:bg-emerald-700"
-            leftIcon={<FileDown size={15} />}
+            className="rounded-lg bg-emerald-600 px-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 sm:px-3 sm:text-xs"
+            leftIcon={<FileDown size={13} />}
           >
-            تصدير Excel
+            Excel
           </Button>
           <Button
+            size="sm"
             onClick={() => {
               window.print();
             }}
-            leftIcon={<Printer size={15} />}
-            className="rounded-lg font-bold shadow-sm"
+            leftIcon={<Printer size={13} />}
+            className="rounded-lg px-1.5 text-[11px] font-bold shadow-sm sm:px-3 sm:text-xs"
           >
             طباعة
           </Button>

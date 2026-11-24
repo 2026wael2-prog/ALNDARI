@@ -26,7 +26,7 @@ export const PartyTypeSwitcher: React.FC<PartyTypeSwitcherProps> = ({
   const { t } = useTranslation();
   return (
     <div
-      className="flex items-center gap-1.5 px-2 pt-3 md:px-4"
+      className="no-scrollbar flex items-center gap-1.5 overflow-x-auto px-2 pt-2 md:px-4 md:pt-3"
       role="tablist"
       aria-label="العملاء والموردون والموظفون"
     >
@@ -44,7 +44,7 @@ export const PartyTypeSwitcher: React.FC<PartyTypeSwitcherProps> = ({
               onSwitch(type);
             }}
             className={cn(
-              'flex items-center gap-2 rounded-xl px-4 py-1.5 text-xs font-bold transition-all',
+              'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1 text-xs font-bold transition-all md:gap-2 md:px-4 md:py-1.5',
               isSelected
                 ? type === 'customer'
                   ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'

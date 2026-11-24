@@ -283,8 +283,8 @@ interface BucketChipsProps {
 
 /** شرائح فلترة الطابور — تُغطّي بِكِتات لا تقابلها بطاقة KPI (أسبوع/حرج). */
 const BucketChips: React.FC<BucketChipsProps> = ({ bucket, onSelect }) => (
-  <div className="flex flex-wrap items-center gap-1.5">
-    <span className="text-[10px] font-bold text-[var(--app-text-secondary)]">تصفية الطابور:</span>
+  <div className="no-scrollbar flex flex-nowrap items-center gap-1 overflow-x-auto sm:flex-wrap sm:gap-1.5">
+    <span className="shrink-0 text-[10px] font-bold text-[var(--app-text-secondary)]">تصفية الطابور:</span>
     {BUCKET_CHIPS.map(chip => (
       <button
         key={chip.bucket}
@@ -293,7 +293,7 @@ const BucketChips: React.FC<BucketChipsProps> = ({ bucket, onSelect }) => (
           onSelect(chip.bucket);
         }}
         className={cn(
-          'rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors',
+          'shrink-0 whitespace-nowrap rounded-lg px-2 py-0.5 text-[11px] font-bold transition-colors sm:px-2.5 sm:py-1',
           bucket === chip.bucket
             ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
             : 'border border-[var(--app-border)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)]'

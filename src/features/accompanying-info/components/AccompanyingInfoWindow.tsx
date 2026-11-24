@@ -155,15 +155,13 @@ export const AccompanyingInfoWindow: React.FC = () => {
       dragMomentum={false}
       className={`fixed z-40 select-text ${
         isMinimized
-          ? 'bottom-4 start-4 h-12 w-80 shadow-lg'
-          : 'start-4 top-14 h-[500px] max-h-[calc(100vh-4.5rem)] w-96 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] ring-1 ring-slate-900/10 dark:ring-white/10'
+          ? 'bottom-[calc(4.25rem_+_env(safe-area-inset-bottom))] start-2 h-11 w-[calc(100vw-1rem)] max-w-[320px] shadow-lg md:bottom-4 md:start-4 md:h-12 md:w-80'
+          : 'inset-x-2 bottom-[calc(4.25rem_+_env(safe-area-inset-bottom))] max-h-[60dvh] w-auto shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] ring-1 ring-slate-900/10 dark:ring-white/10 md:inset-x-auto md:bottom-auto md:start-4 md:top-14 md:h-[500px] md:max-h-[calc(100vh-4.5rem)] md:min-h-[400px] md:w-96 md:min-w-[360px]'
       } flex flex-col rounded-xl border-2 border-blue-200 bg-white font-sans dark:border-blue-800 dark:bg-slate-950`}
       style={{
         direction: 'rtl',
         resize: !isMinimized ? 'both' : 'none',
         overflow: 'hidden',
-        minWidth: isMinimized ? '320px' : '360px',
-        minHeight: isMinimized ? '48px' : '400px',
       }}
     >
       {/* شريط عنوان النافذة المرافقة (مصمت واحترافي بلون أزرق لتمييزه) */}

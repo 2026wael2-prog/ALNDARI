@@ -178,13 +178,13 @@ const RevenueExpensesChart: React.FC<RevenueExpensesChartProps> = ({ data, class
     return (
       <div
         className={cn(
-          'flex h-64 items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4',
+          'flex h-40 items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 md:h-64 md:p-4',
           className
         )}
       >
         <div className="text-center">
-          <Scale size={32} className="mx-auto mb-2 text-[var(--app-text-secondary)] opacity-40" />
-          <p className="text-sm font-bold text-[var(--app-text-secondary)]">لا توجد بيانات</p>
+          <Scale size={24} className="mx-auto mb-1.5 text-[var(--app-text-secondary)] opacity-40 md:h-8 md:w-8 md:mb-2" />
+          <p className="text-xs font-bold text-[var(--app-text-secondary)] md:text-sm">لا توجد بيانات</p>
         </div>
       </div>
     );
@@ -193,7 +193,7 @@ const RevenueExpensesChart: React.FC<RevenueExpensesChartProps> = ({ data, class
   return (
     <div
       className={cn(
-        'rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 transition-colors',
+        'rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 transition-colors md:p-4',
         className
       )}
     >
@@ -201,8 +201,7 @@ const RevenueExpensesChart: React.FC<RevenueExpensesChartProps> = ({ data, class
 
       <div
         ref={containerRef}
-        className="group relative w-full overflow-hidden"
-        style={{ height: '220px', minHeight: '220px' }}
+        className="group relative h-[175px] w-full overflow-hidden md:h-[220px]"
       >
         {isMounted && (
           <ResponsiveContainer

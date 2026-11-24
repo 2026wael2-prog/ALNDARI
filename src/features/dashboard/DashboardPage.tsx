@@ -46,15 +46,15 @@ const PERIOD_OPTIONS: Array<{ key: DashboardPeriod; label: string }> = [
 const DashboardLoading = () => {
   const { t } = useTranslation();
   return (
-    <div className="flex h-full min-h-[400px] animate-pulse flex-col items-center justify-center gap-4 p-10 text-center max-md:gap-3 max-md:p-5">
-      <div className="h-16 w-16 animate-spin rounded-full border-4 border-[var(--accent)] border-t-transparent"></div>
-      <div className="text-lg font-bold text-gray-400">{t('loading_financial_data')}</div>
+    <div className="flex h-full min-h-[240px] animate-pulse flex-col items-center justify-center gap-3 p-6 text-center md:min-h-[400px] md:gap-4 md:p-10">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--accent)] border-t-transparent md:h-16 md:w-16"></div>
+      <div className="text-sm font-bold text-gray-400 md:text-lg">{t('loading_financial_data')}</div>
     </div>
   );
 };
 
 const DashboardError = ({ refetch, isFetching }: { refetch: () => void; isFetching: boolean }) => (
-  <div className="font-cairo flex h-full min-h-[400px] flex-col items-center justify-center gap-6 bg-[var(--app-bg)] p-10 text-center max-md:gap-3 max-md:p-5">
+  <div className="font-cairo flex h-full min-h-[240px] flex-col items-center justify-center gap-4 bg-[var(--app-bg)] p-6 text-center md:min-h-[400px] md:gap-6 md:p-10">
     <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 max-md:rounded-xl max-md:p-3">
       <Activity size={32} className="animate-pulse text-rose-500 max-md:hidden" />
       <Activity size={24} className="hidden animate-pulse text-rose-500 max-md:block" />
@@ -119,9 +119,9 @@ const DashboardPage: React.FC = () => {
         icon={Activity}
         iconColor="text-emerald-500"
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex max-w-full items-center gap-1.5 md:gap-2">
             {/* Period Selector Tabs */}
-            <div className="inline-flex rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-0.5 text-xs">
+            <div className="no-scrollbar inline-flex max-w-full items-center overflow-x-auto rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-0.5 text-xs">
               {PERIOD_OPTIONS.map(opt => (
                 <button
                   key={opt.key}
@@ -130,7 +130,7 @@ const DashboardPage: React.FC = () => {
                     setPeriod(opt.key);
                   }}
                   className={cn(
-                    'rounded-md px-2.5 py-1 text-[11px] font-bold transition-all duration-150',
+                    'shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-bold transition-all duration-150 sm:px-2.5 sm:text-[11px]',
                     period === opt.key
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'hover:bg-[var(--app-surface)]/50 text-[var(--app-text-secondary)] hover:text-[var(--app-text)]'
@@ -147,7 +147,7 @@ const DashboardPage: React.FC = () => {
                 refetch();
               }}
               title="تحديث البيانات"
-              className="rounded-lg border border-[var(--app-border)] p-1.5 text-[var(--app-text-secondary)] transition-all hover:bg-[var(--app-surface-hover)] hover:text-[var(--accent)] active:scale-90"
+              className="shrink-0 rounded-lg border border-[var(--app-border)] p-1.5 text-[var(--app-text-secondary)] transition-all hover:bg-[var(--app-surface-hover)] hover:text-[var(--accent)] active:scale-90"
             >
               <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
             </button>
@@ -173,10 +173,10 @@ const DashboardPage: React.FC = () => {
           {/* 2. الصحة المالية + الإجراءات السريعة (ارتفاع موحد) */}
           <Suspense
             fallback={
-              <div className="mt-3.5 h-44 animate-pulse rounded-xl bg-[var(--app-surface)]" />
+              <div className="mt-2.5 h-32 animate-pulse rounded-xl bg-[var(--app-surface)] md:mt-3.5 md:h-44" />
             }
           >
-            <div className="mt-3.5 grid grid-cols-1 items-stretch gap-3.5 xl:grid-cols-12">
+            <div className="mt-2.5 grid grid-cols-1 items-stretch gap-2.5 md:mt-3.5 md:gap-3.5 xl:grid-cols-12">
               <div className="flex flex-col xl:col-span-5 [&>*]:h-full">
                 <FinancialHealthScore stats={stats} cashFlow={cashFlow} targets={targets} />
               </div>
@@ -189,7 +189,7 @@ const DashboardPage: React.FC = () => {
           {/* 3. الإشعارات الذكية */}
           <GlobalErrorBoundary>
             <Suspense fallback={null}>
-              <div className="mt-3.5">
+              <div className="mt-2.5 md:mt-3.5">
                 <AISmartNotifications
                   stats={stats}
                   lowStockProducts={lowStockProducts}
@@ -200,10 +200,10 @@ const DashboardPage: React.FC = () => {
           </GlobalErrorBoundary>
 
           {/* 4. الشبكة التحليلية الموزونة (12 عموداً — صفوف متساوية الارتفاع بلا تشوش بصري) */}
-          <div className="mt-3.5 grid grid-cols-1 items-stretch gap-3.5 md:grid-cols-2 xl:grid-cols-12">
+          <div className="mt-2.5 grid grid-cols-1 items-stretch gap-2.5 md:mt-3.5 md:grid-cols-2 md:gap-3.5 xl:grid-cols-12">
             {/* الصف الأول: تدفق المبيعات (6) + الإيرادات والمصروفات (3) + مؤشر الهدف (3) */}
             <Suspense fallback={<ChartSkeleton />}>
-              <div className="flex min-h-[320px] flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 transition-colors md:col-span-2 xl:col-span-6">
+              <div className="flex min-h-[210px] flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 transition-colors md:col-span-2 md:min-h-[320px] md:p-4 xl:col-span-6">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-400">
@@ -252,10 +252,10 @@ const DashboardPage: React.FC = () => {
             <GlobalErrorBoundary sectionName="الإيرادات والمصروفات">
               <Suspense
                 fallback={
-                  <div className="h-[320px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-3" />
+                  <div className="h-[210px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 md:h-[320px] xl:col-span-3" />
                 }
               >
-                <div className="flex min-h-[320px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+                <div className="flex min-h-[210px] flex-col md:col-span-1 md:min-h-[320px] xl:col-span-3 [&>*]:h-full">
                   <RevenueExpensesChart data={revenueExpensesData} />
                 </div>
               </Suspense>
@@ -263,10 +263,10 @@ const DashboardPage: React.FC = () => {
 
             <Suspense
               fallback={
-                <div className="h-[320px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-3" />
+                <div className="h-[200px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 md:h-[320px] xl:col-span-3" />
               }
             >
-              <div className="flex min-h-[320px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+              <div className="flex min-h-[200px] flex-col md:col-span-1 md:min-h-[320px] xl:col-span-3 [&>*]:h-full">
                 <PerformanceGauge
                   value={salesValue}
                   target={salesTarget}
@@ -289,30 +289,30 @@ const DashboardPage: React.FC = () => {
             {/* الصف الثاني: التدفق النقدي (4) + نظرة المخزون (4) + أحدث الأنشطة (4) */}
             <Suspense
               fallback={
-                <div className="h-[300px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
+                <div className="h-[200px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 md:h-[300px] xl:col-span-4" />
               }
             >
-              <div className="flex min-h-[300px] flex-col md:col-span-1 xl:col-span-4 [&>*]:h-full">
+              <div className="flex min-h-[200px] flex-col md:col-span-1 md:min-h-[300px] xl:col-span-4 [&>*]:h-full">
                 <CashFlowWidget data={cashFlow} />
               </div>
             </Suspense>
 
             <Suspense
               fallback={
-                <div className="h-[300px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
+                <div className="h-[200px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 md:h-[300px] xl:col-span-4" />
               }
             >
-              <div className="flex min-h-[300px] flex-col md:col-span-1 xl:col-span-4 [&>*]:h-full">
+              <div className="flex min-h-[200px] flex-col md:col-span-1 md:min-h-[300px] xl:col-span-4 [&>*]:h-full">
                 <InventoryOverview lowStockProducts={lowStockProducts} />
               </div>
             </Suspense>
 
             <Suspense
               fallback={
-                <div className="h-[300px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-2 xl:col-span-4" />
+                <div className="h-[200px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-2 md:h-[300px] xl:col-span-4" />
               }
             >
-              <div className="flex min-h-[300px] flex-col md:col-span-2 xl:col-span-4 [&>*]:h-full">
+              <div className="flex min-h-[200px] flex-col md:col-span-2 md:min-h-[300px] xl:col-span-4 [&>*]:h-full">
                 <RecentActivity activities={recentActivities} />
               </div>
             </Suspense>
@@ -320,11 +320,11 @@ const DashboardPage: React.FC = () => {
             {/* الصف الثالث: التصنيفات (4) + عروض الأسعار (4) + شرائح العملاء (4) */}
             <Suspense
               fallback={
-                <div className="h-[340px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
+                <div className="h-[210px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 md:h-[340px] xl:col-span-4" />
               }
             >
-              <div className="flex min-h-[340px] flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 md:col-span-1 xl:col-span-4">
-                <h3 className="mb-3 shrink-0 text-xs font-bold text-[var(--app-text)]">
+              <div className="flex min-h-[210px] flex-col rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 md:col-span-1 md:min-h-[340px] md:p-4 xl:col-span-4">
+                <h3 className="mb-2 shrink-0 text-xs font-bold text-[var(--app-text)] md:mb-3">
                   التصنيفات الأكثر حركة
                 </h3>
                 <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-1">
@@ -337,16 +337,16 @@ const DashboardPage: React.FC = () => {
 
             <Suspense
               fallback={
-                <div className="h-[340px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 xl:col-span-4" />
+                <div className="h-[210px] animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-1 md:h-[340px] xl:col-span-4" />
               }
             >
-              <div className="flex min-h-[340px] flex-col md:col-span-1 xl:col-span-4 [&>*]:h-full">
+              <div className="flex min-h-[210px] flex-col md:col-span-1 md:min-h-[340px] xl:col-span-4 [&>*]:h-full">
                 <QuotationSummaryWidget />
               </div>
             </Suspense>
 
             <Suspense fallback={null}>
-              <div className="flex min-h-[340px] flex-col md:col-span-2 xl:col-span-4 [&>*]:h-full">
+              <div className="flex min-h-[210px] flex-col md:col-span-2 md:min-h-[340px] xl:col-span-4 [&>*]:h-full">
                 <CustomerSegmentation companyId={companyId} />
               </div>
             </Suspense>
@@ -354,7 +354,7 @@ const DashboardPage: React.FC = () => {
             {/* الصف الرابع: الأعلى أداءً بعرض كامل */}
             <Suspense
               fallback={
-                <div className="col-span-1 h-72 animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-2 xl:col-span-12" />
+                <div className="col-span-1 h-48 animate-pulse rounded-xl bg-[var(--app-surface)] md:col-span-2 md:h-72 xl:col-span-12" />
               }
             >
               <TopPerformers
@@ -367,13 +367,13 @@ const DashboardPage: React.FC = () => {
 
             {/* الصف الخامس: اقتراحات النقل (6) + التنبيهات (3) + تنبيه المشتريات الذكي (3) */}
             <Suspense fallback={null}>
-              <div className="flex min-h-[260px] flex-col md:col-span-2 xl:col-span-6 [&>*]:h-full">
+              <div className="flex min-h-[175px] flex-col md:col-span-2 md:min-h-[260px] xl:col-span-6 [&>*]:h-full">
                 <WarehouseTransferSuggestions />
               </div>
             </Suspense>
 
             <Suspense fallback={null}>
-              <div className="flex min-h-[260px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+              <div className="flex min-h-[175px] flex-col md:col-span-1 md:min-h-[260px] xl:col-span-3 [&>*]:h-full">
                 <AlertsPanel
                   alerts={alerts.map(a => ({
                     id: a.id,
@@ -386,7 +386,7 @@ const DashboardPage: React.FC = () => {
             </Suspense>
 
             <Suspense fallback={null}>
-              <div className="flex min-h-[260px] flex-col md:col-span-1 xl:col-span-3 [&>*]:h-full">
+              <div className="flex min-h-[175px] flex-col md:col-span-1 md:min-h-[260px] xl:col-span-3 [&>*]:h-full">
                 <SmartPurchaseAlert lowStockItems={lowStockProducts} />
               </div>
             </Suspense>

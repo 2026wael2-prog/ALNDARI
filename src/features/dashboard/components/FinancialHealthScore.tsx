@@ -106,13 +106,13 @@ const FinancialHealthScore: React.FC<FinancialHealthProps> = ({
 
     return (
         <div className={cn(
-            "relative bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl p-4 transition-colors",
+            "relative bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl p-2.5 md:p-4 transition-colors",
             className
         )}>
-            <div className="flex items-center gap-4 max-md:gap-3">
+            <div className="flex items-center gap-3 md:gap-4">
                 {/* Compact SVG Gauge */}
                 <div className="relative flex-shrink-0">
-                    <svg width="120" height="120" viewBox="0 0 120 120" className="transform -rotate-90 w-24 h-24 max-md:w-20 max-md:h-20">
+                    <svg width="120" height="120" viewBox="0 0 120 120" className="h-16 w-16 -rotate-90 transform sm:h-20 sm:w-20 md:h-24 md:w-24">
                         <circle cx="60" cy="60" r={radius} fill="none" stroke="currentColor" className="text-[var(--app-border)]" strokeWidth="8" />
                         <circle cx="60" cy="60" r={radius} fill="none"
                             stroke={scoreColor.main} strokeWidth="8" strokeLinecap="round"

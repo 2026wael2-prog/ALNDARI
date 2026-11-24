@@ -144,12 +144,12 @@ const AccountingPage: React.FC = () => {
     ];
 
     return (
-      <div className="animate-in slide-in-from-top-1 flex w-full flex-wrap items-center gap-2 rounded-[var(--radius)] border border-blue-100 bg-blue-50 px-2 py-1.5 duration-300 dark:border-blue-900/20 dark:bg-blue-900/10 max-md:gap-1 max-md:px-1.5 max-md:py-1 md:w-fit">
-        <div className="rounded-md bg-blue-600 p-1.5 text-white">
-          <Calendar size={14} />
+      <div className="animate-in slide-in-from-top-1 no-scrollbar flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto rounded-[var(--radius)] border border-blue-100 bg-blue-50 px-1.5 py-1 duration-300 dark:border-blue-900/20 dark:bg-blue-900/10 md:w-fit md:flex-wrap md:gap-2 md:px-2 md:py-1.5">
+        <div className="hidden shrink-0 rounded-md bg-blue-600 p-1.5 text-white sm:block">
+          <Calendar size={13} />
         </div>
-        <div className="flex flex-wrap items-center gap-1 whitespace-nowrap text-[10px] font-bold uppercase tracking-tight text-blue-900 dark:text-blue-300 max-md:gap-0.5 max-md:text-[10px]">
-          <div className="flex items-center gap-1 border-l border-blue-200 pl-2 dark:border-blue-800/50">
+        <div className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-bold uppercase tracking-tight text-blue-900 dark:text-blue-300">
+          <div className="flex items-center gap-1 border-l border-blue-200 pl-1.5 dark:border-blue-800/50 md:pl-2">
             {presets.map(preset => {
               const isSelected = dateRange.from === preset.from && dateRange.to === preset.to;
               return (
@@ -158,7 +158,7 @@ const AccountingPage: React.FC = () => {
                   type="button"
                   onClick={() => setDateRange({ from: preset.from, to: preset.to })}
                   className={cn(
-                    'rounded px-1.5 py-0.5 font-mono text-[10px] font-bold transition-colors',
+                    'shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 font-mono text-[10px] font-bold transition-colors',
                     isSelected
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-[var(--app-surface)] text-blue-700 hover:bg-blue-100 dark:text-blue-300 dark:hover:bg-blue-900/30'
@@ -169,7 +169,7 @@ const AccountingPage: React.FC = () => {
               );
             })}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <span>{t('from_date')}:</span>
             <input
               type="date"
@@ -177,11 +177,11 @@ const AccountingPage: React.FC = () => {
               onChange={e => {
                 setDateRange(prev => ({ ...prev, from: e.target.value }));
               }}
-              className="rounded border-none bg-[var(--app-surface)] p-1 font-mono text-blue-600 outline-none dark:text-blue-400 max-md:p-0.5 max-md:text-[10px]"
+              className="rounded border-none bg-[var(--app-surface)] p-0.5 font-mono text-[10px] text-blue-600 outline-none dark:text-blue-400 md:p-1"
             />
           </div>
-          <div className="mx-1 h-4 w-px bg-blue-200 dark:bg-blue-800/50"></div>
-          <div className="flex items-center gap-1.5">
+          <div className="mx-0.5 h-3.5 w-px bg-blue-200 dark:bg-blue-800/50"></div>
+          <div className="flex items-center gap-1">
             <span>{t('to_date')}:</span>
             <input
               type="date"
@@ -189,7 +189,7 @@ const AccountingPage: React.FC = () => {
               onChange={e => {
                 setDateRange(prev => ({ ...prev, to: e.target.value }));
               }}
-              className="rounded border-none bg-[var(--app-surface)] p-1 font-mono text-blue-600 outline-none dark:text-blue-400 max-md:p-0.5 max-md:text-[10px]"
+              className="rounded border-none bg-[var(--app-surface)] p-0.5 font-mono text-[10px] text-blue-600 outline-none dark:text-blue-400 md:p-1"
             />
           </div>
         </div>
@@ -197,7 +197,7 @@ const AccountingPage: React.FC = () => {
           onClick={handleRefresh}
           disabled={isRefreshing}
           aria-label="تحديث البيانات"
-          className="p-1 text-blue-400 transition-colors hover:text-blue-600 disabled:opacity-50"
+          className="shrink-0 p-1 text-blue-400 transition-colors hover:text-blue-600 disabled:opacity-50"
         >
           <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
         </button>

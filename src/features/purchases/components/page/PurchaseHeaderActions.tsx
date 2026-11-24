@@ -14,15 +14,16 @@ export const PurchaseHeaderActions: React.FC<HeaderActionsProps> = ({
   setIsAuditOpen,
 }) => {
   return (
-    <div className="flex gap-3">
+    <div className="flex items-center gap-1.5 md:gap-2">
       {user?.role === 'admin' && (
         <button
           onClick={() => {
             setIsAuditOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2 font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
+          className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 md:px-3 md:py-1.5"
+          title="فحص النظام"
         >
-          <ShieldCheck size={20} />
+          <ShieldCheck size={15} />
           <span className="hidden md:inline">فحص النظام</span>
         </button>
       )}
@@ -30,10 +31,10 @@ export const PurchaseHeaderActions: React.FC<HeaderActionsProps> = ({
         onClick={() => {
           setIsPaymentModalOpen(true);
         }}
-        className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg shadow-purple-500/20 active:scale-95"
+        className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm shadow-purple-500/20 active:scale-95 md:px-3 md:py-1.5"
       >
         <Wallet size={14} />
-        سند صرف
+        <span>سند صرف</span>
       </button>
     </div>
   );

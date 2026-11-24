@@ -442,13 +442,13 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({
       </div>
 
       {/* Chart Canvas */}
-      <div ref={containerRef} className="mt-3 h-72 w-full" dir="ltr">
+      <div ref={containerRef} className="mt-3 h-52 w-full md:h-72" dir="ltr">
         {isMounted ? (
-          <ResponsiveContainer width="100%" height={280} minWidth={100} minHeight={200}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={180}>
             {renderChart()}
           </ResponsiveContainer>
         ) : (
-          <div className="h-[280px] w-full animate-pulse rounded-xl bg-slate-50 dark:bg-slate-800/40" />
+          <div className="h-full w-full animate-pulse rounded-xl bg-slate-50 dark:bg-slate-800/40" />
         )}
       </div>
     </div>

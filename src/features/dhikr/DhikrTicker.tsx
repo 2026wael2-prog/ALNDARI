@@ -36,7 +36,7 @@ const DhikrTicker: React.FC = () => {
   // Collapsed Quick-Restore Pill
   if (!enabled) {
     return (
-      <div className="no-print flex h-4 w-full items-center justify-between border-b border-emerald-500/20 bg-emerald-500/10 px-2 py-0 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+      <div className="no-print hidden h-6 w-full items-center justify-between border-b border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 sm:flex">
         <button
           type="button"
           onClick={() => {
@@ -82,7 +82,7 @@ const DhikrTicker: React.FC = () => {
           setPaused(false);
         }}
         className={cn(
-          'no-print relative flex h-4 flex-shrink-0 select-none items-center justify-between overflow-hidden border-b px-2 text-xs font-bold transition-colors',
+          'no-print relative hidden h-6 flex-shrink-0 select-none items-center justify-between overflow-hidden border-b px-2.5 text-xs font-bold transition-colors sm:flex',
           item.isPrayerUrgent
             ? 'border-amber-500/40 bg-gradient-to-r from-emerald-600/25 via-amber-500/20 to-emerald-600/25 text-emerald-950 shadow-xs dark:text-emerald-100'
             : 'border-emerald-500/25 bg-gradient-to-r from-emerald-900/10 via-emerald-600/10 to-teal-900/10 text-slate-800 dark:from-emerald-950/60 dark:via-slate-900/60 dark:to-teal-950/60 dark:text-slate-100'

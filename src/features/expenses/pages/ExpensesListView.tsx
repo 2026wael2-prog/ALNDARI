@@ -144,17 +144,17 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
   );
 
   return (
-    <div className="mx-auto max-w-none space-y-4">
+    <div className="mx-auto max-w-none space-y-2.5 md:space-y-4">
       {/* Live Active KPI Stats */}
       <ExpenseStats customStats={liveStats} />
 
       {/* High-Density Filtering & Sorting Toolbar */}
-      <div className="flex flex-col gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-col gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-xs md:gap-2 md:p-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 md:gap-2">
           {/* Date Presets Pills */}
-          <div className="flex flex-wrap items-center gap-1">
-            <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
-              <Calendar size={12} />
+          <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap">
+            <span className="flex shrink-0 items-center gap-1 text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
+              <Calendar size={11} />
               <span>الفترة:</span>
             </span>
             {EXPENSE_DATE_PRESETS.map(preset => {
@@ -169,7 +169,7 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
                     setDateFrom(range.from);
                     setDateTo(range.to);
                   }}
-                  className={`rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
+                  className={`shrink-0 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-bold transition-all sm:py-1 sm:text-[11px] ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
@@ -182,7 +182,7 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
           </div>
 
           {/* Controls: Currency, Category, Sort */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-2 items-center gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:gap-2">
             {/* Currency Filter */}
             <select
               value={currencyFilter}
@@ -327,16 +327,16 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
         )}
       </div>
 
-      <div className="animate-in fade-in grid grid-cols-1 gap-6 duration-500 md:grid-cols-2">
-        <Card className="p-6">
-          <h3 className="mb-6 flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-slate-300">
+      <div className="animate-in fade-in grid grid-cols-1 gap-2.5 duration-500 md:grid-cols-2 md:gap-6">
+        <Card className="p-2.5 md:p-6">
+          <h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-slate-300 md:mb-6 md:text-sm">
             توزيع المصاريف حسب الفئة
           </h3>
           <ExpenseBreakdownChart data={breakdownData} />
         </Card>
-        <Card className="p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-slate-300">ملخص مالي</h3>
+        <Card className="p-2.5 md:p-6">
+          <div className="mb-2 flex items-center justify-between md:mb-6">
+            <h3 className="text-xs font-bold text-gray-700 dark:text-slate-300 md:text-sm">ملخص مالي</h3>
             {onOpenLedger && (
               <button
                 type="button"
@@ -350,13 +350,13 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
               </button>
             )}
           </div>
-          <div className="space-y-4">
+          <div className="space-y-1.5 md:space-y-4">
             {breakdownData.map(item => {
               const matchedCat = categories.find(c => c.name === item.name);
               return (
                 <div
                   key={item.name}
-                  className="flex items-center justify-between rounded-2xl bg-gray-50 p-3 dark:bg-slate-800/50"
+                  className="flex items-center justify-between rounded-xl bg-gray-50 p-2 dark:bg-slate-800/50 md:rounded-2xl md:p-3"
                 >
                   <div className="flex items-center gap-3">
                     <div

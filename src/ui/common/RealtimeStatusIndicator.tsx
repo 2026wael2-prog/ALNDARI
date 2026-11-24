@@ -109,7 +109,7 @@ const RealtimeStatusIndicator: React.FC = () => {
     <div className="flex items-center gap-1.5">
       {/* Realtime Live Sync Status */}
       <div
-        className="flex select-none items-center gap-1.5 rounded-full border border-[var(--app-border)] bg-[var(--app-bg)] px-2 py-1 transition-colors"
+        className="flex select-none items-center gap-1 rounded-full border border-[var(--app-border)] bg-[var(--app-bg)] px-1.5 py-1 transition-colors sm:gap-1.5 sm:px-2"
         title={title}
         role="status"
         aria-live="polite"

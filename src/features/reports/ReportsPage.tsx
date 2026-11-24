@@ -380,11 +380,11 @@ const ReportsPage: React.FC = () => {
           isZenMode={false}
           onToggleZen={() => undefined}
           extraRow={
-            <div className="no-scrollbar flex items-center gap-1 overflow-x-auto pb-1 max-md:gap-0.5 max-md:pb-0">
+            <div className="no-scrollbar flex w-full items-center gap-1 overflow-x-auto py-0.5">
               {categories.map(cat => {
                 const isActive = activeCategory === cat.id;
                 const pillClass = isActive
-                  ? cat.activeClass + ' scale-105'
+                  ? cat.activeClass
                   : 'bg-[var(--app-surface)] text-[var(--app-text-secondary)] border-[var(--app-border)] hover:border-[var(--app-text-secondary)]/40 active:scale-95';
                 return (
                   <button
@@ -392,9 +392,9 @@ const ReportsPage: React.FC = () => {
                     onClick={() => {
                       handleCategoryChange(cat.id);
                     }}
-                    className={`flex min-h-[40px] items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-tight transition-all max-md:min-h-[32px] max-md:gap-1 max-md:px-2 max-md:py-1.5 max-md:text-[10px] sm:min-h-[36px] ${pillClass}`}
+                    className={`flex min-h-[28px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-tight transition-all md:min-h-[34px] md:gap-1.5 md:px-3.5 md:py-1.5 md:text-xs ${pillClass}`}
                   >
-                    <cat.icon size={14} className={isActive ? 'text-white' : cat.colorClass} />
+                    <cat.icon size={13} className={isActive ? 'text-white' : cat.colorClass} />
                     {cat.label}
                   </button>
                 );

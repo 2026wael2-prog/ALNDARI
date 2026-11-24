@@ -97,16 +97,16 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
   };
 
   return (
-    <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 shadow-xs">
+    <div className="mb-2 flex flex-col gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-xs md:mb-3 md:gap-2 md:p-2.5">
       {/* Row 1: Search Bar & Primary Actions */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+      <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
         {/* Main Search Input */}
         <div className="relative flex-1">
           <label htmlFor={inputId} className="sr-only">
             بحث متقدم في الفواتير
           </label>
-          <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-[var(--app-text-secondary)]">
-            <Search size={15} className={isLoading ? 'animate-spin text-blue-500' : ''} />
+          <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-2.5 text-[var(--app-text-secondary)] md:ps-3">
+            <Search size={14} className={isLoading ? 'animate-spin text-blue-500' : ''} />
           </div>
           <input
             id={inputId}
@@ -116,7 +116,7 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onSearchChange(e.target.value);
             }}
             placeholder={placeholder || defaultPlaceholder}
-            className="focus:outline-hidden h-9 w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] pe-9 ps-9 text-xs font-semibold text-[var(--app-text)] placeholder:text-[var(--app-text-secondary)] focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="focus:outline-hidden h-8 w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] pe-8 ps-8 text-xs font-semibold text-[var(--app-text)] placeholder:text-[var(--app-text-secondary)] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 md:h-9 md:pe-9 md:ps-9"
           />
           {searchTerm && (
             <button
@@ -124,14 +124,15 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onClick={() => {
                 onSearchChange('');
               }}
-              className="absolute inset-y-0 end-0 flex items-center pe-2.5 text-[var(--app-text-secondary)] hover:text-rose-500"
+              className="absolute inset-y-0 end-0 flex items-center pe-2 text-[var(--app-text-secondary)] hover:text-rose-500 md:pe-2.5"
               title="مسح البحث"
             >
-              <X size={15} />
+              <X size={14} />
             </button>
           )}
         </div>
 
+        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center md:gap-2">
         {/* Currency Filter */}
         {onCurrencyFilterChange && (
           <select
@@ -140,7 +141,7 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onCurrencyFilterChange(e.target.value);
             }}
             aria-label="تصفية حسب العملة"
-            className="focus:outline-hidden h-9 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
           >
             <option value="all">كل العملات</option>
             <option value="SAR">ريال سعودي (SAR)</option>
@@ -159,7 +160,7 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onPaymentMethodFilterChange(e.target.value);
             }}
             aria-label="تصفية حسب طريقة الدفع"
-            className="focus:outline-hidden h-9 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
           >
             <option value="all">كل طرق الدفع</option>
             <option value="cash">نقدي</option>
@@ -175,7 +176,7 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onStatusFilterChange(e.target.value);
             }}
             aria-label="تصفية حسب حالة الفاتورة"
-            className="focus:outline-hidden h-9 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
           >
             <option value="all">كل الحالات</option>
             <option value="paid">مدفوعة</option>
@@ -194,7 +195,7 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onSortChange(by, order as 'asc' | 'desc');
             }}
             aria-label="ترتيب وفرز النتائج"
-            className="focus:outline-hidden h-9 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
           >
             <option value="date_desc">الأحدث تاريخاً / وقتاً</option>
             <option value="date_asc">الأقدم تاريخاً</option>
@@ -210,21 +211,22 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
           <button
             type="button"
             onClick={onResetFilters}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/50 px-2.5 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400"
+            className="col-span-2 flex h-8 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50/50 px-2 text-[11px] font-bold text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400 sm:col-span-1 md:h-9 md:px-2.5 md:text-xs"
             title="إعادة تعيين كافة الفلاتر"
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={12} />
             <span>مسح الفلاتر</span>
           </button>
         )}
+        </div>
       </div>
 
       {/* Row 2: Date Presets & Search Scopes Bar */}
-      <div className="border-[var(--app-border)]/60 flex flex-wrap items-center justify-between gap-1.5 border-t pt-2">
+      <div className="border-[var(--app-border)]/60 flex flex-wrap items-center justify-between gap-1.5 border-t pt-1.5 md:pt-2">
         {/* Date Presets Pills */}
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
-            <Calendar size={12} />
+        <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap">
+          <span className="flex shrink-0 items-center gap-1 text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
+            <Calendar size={11} />
             <span>الفترة:</span>
           </span>
           {PRESETS.map(preset => {
@@ -236,7 +238,7 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
                 onClick={() => {
                   handlePresetClick(preset.id);
                 }}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-bold transition-all sm:py-1 sm:text-[11px] ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
@@ -317,8 +319,8 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
         </div>
       )}
 
-      {/* Search Hints Helper */}
-      <div className="flex flex-wrap items-center gap-3 text-[10px] text-[var(--app-text-secondary)]">
+      {/* Search Hints Helper (Desktop only to save mobile vertical space) */}
+      <div className="hidden flex-wrap items-center gap-3 text-[10px] text-[var(--app-text-secondary)] md:flex">
         <span className="flex items-center gap-1">
           <Package size={11} className="text-emerald-500" />
           البحث في محتويات الأصناف والقطع وقطع الغيار

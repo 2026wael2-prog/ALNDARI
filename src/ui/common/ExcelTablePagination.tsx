@@ -28,8 +28,8 @@ export function ExcelTablePagination({
   if (!enablePagination || totalPages <= 1) return null;
 
   return (
-    <div className="flex select-none flex-col items-center justify-between gap-2 border-t border-[var(--app-border)] bg-[var(--app-bg)] p-2 sm:flex-row">
-      <div className="flex items-center gap-2 text-[10px] text-[var(--app-text-secondary)]">
+    <div className="flex select-none flex-wrap items-center justify-between gap-2 border-t border-[var(--app-border)] bg-[var(--app-bg)] px-2 py-1.5 sm:flex-nowrap sm:p-2">
+      <div className="flex items-center gap-1.5 text-[10px] text-[var(--app-text-secondary)] sm:gap-2">
         <span>عرض</span>
         <select
           value={itemsPerPage}
@@ -47,7 +47,8 @@ export function ExcelTablePagination({
           <option value={1000}>1000</option>
           <option value={1000000}>الكل</option>
         </select>
-        <span>سجل من أصل {processedDataLength}</span>
+        <span className="hidden sm:inline">سجل من أصل {processedDataLength}</span>
+        <span className="font-mono sm:hidden">/ {processedDataLength}</span>
       </div>
 
       <div className="flex items-center gap-1">
@@ -57,7 +58,7 @@ export function ExcelTablePagination({
           }}
           disabled={currentPage === 1}
           className={cn(
-            'flex items-center gap-1 rounded p-1 px-3 text-[10px] font-bold text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface)] disabled:opacity-50 disabled:hover:bg-transparent',
+            'flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface)] disabled:opacity-50 disabled:hover:bg-transparent sm:px-3',
             isRTL ? 'flex-row-reverse' : ''
           )}
         >
@@ -65,7 +66,11 @@ export function ExcelTablePagination({
           <span>السابق</span>
         </button>
 
-        <div className="mx-2 flex items-center gap-1">
+        <span className="px-1.5 font-mono text-[11px] font-bold text-[var(--app-text)] sm:hidden">
+          {currentPage} / {totalPages}
+        </span>
+
+        <div className="mx-2 hidden items-center gap-1 sm:flex">
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             let pageNum;
             if (totalPages <= 5) {

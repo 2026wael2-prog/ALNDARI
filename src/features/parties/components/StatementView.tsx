@@ -110,9 +110,9 @@ const StatementView: React.FC<StatementViewProps> = ({
 
       {selectedPartyId ? (
         isLoading ? (
-          <div className="flex flex-col items-center gap-3 p-20 text-center text-slate-500">
+          <div className="flex flex-col items-center gap-3 p-8 text-center text-slate-500 md:p-20">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-            <p className="text-sm font-bold">جاري تدقيق واستخراج كشف الحساب من قاعدة البيانات...</p>
+            <p className="text-xs font-bold sm:text-sm">جاري تدقيق واستخراج كشف الحساب من قاعدة البيانات...</p>
           </div>
         ) : (
           <>
@@ -270,7 +270,7 @@ const StatementView: React.FC<StatementViewProps> = ({
           </>
         )
       ) : (
-        <div className="no-print rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-20 text-center font-bold text-slate-400 dark:border-slate-800 dark:bg-slate-900/20">
+        <div className="no-print rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-8 text-center text-xs font-bold text-slate-400 dark:border-slate-800 dark:bg-slate-900/20 sm:text-sm md:p-20">
           يرجى اختيار جهة لعرض كشف الحساب وتفاصيل المعاملات
         </div>
       )}

@@ -72,14 +72,14 @@ const DashboardSkeleton: React.FC = () => (
         </div>
       ))}
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="bg-[var(--app-surface)] rounded-2xl p-5 border border-[var(--app-border)] h-64">
-        <div className="h-5 bg-[var(--app-surface-hover)] rounded w-32 mb-4" />
-        <div className="h-48 bg-[var(--app-surface-hover)] rounded-xl" />
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+      <div className="h-44 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 md:h-64 md:p-5">
+        <div className="mb-3 h-4 w-32 rounded bg-[var(--app-surface-hover)] md:mb-4 md:h-5" />
+        <div className="h-28 rounded-xl bg-[var(--app-surface-hover)] md:h-48" />
       </div>
-      <div className="bg-[var(--app-surface)] rounded-2xl p-5 border border-[var(--app-border)] h-64">
-        <div className="h-5 bg-[var(--app-surface-hover)] rounded w-28 mb-4" />
-        <div className="h-48 bg-[var(--app-surface-hover)] rounded-xl" />
+      <div className="h-44 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 md:h-64 md:p-5">
+        <div className="mb-3 h-4 w-28 rounded bg-[var(--app-surface-hover)] md:mb-4 md:h-5" />
+        <div className="h-28 rounded-xl bg-[var(--app-surface-hover)] md:h-48" />
       </div>
     </div>
   </div>
@@ -87,15 +87,15 @@ const DashboardSkeleton: React.FC = () => (
 
 const variantMap: Record<PageLoaderVariant, React.ReactNode> = {
   default: (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-[var(--app-bg)] transition-colors">
-      <div className="relative flex items-center justify-center w-24 h-24">
-        <div className="absolute inset-0 border-4 border-blue-100 dark:border-blue-900/30 rounded-full"></div>
-        <div className="absolute inset-0 border-4 border-t-blue-600 rounded-full animate-spin"></div>
-        <div className="w-16 h-16 bg-[var(--app-surface)] rounded-full flex items-center justify-center shadow-inner">
-          <Car size={28} className="text-blue-600 animate-pulse" />
+    <div className="flex h-full min-h-[200px] flex-col items-center justify-center bg-[var(--app-bg)] transition-colors md:min-h-[400px]">
+      <div className="relative flex h-16 w-16 items-center justify-center md:h-24 md:w-24">
+        <div className="absolute inset-0 rounded-full border-4 border-blue-100 dark:border-blue-900/30"></div>
+        <div className="absolute inset-0 animate-spin rounded-full border-4 border-t-blue-600"></div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--app-surface)] shadow-inner md:h-16 md:w-16">
+          <Car size={22} className="animate-pulse text-blue-600 md:h-7 md:w-7" />
         </div>
       </div>
-      <p className="mt-6 text-sm font-medium text-[var(--app-text-secondary)]">جاري تحميل البيانات...</p>
+      <p className="mt-3 text-xs font-medium text-[var(--app-text-secondary)] md:mt-6 md:text-sm">جاري تحميل البيانات...</p>
     </div>
   ),
   table: <div className="p-4"><TableSkeleton /></div>,

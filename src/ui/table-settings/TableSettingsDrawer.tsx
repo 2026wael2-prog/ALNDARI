@@ -168,7 +168,7 @@ export const TableSettingsDrawer: React.FC<TableSettingsDrawerProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-4 gap-1 border-b border-slate-200 bg-slate-100/70 p-1.5 text-xs font-bold">
+        <div className="grid grid-cols-2 gap-1 border-b border-slate-200 bg-slate-100/70 p-1.5 text-xs font-bold sm:grid-cols-4">
           {(
             [
               { id: 'columns', label: 'الأعمدة', icon: Columns },

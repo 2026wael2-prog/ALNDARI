@@ -192,17 +192,19 @@ const HeaderActions: React.FC = () => {
         }}
       />
 
-      {/* Accompanying Information / Live Companion Info Button */}
-      <AccompanyingInfoToggle />
+      {/* Accompanying Information / Live Companion Info Button (Desktop & Tablet; toggleable via Profile menu on Mobile) */}
+      <div className="hidden md:block">
+        <AccompanyingInfoToggle />
+      </div>
 
-      {/* Internal Branch Chat & Collaboration */}
+      {/* Internal Branch Chat & Collaboration (Hidden on narrow mobile since floating chat button & sidebar cover it) */}
       <button
         onClick={() => navigate('/chat')}
-        className="relative flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] text-[var(--app-text-secondary)] transition-all duration-200 hover:bg-[var(--app-surface)] hover:text-[var(--accent)] focus:outline-none active:scale-95 md:h-8 md:w-8"
+        className="relative hidden h-8 w-8 items-center justify-center rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] text-[var(--app-text-secondary)] transition-all duration-200 hover:bg-[var(--app-surface)] hover:text-[var(--accent)] focus:outline-none active:scale-95 sm:flex"
         title="محادثات الفروع والموظفين"
         aria-label="المحادثات والتواصل الداخلي"
       >
-        <MessageSquare size={14} className="transition-transform duration-150" />
+        <MessageSquare size={15} className="transition-transform duration-150" />
         {chatUnreadCount > 0 && (
           <span
             className={cn(
@@ -253,7 +255,7 @@ const HeaderActions: React.FC = () => {
           onClick={() => {
             setIsProfileOpen(!isProfileOpen);
           }}
-          className="group relative ms-1 rounded-lg focus:outline-none"
+          className="group relative ms-0.5 rounded-lg focus:outline-none md:ms-1"
           title={t('profile') || 'الملف الشخصي'}
           aria-label={t('profile') || 'الملف الشخصي'}
           aria-expanded={isProfileOpen}

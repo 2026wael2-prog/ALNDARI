@@ -51,17 +51,17 @@ export const FloatingChatWidget: React.FC = () => {
   // If chat is not opened, render floating launcher bubble
   if (!isFloatingOpen) {
     return (
-      <div className="fixed bottom-[calc(4.5rem_+_env(safe-area-inset-bottom))] end-4 z-40 md:bottom-5 md:end-5">
+      <div className="fixed bottom-[calc(4.25rem_+_env(safe-area-inset-bottom))] end-3 z-40 md:bottom-5 md:end-5">
         <button
           onClick={() => {
             setFloatingOpen(true);
           }}
-          className="md:h-13 md:w-13 relative flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent)] text-white shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95"
+          className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)] text-white shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95 md:h-12 md:w-12 md:rounded-2xl"
           title="محادثات الفروع والموظفين"
         >
-          <MessageSquare size={22} className="md:h-6 md:w-6" />
+          <MessageSquare size={18} className="md:h-5 md:w-5" />
           {totalUnread > 0 && (
-            <span className="absolute -end-1.5 -top-1.5 flex h-5 min-w-[20px] animate-pulse items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-md">
+            <span className="absolute -end-1 -top-1 flex h-4 min-w-[16px] animate-pulse items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-md md:h-5 md:min-w-[20px]">
               {totalUnread > 99 ? '99+' : totalUnread}
             </span>
           )}
@@ -106,10 +106,10 @@ export const FloatingChatWidget: React.FC = () => {
      * فتح لوحة المفاتيح) فيخرج أعلى النافذة أو صندوق الكتابة عن حدود العرض.
      */
     <div
-      className={`fixed bottom-[calc(4.5rem_+_env(safe-area-inset-bottom))] end-3 z-40 flex max-h-[calc(100dvh-6.5rem)] min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl transition-all duration-300 md:bottom-5 md:end-5 md:max-h-[calc(100dvh-3rem)] ${
+      className={`fixed bottom-[calc(4.25rem_+_env(safe-area-inset-bottom))] end-2 z-40 flex max-h-[calc(100dvh-6.5rem)] min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl transition-all duration-300 md:bottom-5 md:end-5 md:max-h-[calc(100dvh-3rem)] ${
         isExpanded
-          ? 'h-[75vh] w-[92vw] sm:w-[680px] md:h-[85vh]'
-          : 'h-[480px] w-[92vw] sm:w-[390px] md:h-[520px]'
+          ? 'h-[min(65dvh,460px)] w-[calc(100vw-1rem)] sm:w-[680px] md:h-[85dvh]'
+          : 'h-[min(60dvh,400px)] w-[calc(100vw-1rem)] sm:w-[390px] md:h-[520px]'
       }`}
     >
       {/* Floating Header */}

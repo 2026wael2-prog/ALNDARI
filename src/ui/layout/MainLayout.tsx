@@ -69,7 +69,7 @@ const MainLayout: React.FC = () => {
   }, []);
   const { isOnline } = useNetworkStatus();
   const isUnstable = useConnectionStore(s => s.isUnstable);
-  const { deviceCategory, isIPad } = useDevice();
+  const { isIPad } = useDevice();
   const { isTabletLandscape, isTabletPortrait } = useOrientation();
 
   const dir = useI18nStore(s => s.dir);
@@ -111,12 +111,11 @@ const MainLayout: React.FC = () => {
     return 'max-w-none px-0';
   }, []);
 
-  // Padding bottom for main content (to account for mobile nav + iOS safe area)
+  // Padding bottom for main content: always synchronized with md:hidden MobileBottomNav + iOS safe area
   const mainPaddingBottom = useMemo(() => {
-    if (deviceCategory === 'phone') return 'pb-[calc(3.75rem_+_env(safe-area-inset-bottom))]';
-    if (isIPad && isTabletPortrait) return 'pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]';
-    return 'pb-2';
-  }, [deviceCategory, isIPad, isTabletPortrait]);
+    if (isIPad && isTabletPortrait) return 'pb-[calc(3.6rem_+_env(safe-area-inset-bottom))]';
+    return 'pb-[calc(3.6rem_+_env(safe-area-inset-bottom))] md:pb-2';
+  }, [isIPad, isTabletPortrait]);
 
   useEffect(() => {
     if (previousIsDesktop.current !== isDesktop) {

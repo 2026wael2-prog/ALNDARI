@@ -85,59 +85,59 @@ export const POSHeader: React.FC<POSHeaderProps> = React.memo(
     }, []);
 
     const actions = (
-      <div className="flex gap-1.5">
+      <div className="flex gap-1 md:gap-1.5">
         <button
           onClick={() => {
             setShowSuspended(!showSuspended);
           }}
-          className="relative rounded-xl border border-amber-100 bg-amber-50 p-2 text-amber-600 transition-all hover:bg-amber-100 active:scale-95 dark:border-amber-900/30 dark:bg-amber-900/20"
+          className="relative rounded-lg border border-amber-100 bg-amber-50 p-1.5 text-amber-600 transition-all hover:bg-amber-100 active:scale-95 dark:border-amber-900/30 dark:bg-amber-900/20 md:rounded-xl md:p-2"
           title={t('suspended_orders')}
         >
-          <PauseCircle size={18} />
+          <PauseCircle size={16} />
           {suspendedOrdersCount > 0 && (
-            <span className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-rose-600 text-[10px] font-bold text-white shadow-lg dark:border-slate-900">
+            <span className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-rose-600 text-[10px] font-bold text-white shadow-sm dark:border-slate-900 md:h-5 md:w-5">
               {suspendedOrdersCount}
             </span>
           )}
         </button>
         <button
           onClick={() => navigate('/')}
-          className="rounded-xl border border-slate-100 bg-slate-50 p-2 text-slate-600 transition-all hover:bg-slate-100 active:scale-95 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-400"
+          className="rounded-lg border border-slate-100 bg-slate-50 p-1.5 text-slate-600 transition-all hover:bg-slate-100 active:scale-95 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-400 md:rounded-xl md:p-2"
           title="الرجوع للرئيسية"
         >
-          <Home size={18} />
+          <Home size={16} />
         </button>
         <button
           onClick={() => {
             setIsQuickMode(!isQuickMode);
           }}
-          className={`rounded-xl border p-2 transition-all active:scale-95 ${isQuickMode ? 'border-blue-200 bg-blue-100 text-blue-600 dark:border-blue-800 dark:bg-blue-900/40' : 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-400'}`}
+          className={`rounded-lg border p-1.5 transition-all active:scale-95 md:rounded-xl md:p-2 ${isQuickMode ? 'border-blue-200 bg-blue-100 text-blue-600 dark:border-blue-800 dark:bg-blue-900/40' : 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-400'}`}
           title="الوضع السريع"
         >
-          <Zap size={18} />
+          <Zap size={16} />
         </button>
         {onOpenQuickExpense && (
           <button
             onClick={onOpenQuickExpense}
-            className="rounded-xl border border-amber-100 bg-amber-50 p-2 text-amber-600 transition-all hover:bg-amber-100 active:scale-95 dark:border-amber-900/30 dark:bg-amber-900/20"
+            className="rounded-lg border border-amber-100 bg-amber-50 p-1.5 text-amber-600 transition-all hover:bg-amber-100 active:scale-95 dark:border-amber-900/30 dark:bg-amber-900/20 md:rounded-xl md:p-2"
             title="مصروف درج سريع (نثريات)"
           >
-            <Coffee size={18} />
+            <Coffee size={16} />
           </button>
         )}
         <button
           onClick={() => navigate(ROUTES.DASHBOARD.DAILY_RECONCILIATION)}
-          className="rounded-xl border border-emerald-100 bg-emerald-50 p-2 text-emerald-600 transition-all hover:bg-emerald-100 active:scale-95 dark:border-emerald-900/30 dark:bg-emerald-900/20"
+          className="rounded-lg border border-emerald-100 bg-emerald-50 p-1.5 text-emerald-600 transition-all hover:bg-emerald-100 active:scale-95 dark:border-emerald-900/30 dark:bg-emerald-900/20 md:rounded-xl md:p-2"
           title="المطابقة اليومية وإقفال الصندوق"
         >
-          <Scale size={18} />
+          <Scale size={16} />
         </button>
         <button
           onClick={onClearCart}
-          className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-rose-600 transition-all hover:bg-rose-100 active:scale-95 dark:border-rose-900/30 dark:bg-rose-900/20"
+          className="rounded-lg border border-rose-100 bg-rose-50 p-1.5 text-rose-600 transition-all hover:bg-rose-100 active:scale-95 dark:border-rose-900/30 dark:bg-rose-900/20 md:rounded-xl md:p-2"
           title={t('clear_cart')}
         >
-          <RotateCcw size={18} />
+          <RotateCcw size={16} />
         </button>
       </div>
     );

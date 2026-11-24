@@ -211,7 +211,7 @@ const Modal: React.FC<ModalProps> = ({
   const modalStyle: React.CSSProperties = isMaximized
     ? {
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         position: 'fixed',
         top: 0,
         left: 0,
@@ -260,7 +260,7 @@ const Modal: React.FC<ModalProps> = ({
         className={cn(
           'animate-in flex w-full flex-col border border-[var(--app-border)] bg-[var(--app-surface)] shadow-xl duration-100',
           !position && sizeClasses[isMaximized ? 'full' : size === 'resizable' ? 'lg' : size],
-          !isMaximized && 'max-h-[95vh] rounded-t-2xl md:max-h-[85vh] md:rounded-2xl',
+          !isMaximized && 'max-h-[88dvh] rounded-t-2xl md:max-h-[85dvh] md:rounded-2xl',
           isMaximized && 'rounded-none'
         )}
       >
@@ -318,45 +318,52 @@ const Modal: React.FC<ModalProps> = ({
           </>
         )}
 
+        {/* Mobile Drag Indicator Pill */}
+        {!isMaximized && !hideHeader && (
+          <div className="flex shrink-0 justify-center bg-[var(--app-surface)] pt-2 md:hidden">
+            <div className="h-1 w-9 rounded-full bg-[var(--app-border)]" />
+          </div>
+        )}
+
         {/* Header - Draggable Area */}
         {!hideHeader && (
           <div
             data-modal-header="true"
             onMouseDown={handleDragStart}
             className={cn(
-              'flex shrink-0 items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] p-3 md:p-5',
-              !isMaximized && 'cursor-move active:cursor-grabbing'
+              'flex shrink-0 items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2.5 md:p-5',
+              !isMaximized && 'md:cursor-move md:active:cursor-grabbing'
             )}
           >
-            <div className="flex select-none items-center gap-2">
+            <div className="flex min-w-0 select-none items-center gap-2">
               {Icon && (
-                <div className="rounded-md bg-blue-600 p-1.5 text-white shadow-sm md:rounded-lg md:p-2">
-                  <Icon size={16} className="md:hidden" />
+                <div className="shrink-0 rounded-lg bg-blue-600 p-1.5 text-white shadow-sm md:p-2">
+                  <Icon size={15} className="md:hidden" />
                   <Icon size={20} className="hidden md:block" />
                 </div>
               )}
-              <div>
+              <div className="min-w-0">
                 <h2
                   id={titleId}
-                  className="text-[11px] font-bold leading-none text-[var(--app-text)] md:text-sm"
+                  className="truncate text-sm font-extrabold leading-tight text-[var(--app-text)]"
                 >
                   {title}
                 </h2>
                 {description && (
                   <p
                     id={descId}
-                    className="mt-1 text-[10px] font-semibold text-[var(--app-text-secondary)] md:text-xs"
+                    className="mt-0.5 truncate text-[11px] font-semibold text-[var(--app-text-secondary)] md:text-xs"
                   >
                     {description}
                   </p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="rounded-lg p-1.5 text-[var(--app-text-secondary)] transition-all hover:bg-blue-50 hover:text-blue-600 active:scale-90 dark:hover:bg-blue-900/20"
+                className="hidden rounded-lg p-1.5 text-[var(--app-text-secondary)] transition-all hover:bg-blue-50 hover:text-blue-600 active:scale-90 dark:hover:bg-blue-900/20 md:inline-flex"
                 title={isMaximized ? 'خروج من ملء الشاشة' : 'ملء الشاشة'}
               >
                 {isMaximized ? <Shrink size={18} /> : <Expand size={18} />}
@@ -364,11 +371,11 @@ const Modal: React.FC<ModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full p-2 text-[var(--app-text-secondary)] transition-all hover:bg-rose-50 hover:text-red-500 active:scale-90 dark:hover:bg-rose-950/20"
+                className="rounded-full p-1.5 text-[var(--app-text-secondary)] transition-all hover:bg-rose-50 hover:text-red-500 active:scale-90 dark:hover:bg-rose-950/20 md:p-2"
                 title="إغلاق النافذة (Esc)"
                 aria-label="إغلاق النافذة"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
           </div>
@@ -378,7 +385,7 @@ const Modal: React.FC<ModalProps> = ({
         <div
           className={cn(
             'custom-scrollbar flex-1 overflow-y-auto bg-[var(--app-bg)]',
-            isMaximized || size === 'full' ? 'p-1 md:p-2 lg:p-3' : 'p-2.5 sm:p-5 md:p-6 lg:p-8'
+            isMaximized || size === 'full' ? 'p-1.5 md:p-2 lg:p-3' : 'p-3 sm:p-5 md:p-6'
           )}
         >
           {children}

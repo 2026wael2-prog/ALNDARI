@@ -40,7 +40,7 @@ export const MetadataGrid: React.FC<MetadataGridProps> = ({
 }) => (
   <div className="flex flex-col divide-y divide-blue-100/70 dark:divide-slate-800">
     {/* شريط 1: التاريخ + رقم الفاتورة + نوع الفاتورة */}
-    <div className="grid grid-cols-3 divide-x divide-x-reverse divide-blue-100/70 dark:divide-slate-800">
+    <div className="grid grid-cols-2 divide-x divide-x-reverse divide-blue-100/70 dark:divide-slate-800 sm:grid-cols-3">
       <MetaBlock
         label="التاريخ"
         field="issueDate"
@@ -59,22 +59,24 @@ export const MetadataGrid: React.FC<MetadataGridProps> = ({
         colorClass="text-blue-600"
         onChange={onChange}
       />
-      <MetaBlock
-        label="نوع الفاتورة"
-        field="invoiceType"
-        value={invoiceType}
-        icon={CreditCard}
-        isSelect
-        options={[
-          { id: 'cash', label: 'نقدي' },
-          { id: 'credit', label: 'آجل' },
-        ]}
-        onChange={onChange}
-      />
+      <div className="col-span-2 border-t border-blue-100/70 dark:border-slate-800 sm:col-span-1 sm:border-t-0">
+        <MetaBlock
+          label="نوع الفاتورة"
+          field="invoiceType"
+          value={invoiceType}
+          icon={CreditCard}
+          isSelect
+          options={[
+            { id: 'cash', label: 'نقدي' },
+            { id: 'credit', label: 'آجل' },
+          ]}
+          onChange={onChange}
+        />
+      </div>
     </div>
 
     {/* شريط 2: المستودع + الصندوق/البنك + العملة + سعر الصرف */}
-    <div className="grid grid-cols-4 divide-x divide-x-reverse divide-blue-100/70 dark:divide-slate-800">
+    <div className="grid grid-cols-2 divide-x divide-x-reverse divide-blue-100/70 dark:divide-slate-800 md:grid-cols-4">
       <MetaBlock
         label="المستودع"
         field="warehouseId"

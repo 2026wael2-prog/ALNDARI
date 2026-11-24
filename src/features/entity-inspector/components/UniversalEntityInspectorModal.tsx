@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
@@ -9,6 +9,7 @@ import {
   FileText,
   Landmark,
   Package,
+  Pencil,
   Receipt,
   RefreshCw,
   RotateCcw,
@@ -20,8 +21,10 @@ import {
 import Modal from '../../../ui/base/Modal';
 import PageLoader from '../../../ui/base/PageLoader';
 import { cn } from '../../../core/utils';
+import { logger } from '../../../core/utils/logger';
 import { useAuthStore } from '../../auth/store';
 import { useBranchFilterStore } from '../../branches/store';
+import { useProductMutations } from '../../inventory/hooks/useProducts';
 import { useEntityInspectorStore } from '../store';
 import { fetchInspectedEntity } from '../service';
 import type {
@@ -32,6 +35,8 @@ import type {
 } from '../types';
 import { EntityInfoDot } from './EntityInfoDot';
 import { AdvancedReturnModal } from '../../returns/components/AdvancedReturnModal';
+
+const AddProductModal = lazy(() => import('../../inventory/components/AddProductModal'));
 
 const ENTITY_ICON_MAP: Record<InspectableEntityType, typeof Package> = {
   product: Package,
@@ -82,6 +87,9 @@ export const UniversalEntityInspectorModal: React.FC = () => {
   const activeBranchId = useBranchFilterStore(s => s.activeBranchId);
   const companyId = user?.company_id || '';
   const canViewCost = user?.role !== 'cashier' && user?.role !== 'sales_rep';
+  const canEditProduct = Boolean(
+    user && !['viewer', 'auditor', 'cashier', 'sales_rep'].includes(user.role || '')
+  );
 
   const currentTarget = stack[stack.length - 1] ?? null;
 
@@ -89,10 +97,14 @@ export const UniversalEntityInspectorModal: React.FC = () => {
   const [sheetSearch, setSheetSearch] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [returnModalState, setReturnModalState] = useState<InspectorRowReturnAction | null>(null);
+  const [isEditProductOpen, setIsEditProductOpen] = useState(false);
+
+  const { saveProduct, isSaving } = useProductMutations();
 
   useEffect(() => {
     setActiveTab('overview');
     setSheetSearch('');
+    setIsEditProductOpen(false);
   }, [currentTarget?.type, currentTarget?.id]);
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
@@ -214,6 +226,17 @@ export const UniversalEntityInspectorModal: React.FC = () => {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {data?.type === 'product' && data.product && canEditProduct && (
+              <button
+                type="button"
+                onClick={() => setIsEditProductOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-600/40 bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-blue-700"
+                title="تعديل بيانات المنتج"
+              >
+                <Pencil size={13} />
+                <span>تعديل المنتج</span>
+              </button>
+            )}
             {data?.returnContext && (
               <button
                 type="button"
@@ -355,6 +378,7 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                     </button>
                   )}
                 </div>
+                  <div className="flex flex-wrap items-center gap-2">
                     {data.badge && (
                       <span
                         className={cn(
@@ -364,6 +388,17 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                       >
                         {data.badge.label}
                       </span>
+                    )}
+                    {data.type === 'product' && data.product && canEditProduct && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditProductOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-500/35 bg-blue-500/15 px-2.5 py-1 text-[11px] font-black text-blue-700 transition-colors hover:bg-blue-600 hover:text-white dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white"
+                        title="تعديل بيانات المنتج"
+                      >
+                        <Pencil size={12} />
+                        <span>تعديل المنتج</span>
+                      </button>
                     )}
                     {data.returnContext && (
                       <button
@@ -390,6 +425,7 @@ export const UniversalEntityInspectorModal: React.FC = () => {
                         </span>
                       </button>
                     )}
+                  </div>
               </div>
 
               <div className="grid grid-cols-2 divide-x divide-x-reverse divide-[var(--app-border)] sm:grid-cols-4">
@@ -734,6 +770,26 @@ export const UniversalEntityInspectorModal: React.FC = () => {
           </>
         ) : null}
       </div>
+
+      {isEditProductOpen && data?.type === 'product' && data.product && (
+        <Suspense fallback={null}>
+          <AddProductModal
+            isOpen={isEditProductOpen}
+            onClose={() => setIsEditProductOpen(false)}
+            initialData={data.product}
+            isSubmitting={isSaving}
+            onSubmit={async formData => {
+              try {
+                await saveProduct({ data: formData, id: data.product!.id });
+                setIsEditProductOpen(false);
+                await refetch();
+              } catch (err) {
+                logger.error('UniversalEntityInspectorModal', 'Product update failed:', err);
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
       {returnModalState && (
         <AdvancedReturnModal

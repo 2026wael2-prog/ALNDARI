@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { formatCurrency, formatNumberDisplay } from '../../core/utils';
 import { fetchPartyStatement } from '../parties/services/partyStatementService';
 import { productMovementsService } from '../inventory/services/productMovementsService';
+import type { Product } from '../inventory/types';
 import type {
   InspectedEntityData,
   InspectorFieldRow,
@@ -417,6 +418,38 @@ async function inspectProduct(id: string, ctx: InspectContext): Promise<Inspecte
   const latestReturnableLine = invoiceLines.find(
     (line: any) => line.invoice?.type === 'sale' || line.invoice?.type === 'purchase'
   );
+  const editableProduct: Product = {
+    id: String(p.id),
+    company_id: String(p.company_id || ctx.companyId || ''),
+    name: String(p.name_ar || p.name || ''),
+    name_ar: String(p.name_ar || p.name || ''),
+    name_en: p.name_en ?? null,
+    sku: String(p.sku || ''),
+    part_number: p.part_number ?? null,
+    alternative_numbers: Array.isArray(p.alternative_numbers)
+      ? p.alternative_numbers.filter(Boolean).join(', ')
+      : (p.alternative_numbers ?? null),
+    brand: p.brand ?? null,
+    category: p.category?.name ?? p.category_id ?? null,
+    category_id: p.category_id ?? p.category?.id ?? null,
+    item_type: p.item_type === 'service' ? 'service' : 'stock',
+    size: p.size ?? null,
+    specifications: p.description ?? p.specifications ?? null,
+    cost_price: purchasePrice,
+    purchase_price: purchasePrice,
+    sale_price: salePrice,
+    selling_price: salePrice,
+    stock_quantity: totalQty,
+    min_stock_level: minLevel,
+    unit: String(p.unit || 'piece'),
+    barcode: p.barcode ?? null,
+    image_url: p.image_url ?? null,
+    is_core: Boolean(p.is_core),
+    ...(p.location ? { location: String(p.location) } : {}),
+    created_at: String(p.created_at || ''),
+    ...(p.updated_at ? { updated_at: String(p.updated_at) } : {}),
+  };
+
   return {
     type: 'product',
     title: dash(p.name_ar || p.name),
@@ -439,6 +472,7 @@ async function inspectProduct(id: string, ctx: InspectContext): Promise<Inspecte
     kpis,
     fields,
     sheets,
+    product: editableProduct,
   };
 }
 

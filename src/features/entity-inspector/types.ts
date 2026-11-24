@@ -1,3 +1,5 @@
+import type { Product } from '../inventory/types';
+
 export type InspectableEntityType = 'product' | 'party' | 'invoice' | 'bond' | 'account';
 
 export interface InspectorTarget {
@@ -77,4 +79,6 @@ export interface InspectedEntityData {
   kpis: InspectorKpi[];
   fields: InspectorFieldRow[];
   sheets: InspectorTabSheet[];
+  /** بيانات المنتج الخام لتمكين التعديل المباشر من نافذة الاستعلام */
+  product?: Product | undefined;
 }

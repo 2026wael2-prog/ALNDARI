@@ -48,6 +48,106 @@ export const COLOR_MAP = new Map<string, RowColorStyle>([
 
 export const EXCEL_COL_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
+export const EXCEL_COL_TITLES = [
+  'التاريخ',
+  'المرجع',
+  'نوع العملية',
+  'العملة',
+  'البيان والتفاصيل',
+  'حالة السداد',
+  'مدين (عليه +)',
+  'دائن (له -)',
+  'الرصيد المتراكم',
+  'إجراءات',
+];
+
+export type ExcelDensityMode = 'compact' | 'comfortable' | 'large';
+
+export interface ExcelDensityStyles {
+  label: string;
+  tableText: string;
+  headerText: string;
+  monoText: string;
+  badgeText: string;
+  cellPad: string;
+  footerText: string;
+}
+
+export const EXCEL_DENSITY_MAP = new Map<ExcelDensityMode, ExcelDensityStyles>([
+  [
+    'compact',
+    {
+      label: 'مضغوط',
+      tableText: 'text-[13px]',
+      headerText: 'text-xs',
+      monoText: 'text-[13px]',
+      badgeText: 'text-[11px]',
+      cellPad: 'px-2.5 py-2',
+      footerText: 'text-[13px]',
+    },
+  ],
+  [
+    'comfortable',
+    {
+      label: 'واضح (افتراضي)',
+      tableText: 'text-sm',
+      headerText: 'text-[13px]',
+      monoText: 'text-sm',
+      badgeText: 'text-xs',
+      cellPad: 'px-3 py-2.5',
+      footerText: 'text-sm',
+    },
+  ],
+  [
+    'large',
+    {
+      label: 'كبير ومريح',
+      tableText: 'text-[15px]',
+      headerText: 'text-sm',
+      monoText: 'text-[15px]',
+      badgeText: 'text-xs',
+      cellPad: 'px-3.5 py-3',
+      footerText: 'text-[15px]',
+    },
+  ],
+]);
+
+export function getExcelCellDisplayValue(
+  row: StatementMovement,
+  colIdx: number,
+  formatAmount: (amount: number, currency: string) => string
+): string {
+  const currency = (row.currency || 'SAR').toUpperCase();
+  switch (colIdx) {
+    case 0:
+      return row.date ? row.date.replace(/-/g, '/') : '—';
+    case 1:
+      return row.ref || '—';
+    case 2:
+      return row.operation_type || row.type || 'قيد محاسبي';
+    case 3:
+      return currency;
+    case 4:
+      return row.desc || '—';
+    case 5:
+      return row.payment_status === 'paid'
+        ? 'خالص'
+        : row.payment_status === 'partial' || row.payment_status === 'partially_paid'
+          ? 'جزئي'
+          : row.payment_status === 'unpaid'
+            ? 'غير مسدد'
+            : 'مرحل';
+    case 6:
+      return row.debit > 0 ? formatAmount(row.debit, currency) : '0';
+    case 7:
+      return row.credit > 0 ? formatAmount(row.credit, currency) : '0';
+    case 8:
+      return formatAmount(Number(row.balance) || 0, currency);
+    default:
+      return '';
+  }
+}
+
 export interface CurrencyFooterTotal {
   currency: string;
   count: number;

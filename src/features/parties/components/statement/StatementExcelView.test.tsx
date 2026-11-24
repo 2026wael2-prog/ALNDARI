@@ -96,5 +96,16 @@ describe('StatementExcelView', () => {
 
     fireEvent.click(printButtons[0]);
     expect(onPrintSingle).toHaveBeenCalledWith(sampleMovements[0]);
+
+    // Clicking a cell updates the Excel formula bar (fx) with coordinate & full content
+    fireEvent.click(screen.getByText('فاتورة مبيعات قطع غيار'));
+    expect(screen.getByText('E1')).toBeInTheDocument();
+    expect(screen.getByTitle('نسخ قيمة الخلية النشطة')).toBeInTheDocument();
+
+    // Font-size / density switcher buttons
+    expect(screen.getByRole('button', { name: 'واضح' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'كبير' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'كبير' }));
+    expect(screen.getByRole('grid').className).toContain('text-[15px]');
   });
 });

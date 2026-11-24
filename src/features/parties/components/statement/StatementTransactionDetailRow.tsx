@@ -139,9 +139,9 @@ export const StatementTransactionDetailRow: React.FC<Props> = ({
           </p>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950">
-            <table className="w-full border-collapse border border-slate-300 text-right text-xs dark:border-slate-700">
+            <table className="w-full border-collapse border border-slate-300 text-right text-[13px] dark:border-slate-700">
               <thead>
-                <tr className="bg-slate-100/90 text-[10px] font-bold text-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+                <tr className="bg-slate-100 text-xs font-black text-slate-800 dark:bg-slate-800 dark:text-slate-200">
                   <th className="border border-slate-300 px-3 py-2 text-center dark:border-slate-700">
                     #
                   </th>
@@ -168,26 +168,26 @@ export const StatementTransactionDetailRow: React.FC<Props> = ({
               <tbody>
                 {items.map((it, idx) => (
                   <tr key={it.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                    <td className="border border-slate-300 px-3 py-1.5 text-center font-mono text-[10px] text-slate-400 dark:border-slate-700">
+                    <td className="border border-slate-300 px-3 py-2 text-center font-mono text-xs text-slate-500 dark:border-slate-700">
                       {idx + 1}
                     </td>
-                    <td className="border border-slate-300 px-3 py-1.5 font-semibold text-slate-800 dark:border-slate-700 dark:text-slate-200">
+                    <td className="border border-slate-300 px-3 py-2 font-semibold text-slate-900 dark:border-slate-700 dark:text-slate-100">
                       {it.item_name}
                     </td>
-                    <td className="border border-slate-300 px-3 py-1.5 text-center font-mono text-[11px] text-slate-500 dark:border-slate-700">
+                    <td className="border border-slate-300 px-3 py-2 text-center font-mono text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300">
                       {it.part_number || it.sku || '—'}
                     </td>
-                    <td className="border border-slate-300 px-3 py-1.5 text-center font-mono font-bold text-blue-600 dark:border-slate-700">
+                    <td className="border border-slate-300 px-3 py-2 text-center font-mono font-bold text-blue-700 dark:border-slate-700 dark:text-blue-400">
                       {it.quantity}
                     </td>
                     <td
-                      className="border border-slate-300 px-3 py-1.5 text-center font-mono dark:border-slate-700"
+                      className="border border-slate-300 px-3 py-2 text-center font-mono font-semibold dark:border-slate-700"
                       dir="ltr"
                     >
                       {formatCurrency(it.unit_price, details.currency_code)}
                     </td>
                     <td
-                      className="border border-slate-300 px-3 py-1.5 text-center font-mono text-slate-500 dark:border-slate-700"
+                      className="border border-slate-300 px-3 py-2 text-center font-mono text-slate-600 dark:border-slate-700 dark:text-slate-300"
                       dir="ltr"
                     >
                       {it.discount_amount
@@ -195,7 +195,7 @@ export const StatementTransactionDetailRow: React.FC<Props> = ({
                         : '—'}
                     </td>
                     <td
-                      className="border border-slate-300 px-3 py-1.5 text-center font-mono font-bold text-slate-900 dark:border-slate-700 dark:text-white"
+                      className="border border-slate-300 px-3 py-2 text-center font-mono font-black text-slate-900 dark:border-slate-700 dark:text-white"
                       dir="ltr"
                     >
                       {formatCurrency(it.total_amount, details.currency_code)}

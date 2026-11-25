@@ -3962,6 +3962,363 @@ html.dark[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
 }
 
 /* ============================================================
+   ثيم «بني وكريمي وأزرق سماوي — المحاسبي الأنيق» (Espresso Cream & Baby Blue)
+   هوية محاسبية حديثة ومنظمة:
+   • شريط جانبي بني إسبريسو عميق (#2f1d13) مع تحديد أزرق سماوي ناعم (Baby Blue)
+   • خلفية كريمية دافئة (#f7f1e7) وبطاقات كريمية ناصعة (#fffdf9)
+   • هيدر رئيسي بني أنيق (#4a2e1b) + هيدر ثانوي وجداول بتدرج Baby Blue منظّم
+   ============================================================ */
+html[data-preset='espresso-cream-blue'] .font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ── 1. الشريط الجانبي (Sidebar) — بني إسبريسو فاخر مع لمسات Baby Blue ── */
+html[data-preset='espresso-cream-blue'] aside {
+  background-color: #2f1d13 !important;
+  border-color: #462d1e !important;
+  color: #f7f1e7 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] aside {
+  background-color: #1c120d !important;
+  border-color: #36251b !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] {
+  background-color: #26160e !important;
+  border-bottom-color: #462d1e !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] {
+  background-color: #150d09 !important;
+  border-bottom-color: #36251b !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] h1 {
+  color: #fffdf9 !important;
+  font-weight: 900 !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] span {
+  color: #9acbeb !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav > div > div:first-child {
+  color: #c9b29a !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside :is(h1, h2, h3, p, span, a) {
+  color: #f5ebdc !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button {
+  color: #f5ebdc !important;
+  transition: transform 0.18s ease-out,
+              background-color 0.15s ease,
+              border-color 0.15s ease,
+              box-shadow 0.18s ease !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']) > div {
+  background-color: rgba(247, 241, 231, 0.08) !important;
+  border-color: rgba(214, 195, 174, 0.22) !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover {
+  background-color: rgba(154, 203, 235, 0.16) !important;
+  border-color: rgba(154, 203, 235, 0.45) !important;
+  transform: translateX(-4px) scale(1.02) !important;
+  box-shadow: 0 6px 14px -4px rgba(15, 10, 6, 0.45) !important;
+}
+
+html[dir='ltr'][data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover {
+  transform: translateX(4px) scale(1.02) !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover span {
+  color: #ffffff !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover > div {
+  background-color: rgba(154, 203, 235, 0.26) !important;
+  border-color: rgba(184, 221, 247, 0.6) !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
+  background: linear-gradient(90deg, rgba(154, 203, 235, 0.26) 0%, rgba(154, 203, 235, 0.14) 100%) !important;
+  border-color: rgba(154, 203, 235, 0.65) !important;
+  color: #ffffff !important;
+  box-shadow: inset 3px 0 0 0 #9acbeb, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
+}
+
+html[dir='rtl'][data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
+  box-shadow: inset -3px 0 0 0 #9acbeb, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] span {
+  color: #ffffff !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div {
+  background-color: #9acbeb !important;
+  border-color: #b8ddf7 !important;
+  color: #2c1b12 !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div svg {
+  color: #2c1b12 !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside > button[title] {
+  background-color: #3d261a !important;
+  border-color: #5c3a21 !important;
+  color: #f7f1e7 !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside > button[title]:hover {
+  background-color: #9acbeb !important;
+  border-color: #b8ddf7 !important;
+  color: #2c1b12 !important;
+}
+
+html[data-preset='espresso-cream-blue'] aside .border-t,
+html[data-preset='espresso-cream-blue'] aside .border-b {
+  border-color: #462d1e !important;
+}
+
+/* ── 2. الهيدر الرئيسي — بني إسبريسو متزن بلمسة سفلية Baby Blue ── */
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] {
+  background: linear-gradient(90deg, #432918 0%, #5c3a21 55%, #4a2e1b 100%) !important;
+  border-bottom: 2px solid #9acbeb !important;
+  color: #fffdf9 !important;
+  box-shadow: 0 2px 10px -2px rgba(44, 27, 18, 0.24) !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] {
+  background: linear-gradient(90deg, #211610 0%, #2e1f16 55%, #211610 100%) !important;
+  border-bottom: 2px solid #7bbbe8 !important;
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.45) !important;
+}
+
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] h1 {
+  color: #fffdf9 !important;
+}
+
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child span {
+  color: #cfe8fa !important;
+}
+
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child > button,
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button,
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button {
+  background-color: rgba(247, 241, 231, 0.14) !important;
+  border-color: rgba(154, 203, 235, 0.34) !important;
+  color: #fffdf9 !important;
+}
+
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child > button:hover,
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button:hover,
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button:hover {
+  background-color: rgba(154, 203, 235, 0.28) !important;
+  border-color: rgba(184, 221, 247, 0.65) !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button svg,
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button svg {
+  color: #fffdf9 !important;
+}
+
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] input[type='text'] {
+  background-color: #fffdf9 !important;
+  border-color: rgba(154, 203, 235, 0.65) !important;
+  color: #2c1b12 !important;
+}
+
+html[data-preset='espresso-cream-blue'] header[data-main-header='true'] input[type='text']::placeholder {
+  color: #7d6552 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] input[type='text'] {
+  background-color: rgba(22, 16, 12, 0.88) !important;
+  border-color: rgba(154, 203, 235, 0.4) !important;
+  color: #fbf5ec !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] input[type='text']::placeholder {
+  color: #c2ae98 !important;
+}
+
+/* ── 3. الهيدر الثانوي للصفحات (MicroHeader) — تدرج Baby Blue هادئ ومنظم مع نص بني عميق ── */
+html[data-preset='espresso-cream-blue'] [data-micro-header='true'] {
+  background: linear-gradient(90deg, #d7ecfb 0%, #e7f4fd 58%, #f4ede3 100%) !important;
+  border-bottom: 1px solid #a8d2ef !important;
+  color: #2c1b12 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-micro-header='true'] {
+  background: linear-gradient(90deg, #1d2d3a 0%, #243646 55%, #261c15 100%) !important;
+  border-bottom: 1px solid #3c5870 !important;
+  color: #fbf5ec !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-micro-header='true'] h1 {
+  color: #2c1b12 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-micro-header='true'] h1 {
+  color: #fbf5ec !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'],
+html[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'] svg {
+  color: #4a2e1b !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'],
+html.dark[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'] svg {
+  color: #cfe8fa !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child .rounded-full {
+  background-color: #fffdf9 !important;
+  border-color: #9acbeb !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child .rounded-full svg {
+  color: #5c3a21 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child .rounded-full {
+  background-color: rgba(154, 203, 235, 0.16) !important;
+  border-color: rgba(154, 203, 235, 0.4) !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > div:first-child .rounded-full svg {
+  color: #9acbeb !important;
+}
+
+/* شريط التبويبات أسفل الهيدر الثانوي — كريمي دافئ */
+html[data-preset='espresso-cream-blue'] [data-micro-header-tabs='true'] {
+  background-color: #faf5ec !important;
+  border-top-color: #e3d7c7 !important;
+  color: #2c1b12 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-micro-header-tabs='true'] {
+  background-color: #1c140f !important;
+  border-top-color: #3e2e23 !important;
+  color: #fbf5ec !important;
+}
+
+/* ── 3B. هيدرات النوافذ المنبثقة والاستعلام (Modals & Inspectors) ── */
+html[data-preset='espresso-cream-blue'] [data-modal-header='true'] {
+  background: linear-gradient(90deg, #432918 0%, #5c3a21 60%, #4a2e1b 100%) !important;
+  border-bottom: 2px solid #9acbeb !important;
+  color: #fffdf9 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-modal-header='true'] {
+  background: linear-gradient(90deg, #211610 0%, #2f2017 60%, #211610 100%) !important;
+  border-bottom: 2px solid #7bbbe8 !important;
+  color: #fbf5ec !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-modal-header='true'] h2 {
+  color: #fffdf9 !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-modal-header='true'] p {
+  color: #cfe8fa !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:first-child > div:first-child {
+  background-color: rgba(154, 203, 235, 0.22) !important;
+  border: 1px solid rgba(184, 221, 247, 0.42);
+  color: #fffdf9 !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:last-child button {
+  color: #fffdf9 !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:last-child button:hover {
+  background-color: rgba(154, 203, 235, 0.25) !important;
+}
+
+html[data-preset='espresso-cream-blue'] [data-inspector-subheader='true'] {
+  background: linear-gradient(90deg, #dceefb 0%, #eaf5fd 65%, #faf5ec 100%) !important;
+  border-bottom: 1px solid #a8d2ef !important;
+  color: #2c1b12 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] [data-inspector-subheader='true'] {
+  background: linear-gradient(90deg, #1f303d 0%, #233340 65%, #211812 100%) !important;
+  border-bottom: 1px solid #3c5870 !important;
+  color: #dceefb !important;
+}
+
+/* ── 4. الجداول المحاسبية (شاشة فقط — لا تؤثر على الطباعة) ── */
+@media screen {
+  html[data-preset='espresso-cream-blue'] table thead,
+  html[data-preset='espresso-cream-blue'] table thead tr,
+  html[data-preset='espresso-cream-blue'] table thead tr th {
+    background-color: #dceefb !important;
+    color: #2c1b12 !important;
+    border-color: #b7d8f0 !important;
+  }
+
+  html[data-preset='espresso-cream-blue'] table thead tr {
+    border-bottom: 2px solid #8ec5ec !important;
+  }
+
+  html[data-preset='espresso-cream-blue'] table thead tr th:hover {
+    background-color: #cbe4f8 !important;
+  }
+
+  html[data-preset='espresso-cream-blue'] table thead tr th svg {
+    color: #5c3a21;
+  }
+
+  html[data-preset='espresso-cream-blue'] table tbody tr:nth-child(even) {
+    background-color: #faf5ec;
+  }
+
+  html[data-preset='espresso-cream-blue'] table tbody tr:hover {
+    background-color: #edf6fd;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) table thead,
+  :where(html.dark[data-preset='espresso-cream-blue']) table thead tr,
+  :where(html.dark[data-preset='espresso-cream-blue']) table thead tr th {
+    background-color: #1f303d !important;
+    color: #dceefb !important;
+    border-color: #344d61 !important;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) table thead tr {
+    border-bottom: 2px solid #7bbbe8 !important;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) table thead tr th:hover {
+    background-color: #273c4d !important;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) table thead tr th svg {
+    color: #9acbeb;
+  }
+
+  html.dark[data-preset='espresso-cream-blue'] table tbody tr:nth-child(even) {
+    background-color: #1c140f;
+  }
+
+  html.dark[data-preset='espresso-cream-blue'] table tbody tr:hover {
+    background-color: #243340;
+  }
+}
+
+/* ============================================================
    أيقونة السيارة التفاعلية — تفكيك قطع الغيار وإعادة تطبيقها بسلاسة
    ============================================================ */
 .car-parts-logo .car-part {

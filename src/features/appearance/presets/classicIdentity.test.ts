@@ -449,6 +449,7 @@ describe('Mizan night slate bridge', () => {
   it('confines the warm scale to the al-mizan-classic and warm premium presets alone', () => {
     const allowedSlateBridgeIds = new Set([
       'al-mizan-classic',
+      'espresso-cream-blue',
       'solar-noir',
       'obsidian-pro',
       'obsidian-sun',

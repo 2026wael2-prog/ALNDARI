@@ -11,7 +11,7 @@ import {
 import type { Bond } from '../../types';
 import type { BondsPageTotals } from '../../hooks/useBondActions';
 import { cn, formatCurrency } from '../../../../core/utils';
-import { EntityInfoDot } from '../../../entity-inspector';
+import { EntityInfoDot, EntityHoverCard } from '../../../entity-inspector';
 
 interface BondsTableViewProps {
   bonds: Bond[];
@@ -99,9 +99,11 @@ export const BondsTableView: React.FC<BondsTableViewProps> = ({
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-gray-900 dark:text-slate-100">
-                        {bond.payment_number}
-                      </span>
+                      <EntityHoverCard type="bond" id={bond.id} label={bond.payment_number}>
+                        <span className="text-xs font-black text-gray-900 hover:text-amber-600 dark:text-slate-100 dark:hover:text-amber-300 cursor-pointer">
+                          {bond.payment_number}
+                        </span>
+                      </EntityHoverCard>
                       <EntityInfoDot
                         type="bond"
                         id={bond.id}
@@ -121,9 +123,17 @@ export const BondsTableView: React.FC<BondsTableViewProps> = ({
               </td>
               <td className="border border-slate-200/80 px-4 py-3 dark:border-slate-800/80">
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-gray-800 dark:text-slate-200">
-                    {bond.party_name || bond.account_name}
-                  </span>
+                  {bond.party_id ? (
+                    <EntityHoverCard type="party" id={bond.party_id} label={bond.party_name}>
+                      <span className="text-xs font-bold text-gray-800 hover:text-amber-600 dark:text-slate-200 dark:hover:text-amber-300 cursor-pointer">
+                        {bond.party_name || bond.account_name}
+                      </span>
+                    </EntityHoverCard>
+                  ) : (
+                    <span className="text-xs font-bold text-gray-800 dark:text-slate-200">
+                      {bond.party_name || bond.account_name}
+                    </span>
+                  )}
                   {bond.party_name && bond.account_name !== bond.party_name && (
                     <span className="text-[10px] text-gray-400">{bond.account_name}</span>
                   )}

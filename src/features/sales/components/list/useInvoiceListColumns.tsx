@@ -4,7 +4,7 @@ import { formatCurrency } from '../../../../core/utils';
 import type { InvoiceListItem } from '../../types';
 import { InvoiceItemsCell } from './InvoiceItemsCell';
 import { getStatusLabel } from './InvoiceStatusBadge';
-import { EntityInfoDot } from '../../../entity-inspector';
+import { EntityInfoDot, EntityHoverCard } from '../../../entity-inspector';
 
 interface UseInvoiceListColumnsParams {
   handleViewDetails: (id: string) => void;
@@ -37,12 +37,14 @@ export const useInvoiceListColumns = ({
               {row.type === 'sale_return' && (
                 <ArrowLeftRight size={13} className="shrink-0 text-rose-500" />
               )}
-              <span
-                dir="ltr"
-                className={`font-mono font-bold ${row.type === 'sale_return' ? 'text-rose-600' : 'text-blue-600'}`}
-              >
-                #{row.invoiceNumber}
-              </span>
+              <EntityHoverCard type="invoice" id={row.id} label={`#${row.invoiceNumber}`} subType={row.type}>
+                <span
+                  dir="ltr"
+                  className={`font-mono font-bold cursor-pointer hover:underline ${row.type === 'sale_return' ? 'text-rose-600' : 'text-blue-600'}`}
+                >
+                  #{row.invoiceNumber}
+                </span>
+              </EntityHoverCard>
               <EntityInfoDot
                 type="invoice"
                 id={row.id}
@@ -68,9 +70,17 @@ export const useInvoiceListColumns = ({
         accessorKey: 'customerName' as keyof InvoiceListItem,
         accessor: (row: InvoiceListItem) => (
           <div className="flex flex-col gap-1">
-            <span className="font-bold text-gray-800 dark:text-slate-100" title={row.customerName}>
-              {row.customerName}
-            </span>
+            {row.partyId ? (
+              <EntityHoverCard type="party" id={row.partyId} label={row.customerName} subType="customer">
+                <span className="font-bold text-gray-800 hover:text-amber-600 dark:text-slate-100 dark:hover:text-amber-300 cursor-pointer" title={row.customerName}>
+                  {row.customerName}
+                </span>
+              </EntityHoverCard>
+            ) : (
+              <span className="font-bold text-gray-800 dark:text-slate-100" title={row.customerName}>
+                {row.customerName}
+              </span>
+            )}
             {row.partyPhone && (
               <span className="font-mono text-[10px] text-gray-500 dark:text-slate-400">
                 {row.partyPhone}

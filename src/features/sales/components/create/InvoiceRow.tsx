@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, Trash2 } from 'lucide-react';
 import type { SalesCartItem } from '../../store';
 
-import { EntityInfoDot } from '../../../entity-inspector';
+import { EntityInfoDot, EntityHoverCard } from '../../../entity-inspector';
 import { CalculatorInput } from '@/ui/common/CalculatorInput';
 
 interface InvoiceRowProps {
@@ -76,21 +76,41 @@ const ProductNameCell: React.FC<ProductNameCellProps> = ({
       {item.productId && (
         <EntityInfoDot type="product" id={item.productId} label={item.name} size="xs" />
       )}
-      <input
-        type="text"
-        value={item.name}
-        data-row-index={index}
-        data-col-field="name"
-        onKeyDown={event => {
-          onKeyDown(event, index, 'name');
-        }}
-        onClick={() => {
-          onOpenSearch(index, item.name || '');
-        }}
-        readOnly
-        className="flex-1 cursor-pointer bg-transparent py-3 text-right text-sm font-bold text-gray-800 outline-none placeholder:text-gray-300 dark:text-slate-100 dark:placeholder:text-slate-600 max-md:py-2"
-        placeholder="اختر صنفاً..."
-      />
+      {item.productId ? (
+        <EntityHoverCard type="product" id={item.productId} label={item.name} className="flex-1">
+          <input
+            type="text"
+            value={item.name}
+            data-row-index={index}
+            data-col-field="name"
+            onKeyDown={event => {
+              onKeyDown(event, index, 'name');
+            }}
+            onClick={() => {
+              onOpenSearch(index, item.name || '');
+            }}
+            readOnly
+            className="w-full cursor-pointer bg-transparent py-3 text-right text-sm font-bold text-gray-800 outline-none placeholder:text-gray-300 dark:text-slate-100 dark:placeholder:text-slate-600 max-md:py-2"
+            placeholder="اختر صنفاً..."
+          />
+        </EntityHoverCard>
+      ) : (
+        <input
+          type="text"
+          value={item.name}
+          data-row-index={index}
+          data-col-field="name"
+          onKeyDown={event => {
+            onKeyDown(event, index, 'name');
+          }}
+          onClick={() => {
+            onOpenSearch(index, item.name || '');
+          }}
+          readOnly
+          className="flex-1 cursor-pointer bg-transparent py-3 text-right text-sm font-bold text-gray-800 outline-none placeholder:text-gray-300 dark:text-slate-100 dark:placeholder:text-slate-600 max-md:py-2"
+          placeholder="اختر صنفاً..."
+        />
+      )}
       <Search
         size={14}
         className="text-gray-400 opacity-0 transition-opacity group-hover/cell:opacity-100 max-md:opacity-100"

@@ -23,7 +23,8 @@ const CASH_CUSTOMER_LABEL = 'عميل نقدي';
 interface RawInvoice {
   id: string;
   invoice_number: string | null;
-  party: { name?: string; phone?: string } | null;
+  party: { id?: string; name?: string; phone?: string } | null;
+  party_id?: string | null;
   issue_date: string;
   created_at?: string;
   total_amount: number | null;
@@ -64,6 +65,7 @@ export const salesService = {
           id: _inv.id,
           invoiceNumber: _inv.invoice_number,
           customerName: _inv.party?.name || CASH_CUSTOMER_LABEL,
+          partyId: _inv.party?.id || _inv.party_id || null,
           partyPhone: _inv.party?.phone || null,
           date: formatLocalDate(_inv.issue_date),
           createdAt: _inv.created_at,
@@ -147,6 +149,7 @@ export const salesService = {
         id: r.id,
         invoiceNumber: r.invoice_number,
         customerName: r.party_name || CASH_CUSTOMER_LABEL,
+        partyId: (r as any).party_id || null,
         partyPhone: r.party_phone,
         date: formatLocalDate(r.issue_date),
         createdAt: (r as any).created_at || r.issue_date,

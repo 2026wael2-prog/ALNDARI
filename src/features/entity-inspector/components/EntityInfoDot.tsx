@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../../../core/utils';
 import { useEntityInspectorStore } from '../store';
 import type { InspectableEntityType } from '../types';
+import { EntityHoverCard } from './EntityHoverCard';
 
 export interface EntityInfoDotProps {
   type: InspectableEntityType;
@@ -10,6 +11,8 @@ export interface EntityInfoDotProps {
   subType?: string | null | undefined;
   /** True when rendered inside the inspector modal itself so clicks push to the drill-down stack. */
   inInspector?: boolean;
+  /** Disable hover preview card if needed. */
+  disableHover?: boolean;
   /** Optional custom tooltip text. */
   title?: string;
   className?: string;
@@ -17,20 +20,29 @@ export interface EntityInfoDotProps {
 }
 
 const DEFAULT_TITLES: Record<InspectableEntityType, string> = {
-  product: 'استعلام فوري عن كامل بيانات وسجل المنتج',
-  party: 'استعلام فوري عن كامل بيانات وكشف حساب الطرف',
-  invoice: 'استعلام فوري عن كامل بيانات وأصناف وقيود الفاتورة',
-  bond: 'استعلام فوري عن كامل بيانات وقيود السند',
-  account: 'استعلام فوري عن كامل بيانات وحركات الحساب',
+  product: 'استعلام فوري ومعاينة عند التمرير',
+  party: 'استعلام فوري ومعاينة عند التمرير',
+  invoice: 'استعلام فوري ومعاينة عند التمرير',
+  bond: 'استعلام فوري ومعاينة عند التمرير',
+  account: 'استعلام فوري ومعاينة عند التمرير',
 };
 
 /**
- * نقطة استعلام فورية خفيفة جداً (Zero Subscriptions / Zero Fetch until clicked).
- * تُستدعى عبر `useEntityInspectorStore.getState()` مباشرة داخل `onClick` لضمان
- * عدم حدوث أي إعادة تصيير (re-render) للجداول أو تأثير على سرعة التطبيق.
+ * نقطة استعلام فورية خفيفة جداً، تدعم المعاينة السريعة عند التمرير (Hover Card)
+ * وتفتح نافذة الاستعلام الشامل فور النقر عليها.
  */
 export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
-  ({ type, id, label, subType, inInspector = false, title, className, size = 'sm' }) => {
+  ({
+    type,
+    id,
+    label,
+    subType,
+    inInspector = false,
+    disableHover = false,
+    title,
+    className,
+    size = 'sm',
+  }) => {
     if (!id) return null;
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -52,7 +64,7 @@ export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
 
     const resolvedTitle = title || DEFAULT_TITLES[type];
 
-    return (
+    const dotButton = (
       <button
         type="button"
         onClick={handleClick}
@@ -65,15 +77,25 @@ export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
         aria-label={resolvedTitle}
         className={cn(
           'inline-flex shrink-0 items-center justify-center rounded-full border font-mono font-black leading-none transition-all duration-150',
-          'border-blue-500/45 bg-blue-500/12 text-blue-700 hover:scale-110 hover:border-blue-600 hover:bg-blue-600 hover:text-white',
-          'dark:border-blue-400/45 dark:bg-blue-400/15 dark:text-blue-300 dark:hover:bg-blue-500 dark:hover:text-white',
-          'focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-95',
+          'border-amber-600/40 bg-amber-500/15 text-amber-300 hover:scale-110 hover:border-amber-500 hover:bg-amber-500 hover:text-black',
+          'dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500 dark:hover:text-black',
+          'focus:outline-none focus:ring-2 focus:ring-amber-500/40 active:scale-95',
           size === 'xs' ? 'h-4 w-4 text-[10px]' : 'h-[18px] w-[18px] text-[10px]',
           className
         )}
       >
         i
       </button>
+    );
+
+    if (inInspector || disableHover) {
+      return dotButton;
+    }
+
+    return (
+      <EntityHoverCard type={type} id={id} label={label} subType={subType}>
+        {dotButton}
+      </EntityHoverCard>
     );
   }
 );

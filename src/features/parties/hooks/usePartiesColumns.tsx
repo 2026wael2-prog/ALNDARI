@@ -6,7 +6,7 @@ import Avatar from '../../../ui/base/Avatar';
 import { formatCurrency, cn } from '../../../core/utils';
 import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { buildWhatsAppLink, hasValidWhatsAppPhone } from '../../debts/lib/whatsapp';
-import { EntityInfoDot } from '../../entity-inspector';
+import { EntityInfoDot, EntityHoverCard } from '../../entity-inspector';
 import {
   classifyPartyBalance,
   getPartyActiveCurrencies,
@@ -97,9 +97,11 @@ export function usePartiesColumns({
               <Avatar name={row.name} size="sm" />
               <div className="flex translate-y-[1px] flex-col items-start">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-bold leading-tight text-gray-900 dark:text-white">
-                    {row.name}
-                  </span>
+                  <EntityHoverCard type="party" id={row.id} label={row.name} subType={partyType}>
+                    <span className="font-bold leading-tight text-gray-900 hover:text-amber-600 dark:text-white dark:hover:text-amber-300 cursor-pointer">
+                      {row.name}
+                    </span>
+                  </EntityHoverCard>
                   <EntityInfoDot type="party" id={row.id} label={row.name} subType={partyType} />
                   {isOppositeSign ? (
                     <span

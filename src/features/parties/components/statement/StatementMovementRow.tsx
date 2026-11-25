@@ -16,7 +16,7 @@ import {
 import { cn, formatCurrency } from '../../../../core/utils';
 import type { StatementMovement } from '../../service';
 import { StatementTransactionDetailRow } from './StatementTransactionDetailRow';
-import { EntityInfoDot } from '../../../entity-inspector';
+import { EntityInfoDot, EntityHoverCard } from '../../../entity-inspector';
 
 interface StatementMovementRowProps {
   row: StatementMovement;
@@ -155,8 +155,7 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
           dir="ltr"
         >
           <div className="inline-flex items-center justify-center gap-1.5">
-            <span>{row.ref}</span>
-            {row.reference_id && (() => {
+            {row.reference_id ? (() => {
               const refType = row.reference_type || row.type || '';
               const isInv =
                 refType.includes('invoice') || refType.includes('sale') || refType.includes('purchase');
@@ -165,16 +164,29 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
                 refType.includes('payment') ||
                 refType.includes('receipt') ||
                 refType.includes('voucher');
-              return isInv || isBond ? (
-                <EntityInfoDot
-                  type={isInv ? 'invoice' : 'bond'}
-                  id={row.reference_id}
-                  label={row.ref}
-                  subType={refType}
-                  size="xs"
-                />
-              ) : null;
-            })()}
+              const entType = isInv ? 'invoice' : isBond ? 'bond' : null;
+
+              return entType ? (
+                <>
+                  <EntityHoverCard type={entType} id={row.reference_id} label={row.ref} subType={refType}>
+                    <span className="cursor-pointer hover:underline text-blue-600 dark:text-blue-400">
+                      {row.ref}
+                    </span>
+                  </EntityHoverCard>
+                  <EntityInfoDot
+                    type={entType}
+                    id={row.reference_id}
+                    label={row.ref}
+                    subType={refType}
+                    size="xs"
+                  />
+                </>
+              ) : (
+                <span>{row.ref}</span>
+              );
+            })() : (
+              <span>{row.ref}</span>
+            )}
           </div>
         </td>
 

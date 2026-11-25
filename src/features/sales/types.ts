@@ -108,6 +108,7 @@ export interface InvoiceListItem {
   id: string;
   invoiceNumber: string;
   customerName: string;
+  partyId?: string | null;
   date: string;
   createdAt?: string;
   total: number;

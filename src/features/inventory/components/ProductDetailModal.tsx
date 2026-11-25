@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Box, FileText, Maximize2, Minimize2, Trash2, ExternalLink, Printer } from 'lucide-react';
 import type { Product } from '../types';
 import StockStatusBadge from './product_detail/StockStatusBadge';
 import ProductDetailsContent from './product_detail/ProductDetailsContent';
 import { cn } from '../../../core/utils';
+import { allocateModalZIndex } from '../../../ui/base/Modal';
 
 interface Props {
     product: Product | null;
@@ -15,11 +17,29 @@ interface Props {
 const ProductDetailModal: React.FC<Props> = ({ product, onClose, onEdit, onDelete }) => {
     const [isMaximized, setIsMaximized] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
+    const [overlayZIndex, setOverlayZIndex] = useState(() => (product ? allocateModalZIndex() : 10050));
+
+    useEffect(() => {
+        if (product) {
+            setOverlayZIndex(allocateModalZIndex());
+        }
+    }, [product?.id]);
+
+    const handleClose = useCallback(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+            setIsClosing(false);
+            onClose();
+        }, 200);
+    }, [onClose]);
 
     // Keyboard shortcuts: Escape to close, arrows for next/prev tabs
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
-        if (e.key === 'Escape') handleClose();
-    }, []);
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+            handleClose();
+        }
+    }, [handleClose]);
 
     useEffect(() => {
         // Add body scroll lock
@@ -30,14 +50,6 @@ const ProductDetailModal: React.FC<Props> = ({ product, onClose, onEdit, onDelet
             document.removeEventListener('keydown', handleKeyDown);
         };
     }, [handleKeyDown]);
-
-    const handleClose = () => {
-        setIsClosing(true);
-        setTimeout(() => {
-            setIsClosing(false);
-            onClose();
-        }, 200);
-    };
 
     const handlePrint = () => {
         const style = document.createElement('style');
@@ -58,14 +70,14 @@ const ProductDetailModal: React.FC<Props> = ({ product, onClose, onEdit, onDelet
 
     if (!product) return null;
 
-    return (
+    return createPortal(
         <div
             onClick={handleClose}
             className={cn(
-                "fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300",
+                "fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300",
                 isClosing ? 'bg-slate-900/0' : 'bg-slate-900/60 backdrop-blur-sm'
             )}
-            style={{ animation: isClosing ? 'none' : undefined }}
+            style={{ zIndex: overlayZIndex, animation: isClosing ? 'none' : undefined }}
         >
             <div
                 id="print-area"
@@ -189,7 +201,8 @@ const ProductDetailModal: React.FC<Props> = ({ product, onClose, onEdit, onDelet
                     ESC لإغلاق
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

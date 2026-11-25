@@ -4171,64 +4171,83 @@ html[data-preset='espresso-cream-blue'] .font-mono {
   }
 }
 
-/* ── 1. الشريط الجانبي (Sidebar) — بني إسبريسو فاخر مع لمسات Baby Blue ── */
+/* ── 1. الشريط الجانبي (Sidebar) — بني إسبريسو فاخر بنصوص بيضاء ناصعة ولمسات Baby Blue ── */
 html[data-preset='espresso-cream-blue'] aside {
   background-color: #2f1d13 !important;
-  border-color: #462d1e !important;
-  color: #f7f1e7 !important;
+  border-color: #4a3020 !important;
+  color: #ffffff !important;
 }
 
 html.dark[data-preset='espresso-cream-blue'] aside {
   background-color: #1c120d !important;
-  border-color: #36251b !important;
+  border-color: #3d2a1f !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] {
-  background-color: #26160e !important;
-  border-bottom-color: #462d1e !important;
+  background-color: #24150d !important;
+  border-bottom-color: #4a3020 !important;
 }
 
 html.dark[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] {
-  background-color: #150d09 !important;
-  border-bottom-color: #36251b !important;
+  background-color: #140c08 !important;
+  border-bottom-color: #3d2a1f !important;
 }
 
-html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] h1 {
-  color: #fffdf9 !important;
+/* أولوية عالية تتغلب على قواعد الوضع النهاري والليلي لضمان وضوح 100% لجميع أسماء الصفحات */
+html[data-preset='espresso-cream-blue']:not(.dark) aside :is(h1, h2, h3, p, span, a, div, button, [class*='text-']),
+html.dark[data-preset='espresso-cream-blue'] aside :is(h1, h2, h3, p, span, a, div, button, [class*='text-']) {
+  color: #ffffff !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) aside [data-sidebar-logo='true'] h1,
+html.dark[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] h1 {
+  color: #ffffff !important;
   font-weight: 900 !important;
 }
 
-html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] span {
+html[data-preset='espresso-cream-blue']:not(.dark) aside [data-sidebar-logo='true'] span,
+html.dark[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] span {
   color: #8cd0ff !important;
   font-weight: 700 !important;
 }
 
-html[data-preset='espresso-cream-blue'] aside nav > div > div:first-child {
-  color: #e8d4bc !important;
+html[data-preset='espresso-cream-blue']:not(.dark) aside nav > div > div:first-child,
+html.dark[data-preset='espresso-cream-blue'] aside nav > div > div:first-child {
+  color: #ffe4c4 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) aside nav button,
+html.dark[data-preset='espresso-cream-blue'] aside nav button {
+  color: #ffffff !important;
   font-weight: 700 !important;
-}
-
-html[data-preset='espresso-cream-blue'] aside :is(h1, h2, h3, p, span, a) {
-  color: #fffaf2 !important;
-}
-
-html[data-preset='espresso-cream-blue'] aside nav button {
-  color: #fffaf2 !important;
-  font-weight: 600 !important;
   transition: transform 0.18s ease-out,
               background-color 0.15s ease,
               border-color 0.15s ease,
               box-shadow 0.18s ease !important;
 }
 
+html[data-preset='espresso-cream-blue']:not(.dark) aside nav button span,
+html.dark[data-preset='espresso-cream-blue'] aside nav button span {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+
 html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']) > div {
-  background-color: rgba(247, 241, 231, 0.08) !important;
-  border-color: rgba(214, 195, 174, 0.22) !important;
+  background-color: rgba(255, 250, 242, 0.11) !important;
+  border-color: rgba(214, 195, 174, 0.28) !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) aside nav button:not([aria-current='page']) > div svg,
+html.dark[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']) > div svg {
+  color: #d7ecfb !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover {
-  background-color: rgba(154, 203, 235, 0.16) !important;
-  border-color: rgba(154, 203, 235, 0.45) !important;
+  background-color: rgba(125, 211, 252, 0.2) !important;
+  border-color: rgba(154, 203, 235, 0.55) !important;
   transform: translateX(-4px) scale(1.02) !important;
   box-shadow: 0 6px 14px -4px rgba(15, 10, 6, 0.45) !important;
 }
@@ -4237,98 +4256,110 @@ html[dir='ltr'][data-preset='espresso-cream-blue'] aside nav button:not([aria-cu
   transform: translateX(4px) scale(1.02) !important;
 }
 
-html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover span {
-  color: #ffffff !important;
-}
-
 html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover > div {
-  background-color: rgba(154, 203, 235, 0.26) !important;
-  border-color: rgba(184, 221, 247, 0.6) !important;
+  background-color: rgba(125, 211, 252, 0.32) !important;
+  border-color: rgba(184, 221, 247, 0.7) !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
-  background: linear-gradient(90deg, rgba(154, 203, 235, 0.26) 0%, rgba(154, 203, 235, 0.14) 100%) !important;
-  border-color: rgba(154, 203, 235, 0.65) !important;
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.16) 100%) !important;
+  border-color: rgba(125, 211, 252, 0.75) !important;
   color: #ffffff !important;
-  box-shadow: inset 3px 0 0 0 #9acbeb, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
+  box-shadow: inset 3px 0 0 0 #7dd3fc, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
 }
 
 html[dir='rtl'][data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
-  box-shadow: inset -3px 0 0 0 #9acbeb, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
+  box-shadow: inset -3px 0 0 0 #7dd3fc, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
 }
 
-html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] span {
+html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] span,
+html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] span {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] > div,
+html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div {
+  background-color: #8cd0ff !important;
+  border-color: #c7e6fd !important;
+  color: #180d07 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] > div svg,
+html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div svg {
+  color: #180d07 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) aside > button[title],
+html.dark[data-preset='espresso-cream-blue'] aside > button[title] {
+  background-color: #3d261a !important;
+  border-color: #6b452a !important;
   color: #ffffff !important;
 }
 
-html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div {
-  background-color: #9acbeb !important;
-  border-color: #b8ddf7 !important;
-  color: #2c1b12 !important;
-}
-
-html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div svg {
-  color: #2c1b12 !important;
-}
-
-html[data-preset='espresso-cream-blue'] aside > button[title] {
-  background-color: #3d261a !important;
-  border-color: #5c3a21 !important;
-  color: #f7f1e7 !important;
-}
-
-html[data-preset='espresso-cream-blue'] aside > button[title]:hover {
-  background-color: #9acbeb !important;
-  border-color: #b8ddf7 !important;
-  color: #2c1b12 !important;
+html[data-preset='espresso-cream-blue']:not(.dark) aside > button[title]:hover,
+html.dark[data-preset='espresso-cream-blue'] aside > button[title]:hover {
+  background-color: #8cd0ff !important;
+  border-color: #c7e6fd !important;
+  color: #180d07 !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside .border-t,
 html[data-preset='espresso-cream-blue'] aside .border-b {
-  border-color: #462d1e !important;
+  border-color: #4a3020 !important;
 }
 
 /* ── 2. الهيدر الرئيسي — بني إسبريسو متزن بلمسة سفلية Baby Blue ── */
 html[data-preset='espresso-cream-blue'] header[data-main-header='true'] {
   background: linear-gradient(90deg, #432918 0%, #5c3a21 55%, #4a2e1b 100%) !important;
   border-bottom: 2px solid #9acbeb !important;
-  color: #fffdf9 !important;
+  color: #ffffff !important;
   box-shadow: 0 2px 10px -2px rgba(44, 27, 18, 0.24) !important;
 }
 
 html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] {
   background: linear-gradient(90deg, #211610 0%, #2e1f16 55%, #211610 100%) !important;
-  border-bottom: 2px solid #7bbbe8 !important;
+  border-bottom: 2px solid #7dd3fc !important;
   box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.45) !important;
 }
 
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] h1 {
-  color: #fffdf9 !important;
-}
-
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child span {
-  color: #cfe8fa !important;
-}
-
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child > button,
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button,
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button {
-  background-color: rgba(247, 241, 231, 0.14) !important;
-  border-color: rgba(154, 203, 235, 0.34) !important;
-  color: #fffdf9 !important;
-}
-
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child > button:hover,
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button:hover,
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button:hover {
-  background-color: rgba(154, 203, 235, 0.28) !important;
-  border-color: rgba(184, 221, 247, 0.65) !important;
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] h1,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] h1 {
   color: #ffffff !important;
 }
 
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button svg,
-html[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button svg {
-  color: #fffdf9 !important;
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:first-child span,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child span {
+  color: #d7ecfb !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:first-child > button,
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:last-child > div > button,
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:last-child > div > div > button,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child > button,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button {
+  background-color: rgba(247, 241, 231, 0.16) !important;
+  border-color: rgba(154, 203, 235, 0.4) !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:first-child > button:hover,
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:last-child > div > button:hover,
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:last-child > div > div > button:hover,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:first-child > button:hover,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button:hover,
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button:hover {
+  background-color: rgba(154, 203, 235, 0.3) !important;
+  border-color: rgba(184, 221, 247, 0.7) !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:last-child > div > button :is(span, svg),
+html[data-preset='espresso-cream-blue']:not(.dark) header[data-main-header='true'] > div:last-child > div > div > button :is(span, svg),
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > button :is(span, svg),
+html.dark[data-preset='espresso-cream-blue'] header[data-main-header='true'] > div:last-child > div > div > button :is(span, svg) {
+  color: #ffffff !important;
 }
 
 html[data-preset='espresso-cream-blue'] header[data-main-header='true'] input[type='text'] {
@@ -4400,52 +4431,121 @@ html.dark[data-preset='espresso-cream-blue'] [data-micro-header='true'] > div > 
   color: #9acbeb !important;
 }
 
-/* شريط التبويبات أسفل الهيدر الثانوي — كريمي دافئ */
+/* شريط التبويبات أسفل الهيدر الثانوي — وضوح فائق وتباين حاد لأسماء التبويبات */
 html[data-preset='espresso-cream-blue'] [data-micro-header-tabs='true'] {
   background-color: #faf5ec !important;
-  border-top-color: #e3d7c7 !important;
-  color: #2c1b12 !important;
+  border-top-color: #dfd1be !important;
+  color: #0d0704 !important;
 }
 
 html.dark[data-preset='espresso-cream-blue'] [data-micro-header-tabs='true'] {
   background-color: #1c140f !important;
-  border-top-color: #3e2e23 !important;
-  color: #fbf5ec !important;
+  border-top-color: #4a372a !important;
+  color: #ffffff !important;
+}
+
+/* تنسيق شريط التبويبات المتقدم (AdvancedTabBar) بوضوح فائق في النهار والليل */
+html[data-preset='espresso-cream-blue']:not(.dark) .advanced-tab-bar__container {
+  background-color: #f1e6d6 !important;
+  border: 1px solid #d4bfa4 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) .advanced-tab {
+  color: #180d07 !important;
+  font-weight: 800 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) .advanced-tab :is(.advanced-tab__label, .advanced-tab__icon) {
+  color: #180d07 !important;
+  font-weight: 800 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) .advanced-tab:hover:not(:disabled):not(.advanced-tab--active) {
+  background-color: #d7ecfb !important;
+  color: #0a0502 !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) .advanced-tab--active {
+  background: linear-gradient(135deg, #432918, #5c3a21) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(44, 27, 18, 0.28), inset 0 -2px 0 0 #8cd0ff !important;
+}
+
+html[data-preset='espresso-cream-blue']:not(.dark) .advanced-tab--active :is(.advanced-tab__label, .advanced-tab__icon, span, svg) {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] .advanced-tab-bar__container {
+  background-color: #17100b !important;
+  border: 1px solid #4a372a !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] .advanced-tab {
+  color: #fff5e6 !important;
+  font-weight: 700 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] .advanced-tab :is(.advanced-tab__label, .advanced-tab__icon) {
+  color: #fff5e6 !important;
+  font-weight: 700 !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] .advanced-tab:hover:not(:disabled):not(.advanced-tab--active) {
+  background-color: #2b2017 !important;
+  color: #ffffff !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] .advanced-tab--active {
+  background: linear-gradient(135deg, #1b4d7a, #24639c) !important;
+  color: #ffffff !important;
+  border: 1px solid #7dd3fc !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] .advanced-tab--active :is(.advanced-tab__label, .advanced-tab__icon, span, svg) {
+  color: #ffffff !important;
+  font-weight: 800 !important;
 }
 
 /* ── 3B. هيدرات النوافذ المنبثقة والاستعلام (Modals & Inspectors) ── */
 html[data-preset='espresso-cream-blue'] [data-modal-header='true'] {
   background: linear-gradient(90deg, #432918 0%, #5c3a21 60%, #4a2e1b 100%) !important;
   border-bottom: 2px solid #9acbeb !important;
-  color: #fffdf9 !important;
+  color: #ffffff !important;
 }
 
 html.dark[data-preset='espresso-cream-blue'] [data-modal-header='true'] {
   background: linear-gradient(90deg, #211610 0%, #2f2017 60%, #211610 100%) !important;
-  border-bottom: 2px solid #7bbbe8 !important;
-  color: #fbf5ec !important;
+  border-bottom: 2px solid #7dd3fc !important;
+  color: #ffffff !important;
 }
 
-html[data-preset='espresso-cream-blue'] [data-modal-header='true'] h2 {
-  color: #fffdf9 !important;
+html[data-preset='espresso-cream-blue']:not(.dark) [data-modal-header='true'] h2,
+html.dark[data-preset='espresso-cream-blue'] [data-modal-header='true'] h2 {
+  color: #ffffff !important;
 }
 
-html[data-preset='espresso-cream-blue'] [data-modal-header='true'] p {
-  color: #cfe8fa !important;
+html[data-preset='espresso-cream-blue']:not(.dark) [data-modal-header='true'] p,
+html.dark[data-preset='espresso-cream-blue'] [data-modal-header='true'] p {
+  color: #d7ecfb !important;
 }
 
-html[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:first-child > div:first-child {
-  background-color: rgba(154, 203, 235, 0.22) !important;
-  border: 1px solid rgba(184, 221, 247, 0.42);
-  color: #fffdf9 !important;
+html[data-preset='espresso-cream-blue']:not(.dark) [data-modal-header='true'] > div:first-child > div:first-child,
+html.dark[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:first-child > div:first-child {
+  background-color: rgba(154, 203, 235, 0.24) !important;
+  border: 1px solid rgba(184, 221, 247, 0.48);
+  color: #ffffff !important;
 }
 
-html[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:last-child button {
-  color: #fffdf9 !important;
+html[data-preset='espresso-cream-blue']:not(.dark) [data-modal-header='true'] > div:last-child button,
+html.dark[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:last-child button {
+  color: #ffffff !important;
 }
 
-html[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:last-child button:hover {
-  background-color: rgba(154, 203, 235, 0.25) !important;
+html[data-preset='espresso-cream-blue']:not(.dark) [data-modal-header='true'] > div:last-child button:hover,
+html.dark[data-preset='espresso-cream-blue'] [data-modal-header='true'] > div:last-child button:hover {
+  background-color: rgba(154, 203, 235, 0.28) !important;
 }
 
 html[data-preset='espresso-cream-blue'] [data-inspector-subheader='true'] {

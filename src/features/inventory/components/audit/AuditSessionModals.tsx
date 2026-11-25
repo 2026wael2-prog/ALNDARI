@@ -107,7 +107,6 @@ export const AuditSessionModals: React.FC<AuditSessionModalsProps> = ({
         onSubmit={onCreateProduct}
         isSubmitting={isSavingProduct}
         initialData={newProductInitialData}
-        zIndex="z-[10000]"
       />
     </>
   );

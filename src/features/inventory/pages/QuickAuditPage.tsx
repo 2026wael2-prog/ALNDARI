@@ -351,7 +351,6 @@ const QuickAuditPage: React.FC = () => {
           onSubmit={handleCreateNewProduct}
           isSubmitting={isSavingProduct}
           initialData={newProductInitialData}
-          zIndex="z-[10000]"
         />
       )}
     </div>

@@ -31,6 +31,23 @@ interface Size {
 
 let openModalStackCounter = 0;
 
+/**
+ * Allocates the next ascending z-index for custom overlay dialogs (e.g. ProductDetailModal)
+ * so they always stack cleanly above fullscreen parent modals.
+ */
+export const allocateModalZIndex = (): number => {
+  openModalStackCounter += 1;
+  return 9990 + (openModalStackCounter % 500) * 10;
+};
+
+const parseTailwindZIndex = (zIndexClass?: string): number | null => {
+  if (!zIndexClass) return null;
+  const match = zIndexClass.match(/z-\[(\d+)\]|z-(\d+)/);
+  if (!match) return null;
+  const parsed = Number(match[1] ?? match[2]);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
@@ -44,10 +61,11 @@ const Modal: React.FC<ModalProps> = ({
   hideHeader = false,
   closeOnBackdropClick = false,
 }) => {
-  const [isMaximized, setIsMaximized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(size === 'full');
   const [position, setPosition] = useState<Position | null>(null);
   const [customSize, setCustomSize] = useState<Size | null>(null);
-  const [stackOrder, setStackOrder] = useState(1);
+  const [stackOrder, setStackOrder] = useState(() => (isOpen ? ++openModalStackCounter : 0));
+  const wasOpenRef = useRef(isOpen);
 
   const reactId = useId();
   const titleId = `modal-title-${reactId}`;
@@ -75,13 +93,16 @@ const Modal: React.FC<ModalProps> = ({
 
   // Reset state & assign ascending stack z-index when modal opens so child modals always appear above fullscreen parent modals
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       openModalStackCounter += 1;
       setStackOrder(openModalStackCounter);
+    }
+    if (isOpen) {
       setPosition(null);
       setCustomSize(null);
       setIsMaximized(size === 'full');
     }
+    wasOpenRef.current = isOpen;
   }, [isOpen, size]);
 
   // Close topmost modal on Escape key
@@ -232,7 +253,10 @@ const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  const computedZIndex = 9990 + (stackOrder % 500) * 10;
+  const baseStackZIndex = 9990 + (stackOrder % 500) * 10;
+  const parsedOverrideZIndex = parseTailwindZIndex(zIndex);
+  const computedZIndex =
+    parsedOverrideZIndex !== null ? Math.max(baseStackZIndex, parsedOverrideZIndex) : baseStackZIndex;
 
   const modalStyle: React.CSSProperties = isMaximized
     ? {
@@ -265,7 +289,7 @@ const Modal: React.FC<ModalProps> = ({
 
   return createPortal(
     <div
-      style={zIndex ? undefined : { zIndex: computedZIndex }}
+      style={{ zIndex: computedZIndex }}
       className={cn(
         'animate-in fade-in fixed inset-0 flex items-end justify-center p-0 duration-100 md:items-center md:p-4',
         zIndex ?? 'z-[9999]',

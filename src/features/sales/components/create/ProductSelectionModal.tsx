@@ -344,7 +344,6 @@ const ProductSelectionModal: React.FC<Props> = ({
             }}
             onSubmit={handleAddProduct}
             isSubmitting={isSaving}
-            zIndex="z-[10000]"
           />
         </Suspense>
       )}

@@ -28,6 +28,7 @@ export interface StatementMovement {
   items_count?: number | undefined;
   is_bf?: number | undefined;
   custom_color?: string | undefined;
+  payment_method?: string | undefined;
 }
 
 export interface StatementTransactionItem {

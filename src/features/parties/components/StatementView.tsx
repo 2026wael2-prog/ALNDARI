@@ -60,6 +60,9 @@ const StatementView: React.FC<StatementViewProps> = ({
     setEndDate,
     selectedCurrency,
     setSelectedCurrency,
+    settlementFilter,
+    setSettlementFilter,
+    settlementStats,
     availableCurrencies,
     searchQuery,
     setSearchQuery,
@@ -166,14 +169,19 @@ const StatementView: React.FC<StatementViewProps> = ({
 
                 <div className="no-print space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2 dark:border-slate-800">
-                    <StatementToolbar
-                      selectedCurrency={selectedCurrency}
-                      setSelectedCurrency={setSelectedCurrency}
-                      availableCurrencies={availableCurrencies}
-                      currencyBalances={selectedParty?.balances_by_currency}
-                      searchQuery={searchQuery}
-                      setSearchQuery={setSearchQuery}
-                    />
+                    <div className="w-full">
+                      <StatementToolbar
+                        selectedCurrency={selectedCurrency}
+                        setSelectedCurrency={setSelectedCurrency}
+                        availableCurrencies={availableCurrencies}
+                        currencyBalances={selectedParty?.balances_by_currency}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        settlementFilter={settlementFilter}
+                        setSettlementFilter={setSettlementFilter}
+                        settlementStats={settlementStats}
+                      />
+                    </div>
 
                     {/* طريقة العرض: جدول إكسل جريد (افتراضي) أو العرض الكلاسيكي */}
                     <div className="flex items-center gap-1 rounded-xl border border-slate-200/90 bg-slate-100/80 p-1 dark:border-slate-800 dark:bg-slate-900/60">

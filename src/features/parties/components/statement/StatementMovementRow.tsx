@@ -209,7 +209,18 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
 
         {/* Status Badge */}
         <td className="whitespace-nowrap border-l border-[var(--app-border)] p-3 text-center">
-          {statusBadge}
+          <div className="flex flex-col items-center gap-0.5">
+            {statusBadge}
+            {row.remaining_amount !== undefined &&
+              row.remaining_amount > 0 &&
+              (row.payment_status === 'partial' ||
+                row.payment_status === 'partially_paid' ||
+                row.payment_status === 'unpaid') && (
+                <span className="font-mono text-[9px] font-bold text-slate-500 dark:text-slate-400">
+                  متبقي: {formatCurrency(row.remaining_amount, row.currency)}
+                </span>
+              )}
+          </div>
         </td>
 
         {/* Debit */}

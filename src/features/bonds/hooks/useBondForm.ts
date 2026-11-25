@@ -24,6 +24,7 @@ export interface BondPrefill {
   amount: number;
   currencyCode?: string;
   invoiceId?: string;
+  invoiceNumber?: string;
   description?: string;
 }
 
@@ -154,7 +155,10 @@ export function useBondForm(
     setValue('counterparty_type', 'party');
     setValue('counterparty_id', prefill.partyId);
     setValue('currency_code', currency);
-    setValue('description', prefill.description || `تحصيل دفعة من العميل${partyLabel}`);
+    const invDesc = prefill.invoiceNumber
+      ? `سداد فاتورة مبيعات رقم ${prefill.invoiceNumber}${partyLabel}`
+      : `تحصيل دفعة من العميل${partyLabel}`;
+    setValue('description', prefill.description || invDesc);
     if (prefill.invoiceId) setValue('invoice_id', prefill.invoiceId);
     resetInvoiceLink();
 

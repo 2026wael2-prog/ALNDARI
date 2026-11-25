@@ -10,6 +10,14 @@ import { useParties, useStatement } from '../hooks';
 import type { StatementMovement } from '../service';
 import type { PartyType } from '../types';
 
+export type StatementSettlementFilter =
+  | 'unsettled'
+  | 'all'
+  | 'fully_settled'
+  | 'partially_settled'
+  | 'credit'
+  | 'cash';
+
 interface UseStatementControllerParams {
   partyType: PartyType;
   initialPartyId?: string | undefined;
@@ -138,6 +146,7 @@ export const useStatementController = ({
   const [startDate, setStartDate] = useState(initialHydrated.startDate);
   const [endDate, setEndDate] = useState(initialHydrated.endDate);
   const [selectedCurrency, setSelectedCurrency] = useState<string>(initialHydrated.currency);
+  const [settlementFilter, setSettlementFilter] = useState<StatementSettlementFilter>('unsettled');
   const [searchQuery, setSearchQuery] = useState('');
   const prevInitialPartyRef = useRef<string | undefined>(initialPartyId);
   const prevInitialCurrencyRef = useRef<string | undefined>(initialCurrency);
@@ -269,12 +278,106 @@ export const useStatementController = ({
     return Array.from(currencies).sort((a, b) => (a === 'SAR' ? -1 : b === 'SAR' ? 1 : a.localeCompare(b)));
   }, [movements, selectedParty?.balances_by_currency]);
 
+  const settlementStats = useMemo(() => {
+    let fullySettledCount = 0;
+    let partiallySettledCount = 0;
+    let creditCount = 0;
+    let cashCount = 0;
+    let unsettledCount = 0;
+
+    movements.forEach(m => {
+      const isInv = Boolean(
+        m.type?.includes('invoice') ||
+          m.type?.includes('sale') ||
+          m.type?.includes('purchase') ||
+          m.operation_type?.includes('فاتورة')
+      );
+
+      const isFullyPaid =
+        m.payment_status === 'paid' ||
+        m.payment_status === 'settled' ||
+        (isInv && (Number(m.remaining_amount) || 0) <= 0.01 && (Number(m.paid_amount) || 0) > 0);
+
+      const isPartiallyPaid =
+        m.payment_status === 'partial' ||
+        m.payment_status === 'partially_paid' ||
+        (isInv && (Number(m.paid_amount) || 0) > 0.01 && (Number(m.remaining_amount) || 0) > 0.01);
+
+      const isCredit =
+        (m.payment_method && m.payment_method.toLowerCase() === 'credit') ||
+        (!m.payment_method && isInv && (Number(m.remaining_amount) || 0) > 0) ||
+        Boolean(m.desc?.includes('آجل') || m.operation_type?.includes('آجل'));
+
+      const isCash =
+        (m.payment_method && m.payment_method.toLowerCase() === 'cash') ||
+        Boolean(m.desc?.includes('نقدي') || m.operation_type?.includes('نقدي'));
+
+      if (isFullyPaid) fullySettledCount++;
+      if (isPartiallyPaid) partiallySettledCount++;
+      if (isCredit) creditCount++;
+      if (isCash) cashCount++;
+      if (!isInv || !isFullyPaid) unsettledCount++;
+    });
+
+    return {
+      totalCount: movements.length,
+      unsettledCount,
+      fullySettledCount,
+      partiallySettledCount,
+      creditCount,
+      cashCount,
+    };
+  }, [movements]);
+
   const filteredMovements = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     return movements.filter(m => {
+      // 1. Currency filter
       if (selectedCurrency !== 'ALL' && m.currency !== selectedCurrency) {
         return false;
       }
+
+      // 2. Settlement / Status filter
+      const isInv = Boolean(
+        m.type?.includes('invoice') ||
+          m.type?.includes('sale') ||
+          m.type?.includes('purchase') ||
+          m.operation_type?.includes('فاتورة')
+      );
+
+      const isFullyPaid =
+        m.payment_status === 'paid' ||
+        m.payment_status === 'settled' ||
+        (isInv && (Number(m.remaining_amount) || 0) <= 0.01 && (Number(m.paid_amount) || 0) > 0);
+
+      const isPartiallyPaid =
+        m.payment_status === 'partial' ||
+        m.payment_status === 'partially_paid' ||
+        (isInv && (Number(m.paid_amount) || 0) > 0.01 && (Number(m.remaining_amount) || 0) > 0.01);
+
+      const isCredit =
+        (m.payment_method && m.payment_method.toLowerCase() === 'credit') ||
+        (!m.payment_method && isInv && (Number(m.remaining_amount) || 0) > 0) ||
+        Boolean(m.desc?.includes('آجل') || m.operation_type?.includes('آجل'));
+
+      const isCash =
+        (m.payment_method && m.payment_method.toLowerCase() === 'cash') ||
+        Boolean(m.desc?.includes('نقدي') || m.operation_type?.includes('نقدي'));
+
+      if (settlementFilter === 'unsettled') {
+        // Hide fully paid invoices by default to focus on remaining transactions
+        if (isInv && isFullyPaid) return false;
+      } else if (settlementFilter === 'fully_settled') {
+        if (!isFullyPaid) return false;
+      } else if (settlementFilter === 'partially_settled') {
+        if (!isPartiallyPaid) return false;
+      } else if (settlementFilter === 'credit') {
+        if (!isCredit) return false;
+      } else if (settlementFilter === 'cash') {
+        if (!isCash) return false;
+      }
+
+      // 3. Search query filter
       if (!query) return true;
       return Boolean(
         m.ref?.toLowerCase().includes(query) ||
@@ -282,7 +385,7 @@ export const useStatementController = ({
           m.operation_type?.toLowerCase().includes(query)
       );
     });
-  }, [movements, selectedCurrency, searchQuery]);
+  }, [movements, selectedCurrency, settlementFilter, searchQuery]);
 
   const selectedMovements = useMemo(
     () => filteredMovements.filter(m => selectedRowIds.has(m.id)),
@@ -442,6 +545,9 @@ export const useStatementController = ({
     setEndDate,
     selectedCurrency,
     setSelectedCurrency,
+    settlementFilter,
+    setSettlementFilter,
+    settlementStats,
     availableCurrencies,
     searchQuery,
     setSearchQuery,

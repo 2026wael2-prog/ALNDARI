@@ -1,15 +1,22 @@
 // Theme initialization & stale asset recovery (loaded as external script so CSP can forbid script-src 'unsafe-inline')
 (function () {
   var resolvedDark = false;
+  var defaultPresetId = 'espresso-cream-blue';
   try {
     var raw = localStorage.getItem('al-zahra-appearance-storage');
     if (raw) {
       var parsed = JSON.parse(raw);
       var st = parsed && parsed.state ? parsed.state : null;
-      if (st && typeof st.activePresetId === 'string' && st.activePresetId) {
-        document.documentElement.setAttribute('data-preset', st.activePresetId);
-      }
-      var mode = st && st.mode ? st.mode : 'system';
+      var ver = typeof parsed.version === 'number' ? parsed.version : 0;
+      var storedPreset = st && typeof st.activePresetId === 'string' ? st.activePresetId : '';
+      var shouldUpgradeDefault =
+        ver < 5 &&
+        (!storedPreset || storedPreset === 'obsidian-pro' || storedPreset === 'optiparts-or');
+      document.documentElement.setAttribute(
+        'data-preset',
+        shouldUpgradeDefault ? defaultPresetId : storedPreset || defaultPresetId
+      );
+      var mode = st && st.mode ? st.mode : 'light';
       if (mode === 'dark') {
         resolvedDark = true;
       } else if (mode === 'light') {
@@ -18,12 +25,11 @@
         resolvedDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       }
     } else {
-      resolvedDark =
-        localStorage.getItem('theme') === 'dark' ||
-        (!('theme' in localStorage) &&
-          window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-preset', defaultPresetId);
+      resolvedDark = localStorage.getItem('theme') === 'dark';
     }
   } catch (_e) {
+    document.documentElement.setAttribute('data-preset', defaultPresetId);
     resolvedDark =
       localStorage.getItem('theme') === 'dark' ||
       window.matchMedia('(prefers-color-scheme: dark)').matches;

@@ -12,10 +12,13 @@ describe('espresso-cream-blue theme preset (Brown + Cream + Baby Blue)', () => {
     document.documentElement.classList.remove('dark');
   });
 
-  it('is registered in THEME_PRESETS under premium category with Brown/Cream/Baby Blue swatches', () => {
+  it('is registered as the #1 primary default preset in THEME_PRESETS and themeStore', () => {
     expect(preset).toBeDefined();
     if (!preset) return;
 
+    expect(THEME_PRESETS[0]?.id).toBe('espresso-cream-blue');
+    expect(useThemeStore.getInitialState().activePresetId).toBe('espresso-cream-blue');
+    expect(useThemeStore.getInitialState().accentColor).toBe('#5c3a21');
     expect(preset.category).toBe('premium');
     expect(preset.layout).toBe('modern');
     expect(preset.corners).toBe('rounded');

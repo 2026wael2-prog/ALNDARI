@@ -263,8 +263,8 @@ export const useThemeStore = create<ThemeState>()(
     (set, get) => ({
       mode: 'light',
       theme: 'light',
-      activePresetId: 'optiparts-or',
-      accentColor: '#4f46e5',
+      activePresetId: 'espresso-cream-blue',
+      accentColor: '#5c3a21',
       font: 'Cairo',
       radius: 0.5,
       fontSize: 14,
@@ -273,7 +273,7 @@ export const useThemeStore = create<ThemeState>()(
       glassOpacity: 0.1,
       uiLayout: 'auto',
       draftSettings: {
-        accentColor: '#4f46e5',
+        accentColor: '#5c3a21',
         font: 'Cairo',
         radius: 0.5,
         fontSize: 14,
@@ -457,25 +457,27 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'al-zahra-appearance-storage',
-      version: 4,
+      version: 5,
       migrate: (persistedState: unknown, version: number) => {
         const state = (persistedState ?? {}) as Record<string, unknown>;
         if (version < 2) {
           return {
             ...state,
             mode: 'light',
-            activePresetId: 'optiparts-or',
-            accentColor: '#4f46e5',
+            activePresetId: 'espresso-cream-blue',
+            accentColor: '#5c3a21',
             radius: 0.5,
           };
         }
-        if (version < 4) {
+        if (version < 5) {
           const shouldUpgradeDefault =
-            !state.activePresetId || state.activePresetId === 'obsidian-pro';
+            !state.activePresetId ||
+            state.activePresetId === 'obsidian-pro' ||
+            state.activePresetId === 'optiparts-or';
           return {
             ...state,
             ...(shouldUpgradeDefault
-              ? { activePresetId: 'optiparts-or', accentColor: '#4f46e5' }
+              ? { activePresetId: 'espresso-cream-blue', accentColor: '#5c3a21' }
               : {}),
           };
         }

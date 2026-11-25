@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowRightLeft, Loader2, Send, Sparkles, X } from 'lucide-react';
 import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 import { useBranches } from '@/features/settings/hooks';
 import type { Branch } from '@/features/settings/types';
+import { allocateModalZIndex } from '@/ui/base/Modal';
 import { useProducts } from '../../hooks/useProducts';
 import { useCreateStockTransferBatch } from '../../hooks/useStockTransferRequests';
 import type { Product } from '../../types';
@@ -15,11 +17,17 @@ import {
 interface CreateBranchTransferRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Optional product to pre-fill when launched from a product row (e.g. Sales Search Table) */
+  initialProduct?: Product | null;
+  /** Optional source branch ID to pre-select (e.g. branch with highest stock) */
+  initialSourceBranchId?: string | null;
 }
 
 export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequestModalProps> = ({
   isOpen,
   onClose,
+  initialProduct = null,
+  initialSourceBranchId = null,
 }) => {
   const { branchId: currentBranchId, branchName: currentBranchName } = useBranchFilter();
   const { data: allBranches } = useBranches();
@@ -36,14 +44,30 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
   const [selectedItems, setSelectedItems] = useState<TransferItemDraft[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const [modalZIndex, setModalZIndex] = useState<number>(() => allocateModalZIndex());
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
+  // Pre-fill product, preferred source branch, and stacking z-index whenever modal opens
   useEffect(() => {
-    if (otherBranches.length > 0 && !selectedBranchId) {
+    if (!isOpen) return;
+    setModalZIndex(allocateModalZIndex());
+
+    if (initialProduct) {
+      setSelectedItems([{ product: initialProduct, quantity: 1 }]);
+    } else {
+      setSelectedItems([]);
+    }
+
+    if (
+      initialSourceBranchId &&
+      otherBranches.some(b => b.id === initialSourceBranchId)
+    ) {
+      setSelectedBranchId(initialSourceBranchId);
+    } else if (otherBranches.length > 0) {
       const first = otherBranches[0];
       if (first) setSelectedBranchId(first.id);
     }
-  }, [otherBranches, selectedBranchId]);
+  }, [isOpen, initialProduct, initialSourceBranchId, otherBranches]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -128,9 +152,10 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
     );
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 flex items-end justify-center p-0 sm:items-center sm:p-4"
+      style={{ zIndex: modalZIndex }}
       role="dialog"
       aria-modal="true"
     >
@@ -256,7 +281,8 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

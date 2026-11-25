@@ -1,5 +1,6 @@
 /* eslint-disable max-lines-per-function, complexity, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/explicit-function-return-type, jsx-a11y/label-has-associated-control, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowRightLeft,
   XCircle,
@@ -12,6 +13,7 @@ import {
   Hash,
   CheckCircle2,
 } from 'lucide-react';
+import { allocateModalZIndex } from '@/ui/base/Modal';
 import type { StockTransferRequest } from '../../hooks/useStockTransferRequests';
 import { useRespondToTransferBatch } from '../../hooks/useStockTransferRequests';
 
@@ -29,12 +31,16 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
   const [approvedQuantities, setApprovedQuantities] = useState<Record<string, number>>({});
   const [reviewNotes, setReviewNotes] = useState<string>('');
   const [isRejecting, setIsRejecting] = useState<boolean>(false);
+  const [modalZIndex, setModalZIndex] = useState<number>(() => allocateModalZIndex());
   const { mutate: respondBatch, isPending } = useRespondToTransferBatch();
 
   const activeRequests = requests ?? [];
 
   // ضبط الكميات المعتمدة الأولية لتطابق الكميات المطلوبة
   useEffect(() => {
+    if (isOpen) {
+      setModalZIndex(allocateModalZIndex());
+    }
     if (requests && requests.length > 0) {
       const initial: Record<string, number> = {};
       for (const req of requests) {
@@ -44,7 +50,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
       setReviewNotes('');
       setIsRejecting(false);
     }
-  }, [requests]);
+  }, [requests, isOpen]);
 
   if (!isOpen || activeRequests.length === 0) return null;
 
@@ -108,9 +114,10 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
     0
   );
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 flex items-end justify-center p-0 sm:items-center sm:p-4"
+      style={{ zIndex: modalZIndex }}
       role="dialog"
       aria-modal="true"
     >
@@ -394,7 +401,8 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

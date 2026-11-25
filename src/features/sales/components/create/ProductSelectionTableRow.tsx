@@ -1,8 +1,10 @@
 import React from 'react';
-import { Plus, Eye as EyeIcon } from 'lucide-react';
+import { Plus, Eye as EyeIcon, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import type { Product } from '../../../inventory/types';
 import type { ColumnConfig } from '../../hooks/useProductTableConfig';
 import { BranchStockAvailabilityCell } from '../../../inventory/components/products/BranchStockAvailabilityCell';
+import { summarizeProductBranchAvailability } from '../../../inventory/utils/branchStockSummary';
+import { buildGoogleSearchUrl } from '../../../ai/automotiveCrossSell';
 import { EntityInfoDot } from '../../../entity-inspector';
 
 interface ProductSelectionTableRowProps {
@@ -15,6 +17,7 @@ interface ProductSelectionTableRowProps {
   isFocused: boolean;
   onSelect: (product: Product) => void;
   onViewProduct: (product: Product) => void;
+  onRequestFromBranch: (product: Product) => void;
   onRowClick: (product: Product) => void;
   onMouseEnter: () => void;
 }
@@ -29,9 +32,16 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
   isFocused,
   onSelect,
   onViewProduct,
+  onRequestFromBranch,
   onRowClick,
   onMouseEnter,
 }) => {
+  const branchAvailability = summarizeProductBranchAvailability(product, effectiveBranchId);
+  const googleUrl = buildGoogleSearchUrl({
+    name: product.name || product.name_ar,
+    partNumber: product.part_number,
+    brand: product.brand,
+  });
   const renderCellContent = (col: ColumnConfig) => {
     switch (col.id) {
       case 'index':
@@ -108,24 +118,49 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
                 e.stopPropagation();
                 onSelect(product);
               }}
-              className="rounded bg-emerald-100 p-1 text-emerald-600 transition-colors hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 max-md:p-1"
+              className="rounded bg-emerald-100 p-1 text-emerald-700 transition-colors hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50 max-md:p-1"
               title="إضافة مباشرة بنقرة واحدة"
             >
               <Plus size={12} />
             </button>
-            <EntityInfoDot
-              type="product"
-              id={product.id}
-              label={product.name || product.name_ar}
-              size="sm"
-            />
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onRequestFromBranch(product);
+              }}
+              className={`rounded p-1 transition-colors max-md:p-1 ${
+                branchAvailability.availableOnlyInOtherBranches
+                  ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-400/70 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300'
+                  : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50'
+              }`}
+              title={
+                branchAvailability.availableOnlyInOtherBranches
+                  ? 'غير متوفر بفرعك ومتوفر بفروع أخرى — اضغط لطلب مناقلة'
+                  : 'طلب القطعة من فرع آخر'
+              }
+            >
+              <ArrowRightLeft size={12} />
+            </button>
+            <a
+              href={googleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => {
+                e.stopPropagation();
+              }}
+              className="rounded bg-sky-50 p-1 text-sky-600 transition-colors hover:bg-sky-100 dark:bg-sky-900/30 dark:text-sky-300 dark:hover:bg-sky-900/50 max-md:p-1"
+              title="البحث عن القطعة في جوجل"
+            >
+              <ExternalLink size={12} />
+            </a>
             <button
               type="button"
               onClick={e => {
                 e.stopPropagation();
                 onViewProduct(product);
               }}
-              className="rounded bg-gray-100 p-1 text-gray-600 transition-colors hover:bg-blue-100 hover:text-blue-600 dark:bg-slate-800 dark:hover:bg-slate-700 max-md:p-1"
+              className="rounded bg-gray-100 p-1 text-gray-600 transition-colors hover:bg-blue-100 hover:text-blue-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 max-md:p-1"
               title="معاينة التفاصيل"
             >
               <EyeIcon size={12} />

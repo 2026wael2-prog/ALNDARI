@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getLocalCrossSellSuggestions } from './automotiveCrossSell';
+import {
+  getLocalCrossSellSuggestions,
+  analyzeAutomotiveQuery,
+  extractVehicleTokens,
+  buildGoogleSearchUrl,
+} from './automotiveCrossSell';
 
 describe('automotiveCrossSell', () => {
   it('returns empty array when cart is empty', () => {
@@ -28,5 +33,42 @@ describe('automotiveCrossSell', () => {
     const suggestions = getLocalCrossSellSuggestions(['قطعة غير معرفة 123']);
     expect(suggestions.length).toBeGreaterThan(0);
     expect(suggestions).toContain('فلتر زيت محرك');
+  });
+
+  it('detects CV axle system and vehicle context for راس عكس هايلوكس 2016', () => {
+    const result = analyzeAutomotiveQuery('راس عكس هايلوكس 2016');
+    expect(result.primarySystemLabel).toBe('منظومة العكوس والدفع');
+    expect(result.companionChips).toContain('ربلات عكس');
+    expect(result.companionChips).toContain('ركب ذراع');
+    expect(result.companionChips).toContain('ربلات شريم');
+    expect(result.companionChips).toContain('صليب عكس داخلي');
+    expect(result.vehicleTokens).toContain('هايلوكس');
+    expect(result.vehicleTokens).toContain('2016');
+  });
+
+  it('detects control arm bushing system for بوش مقص كامري', () => {
+    const result = analyzeAutomotiveQuery('بوش مقص كامري');
+    expect(result.primarySystemLabel).toBe('منظومة المقصات والتعليق الأمامي');
+    expect(result.companionChips).toContain('جوزة مقص فوق');
+    expect(result.companionChips).toContain('جوزة مقص تحت');
+    expect(result.vehicleTokens).toContain('كامري');
+  });
+
+  it('normalizes ة/ه and detects leaf spring shackle system for لعابه شاص', () => {
+    const result = analyzeAutomotiveQuery('لعابه شاص');
+    expect(result.primarySystemLabel).toBe('منظومة اللعابات والسست');
+    expect(result.companionChips).toContain('ربلات لعابة');
+    expect(result.companionChips).toContain('ربلات سست');
+    expect(extractVehicleTokens('لعابه شاص 2020')).toEqual(['شاص', '2020']);
+  });
+
+  it('builds a properly encoded Google search URL for spare parts', () => {
+    const url = buildGoogleSearchUrl({
+      partNumber: '43460-09A36',
+      brand: 'Toyota',
+      name: 'راس عكس هايلوكس',
+    });
+    expect(url).toContain('https://www.google.com/search?q=');
+    expect(decodeURIComponent(url)).toContain('43460-09A36 Toyota راس عكس هايلوكس');
   });
 });

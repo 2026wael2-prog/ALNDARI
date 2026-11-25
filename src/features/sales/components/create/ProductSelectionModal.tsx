@@ -1,15 +1,24 @@
-import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Box } from 'lucide-react';
 import { useProductMutations } from '../../../inventory/hooks/index';
 import type { Product, ProductFormData } from '../../../inventory/types';
+import type { StockTransferRequest } from '../../../inventory/hooks/useStockTransferRequests';
+import { summarizeProductBranchAvailability } from '../../../inventory/utils/branchStockSummary';
 import Modal from '../../../../ui/base/Modal';
 import { PaginationBar } from '../../../../ui/common/PaginationBar';
 import { useProductTableConfig } from '../../hooks/useProductTableConfig';
 import { useProductSelectionTable } from '../../hooks/useProductSelectionTable';
+import { useRelatedProducts } from '../../hooks/useRelatedProducts';
 import { productService } from '../../../inventory/service';
 
 const ProductDetailModal = lazy(() => import('../../../inventory/components/ProductDetailModal'));
 const AddProductModal = lazy(() => import('../../../inventory/components/AddProductModal'));
+const CreateBranchTransferRequestModal = lazy(
+  () => import('../../../inventory/components/transfers/CreateBranchTransferRequestModal')
+);
+const IncomingTransferApprovalModal = lazy(
+  () => import('../../../inventory/components/transfers/IncomingTransferApprovalModal')
+);
 import { useBranchFilter } from '../../../branches/hooks/useBranchFilter';
 import { useBranches } from '../../../settings/hooks';
 import { useAuthStore } from '../../../auth/store';
@@ -18,6 +27,8 @@ import { useColumnResize } from './useColumnResize';
 import { ProductColumnSettingsMenu } from './ProductColumnSettingsMenu';
 import { ProductSelectionTableRow } from './ProductSelectionTableRow';
 import { ProductSelectionToolbar } from './ProductSelectionToolbar';
+import { BranchTransferHeaderBar } from './BranchTransferHeaderBar';
+import { RelatedProductsPanel } from './RelatedProductsPanel';
 
 interface Props {
   isOpen: boolean;
@@ -60,6 +71,8 @@ const ProductSelectionModal: React.FC<Props> = ({
   const {
     localQuery,
     setLocalQuery,
+    submittedQuery,
+    setSubmittedQuery,
     showInStockOnly,
     setShowInStockOnly,
     products,
@@ -90,6 +103,49 @@ const ProductSelectionModal: React.FC<Props> = ({
 
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [transferRequestState, setTransferRequestState] = useState<{
+    isOpen: boolean;
+    product: Product | null;
+    sourceBranchId: string | null;
+  }>({ isOpen: false, product: null, sourceBranchId: null });
+  const [incomingReviewRequests, setIncomingReviewRequests] = useState<
+    StockTransferRequest[] | null
+  >(null);
+
+  const focusedProduct =
+    focusedIndex >= 0
+      ? (paginatedProducts[focusedIndex] ?? null)
+      : (paginatedProducts[0] ?? null);
+
+  const excludeProductIds = useMemo(
+    () => paginatedProducts.slice(0, 20).map(p => p.id),
+    [paginatedProducts]
+  );
+
+  const {
+    relation: companionRelation,
+    relatedProducts,
+    isLoading: isRelatedLoading,
+  } = useRelatedProducts({
+    searchQuery: submittedQuery,
+    focusedProduct,
+    excludeProductIds,
+    effectiveBranchId,
+    warehouseId,
+    enabled: isOpen,
+  });
+
+  const handleRequestFromBranch = (product: Product) => {
+    const availability = summarizeProductBranchAvailability(product, effectiveBranchId);
+    const bestOtherBranch = availability.stockedBranches.find(
+      b => b.branchId && b.branchId !== effectiveBranchId
+    );
+    setTransferRequestState({
+      isOpen: true,
+      product,
+      sourceBranchId: bestOtherBranch?.branchId ?? null,
+    });
+  };
 
   const { saveProduct, isSaving } = useProductMutations();
 
@@ -176,7 +232,16 @@ const ProductSelectionModal: React.FC<Props> = ({
           </div>
         }
       >
-        <div className="flex h-[70vh] flex-col bg-[var(--app-surface)]">
+        <div className="flex h-[76vh] flex-col bg-[var(--app-surface)]">
+          {/* Live Branch Transfer Requests Header */}
+          <BranchTransferHeaderBar
+            activeBranchId={effectiveBranchId}
+            onOpenNewRequest={() =>
+              setTransferRequestState({ isOpen: true, product: null, sourceBranchId: null })
+            }
+            onReviewIncoming={reqs => setIncomingReviewRequests(reqs)}
+          />
+
           {/* Toolbar */}
           <ProductSelectionToolbar
             onOpenAddProduct={() => {
@@ -300,6 +365,7 @@ const ProductSelectionModal: React.FC<Props> = ({
                       isFocused={focusedIndex === idx}
                       onSelect={onSelect}
                       onViewProduct={setViewProduct}
+                      onRequestFromBranch={handleRequestFromBranch}
                       onRowClick={handleRowClick}
                       onMouseEnter={() => {
                         setFocusedIndex(idx);
@@ -310,6 +376,20 @@ const ProductSelectionModal: React.FC<Props> = ({
               </tbody>
             </table>
           </div>
+
+          {/* Smart Companion / Related Products Panel */}
+          <RelatedProductsPanel
+            relation={companionRelation}
+            relatedProducts={relatedProducts}
+            isLoading={isRelatedLoading}
+            mode={mode}
+            onSelectProduct={onSelect}
+            onRequestFromBranch={handleRequestFromBranch}
+            onSearchChipClick={term => {
+              setLocalQuery(term);
+              setSubmittedQuery(term);
+            }}
+          />
 
           {/* Status bar with pagination */}
           <PaginationBar
@@ -344,6 +424,31 @@ const ProductSelectionModal: React.FC<Props> = ({
             }}
             onSubmit={handleAddProduct}
             isSubmitting={isSaving}
+          />
+        </Suspense>
+      )}
+
+      {/* Branch Transfer Request Modal (reuses existing system — zero duplication) */}
+      {transferRequestState.isOpen && (
+        <Suspense fallback={null}>
+          <CreateBranchTransferRequestModal
+            isOpen={transferRequestState.isOpen}
+            onClose={() =>
+              setTransferRequestState({ isOpen: false, product: null, sourceBranchId: null })
+            }
+            initialProduct={transferRequestState.product}
+            initialSourceBranchId={transferRequestState.sourceBranchId}
+          />
+        </Suspense>
+      )}
+
+      {/* Incoming Branch Transfer Approval Modal */}
+      {incomingReviewRequests && incomingReviewRequests.length > 0 && (
+        <Suspense fallback={null}>
+          <IncomingTransferApprovalModal
+            isOpen={true}
+            requests={incomingReviewRequests}
+            onClose={() => setIncomingReviewRequests(null)}
           />
         </Suspense>
       )}

@@ -27,12 +27,12 @@ const DEFAULT_CONFIG: TableConfig = {
     { id: 'price', label: 'السعر', visible: true, width: 90, order: 6 },
     { id: 'size', label: 'المقاس', visible: false, width: 80, order: 7 },
     { id: 'specs', label: 'المواصفات', visible: false, width: 150, order: 8 },
-    { id: 'actions', label: 'الإجراءات', visible: true, width: 90, order: 9 },
+    { id: 'actions', label: 'الإجراءات', visible: true, width: 130, order: 9 },
   ],
   fontSize: 'medium',
 };
 
-const STORAGE_KEY = 'productSearchTableConfig_v2'; // v2: removed SKU column, added part_number
+const STORAGE_KEY = 'productSearchTableConfig_v3'; // v3: widened actions column for branch request & Google search buttons
 
 // Extracted to avoid max-lines-per-function
 const loadInitialConfig = (): TableConfig => {

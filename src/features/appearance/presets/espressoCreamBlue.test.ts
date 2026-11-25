@@ -33,9 +33,11 @@ describe('espresso-cream-blue theme preset (Brown + Cream + Baby Blue)', () => {
     expect(root.dataset.corners).toBe('rounded');
     expect(root.style.getPropertyValue('--app-bg')).toBe('#f7f1e7');
     expect(root.style.getPropertyValue('--app-surface')).toBe('#fffdf9');
+    expect(root.style.getPropertyValue('--app-text')).toBe('#1a0f08');
+    expect(root.style.getPropertyValue('--app-text-secondary')).toBe('#4a301e');
     expect(root.style.getPropertyValue('--accent')).toBe('#5c3a21');
-    expect(root.style.getPropertyValue('--table-header-bg')).toBe('#dceefb');
-    expect(root.style.getPropertyValue('--table-header-fg')).toBe('#2c1b12');
+    expect(root.style.getPropertyValue('--table-header-bg')).toBe('#cfe9fc');
+    expect(root.style.getPropertyValue('--table-header-fg')).toBe('#180d07');
   });
 
   it('applies Deep Espresso dark surface and luminous Baby Blue accent in dark mode', () => {
@@ -46,8 +48,10 @@ describe('espresso-cream-blue theme preset (Brown + Cream + Baby Blue)', () => {
     expect(root.classList.contains('dark')).toBe(true);
     expect(root.style.getPropertyValue('--app-bg')).toBe('#16100c');
     expect(root.style.getPropertyValue('--app-surface')).toBe('#211812');
-    expect(root.style.getPropertyValue('--table-header-bg')).toBe('#1f303d');
-    expect(root.style.getPropertyValue('--table-header-fg')).toBe('#dceefb');
+    expect(root.style.getPropertyValue('--app-text')).toBe('#fffaf2');
+    expect(root.style.getPropertyValue('--app-text-secondary')).toBe('#f0dec8');
+    expect(root.style.getPropertyValue('--table-header-bg')).toBe('#1d3446');
+    expect(root.style.getPropertyValue('--table-header-fg')).toBe('#e8f6ff');
     expect(root.style.getPropertyValue('--slate-800')).toBe('37 27 20');
 
     useThemeStore.getState().setMode('light');

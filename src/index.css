@@ -3973,6 +3973,91 @@ html[data-preset='espresso-cream-blue'] .font-mono {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
+/* ── 0. وضوح وزهو الخطوط والنصوص في الوضعين النهاري والليلي ── */
+@media screen {
+  html[data-preset='espresso-cream-blue']:not(.dark) {
+    color: #1a0f08;
+  }
+
+  :where(html[data-preset='espresso-cream-blue']:not(.dark)) :is(
+    .text-slate-400,
+    .text-slate-500,
+    .text-gray-400,
+    .text-gray-500,
+    .text-neutral-400,
+    .text-neutral-500,
+    .text-\[var\(--app-text-secondary\)\]
+  ) {
+    color: #4a301e !important;
+    font-weight: 600;
+  }
+
+  :where(html[data-preset='espresso-cream-blue']:not(.dark)) :is(h1, h2, h3, h4, strong, b) {
+    color: #180d07;
+  }
+
+  :where(html[data-preset='espresso-cream-blue']:not(.dark)) :is(.text-blue-600, .text-blue-500) {
+    color: #1668a8 !important;
+  }
+
+  :where(html[data-preset='espresso-cream-blue']:not(.dark)) :is(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+    select,
+    textarea
+  ) {
+    color: #1a0f08 !important;
+    font-weight: 600;
+  }
+
+  :where(html[data-preset='espresso-cream-blue']:not(.dark)) table tbody tr td {
+    color: #1a0f08;
+    font-weight: 500;
+  }
+
+  html.dark[data-preset='espresso-cream-blue'] {
+    color: #fffaf2;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) :is(
+    .text-slate-400,
+    .text-slate-500,
+    .text-gray-400,
+    .text-gray-500,
+    .dark\:text-slate-400,
+    .dark\:text-slate-500,
+    .text-\[var\(--app-text-secondary\)\]
+  ) {
+    color: #f0dec8 !important;
+    font-weight: 500;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) :is(h1, h2, h3, h4, strong, b) {
+    color: #ffffff;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) :is(
+    .text-blue-400,
+    .text-blue-500,
+    .dark\:text-blue-400,
+    .dark\:text-blue-300
+  ) {
+    color: #8cd0ff !important;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) :is(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+    select,
+    textarea
+  ) {
+    color: #fffaf2 !important;
+    font-weight: 500;
+  }
+
+  :where(html.dark[data-preset='espresso-cream-blue']) table tbody tr td {
+    color: #fffaf2;
+  }
+}
+
 /* ── 1. الشريط الجانبي (Sidebar) — بني إسبريسو فاخر مع لمسات Baby Blue ── */
 html[data-preset='espresso-cream-blue'] aside {
   background-color: #2f1d13 !important;
@@ -4001,19 +4086,22 @@ html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] h1 {
 }
 
 html[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] span {
-  color: #9acbeb !important;
+  color: #8cd0ff !important;
+  font-weight: 700 !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside nav > div > div:first-child {
-  color: #c9b29a !important;
+  color: #e8d4bc !important;
+  font-weight: 700 !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside :is(h1, h2, h3, p, span, a) {
-  color: #f5ebdc !important;
+  color: #fffaf2 !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside nav button {
-  color: #f5ebdc !important;
+  color: #fffaf2 !important;
+  font-weight: 600 !important;
   transition: transform 0.18s ease-out,
               background-color 0.15s ease,
               border-color 0.15s ease,
@@ -4264,21 +4352,22 @@ html.dark[data-preset='espresso-cream-blue'] [data-inspector-subheader='true'] {
   html[data-preset='espresso-cream-blue'] table thead,
   html[data-preset='espresso-cream-blue'] table thead tr,
   html[data-preset='espresso-cream-blue'] table thead tr th {
-    background-color: #dceefb !important;
-    color: #2c1b12 !important;
-    border-color: #b7d8f0 !important;
+    background-color: #cfe9fc !important;
+    color: #180d07 !important;
+    border-color: #9ecdf0 !important;
+    font-weight: 800 !important;
   }
 
   html[data-preset='espresso-cream-blue'] table thead tr {
-    border-bottom: 2px solid #8ec5ec !important;
+    border-bottom: 2px solid #68b5eb !important;
   }
 
   html[data-preset='espresso-cream-blue'] table thead tr th:hover {
-    background-color: #cbe4f8 !important;
+    background-color: #bcdefa !important;
   }
 
   html[data-preset='espresso-cream-blue'] table thead tr th svg {
-    color: #5c3a21;
+    color: #4a2e1b;
   }
 
   html[data-preset='espresso-cream-blue'] table tbody tr:nth-child(even) {
@@ -4286,27 +4375,28 @@ html.dark[data-preset='espresso-cream-blue'] [data-inspector-subheader='true'] {
   }
 
   html[data-preset='espresso-cream-blue'] table tbody tr:hover {
-    background-color: #edf6fd;
+    background-color: #e6f4fe;
   }
 
   :where(html.dark[data-preset='espresso-cream-blue']) table thead,
   :where(html.dark[data-preset='espresso-cream-blue']) table thead tr,
   :where(html.dark[data-preset='espresso-cream-blue']) table thead tr th {
-    background-color: #1f303d !important;
-    color: #dceefb !important;
-    border-color: #344d61 !important;
+    background-color: #1d3446 !important;
+    color: #e8f6ff !important;
+    border-color: #365670 !important;
+    font-weight: 800 !important;
   }
 
   :where(html.dark[data-preset='espresso-cream-blue']) table thead tr {
-    border-bottom: 2px solid #7bbbe8 !important;
+    border-bottom: 2px solid #7cc8ff !important;
   }
 
   :where(html.dark[data-preset='espresso-cream-blue']) table thead tr th:hover {
-    background-color: #273c4d !important;
+    background-color: #254157 !important;
   }
 
   :where(html.dark[data-preset='espresso-cream-blue']) table thead tr th svg {
-    color: #9acbeb;
+    color: #8cd0ff;
   }
 
   html.dark[data-preset='espresso-cream-blue'] table tbody tr:nth-child(even) {

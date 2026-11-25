@@ -31,7 +31,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
   const [approvedQuantities, setApprovedQuantities] = useState<Record<string, number>>({});
   const [reviewNotes, setReviewNotes] = useState<string>('');
   const [isRejecting, setIsRejecting] = useState<boolean>(false);
-  const [modalZIndex, setModalZIndex] = useState<number>(() => allocateModalZIndex());
+  const [modalZIndex, setModalZIndex] = useState<number>(10060);
   const { mutate: respondBatch, isPending } = useRespondToTransferBatch();
 
   const activeRequests = requests ?? [];
@@ -51,6 +51,19 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
       setIsRejecting(false);
     }
   }, [requests, isOpen]);
+
+  // إغلاق نظيف بزر Escape دون إغلاق النافذة الخلفية
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc, true);
+    return () => window.removeEventListener('keydown', handleEsc, true);
+  }, [isOpen, onClose]);
 
   if (!isOpen || activeRequests.length === 0) return null;
 

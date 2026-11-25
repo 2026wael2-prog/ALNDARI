@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Plus, Eye as EyeIcon, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import type { Product } from '../../../inventory/types';
 import type { ColumnConfig } from '../../hooks/useProductTableConfig';
@@ -22,7 +22,7 @@ interface ProductSelectionTableRowProps {
   onMouseEnter: () => void;
 }
 
-export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> = ({
+export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> = React.memo(({
   product,
   index,
   visibleColumns,
@@ -36,12 +36,19 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
   onRowClick,
   onMouseEnter,
 }) => {
-  const branchAvailability = summarizeProductBranchAvailability(product, effectiveBranchId);
-  const googleUrl = buildGoogleSearchUrl({
-    name: product.name || product.name_ar,
-    partNumber: product.part_number,
-    brand: product.brand,
-  });
+  const branchAvailability = useMemo(
+    () => summarizeProductBranchAvailability(product, effectiveBranchId),
+    [product, effectiveBranchId]
+  );
+  const googleUrl = useMemo(
+    () =>
+      buildGoogleSearchUrl({
+        name: product.name || product.name_ar,
+        partNumber: product.part_number,
+        brand: product.brand,
+      }),
+    [product.name, product.name_ar, product.part_number, product.brand]
+  );
   const renderCellContent = (col: ColumnConfig) => {
     switch (col.id) {
       case 'index':
@@ -92,7 +99,7 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
       }
       case 'price':
         return (
-          <span className="font-mono text-sm font-black text-emerald-600 group-hover:text-white">
+          <span className="font-mono text-sm font-black text-emerald-700 dark:text-emerald-400">
             {mode === 'purchase' ? product.cost_price : product.selling_price || product.sale_price}
           </span>
         );
@@ -197,4 +204,6 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
       ))}
     </tr>
   );
-};
+});
+
+ProductSelectionTableRow.displayName = 'ProductSelectionTableRow';

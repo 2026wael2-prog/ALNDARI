@@ -26,10 +26,21 @@ const mockTransferRequests = [
   },
 ];
 
+const mockRefetch = vi.fn();
+const mockShowToast = vi.fn();
+
 vi.mock('../../../inventory/hooks/useStockTransferRequests', () => ({
   useStockTransferRequests: () => ({
     data: mockTransferRequests,
     isLoading: false,
+    isFetching: false,
+    refetch: mockRefetch,
+  }),
+}));
+
+vi.mock('../../../feedback/store', () => ({
+  useFeedbackStore: () => ({
+    showToast: mockShowToast,
   }),
 }));
 

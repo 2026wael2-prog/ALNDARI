@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabaseClient';
 import { useAuthStore } from '../../auth/store';
@@ -30,12 +30,15 @@ export interface RelatedProductsResult {
   contextLabel: string;
 }
 
-/**
- * Extracts a clean 4-6 char OEM part-number prefix (e.g. "04438" from "04438-0K020")
- * so parts belonging to the same OEM assembly family get boosted.
- */
+interface ScoreContext {
+  normVehicles: readonly string[];
+  normSearchTokens: readonly string[];
+  partPrefix: string | null;
+  focusedBrandNorm: string;
+}
+
 function extractPartNumberPrefix(partNumber?: string | null): string | null {
-  if (!partNumber) return null;
+  if (partNumber === null || partNumber === undefined || partNumber.trim() === '') return null;
   const cleaned = partNumber.trim();
   const dashIdx = cleaned.indexOf('-');
   if (dashIdx >= 4 && dashIdx <= 7) {
@@ -44,24 +47,120 @@ function extractPartNumberPrefix(partNumber?: string | null): string | null {
   return null;
 }
 
-/**
- * Escapes special PostgREST ILIKE pattern characters so user/token strings never break `.or(...)`.
- */
 function sanitizeFilterToken(token: string): string {
   return token.replace(/[%_,()]/g, '').trim();
+}
+
+function buildContextText(searchQuery: string, focusedProduct: Product | null): string {
+  const q = searchQuery.trim();
+  const pBaseName = focusedProduct
+    ? focusedProduct.name_ar !== ''
+      ? focusedProduct.name_ar
+      : focusedProduct.name
+    : '';
+  const pName = focusedProduct ? `${pBaseName} ${focusedProduct.brand ?? ''}`.trim() : '';
+
+  if (q.length >= 2) {
+    const qAnalysis = analyzeAutomotiveQuery(q);
+    if (qAnalysis.matchedSystems.length > 0) {
+      return pName !== '' && qAnalysis.vehicleTokens.length === 0 ? `${q} ${pName}` : q;
+    }
+  }
+  return pName !== '' ? pName : q;
+}
+
+/* eslint-disable complexity -- multi-factor relevance scoring across vehicle, OEM prefix, companion terms, brand & stock */
+function scoreCompanionProduct(product: Product, ctx: ScoreContext): number {
+  const baseName = product.name_ar !== '' ? product.name_ar : product.name;
+  const normName = normalizeAutomotiveText(
+    `${baseName} ${product.specifications ?? ''} ${product.brand ?? ''}`
+  );
+  let score = 0;
+
+  for (const v of ctx.normVehicles) {
+    if (v !== '' && normName.includes(v)) score += 50;
+  }
+
+  if (ctx.partPrefix !== null && (product.part_number?.startsWith(ctx.partPrefix) ?? false)) {
+    score += 40;
+  }
+
+  for (const t of ctx.normSearchTokens) {
+    if (t !== '' && normName.includes(t)) score += 25;
+  }
+
+  if (
+    ctx.focusedBrandNorm !== '' &&
+    product.brand !== null &&
+    normalizeAutomotiveText(product.brand) === ctx.focusedBrandNorm
+  ) {
+    score += 10;
+  }
+
+  if (product.stock_quantity > 0) {
+    score += 15;
+  } else if (
+    Array.isArray(product.warehouse_distribution) &&
+    product.warehouse_distribution.some(w => w.quantity > 0)
+  ) {
+    score += 6;
+  }
+
+  return score;
+}
+
+async function fetchCompanionCandidates(params: {
+  companyId: string;
+  queryTokens: readonly string[];
+  partPrefix: string | null;
+  warehouseId?: string | null | undefined;
+  effectiveBranchId: string | null;
+}): Promise<Product[]> {
+  const orClauses: string[] = params.queryTokens.map(tok => `name_ar.ilike.%${tok}%`);
+  if (params.partPrefix !== null) {
+    orClauses.push(`part_number.ilike.${sanitizeFilterToken(params.partPrefix)}%`);
+  }
+  if (orClauses.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(
+      `
+      *,
+      category:product_categories(id, name),
+      stock:product_stock(
+        quantity,
+        warehouse_id,
+        warehouses(
+          id,
+          name_ar,
+          location,
+          branch_id,
+          branches:branches(id, name, code)
+        )
+      )
+    `
+    )
+    .eq('company_id', params.companyId)
+    .is('deleted_at', null)
+    .or(orClauses.join(','))
+    .limit(36);
+
+  if (error !== null) return [];
+  return productService.mapRawProducts(data, params.warehouseId, params.effectiveBranchId);
 }
 
 /**
  * useRelatedProducts
  * ----------------------------------------------------------------------------
  * Smart companion-parts hook for ProductSelectionModal:
- * - Analyzes the current search query (or focused product) via the automotive
- *   mechanical-systems graph.
- * - Fetches real companion products from the company's inventory in a single
- *   lightweight Supabase query, cached with React Query.
- * - Ranks results by vehicle-model match, OEM part-number family match,
- *   companion keyword match, and stock availability.
+ * - Debounces rapid row hover (`focusedProduct`) by 280ms to prevent query storms
+ *   and UI flicker while gliding the cursor across rows.
+ * - Analyzes query/product via the automotive mechanical-systems graph.
+ * - Fetches real companion products in a single cached Supabase query and ranks
+ *   them by vehicle match, OEM part-number family, companion terms, and stock.
  */
+/* eslint-disable max-lines-per-function, complexity -- cohesive React Query hook combining hover debounce, query & ranking */
 export function useRelatedProducts({
   searchQuery,
   focusedProduct,
@@ -73,32 +172,34 @@ export function useRelatedProducts({
   const { user } = useAuthStore();
   const companyId = user?.company_id ?? '';
 
-  // Prefer the focused product name when available and matching a system; otherwise use searchQuery
-  const contextText = useMemo(() => {
-    const q = searchQuery.trim();
-    const pName = focusedProduct ? `${focusedProduct.name_ar || focusedProduct.name} ${focusedProduct.brand ?? ''}`.trim() : '';
-    if (q.length >= 2) {
-      const qAnalysis = analyzeAutomotiveQuery(q);
-      if (qAnalysis.matchedSystems.length > 0) {
-        // Combine query + focused product vehicle tokens if focused product adds car model context
-        return pName && qAnalysis.vehicleTokens.length === 0 ? `${q} ${pName}` : q;
-      }
-    }
-    return pName || q;
-  }, [searchQuery, focusedProduct]);
+  // Debounce focusedProduct so moving the mouse across rows never triggers rapid queries
+  const [debouncedFocused, setDebouncedFocused] = useState<Product | null>(focusedProduct);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFocused(focusedProduct);
+    }, 280);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [focusedProduct]);
+
+  const contextText = useMemo(
+    () => buildContextText(searchQuery, debouncedFocused),
+    [searchQuery, debouncedFocused]
+  );
 
   const relation = useMemo(() => analyzeAutomotiveQuery(contextText), [contextText]);
   const partPrefix = useMemo(
-    () => extractPartNumberPrefix(focusedProduct?.part_number),
-    [focusedProduct?.part_number]
+    () => extractPartNumberPrefix(debouncedFocused?.part_number),
+    [debouncedFocused?.part_number]
+  );
+  const queryTokens = useMemo(
+    () => relation.searchTokens.map(sanitizeFilterToken).filter(t => t.length >= 2).slice(0, 6),
+    [relation.searchTokens]
   );
 
-  const queryTokens = useMemo(() => {
-    const safe = relation.searchTokens.map(sanitizeFilterToken).filter(t => t.length >= 2);
-    return safe.slice(0, 6);
-  }, [relation.searchTokens]);
-
-  const shouldFetch = enabled && Boolean(companyId) && (queryTokens.length > 0 || Boolean(partPrefix));
+  const shouldFetch =
+    enabled && companyId !== '' && (queryTokens.length > 0 || partPrefix !== null);
 
   const { data: candidates = [], isLoading } = useQuery<Product[]>({
     queryKey: [
@@ -112,118 +213,48 @@ export function useRelatedProducts({
     enabled: shouldFetch,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    queryFn: async () => {
-      const orClauses: string[] = [];
-
-      for (const tok of queryTokens) {
-        orClauses.push(`name_ar.ilike.%${tok}%`);
-      }
-      if (partPrefix) {
-        orClauses.push(`part_number.ilike.${sanitizeFilterToken(partPrefix)}%`);
-      }
-
-      if (orClauses.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from('products')
-        .select(
-          `
-          *,
-          category:product_categories(id, name),
-          stock:product_stock(
-            quantity,
-            warehouse_id,
-            warehouses(
-              id,
-              name_ar,
-              location,
-              branch_id,
-              branches:branches(id, name, code)
-            )
-          )
-        `
-        )
-        .eq('company_id', companyId)
-        .is('deleted_at', null)
-        .or(orClauses.join(','))
-        .limit(36);
-
-      if (error || !data) return [];
-
-      return productService.mapRawProducts(data, warehouseId, effectiveBranchId);
-    },
+    queryFn: () =>
+      fetchCompanionCandidates({
+        companyId,
+        queryTokens,
+        partPrefix,
+        warehouseId,
+        effectiveBranchId,
+      }),
   });
 
   const excludeSet = useMemo(() => new Set(excludeProductIds), [excludeProductIds]);
-  const normVehicles = useMemo(
-    () => relation.vehicleTokens.map(normalizeAutomotiveText),
-    [relation.vehicleTokens]
-  );
-  const normSearchTokens = useMemo(
-    () => queryTokens.map(normalizeAutomotiveText),
-    [queryTokens]
+  const scoreCtx = useMemo<ScoreContext>(
+    () => ({
+      normVehicles: relation.vehicleTokens.map(normalizeAutomotiveText),
+      normSearchTokens: queryTokens.map(normalizeAutomotiveText),
+      partPrefix,
+      focusedBrandNorm:
+        debouncedFocused?.brand !== null && debouncedFocused?.brand !== undefined
+          ? normalizeAutomotiveText(debouncedFocused.brand)
+          : '',
+    }),
+    [relation.vehicleTokens, queryTokens, partPrefix, debouncedFocused?.brand]
   );
 
   const relatedProducts = useMemo(() => {
     if (candidates.length === 0) return [];
+    const focusedId = debouncedFocused?.id;
 
-    const focusedId = focusedProduct?.id;
-    const focusedBrandNorm = focusedProduct?.brand
-      ? normalizeAutomotiveText(focusedProduct.brand)
-      : '';
-
-    const scored = candidates
+    return candidates
       .filter(p => p.id !== focusedId && !excludeSet.has(p.id))
-      .map(p => {
-        const normName = normalizeAutomotiveText(
-          `${p.name_ar || p.name} ${p.specifications ?? ''} ${p.brand ?? ''}`
-        );
-        let score = 0;
-
-        // 1. Vehicle model match (highest relevance!)
-        for (const v of normVehicles) {
-          if (v && normName.includes(v)) {
-            score += 50;
-          }
-        }
-
-        // 2. OEM part-number family prefix match
-        if (partPrefix && p.part_number?.startsWith(partPrefix)) {
-          score += 40;
-        }
-
-        // 3. Companion mechanical term match
-        for (const t of normSearchTokens) {
-          if (t && normName.includes(t)) {
-            score += 25;
-          }
-        }
-
-        // 4. Brand match
-        if (focusedBrandNorm && p.brand && normalizeAutomotiveText(p.brand) === focusedBrandNorm) {
-          score += 10;
-        }
-
-        // 5. Stock availability boost
-        if ((p.stock_quantity ?? 0) > 0) {
-          score += 15;
-        } else if (
-          Array.isArray(p.warehouse_distribution) &&
-          p.warehouse_distribution.some(w => (Number(w.quantity) || 0) > 0)
-        ) {
-          score += 6;
-        }
-
-        return { product: p, score };
-      })
+      .map(p => ({ product: p, score: scoreCompanionProduct(p, scoreCtx) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 10)
       .map(entry => entry.product);
+  }, [candidates, excludeSet, debouncedFocused?.id, scoreCtx]);
 
-    return scored;
-  }, [candidates, excludeSet, focusedProduct, normVehicles, normSearchTokens, partPrefix]);
-
-  const contextLabel = focusedProduct?.name || focusedProduct?.name_ar || searchQuery.trim();
+  const contextLabel =
+    debouncedFocused !== null
+      ? debouncedFocused.name !== ''
+        ? debouncedFocused.name
+        : debouncedFocused.name_ar
+      : searchQuery.trim();
 
   return {
     relation,

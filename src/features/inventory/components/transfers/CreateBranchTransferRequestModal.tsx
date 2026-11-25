@@ -21,6 +21,8 @@ interface CreateBranchTransferRequestModalProps {
   initialProduct?: Product | null;
   /** Optional source branch ID to pre-select (e.g. branch with highest stock) */
   initialSourceBranchId?: string | null;
+  /** Optional requester branch ID override (e.g. when manager selected a branch in the search toolbar) */
+  requesterBranchId?: string | null;
 }
 
 export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequestModalProps> = ({
@@ -28,15 +30,32 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
   onClose,
   initialProduct = null,
   initialSourceBranchId = null,
+  requesterBranchId = null,
 }) => {
-  const { branchId: currentBranchId, branchName: currentBranchName } = useBranchFilter();
+  const { branchId: globalBranchId, branchName: globalBranchName } = useBranchFilter();
   const { data: allBranches } = useBranches();
   const { products } = useProducts('');
   const { mutate: createBatch, isPending } = useCreateStockTransferBatch();
 
+  const activeBranches = useMemo(
+    () => ((allBranches as Branch[]) ?? []).filter((b: Branch) => b.status === 'active'),
+    [allBranches]
+  );
+
+  const lockedRequesterBranchId = requesterBranchId ?? globalBranchId;
+  const [manualRequesterBranchId, setManualRequesterBranchId] = useState<string>('');
+  const effectiveRequesterBranchId = lockedRequesterBranchId ?? (manualRequesterBranchId || null);
+
+  const currentBranchName = useMemo(() => {
+    if (effectiveRequesterBranchId) {
+      return activeBranches.find(b => b.id === effectiveRequesterBranchId)?.name ?? globalBranchName;
+    }
+    return globalBranchName;
+  }, [effectiveRequesterBranchId, activeBranches, globalBranchName]);
+
   const otherBranches = useMemo(
-    () => ((allBranches as Branch[]) ?? []).filter((b: Branch) => b.id !== currentBranchId),
-    [allBranches, currentBranchId]
+    () => activeBranches.filter((b: Branch) => b.id !== effectiveRequesterBranchId),
+    [activeBranches, effectiveRequesterBranchId]
   );
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
@@ -44,13 +63,18 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
   const [selectedItems, setSelectedItems] = useState<TransferItemDraft[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
-  const [modalZIndex, setModalZIndex] = useState<number>(() => allocateModalZIndex());
+  const [modalZIndex, setModalZIndex] = useState<number>(10050);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Pre-fill product, preferred source branch, and stacking z-index whenever modal opens
+  // Pre-fill product, preferred branches, and stacking z-index whenever modal opens
   useEffect(() => {
     if (!isOpen) return;
     setModalZIndex(allocateModalZIndex());
+
+    if (!lockedRequesterBranchId && activeBranches.length > 0 && !manualRequesterBranchId) {
+      const defaultReq = activeBranches.find(b => b.id !== initialSourceBranchId) ?? activeBranches[0];
+      if (defaultReq) setManualRequesterBranchId(defaultReq.id);
+    }
 
     if (initialProduct) {
       setSelectedItems([{ product: initialProduct, quantity: 1 }]);
@@ -67,7 +91,28 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
       const first = otherBranches[0];
       if (first) setSelectedBranchId(first.id);
     }
-  }, [isOpen, initialProduct, initialSourceBranchId, otherBranches]);
+  }, [
+    isOpen,
+    initialProduct,
+    initialSourceBranchId,
+    lockedRequesterBranchId,
+    activeBranches,
+    manualRequesterBranchId,
+    otherBranches,
+  ]);
+
+  // Close cleanly on Escape without closing parent fullscreen modals behind it
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc, true);
+    return () => window.removeEventListener('keydown', handleEsc, true);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -123,15 +168,20 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
   };
 
   const totalQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
-  const isValid = Boolean(selectedBranchId && selectedItems.length > 0 && currentBranchId);
+  const isValid = Boolean(
+    selectedBranchId &&
+      selectedItems.length > 0 &&
+      effectiveRequesterBranchId &&
+      selectedBranchId !== effectiveRequesterBranchId
+  );
 
   const handleSubmit = (e: React.SyntheticEvent): void => {
     e.preventDefault();
-    if (!isValid || !currentBranchId) return;
+    if (!isValid || !effectiveRequesterBranchId) return;
 
     createBatch(
       {
-        requesterBranchId: currentBranchId,
+        requesterBranchId: effectiveRequesterBranchId,
         dto: {
           sourceBranchId: selectedBranchId,
           items: selectedItems.map(item => ({
@@ -200,6 +250,25 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
           onSubmit={handleSubmit}
           className="flex flex-1 flex-col space-y-4 overflow-y-auto p-5 text-right"
         >
+          {!lockedRequesterBranchId && activeBranches.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-800/60 dark:bg-amber-950/30">
+              <label className="mb-1.5 block text-xs font-bold text-amber-900 dark:text-amber-200">
+                الفرع الطالب للبضاعة (المستلم):
+              </label>
+              <select
+                value={manualRequesterBranchId}
+                onChange={e => setManualRequesterBranchId(e.target.value)}
+                className="h-10 w-full rounded-xl border border-amber-300 bg-white px-3 text-xs font-bold text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              >
+                {activeBranches.map((b: Branch) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.is_main ? '★ (الرئيسي)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40">
             <label className="mb-1.5 block text-xs font-bold text-slate-700 dark:text-slate-300">
               الفرع المطلوب منه البضاعة (المصدر):

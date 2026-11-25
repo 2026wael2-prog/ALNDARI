@@ -66,16 +66,14 @@ export const AUTOMOTIVE_COMPANION_RULES: readonly CompanionRule[] = [
     ],
     searchTokens: [
       'ربل عكس',
-      'ربلة عكس',
       'ربلات عكس',
-      'ركبة ذراع',
       'ركب ذراع',
+      'ذراع',
       'شريم',
-      'صليب عكس',
-      'عكس داخلي',
-      'عكس خارجي',
+      'صليب',
+      'عكس',
       'شحم',
-      'رمان هوب',
+      'رمان',
     ],
   },
 
@@ -116,15 +114,11 @@ export const AUTOMOTIVE_COMPANION_RULES: readonly CompanionRule[] = [
       'كراسي مساعدات',
     ],
     searchTokens: [
-      'جوزة',
-      'جوزه',
-      'جوزات',
-      'بوش مقص',
-      'بوشات',
+      'جوز',
+      'بوش',
       'مقص',
-      'مسمار توازن',
       'توازن',
-      'ركبة',
+      'ركب',
       'ذراع',
     ],
   },
@@ -161,15 +155,12 @@ export const AUTOMOTIVE_COMPANION_RULES: readonly CompanionRule[] = [
       'ربلة صدام خلفي',
     ],
     searchTokens: [
-      'لعابة',
-      'لعابه',
-      'ربل سست',
-      'ربلات سست',
+      'لعاب',
       'سست',
-      'مسمار سنتر',
+      'سنتر',
       'قفيز',
-      'مساعد خلفي',
-      'بوش سست',
+      'مساعد',
+      'بوش',
     ],
   },
 
@@ -534,13 +525,39 @@ export function extractVehicleTokens(text: string): string[] {
   return found.slice(0, 3);
 }
 
+function matchesRule(normText: string, rule: CompanionRule): boolean {
+  return rule.keywords.some(kw => {
+    const normKw = normalizeAutomotiveText(kw);
+    return normKw.length >= 2 && (normText.includes(normKw) || normKw.includes(normText));
+  });
+}
+
+function collectRuleSuggestions(
+  rule: CompanionRule,
+  normText: string,
+  companionChips: string[],
+  searchTokens: string[]
+): void {
+  for (const rec of rule.recommendations) {
+    const recNorm = normalizeAutomotiveText(rec);
+    if (!normText.includes(recNorm) && !companionChips.includes(rec)) {
+      companionChips.push(rec);
+    }
+  }
+  for (const tok of rule.searchTokens) {
+    if (!searchTokens.includes(tok)) {
+      searchTokens.push(tok);
+    }
+  }
+}
+
 /**
  * Analyzes a product name or search query and returns all matching mechanical
  * systems, companion chips, high-recall inventory search tokens, and vehicle context.
  */
 export function analyzeAutomotiveQuery(text: string): AutomotiveRelationResult {
   const norm = normalizeAutomotiveText(text);
-  if (!norm || norm.length < 2) {
+  if (norm.length < 2) {
     return {
       matchedSystems: [],
       primarySystemLabel: null,
@@ -550,40 +567,20 @@ export function analyzeAutomotiveQuery(text: string): AutomotiveRelationResult {
     };
   }
 
-  const matchedSystems: CompanionRule[] = [];
+  const matchedSystems = AUTOMOTIVE_COMPANION_RULES.filter(rule => matchesRule(norm, rule));
   const companionChips: string[] = [];
   const searchTokens: string[] = [];
 
-  for (const rule of AUTOMOTIVE_COMPANION_RULES) {
-    const isMatch = rule.keywords.some(kw => {
-      const normKw = normalizeAutomotiveText(kw);
-      return normKw.length >= 2 && (norm.includes(normKw) || normKw.includes(norm));
-    });
-
-    if (isMatch) {
-      matchedSystems.push(rule);
-      for (const rec of rule.recommendations) {
-        const recNorm = normalizeAutomotiveText(rec);
-        if (!norm.includes(recNorm) && !companionChips.includes(rec)) {
-          companionChips.push(rec);
-        }
-      }
-      for (const tok of rule.searchTokens) {
-        if (!searchTokens.includes(tok)) {
-          searchTokens.push(tok);
-        }
-      }
-    }
+  for (const rule of matchedSystems) {
+    collectRuleSuggestions(rule, norm, companionChips, searchTokens);
   }
-
-  const vehicleTokens = extractVehicleTokens(text);
 
   return {
     matchedSystems,
     primarySystemLabel: matchedSystems[0]?.systemLabel ?? null,
     companionChips: companionChips.slice(0, 8),
     searchTokens: searchTokens.slice(0, 8),
-    vehicleTokens,
+    vehicleTokens: extractVehicleTokens(text),
   };
 }
 
@@ -596,12 +593,40 @@ export function buildGoogleSearchUrl(params: {
   brand?: string | null;
   query?: string | null;
 }): string {
-  const parts = params.query?.trim()
-    ? [params.query.trim()]
-    : [params.partNumber?.trim(), params.brand?.trim(), params.name?.trim()].filter(Boolean);
+  const rawQuery = params.query?.trim() ?? '';
+  const parts =
+    rawQuery.length > 0
+      ? [rawQuery]
+      : [params.partNumber?.trim(), params.brand?.trim(), params.name?.trim()].filter(
+          (val): val is string => val !== undefined && val.length > 0
+        );
 
-  const q = parts.join(' ').trim() || 'قطع غيار سيارات';
-  return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+  const q = parts.join(' ').trim();
+  const finalQuery = q.length > 0 ? q : 'قطع غيار سيارات';
+  return `https://www.google.com/search?q=${encodeURIComponent(finalQuery)}`;
+}
+
+const UNIVERSAL_FALLBACK_ITEMS: readonly string[] = [
+  'فلتر زيت محرك',
+  'فلتر هواء محرك',
+  'ماء مساحات مركز',
+  'زيت فرامل DOT4',
+  'منظف بخاخات',
+  'فلتر مكيف',
+];
+
+function appendUnseenItems(
+  source: readonly string[],
+  normalizedCart: readonly string[],
+  target: string[]
+): void {
+  for (const item of source) {
+    const itemNorm = normalizeAutomotiveText(item);
+    const alreadyInCart = normalizedCart.some(c => c.includes(itemNorm) || itemNorm.includes(c));
+    if (!alreadyInCart && !target.includes(item)) {
+      target.push(item);
+    }
+  }
 }
 
 /**
@@ -612,52 +637,23 @@ export function buildGoogleSearchUrl(params: {
  * @returns Deduplicated list of recommended products
  */
 export function getLocalCrossSellSuggestions(cartItemNames: string[], limit = 6): string[] {
-  if (!cartItemNames || cartItemNames.length === 0) {
+  if (cartItemNames.length === 0) {
     return [];
   }
 
-  const normalizedCart = cartItemNames.map(normalizeAutomotiveText);
+  const normalizedCart = cartItemNames.map(normalizeAutomotiveText).filter(s => s.length > 0);
   const matchedRecommendations: string[] = [];
 
   for (const cartName of normalizedCart) {
-    if (!cartName) continue;
-
     for (const rule of AUTOMOTIVE_COMPANION_RULES) {
-      const isMatch = rule.keywords.some(kw => {
-        const normalizedKw = normalizeAutomotiveText(kw);
-        return cartName.includes(normalizedKw) || normalizedKw.includes(cartName);
-      });
-
-      if (isMatch) {
-        for (const rec of rule.recommendations) {
-          const recNorm = normalizeAutomotiveText(rec);
-          const alreadyInCart = normalizedCart.some(
-            c => c.includes(recNorm) || recNorm.includes(c)
-          );
-          if (!alreadyInCart && !matchedRecommendations.includes(rec)) {
-            matchedRecommendations.push(rec);
-          }
-        }
+      if (matchesRule(cartName, rule)) {
+        appendUnseenItems(rule.recommendations, normalizedCart, matchedRecommendations);
       }
     }
   }
 
   if (matchedRecommendations.length === 0) {
-    const universalFallbacks = [
-      'فلتر زيت محرك',
-      'فلتر هواء محرك',
-      'ماء مساحات مركز',
-      'زيت فرامل DOT4',
-      'منظف بخاخات',
-      'فلتر مكيف',
-    ];
-    for (const item of universalFallbacks) {
-      const itemNorm = normalizeAutomotiveText(item);
-      const alreadyInCart = normalizedCart.some(c => c.includes(itemNorm) || itemNorm.includes(c));
-      if (!alreadyInCart && !matchedRecommendations.includes(item)) {
-        matchedRecommendations.push(item);
-      }
-    }
+    appendUnseenItems(UNIVERSAL_FALLBACK_ITEMS, normalizedCart, matchedRecommendations);
   }
 
   return matchedRecommendations.slice(0, limit);

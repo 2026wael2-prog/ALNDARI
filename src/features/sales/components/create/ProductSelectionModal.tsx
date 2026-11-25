@@ -438,6 +438,7 @@ const ProductSelectionModal: React.FC<Props> = ({
             }
             initialProduct={transferRequestState.product}
             initialSourceBranchId={transferRequestState.sourceBranchId}
+            requesterBranchId={effectiveBranchId}
           />
         </Suspense>
       )}

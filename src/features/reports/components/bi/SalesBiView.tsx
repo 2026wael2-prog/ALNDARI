@@ -77,29 +77,29 @@ export const SalesBiView: React.FC = () => {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1 sm:gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800/50" />
+            <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/50 sm:h-24 sm:rounded-2xl" />
           ))}
         </div>
       ) : (
         <>
-          {/* Summary KPI Cards */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">صافي المبيعات</span>
-                <div className="rounded-xl bg-blue-50 p-2 text-blue-600 dark:bg-blue-900/30">
+          {/* Summary KPI Cards — 4-per-row on mobile */}
+          <div className="grid grid-cols-4 gap-1 sm:gap-3">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">صافي المبيعات</span>
+                <div className="hidden rounded-xl bg-blue-50 p-2 text-blue-600 dark:bg-blue-900/30 sm:block">
                   <DollarSign size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-xl font-black text-blue-600 dark:text-blue-400">
+              <div dir="ltr" className="mt-1 truncate text-right font-mono text-[11px] font-black text-blue-600 dark:text-blue-400 sm:mt-2 sm:text-xl">
                 {formatCurrency(summary?.net_sales ?? 0, 'SAR')}
               </div>
               {growthPct !== undefined && (
                 <div
                   className={cn(
-                    'mt-1.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold font-mono',
+                    'mt-1 hidden items-center gap-0.5 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold sm:mt-1.5 sm:inline-flex',
                     isPositive
                       ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30'
                       : 'bg-rose-50 text-rose-600 dark:bg-rose-900/30'
@@ -111,48 +111,48 @@ export const SalesBiView: React.FC = () => {
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">عدد الفواتير ومتوسطها</span>
-                <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-900/30">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">الفواتير</span>
+                <div className="hidden rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-900/30 sm:block">
                   <Receipt size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-xl font-black text-slate-800 dark:text-slate-100">
-                {formatNumberDisplay(summary?.invoices_count ?? 0)} فاتورة
+              <div className="mt-1 truncate font-mono text-[11px] font-black text-slate-800 dark:text-slate-100 sm:mt-2 sm:text-xl">
+                {formatNumberDisplay(summary?.invoices_count ?? 0)}
               </div>
-              <div className="mt-1 text-[10px] font-bold text-slate-400">
+              <div className="mt-1 hidden text-[10px] font-bold text-slate-400 sm:block">
                 المتوسط: {formatCurrency(summary?.avg_invoice ?? 0, 'SAR')}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">نقدي مقابل آجل</span>
-                <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-900/30">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">نقدي / آجل</span>
+                <div className="hidden rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-900/30 sm:block">
                   <CreditCard size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
-                نقدي: {formatCurrency(summary?.cash_sales ?? 0, 'SAR')}
+              <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10px] font-black text-emerald-600 dark:text-emerald-400 sm:mt-2 sm:text-sm">
+                {formatCurrency(summary?.cash_sales ?? 0, 'SAR')}
               </div>
-              <div className="mt-1 font-mono text-xs font-bold text-amber-600 dark:text-amber-400">
-                آجل: {formatCurrency(summary?.credit_sales ?? 0, 'SAR')}
+              <div dir="ltr" className="mt-0.5 truncate text-right font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 sm:mt-1 sm:text-xs">
+                {formatCurrency(summary?.credit_sales ?? 0, 'SAR')}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">المرتجعات والخصومات</span>
-                <div className="rounded-xl bg-rose-50 p-2 text-rose-600 dark:bg-rose-900/30">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">مرتجع / خصم</span>
+                <div className="hidden rounded-xl bg-rose-50 p-2 text-rose-600 dark:bg-rose-900/30 sm:block">
                   <TrendingUp size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-sm font-black text-rose-600 dark:text-rose-400">
-                مرتجعات: {formatCurrency(summary?.returns_amount ?? 0, 'SAR')}
+              <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10px] font-black text-rose-600 dark:text-rose-400 sm:mt-2 sm:text-sm">
+                {formatCurrency(summary?.returns_amount ?? 0, 'SAR')}
               </div>
-              <div className="mt-1 font-mono text-xs font-bold text-slate-500">
-                خصومات: {formatCurrency(summary?.total_discount ?? 0, 'SAR')}
+              <div dir="ltr" className="mt-0.5 truncate text-right font-mono text-[10px] font-bold text-slate-500 sm:mt-1 sm:text-xs">
+                {formatCurrency(summary?.total_discount ?? 0, 'SAR')}
               </div>
             </div>
           </div>

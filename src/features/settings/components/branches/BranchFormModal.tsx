@@ -66,14 +66,14 @@ const BranchFormModal: React.FC<BranchFormModalProps> = ({
 
   return (
     <div
-      className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200 max-md:p-4"
+      className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm duration-200 sm:items-center sm:p-4"
       onClick={e => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="animate-in zoom-in-95 w-full max-w-md overflow-hidden rounded-2xl bg-[var(--app-surface)] shadow-2xl duration-200">
+      <div className="animate-in zoom-in-95 max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl duration-200 sm:rounded-2xl sm:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] p-5">
+        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 sm:p-5">
           <div className="flex items-center gap-3">
             <GitBranch size={20} className="text-blue-600 dark:text-blue-400" />
             <div>

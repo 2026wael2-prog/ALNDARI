@@ -47,10 +47,10 @@ export const AddTreasuryEntityModal: React.FC<AddTreasuryEntityModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm max-md:p-2">
-      <div className="w-full max-w-md border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl sm:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--app-border)] px-6 py-4 max-md:px-3">
+        <div className="flex items-center justify-between border-b border-[var(--app-border)] px-3.5 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center gap-2 max-md:gap-1.5">
             <Icon size={18} className={iconColor} />
             <h2 className="text-base font-bold text-[var(--app-text)]">{title}</h2>

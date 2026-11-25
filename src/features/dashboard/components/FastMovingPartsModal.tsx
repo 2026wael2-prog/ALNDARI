@@ -180,8 +180,8 @@ export const FastMovingPartsModal: React.FC<FastMovingPartsModalProps> = ({
   return (
     <div
       className={cn(
-        'fixed inset-0 z-50 flex items-center justify-center',
-        isMaximized ? 'p-0' : 'p-2 sm:p-4 md:p-6'
+        'fixed inset-0 z-50 flex items-end justify-center sm:items-center',
+        isMaximized ? 'p-0' : 'p-0 sm:p-4 md:p-6'
       )}
     >
       {/* Backdrop */}
@@ -193,10 +193,10 @@ export const FastMovingPartsModal: React.FC<FastMovingPartsModalProps> = ({
       {/* Modal Card */}
       <div
         className={cn(
-          'relative flex flex-col overflow-hidden border border-slate-700/80 bg-slate-900 text-slate-100 shadow-2xl transition-all duration-200',
+          'relative flex flex-col overflow-hidden border border-slate-700/80 bg-slate-900 pb-[env(safe-area-inset-bottom)] text-slate-100 shadow-2xl transition-all duration-200 sm:pb-0',
           isMaximized
-            ? 'h-full w-full rounded-none border-none'
-            : 'max-h-[94vh] w-full max-w-7xl rounded-2xl'
+            ? 'h-[100dvh] w-full rounded-none border-none'
+            : 'max-h-[94dvh] w-full max-w-7xl rounded-t-2xl sm:rounded-2xl'
         )}
       >
         {/* Header */}

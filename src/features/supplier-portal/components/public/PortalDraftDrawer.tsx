@@ -254,8 +254,8 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ successResult, onDismiss })
   if (!successResult) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md space-y-4 rounded-3xl border border-emerald-500/40 bg-slate-900 p-6 text-center shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="w-full max-w-md space-y-3 rounded-t-2xl border border-emerald-500/40 bg-slate-900 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-center shadow-2xl sm:space-y-4 sm:rounded-3xl sm:p-6">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400">
           <CheckCircle2 size={36} />
         </div>
@@ -406,7 +406,7 @@ export const PortalDraftDrawer: React.FC<PortalDraftDrawerProps> = ({
     <>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm">
-          <div className="animate-in slide-in-from-left flex h-full w-full max-w-xl flex-col border-r border-slate-800 bg-slate-900 p-4 shadow-2xl duration-300">
+          <div className="animate-in slide-in-from-left flex h-[100dvh] w-full max-w-xl flex-col border-r border-slate-800 bg-slate-900 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl duration-300 sm:p-4">
             <DrawerHeader onClose={onClose} />
             <DrawerBody
               draftItems={draftItems}

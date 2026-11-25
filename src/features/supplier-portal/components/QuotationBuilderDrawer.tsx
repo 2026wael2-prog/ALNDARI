@@ -203,9 +203,9 @@ export const QuotationBuilderDrawer: React.FC<Props> = ({
 
   return (
     <div className="backdrop-blur-xs animate-in fade-in fixed inset-0 z-50 flex justify-end overflow-hidden bg-slate-900/60 duration-150">
-      <div className="animate-in slide-in-from-left flex h-full w-full max-w-4xl flex-col border-r border-slate-200 bg-[var(--app-surface)] shadow-2xl duration-200 dark:border-slate-800">
+      <div className="animate-in slide-in-from-left flex h-[100dvh] w-full max-w-4xl flex-col border-r border-slate-200 bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl duration-200 dark:border-slate-800 sm:pb-0">
         {/* Compact Drawer Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 p-4 text-white">
+        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 p-3 text-white sm:p-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-indigo-400">
               <Calculator className="h-4 w-4" />

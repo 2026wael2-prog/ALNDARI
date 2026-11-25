@@ -325,7 +325,7 @@ export const ReconciliationPrintModal: React.FC<ReconciliationPrintModalProps> =
         <div
           id="reconciliation-print-receipt"
           ref={printAreaRef}
-          className="mx-auto max-w-[340px] rounded-lg border border-dashed border-gray-300 bg-white p-4 font-mono text-xs text-gray-900 shadow-sm print:m-0 print:w-full print:border-none print:p-0"
+          className="mx-auto w-full max-w-[340px] rounded-lg border border-dashed border-gray-300 bg-white p-2.5 font-mono text-[11px] text-gray-900 shadow-sm print:m-0 print:w-full print:border-none print:p-0 sm:p-4 sm:text-xs"
         >
           <ReceiptHeader shopName={resolvedShopName} date={summary.date} />
           <EmployeeBreakdownSection summary={summary} />

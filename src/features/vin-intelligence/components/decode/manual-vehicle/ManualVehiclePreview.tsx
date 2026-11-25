@@ -27,7 +27,7 @@ function PreviewBadges({ model }: { model: VehiclePreviewModel }): React.ReactEl
 
 function PreviewInfo({ model }: { model: VehiclePreviewModel }): React.ReactElement {
   return (
-    <div className="flex min-w-[260px] flex-1 items-center gap-3">
+    <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:min-w-[260px] sm:gap-3">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/30">
         <Car size={18} />
       </div>

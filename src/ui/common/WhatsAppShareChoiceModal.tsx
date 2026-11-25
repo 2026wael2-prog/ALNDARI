@@ -97,16 +97,16 @@ export const WhatsAppShareChoiceModal: React.FC<WhatsAppShareChoiceModalProps> =
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/70 p-0 backdrop-blur-xs animate-in fade-in duration-150 sm:items-center sm:p-3"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-2xl"
+        className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] text-[var(--app-text)] shadow-2xl sm:rounded-2xl sm:pb-0"
         onClick={e => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-emerald-600 px-5 py-3.5 text-white">
+        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-emerald-600 px-3.5 py-2.5 text-white sm:px-5 sm:py-3.5">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
               <Send size={18} />

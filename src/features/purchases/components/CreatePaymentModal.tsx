@@ -82,15 +82,15 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({ isOpen, onClose
   };
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
-      <div className="animate-in fade-in zoom-in my-auto w-full max-w-lg rounded-none border bg-[var(--app-surface)] shadow-2xl duration-200 dark:border-slate-800">
-        <div className="flex items-center justify-between rounded-none border-b border-gray-100 bg-gray-50/50 p-6 dark:border-slate-800 dark:bg-slate-800/30">
-          <div className="flex items-center gap-3">
-            <div className="rounded-md bg-purple-600/10 p-2 text-purple-600">
-              <Banknote size={24} />
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="animate-in fade-in zoom-in max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl duration-200 dark:border-slate-800 sm:my-auto sm:rounded-2xl sm:pb-0">
+        <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 p-3.5 dark:border-slate-800 dark:bg-slate-800/30 sm:p-5">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="rounded-md bg-purple-600/10 p-1.5 text-purple-600 sm:p-2">
+              <Banknote size={20} className="sm:h-6 sm:w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-slate-100">سند صرف جديد</h2>
+              <h2 className="text-base font-bold text-gray-800 dark:text-slate-100 sm:text-xl">سند صرف جديد</h2>
               <p className="text-xs font-medium text-gray-500 dark:text-slate-400">
                 تسجيل دفعة نقدية أو بنكية للمورد
               </p>

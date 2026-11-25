@@ -35,7 +35,7 @@ export const TransferDispatchedNotificationModal: React.FC<TransferDispatchedNot
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -44,11 +44,11 @@ export const TransferDispatchedNotificationModal: React.FC<TransferDispatchedNot
         onClick={onClose}
       />
 
-      <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900">
+      <div className="relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:pb-0">
         
         {/* الترويسة بلون الحالة */}
         <div
-          className={`flex items-center justify-between border-b p-4 ${
+          className={`flex items-center justify-between border-b p-3 sm:p-4 ${
             isApproved
               ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/40'
               : 'border-rose-200 bg-rose-50/70 dark:border-rose-900/60 dark:bg-rose-950/40'

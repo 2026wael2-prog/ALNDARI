@@ -40,20 +40,20 @@ interface StatBoxProps {
 
 const StatBox: React.FC<StatBoxProps> = ({ icon: Icon, label, value, color, formattedValue }) => (
   <div
-    className={`bg-[var(--app-surface)]/50 border-l p-1.5 backdrop-blur-md sm:border-l-4 sm:p-3 ${color.replace('text-', 'border-')} flex items-center gap-1.5 transition-all hover:bg-white/80 dark:hover:bg-slate-800 sm:gap-3`}
+    className={`bg-[var(--app-surface)]/50 flex min-w-0 items-center gap-1 border-l p-1.5 backdrop-blur-md transition-all hover:bg-white/80 dark:hover:bg-slate-800 sm:gap-3 sm:border-l-4 sm:p-3 ${color.replace('text-', 'border-')}`}
   >
     <div
-      className={`rounded-lg bg-gray-50 p-1.5 dark:bg-slate-800 sm:p-2 ${color.replace('text-', 'bg-opacity-10')}`}
+      className={`hidden shrink-0 rounded-lg bg-gray-50 p-1.5 dark:bg-slate-800 sm:block sm:p-2 ${color.replace('text-', 'bg-opacity-10')}`}
     >
       <Icon size={14} className={`${color} sm:h-5 sm:w-5`} />
     </div>
-    <div className="min-w-0">
-      <h4 className="font-mono text-sm font-black leading-tight text-gray-900 dark:text-white sm:text-xl">
-        {formattedValue ?? formatNumberDisplay(value)}
-      </h4>
+    <div className="min-w-0 flex-1">
       <p className="truncate text-[10px] font-black uppercase tracking-tighter text-gray-400 sm:text-[11px] sm:tracking-wider">
         {label}
       </p>
+      <h4 className="truncate font-mono text-xs font-black leading-tight text-gray-900 dark:text-white sm:text-xl">
+        {formattedValue ?? formatNumberDisplay(value)}
+      </h4>
     </div>
   </div>
 );
@@ -82,15 +82,15 @@ const AuditStats: React.FC<Props> = ({ stats, session }) => {
   const startedAt = nonEmptyOrNull(session.created_at);
 
   return (
-    <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-gray-200/50 bg-white/50 shadow-xl shadow-gray-200/20 backdrop-blur-xl dark:border-slate-800/50 dark:bg-slate-900/50 dark:shadow-none sm:grid-cols-3 lg:grid-cols-6">
-      <div className="col-span-2 flex flex-col justify-center border-l bg-gray-50/50 p-3 dark:border-slate-800 dark:bg-slate-950/50 sm:col-span-1 lg:col-span-1">
-        <div className="flex items-center gap-2">
-          <Warehouse size={16} className="text-blue-500" />
-          <h3 className="truncate text-xs font-black uppercase tracking-widest text-gray-700 dark:text-slate-300">
+    <div className="grid grid-cols-4 overflow-hidden rounded-xl border border-gray-200/50 bg-white/50 shadow-sm dark:border-slate-800/50 dark:bg-slate-900/50 sm:rounded-2xl sm:shadow-xl sm:shadow-gray-200/20 dark:sm:shadow-none lg:grid-cols-6">
+      <div className="col-span-4 flex items-center justify-between border-b bg-gray-50/50 px-2.5 py-1.5 dark:border-slate-800 dark:bg-slate-950/50 lg:col-span-1 lg:flex-col lg:items-start lg:justify-center lg:border-b-0 lg:border-l lg:p-3">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <Warehouse size={14} className="shrink-0 text-blue-500 sm:h-4 sm:w-4" />
+          <h3 className="truncate text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-slate-300 sm:text-xs">
             {warehouseLabel}
           </h3>
         </div>
-        <p className="mt-1 text-[10px] font-bold text-gray-400">
+        <p className="shrink-0 text-[10px] font-bold text-gray-400 sm:text-[10px] lg:mt-1">
           بدء: {startedAt !== null ? formatLocalDate(startedAt) : '—'}
         </p>
       </div>

@@ -72,12 +72,12 @@ export const AddCarrierModal: React.FC<AddCarrierModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-3 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
       dir="rtl"
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900 border border-gray-100 dark:border-slate-800">
+      <div className="relative w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl dark:bg-slate-900 border border-gray-100 dark:border-slate-800 pb-[env(safe-area-inset-bottom)] sm:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-slate-800 bg-gradient-to-l from-emerald-50/60 to-white dark:from-emerald-950/20 dark:to-slate-900">
+        <div className="flex items-center justify-between border-b border-gray-100 px-3.5 py-3 sm:px-5 sm:py-4 dark:border-slate-800 bg-gradient-to-l from-emerald-50/60 to-white dark:from-emerald-950/20 dark:to-slate-900">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20">
               <Building2 className="h-5 w-5" />

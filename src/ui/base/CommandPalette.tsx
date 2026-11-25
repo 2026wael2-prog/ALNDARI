@@ -76,18 +76,18 @@ const CommandPalette: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-start justify-center bg-slate-900/50 pt-20 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-start justify-center bg-slate-900/50 px-2.5 pt-8 backdrop-blur-sm sm:px-4 sm:pt-20"
       onClick={closePalette}
     >
       <GlobalCommandRegistrar />
       <div
-        className="animate-in fade-in zoom-in-95 flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl duration-200"
+        className="animate-in fade-in zoom-in-95 flex max-h-[80dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl duration-200"
         onClick={e => {
           e.stopPropagation();
         }}
         onKeyDown={handleKeyDown}
       >
-        <div className="flex items-center gap-3 border-b border-[var(--app-border)] p-4">
+        <div className="flex items-center gap-2.5 border-b border-[var(--app-border)] p-3 sm:gap-3 sm:p-4">
           <Search size={20} className="text-[var(--app-text-secondary)]" />
           <input
             ref={inputRef}

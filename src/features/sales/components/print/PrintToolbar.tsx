@@ -110,13 +110,13 @@ const ToolbarActions = ({
   onExportPDF?: (() => void) | undefined;
   isExporting: boolean;
 }): React.ReactElement => (
-  <div className="flex items-center gap-2">
+  <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2">
     {onExportPDF !== undefined && (
       <button
         type="button"
         onClick={onExportPDF}
         disabled={isExporting}
-        className="shadow-2xs flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+        className="shadow-2xs flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 sm:flex-none sm:px-3 sm:text-xs"
       >
         <Download size={13} />
         <span>{isExporting ? 'جاري التصدير...' : 'تحميل PDF'}</span>
@@ -125,10 +125,10 @@ const ToolbarActions = ({
     <button
       type="button"
       onClick={onPrint}
-      className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-black text-white shadow-xs transition-all hover:bg-blue-500 active:scale-95"
+      className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-black text-white shadow-xs transition-all hover:bg-blue-500 active:scale-95 sm:flex-none sm:px-4 sm:text-xs"
     >
-      <Printer size={14} />
-      <span>طباعة المستند</span>
+      <Printer size={13} />
+      <span>طباعة</span>
     </button>
   </div>
 );
@@ -146,10 +146,10 @@ export const PrintToolbar: React.FC<PrintToolbarProps> = ({
 }) => (
   <aside
     aria-label="خيارات وأدوات الطباعة"
-    className="no-print shadow-2xs mb-4 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-200 bg-slate-50/90 p-2.5 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/90"
+    className="no-print shadow-2xs mb-2.5 flex flex-wrap items-center justify-between gap-1.5 rounded-xl border border-slate-200 bg-slate-50/90 p-2 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/90 sm:mb-4 sm:gap-2.5 sm:p-2.5"
     dir="rtl"
   >
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
       {layoutMode !== undefined && onChangeLayout !== undefined && (
         <LayoutSelector layoutMode={layoutMode} onChangeLayout={onChangeLayout} />
       )}

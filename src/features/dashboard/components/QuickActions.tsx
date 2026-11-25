@@ -124,51 +124,51 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ className }) => {
     <section
       aria-label="مركز الوصول السريع للعمليات"
       className={cn(
-        'rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 shadow-sm',
+        'rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-sm sm:rounded-2xl sm:p-3.5',
         className
       )}
     >
-      <div className="mb-2.5 flex items-center justify-between gap-2">
+      <div className="mb-1.5 flex items-center justify-between gap-2 sm:mb-2.5">
         <div>
-          <h2 className="text-xs font-black tracking-tight text-[var(--app-text)]">
+          <h2 className="text-[11px] font-black tracking-tight text-[var(--app-text)] sm:text-xs">
             بوابة العمليات السريعة
           </h2>
-          <p className="text-[10px] font-semibold text-[var(--app-text-secondary)]">
+          <p className="hidden text-[10px] font-semibold text-[var(--app-text-secondary)] sm:block">
             وصول فوري للصفحات الأساسية وإنشاء السجلات الجديدة
           </p>
         </div>
-        <span className="rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 py-0.5 text-[10px] font-black text-[var(--app-text-secondary)]">
+        <span className="rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1.5 py-0.5 text-[10px] font-black text-[var(--app-text-secondary)] sm:rounded-lg sm:px-2 sm:text-[10px]">
           6 وحدات
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:grid-cols-3">
         {CORE_MODULES.map(module => {
           const IconComponent = module.icon;
           return (
             <div
               key={module.id}
               onMouseEnter={() => prefetchRoute(module.path)}
-              className="group flex flex-col justify-between gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)]/60 p-2 transition-all duration-200 hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)] md:gap-2 md:p-2.5"
+              className="group flex min-w-0 flex-col justify-between gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)]/60 p-1.5 transition-all duration-200 hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)] sm:gap-1.5 sm:rounded-xl sm:p-2 md:gap-2 md:p-2.5"
             >
               <button
                 type="button"
                 onClick={() => handleGo(module.path, module.path)}
-                className="flex w-full items-center gap-2 text-start sm:items-start md:gap-2.5"
+                className="flex w-full flex-col items-center gap-1 text-center sm:flex-row sm:items-start sm:gap-2 sm:text-start md:gap-2.5"
               >
                 <div
                   className={cn(
-                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200 group-hover:scale-105 md:h-8 md:w-8',
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-transform duration-200 group-hover:scale-105 sm:h-7 sm:w-7 sm:rounded-lg md:h-8 md:w-8',
                     module.accentBg,
                     module.accentBorder,
                     module.accentText
                   )}
                 >
-                  <IconComponent size={15} />
+                  <IconComponent size={13} className="sm:h-[15px] sm:w-[15px]" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="truncate text-[11px] font-black text-[var(--app-text)] sm:text-xs">
+                <div className="min-w-0 w-full flex-1">
+                  <div className="flex items-center justify-center gap-1 sm:justify-between">
+                    <span className="truncate text-[10px] font-black text-[var(--app-text)] sm:text-xs">
                       {module.title}
                     </span>
                     <ArrowUpLeft
@@ -185,9 +185,9 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ className }) => {
               <button
                 type="button"
                 onClick={() => handleGo(module.createPath, module.path)}
-                className="flex w-full items-center justify-center gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 text-[10px] font-bold text-[var(--app-text)] transition-colors hover:border-[var(--accent)]/50 hover:bg-[var(--accent)] hover:text-white"
+                className="flex w-full items-center justify-center gap-0.5 rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-1 py-0.5 text-[10px] font-bold text-[var(--app-text)] transition-colors hover:border-[var(--accent)]/50 hover:bg-[var(--accent)] hover:text-white sm:gap-1 sm:rounded-lg sm:px-2 sm:py-1 sm:text-[10px]"
               >
-                <Plus size={11} />
+                <Plus size={10} className="shrink-0 sm:h-[11px] sm:w-[11px]" />
                 <span className="truncate">{module.createLabel}</span>
               </button>
             </div>

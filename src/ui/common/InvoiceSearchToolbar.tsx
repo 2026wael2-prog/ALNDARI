@@ -97,42 +97,54 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
   };
 
   return (
-    <div className="mb-2 flex flex-col gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-xs md:mb-3 md:gap-2 md:p-2.5">
-      {/* Row 1: Search Bar & Primary Actions */}
-      <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
-        {/* Main Search Input */}
-        <div className="relative flex-1">
-          <label htmlFor={inputId} className="sr-only">
-            بحث متقدم في الفواتير
-          </label>
-          <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-2.5 text-[var(--app-text-secondary)] md:ps-3">
-            <Search size={14} className={isLoading ? 'animate-spin text-blue-500' : ''} />
+    <div className="mb-1.5 flex flex-col gap-1 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xs sm:rounded-xl sm:p-2 md:mb-3 md:gap-2 md:p-2.5">
+      {/* Row 1: Search Bar & Compact 4-Column Filter Row */}
+      <div className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2">
+        {/* Main Search Input + Inline Mobile Reset */}
+        <div className="flex items-center gap-1 md:flex-1">
+          <div className="relative flex-1">
+            <label htmlFor={inputId} className="sr-only">
+              بحث متقدم في الفواتير
+            </label>
+            <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-2 text-[var(--app-text-secondary)] md:ps-3">
+              <Search size={13} className={isLoading ? 'animate-spin text-blue-500' : ''} />
+            </div>
+            <input
+              id={inputId}
+              type="text"
+              value={searchTerm}
+              onChange={e => {
+                onSearchChange(e.target.value);
+              }}
+              placeholder={placeholder || defaultPlaceholder}
+              className="focus:outline-hidden h-7 w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] pe-7 ps-7 text-[11px] font-semibold text-[var(--app-text)] placeholder:text-[var(--app-text-secondary)] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:h-8 md:h-9 md:pe-9 md:ps-9 md:text-xs"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSearchChange('');
+                }}
+                className="absolute inset-y-0 end-0 flex items-center pe-2 text-[var(--app-text-secondary)] hover:text-rose-500 md:pe-2.5"
+                title="مسح البحث"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
-          <input
-            id={inputId}
-            type="text"
-            value={searchTerm}
-            onChange={e => {
-              onSearchChange(e.target.value);
-            }}
-            placeholder={placeholder || defaultPlaceholder}
-            className="focus:outline-hidden h-8 w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] pe-8 ps-8 text-xs font-semibold text-[var(--app-text)] placeholder:text-[var(--app-text-secondary)] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 md:h-9 md:pe-9 md:ps-9"
-          />
-          {searchTerm && (
+          {hasActiveFilters && (
             <button
               type="button"
-              onClick={() => {
-                onSearchChange('');
-              }}
-              className="absolute inset-y-0 end-0 flex items-center pe-2 text-[var(--app-text-secondary)] hover:text-rose-500 md:pe-2.5"
-              title="مسح البحث"
+              onClick={onResetFilters}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-rose-50/70 text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-400 sm:hidden"
+              title="مسح الفلاتر"
             >
-              <X size={14} />
+              <RotateCcw size={12} />
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center md:gap-2">
+        <div className="grid grid-cols-4 gap-1 sm:flex sm:flex-wrap sm:items-center md:gap-2">
         {/* Currency Filter */}
         {onCurrencyFilterChange && (
           <select
@@ -141,14 +153,14 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onCurrencyFilterChange(e.target.value);
             }}
             aria-label="تصفية حسب العملة"
-            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
+            className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-[11px] md:h-9 md:px-2.5 md:text-xs"
           >
-            <option value="all">كل العملات</option>
-            <option value="SAR">ريال سعودي (SAR)</option>
-            <option value="YER">ريال يمني (YER)</option>
-            <option value="USD">دولار أمريكي (USD)</option>
-            <option value="OMR">ريال عماني (OMR)</option>
-            <option value="CNY">يوان صيني (CNY)</option>
+            <option value="all">العملة</option>
+            <option value="SAR">ر.س (SAR)</option>
+            <option value="YER">ر.ي (YER)</option>
+            <option value="USD">دولار (USD)</option>
+            <option value="OMR">عماني (OMR)</option>
+            <option value="CNY">يوان (CNY)</option>
           </select>
         )}
 
@@ -160,9 +172,9 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onPaymentMethodFilterChange(e.target.value);
             }}
             aria-label="تصفية حسب طريقة الدفع"
-            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
+            className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-[11px] md:h-9 md:px-2.5 md:text-xs"
           >
-            <option value="all">كل طرق الدفع</option>
+            <option value="all">الدفع</option>
             <option value="cash">نقدي</option>
             <option value="credit">آجل</option>
           </select>
@@ -176,12 +188,12 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onStatusFilterChange(e.target.value);
             }}
             aria-label="تصفية حسب حالة الفاتورة"
-            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
+            className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-[11px] md:h-9 md:px-2.5 md:text-xs"
           >
-            <option value="all">كل الحالات</option>
+            <option value="all">الحالة</option>
             <option value="paid">مدفوعة</option>
             <option value="posted">مرحّلة</option>
-            <option value="partially_paid">مدفوعة جزئياً</option>
+            <option value="partially_paid">جزئياً</option>
             <option value="draft">مسودة</option>
           </select>
         )}
@@ -195,23 +207,23 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
               onSortChange(by, order as 'asc' | 'desc');
             }}
             aria-label="ترتيب وفرز النتائج"
-            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-[11px] font-bold text-[var(--app-text)] focus:border-blue-500 md:h-9 md:px-2.5 md:text-xs"
+            className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-[11px] md:h-9 md:px-2.5 md:text-xs"
           >
-            <option value="date_desc">الأحدث تاريخاً / وقتاً</option>
-            <option value="date_asc">الأقدم تاريخاً</option>
+            <option value="date_desc">الأحدث</option>
+            <option value="date_asc">الأقدم</option>
             <option value="total_desc">الأعلى مبلغاً</option>
             <option value="total_asc">الأقل مبلغاً</option>
-            <option value="number_desc">رقم المستند (تنازلي)</option>
-            <option value="number_asc">رقم المستند (تصاعدي)</option>
+            <option value="number_desc">رقم (تنازلي)</option>
+            <option value="number_asc">رقم (تصاعدي)</option>
           </select>
         )}
 
-        {/* Reset Button */}
+        {/* Reset Button (Desktop/Tablet) */}
         {hasActiveFilters && (
           <button
             type="button"
             onClick={onResetFilters}
-            className="col-span-2 flex h-8 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50/50 px-2 text-[11px] font-bold text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400 sm:col-span-1 md:h-9 md:px-2.5 md:text-xs"
+            className="hidden h-8 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50/50 px-2 text-[11px] font-bold text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400 sm:flex md:h-9 md:px-2.5 md:text-xs"
             title="إعادة تعيين كافة الفلاتر"
           >
             <RotateCcw size={12} />
@@ -222,10 +234,10 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
       </div>
 
       {/* Row 2: Date Presets & Search Scopes Bar */}
-      <div className="border-[var(--app-border)]/60 flex flex-wrap items-center justify-between gap-1.5 border-t pt-1.5 md:pt-2">
+      <div className="border-[var(--app-border)]/60 flex items-center justify-between gap-1.5 border-t pt-1 sm:flex-wrap md:pt-2">
         {/* Date Presets Pills */}
-        <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap">
-          <span className="flex shrink-0 items-center gap-1 text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
+        <div className="no-scrollbar flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto sm:flex-initial sm:flex-wrap">
+          <span className="hidden shrink-0 items-center gap-1 text-[10px] font-bold text-[var(--app-text-secondary)] sm:flex sm:text-[11px]">
             <Calendar size={11} />
             <span>الفترة:</span>
           </span>
@@ -238,7 +250,7 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
                 onClick={() => {
                   handlePresetClick(preset.id);
                 }}
-                className={`shrink-0 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-bold transition-all sm:py-1 sm:text-[11px] ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-all sm:px-2 sm:py-1 sm:text-[11px] ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
@@ -251,9 +263,9 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
         </div>
 
         {/* Matches Indicator & Limit Selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           {onLimitChange && (
-            <div className="flex items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
+            <div className="hidden items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)] sm:flex">
               <span>عرض:</span>
               <select
                 value={limit ?? 500}
@@ -274,9 +286,9 @@ export const InvoiceSearchToolbar: React.FC<InvoiceSearchToolbarProps> = ({
           )}
 
           {typeof totalMatches === 'number' && (
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <span className="whitespace-nowrap rounded-full bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 sm:px-2 sm:text-[11px]">
               {totalMatchingCount && totalMatchingCount > totalMatches
-                ? `عرض ${totalMatches} من أصل ${totalMatchingCount} فاتورة`
+                ? `${totalMatches}/${totalMatchingCount}`
                 : `${totalMatches} فاتورة`}
             </span>
           )}

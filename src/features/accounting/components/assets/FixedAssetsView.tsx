@@ -77,50 +77,50 @@ const FixedAssetsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Metric Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-[var(--app-surface)] p-3.5 shadow-sm dark:border-slate-800">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold">إجمالي تكلفة الأصول</span>
-            <Building2 size={16} className="text-blue-500" />
+      {/* Metric Summary Cards — 4-per-row on mobile */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-3">
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-[var(--app-surface)] p-1.5 shadow-sm dark:border-slate-800 sm:rounded-xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5 text-slate-500">
+            <span className="truncate text-[10px] font-bold sm:text-xs">تكلفة الأصول</span>
+            <Building2 size={14} className="hidden shrink-0 text-blue-500 sm:inline" />
           </div>
-          <div className="mt-2 font-mono text-base font-bold text-slate-800 dark:text-slate-100 sm:text-lg">
+          <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-black text-slate-800 dark:text-slate-100 sm:mt-2 sm:text-lg sm:font-bold">
             {formatCurrency(totals.totalCost)}
           </div>
-          <div className="mt-1 text-[10px] text-slate-400">{totals.totalCount} أصل مسجل</div>
+          <div className="mt-1 hidden text-[10px] text-slate-400 sm:block">{totals.totalCount} أصل مسجل</div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-[var(--app-surface)] p-3.5 shadow-sm dark:border-slate-800">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold">مجمع الإهلاك المتراكم</span>
-            <TrendingDown size={16} className="text-amber-500" />
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-[var(--app-surface)] p-1.5 shadow-sm dark:border-slate-800 sm:rounded-xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5 text-slate-500">
+            <span className="truncate text-[10px] font-bold sm:text-xs">مجمع الإهلاك</span>
+            <TrendingDown size={14} className="hidden shrink-0 text-amber-500 sm:inline" />
           </div>
-          <div className="mt-2 font-mono text-base font-bold text-amber-600 dark:text-amber-400 sm:text-lg">
+          <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-black text-amber-600 dark:text-amber-400 sm:mt-2 sm:text-lg sm:font-bold">
             {formatCurrency(totals.totalDepreciated)}
           </div>
-          <div className="mt-1 text-[10px] text-slate-400">حساب 1390 الدفتري</div>
+          <div className="mt-1 hidden text-[10px] text-slate-400 sm:block">حساب 1390 الدفتري</div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-[var(--app-surface)] p-3.5 shadow-sm dark:border-slate-800">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold">صافي القيمة الدفترية</span>
-            <Coins size={16} className="text-emerald-500" />
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-[var(--app-surface)] p-1.5 shadow-sm dark:border-slate-800 sm:rounded-xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5 text-slate-500">
+            <span className="truncate text-[10px] font-bold sm:text-xs">القيمة الدفترية</span>
+            <Coins size={14} className="hidden shrink-0 text-emerald-500 sm:inline" />
           </div>
-          <div className="mt-2 font-mono text-base font-bold text-emerald-600 dark:text-emerald-400 sm:text-lg">
+          <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-black text-emerald-600 dark:text-emerald-400 sm:mt-2 sm:text-lg sm:font-bold">
             {formatCurrency(totals.netBookValue)}
           </div>
-          <div className="mt-1 text-[10px] text-emerald-600/80">المدرجة في المركز المالي</div>
+          <div className="mt-1 hidden text-[10px] text-emerald-600/80 sm:block">المدرجة في المركز المالي</div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-[var(--app-surface)] p-3.5 shadow-sm dark:border-slate-800">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold">الأصول النشطة الخاضعة للإهلاك</span>
-            <ShieldCheck size={16} className="text-purple-500" />
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-[var(--app-surface)] p-1.5 shadow-sm dark:border-slate-800 sm:rounded-xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5 text-slate-500">
+            <span className="truncate text-[10px] font-bold sm:text-xs">الأصول النشطة</span>
+            <ShieldCheck size={14} className="hidden shrink-0 text-purple-500 sm:inline" />
           </div>
-          <div className="mt-2 font-mono text-base font-bold text-purple-600 dark:text-purple-400 sm:text-lg">
+          <div className="mt-1 truncate font-mono text-xs font-black text-purple-600 dark:text-purple-400 sm:mt-2 sm:text-lg sm:font-bold">
             {totals.activeCount}
           </div>
-          <div className="mt-1 text-[10px] text-slate-400">من إجمالي {totals.totalCount}</div>
+          <div className="mt-1 hidden text-[10px] text-slate-400 sm:block">من إجمالي {totals.totalCount}</div>
         </div>
       </div>
 

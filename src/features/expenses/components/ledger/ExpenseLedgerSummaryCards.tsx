@@ -100,69 +100,69 @@ export const ExpenseLedgerSummaryCards: React.FC<ExpenseLedgerSummaryCardsProps>
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div className="rounded-2xl border border-gray-100 bg-[var(--app-surface)] p-3.5 shadow-xs dark:border-slate-800">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--app-text-secondary)]">
+    <div className="grid grid-cols-4 gap-1 sm:gap-3">
+      <div className="min-w-0 rounded-lg border border-gray-100 bg-[var(--app-surface)] p-1.5 shadow-xs dark:border-slate-800 sm:rounded-2xl sm:p-3.5">
+        <p className="truncate text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[10px] sm:uppercase sm:tracking-wider">
           الحساب المحدد
         </p>
-        <h4 className="truncate text-sm font-black text-[var(--app-text)]">
+        <h4 className="truncate text-[10.5px] font-black text-[var(--app-text)] sm:text-sm">
           {selectedAccount.name}
         </h4>
-        <p dir="ltr" className="font-mono text-xs font-bold text-blue-600">
+        <p dir="ltr" className="truncate font-mono text-[10px] font-bold text-blue-600 sm:text-xs">
           {selectedAccount.code} • {selectedAccount.currency_code || 'SAR'}
         </p>
       </div>
 
-      <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-3.5 shadow-xs dark:border-rose-900/30 dark:bg-rose-950/20">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-rose-800 dark:text-rose-300">
+      <div className="min-w-0 rounded-lg border border-rose-100 bg-rose-50/40 p-1.5 shadow-xs dark:border-rose-900/30 dark:bg-rose-950/20 sm:rounded-2xl sm:p-3.5">
+        <div className="flex items-center justify-between gap-0.5">
+          <p className="truncate text-[10px] font-bold text-rose-800 dark:text-rose-300 sm:text-[10px] sm:uppercase sm:tracking-wider">
             {debitLabel}
           </p>
-          <span className="rounded bg-rose-100 px-1 py-0.5 text-[10px] font-black text-rose-800 dark:bg-rose-900/60 dark:text-rose-200">
+          <span className="hidden shrink-0 rounded bg-rose-100 px-1 py-0.5 text-[10px] font-black text-rose-800 dark:bg-rose-900/60 dark:text-rose-200 sm:inline">
             {debitBadge}
           </span>
         </div>
-        <h4 dir="ltr" className="font-mono text-base font-black text-rose-700 dark:text-rose-400">
+        <h4 dir="ltr" className="truncate text-right font-mono text-[10.5px] font-black text-rose-700 dark:text-rose-400 sm:text-base">
           {formatCurrency(ledgerMetrics.totalDebit)}
         </h4>
-        <p className="text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+        <p className="hidden truncate text-[10px] font-semibold text-rose-600 dark:text-rose-400 sm:block">
           {ledgerMetrics.count} حركة مقيدة
         </p>
       </div>
 
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3.5 shadow-xs dark:border-emerald-900/30 dark:bg-emerald-950/20">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+      <div className="min-w-0 rounded-lg border border-emerald-100 bg-emerald-50/40 p-1.5 shadow-xs dark:border-emerald-900/30 dark:bg-emerald-950/20 sm:rounded-2xl sm:p-3.5">
+        <div className="flex items-center justify-between gap-0.5">
+          <p className="truncate text-[10px] font-bold text-emerald-800 dark:text-emerald-300 sm:text-[10px] sm:uppercase sm:tracking-wider">
             {creditLabel}
           </p>
-          <span className="rounded bg-emerald-100 px-1 py-0.5 text-[10px] font-black text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+          <span className="hidden shrink-0 rounded bg-emerald-100 px-1 py-0.5 text-[10px] font-black text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 sm:inline">
             {creditBadge}
           </span>
         </div>
         <h4
           dir="ltr"
-          className="font-mono text-base font-black text-emerald-700 dark:text-emerald-400"
+          className="truncate text-right font-mono text-[10.5px] font-black text-emerald-700 dark:text-emerald-400 sm:text-base"
         >
           {formatCurrency(ledgerMetrics.totalCredit)}
         </h4>
-        <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+        <p className="hidden truncate text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 sm:block">
           تسويات وسدادات
         </p>
       </div>
 
-      <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-3.5 shadow-xs dark:border-blue-900/30 dark:bg-blue-950/20">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300">
-            صافي الرصيد الختامي
+      <div className="min-w-0 rounded-lg border border-blue-100 bg-blue-50/40 p-1.5 shadow-xs dark:border-blue-900/30 dark:bg-blue-950/20 sm:rounded-2xl sm:p-3.5">
+        <div className="flex items-center justify-between gap-0.5">
+          <p className="truncate text-[10px] font-bold text-blue-800 dark:text-blue-300 sm:text-[10px] sm:uppercase sm:tracking-wider">
+            الرصيد الختامي
           </p>
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${badgeColorClass}`}>
+          <span className={`hidden shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black sm:inline ${badgeColorClass}`}>
             {balanceBadgeText}
           </span>
         </div>
-        <h4 dir="ltr" className="font-mono text-base font-black text-blue-700 dark:text-blue-400">
+        <h4 dir="ltr" className="truncate text-right font-mono text-[10.5px] font-black text-blue-700 dark:text-blue-400 sm:text-base">
           {formatCurrency(closingMagnitude)}
         </h4>
-        <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+        <p className="hidden truncate text-[10px] font-bold text-blue-600 dark:text-blue-400 sm:block">
           {balanceStatusText}
         </p>
       </div>

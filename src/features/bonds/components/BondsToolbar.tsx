@@ -53,11 +53,11 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
   onResetFilters,
 }) => {
   return (
-    <div className="mb-3 flex flex-col gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 shadow-xs">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="mb-2 flex flex-col gap-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xs sm:mb-3 sm:gap-2 sm:rounded-xl sm:p-2.5">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
         {/* Date Presets Pills */}
         <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap">
-          <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)]">
+          <span className="hidden shrink-0 items-center gap-1 text-[11px] font-bold text-[var(--app-text-secondary)] sm:flex">
             <Calendar size={12} />
             <span>الفترة:</span>
           </span>
@@ -73,7 +73,7 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
                   setDateFrom(range.from);
                   setDateTo(range.to);
                 }}
-                className={`shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-all sm:px-2 sm:py-1 sm:text-[11px] ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]'
@@ -85,21 +85,21 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
           })}
         </div>
 
-        {/* Currency & Sort Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Currency, Sort & Counter in 1 Compact Row */}
+        <div className="grid grid-cols-3 items-center gap-1 sm:flex sm:flex-wrap sm:gap-2">
           {/* Currency Filter */}
           <select
             value={currencyFilter}
             onChange={e => setCurrencyFilter(e.target.value)}
             aria-label="تصفية حسب العملة"
-            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+            className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1.5 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-xs"
           >
-            <option value="all">كل العملات</option>
-            <option value="SAR">ريال سعودي (SAR)</option>
-            <option value="YER">ريال يمني (YER)</option>
-            <option value="USD">دولار أمريكي (USD)</option>
-            <option value="OMR">ريال عماني (OMR)</option>
-            <option value="CNY">يوان صيني (CNY)</option>
+            <option value="all">العملة</option>
+            <option value="SAR">ر.س (SAR)</option>
+            <option value="YER">ر.ي (YER)</option>
+            <option value="USD">دولار (USD)</option>
+            <option value="OMR">عماني (OMR)</option>
+            <option value="CNY">يوان (CNY)</option>
           </select>
 
           {/* Sort Selector */}
@@ -111,35 +111,36 @@ export const BondsToolbar: React.FC<BondsToolbarProps> = ({
               setSortOrder(order as BondSortOrder);
             }}
             aria-label="ترتيب وفرز السندات"
-            className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+            className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1.5 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-xs"
           >
-            <option value="date_desc">الأحدث تاريخاً / وقتاً</option>
-            <option value="date_asc">الأقدم تاريخاً</option>
+            <option value="date_desc">الأحدث</option>
+            <option value="date_asc">الأقدم</option>
             <option value="amount_desc">الأعلى مبلغاً</option>
             <option value="amount_asc">الأقل مبلغاً</option>
-            <option value="number_desc">رقم السند (تنازلي)</option>
-            <option value="number_asc">رقم السند (تصاعدي)</option>
+            <option value="number_desc">رقم (تنازلي)</option>
+            <option value="number_asc">رقم (تصاعدي)</option>
           </select>
 
-          {/* Counter */}
-          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-            {totalServerCount && totalServerCount > displayedCount
-              ? `عرض ${displayedCount} من أصل ${totalServerCount} سند`
-              : `${displayedCount} سند`}
-          </span>
+          {/* Counter & Reset */}
+          <div className="flex items-center justify-end gap-1">
+            <span className="truncate rounded-full bg-blue-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 sm:px-2 sm:text-[11px]">
+              {totalServerCount && totalServerCount > displayedCount
+                ? `${displayedCount}/${totalServerCount}`
+                : `${displayedCount} سند`}
+            </span>
 
-          {/* Reset button */}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={onResetFilters}
-              className="flex h-8 items-center gap-1 rounded-lg border border-rose-200 bg-rose-50/50 px-2 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400"
-              title="مسح الفلاتر"
-            >
-              <RotateCcw size={12} />
-              <span>مسح</span>
-            </button>
-          )}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="flex h-7 items-center gap-1 rounded-md border border-rose-200 bg-rose-50/50 px-1.5 text-[10px] font-bold text-rose-600 transition-colors hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-400 sm:h-8 sm:rounded-lg sm:px-2 sm:text-xs"
+                title="مسح الفلاتر"
+              >
+                <RotateCcw size={11} />
+                <span className="hidden sm:inline">مسح</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

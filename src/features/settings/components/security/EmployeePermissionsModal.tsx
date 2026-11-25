@@ -128,13 +128,13 @@ export const EmployeePermissionsModal: React.FC<Props> = ({ isOpen, onClose, mem
   const isSaving = updatePermissions.isPending || updateRoleAndBranch.isPending;
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm duration-200 sm:items-center sm:p-4">
       <div
-        className="animate-in zoom-in-95 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-gray-100 bg-[var(--app-surface)] shadow-2xl duration-200 dark:border-slate-800"
+        className="animate-in zoom-in-95 flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-gray-100 bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl duration-200 dark:border-slate-800 sm:rounded-3xl sm:pb-0"
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b bg-gray-50/50 p-5 dark:border-slate-800 dark:bg-slate-950/50">
+        <div className="flex items-center justify-between border-b bg-gray-50/50 p-3 dark:border-slate-800 dark:bg-slate-950/50 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-blue-600 p-2.5 text-white shadow-lg shadow-blue-500/20">
               <Shield size={22} />

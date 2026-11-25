@@ -57,10 +57,10 @@ export const VendorComparisonModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="w-full max-w-5xl bg-[var(--app-surface)] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="w-full max-w-5xl bg-[var(--app-surface)] rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92dvh] overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0">
         {/* Header */}
-        <div className="p-4 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between">
+        <div className="p-3 sm:p-4 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400">
               <Trophy className="w-4 h-4" />

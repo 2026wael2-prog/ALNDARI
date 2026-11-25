@@ -47,75 +47,75 @@ const ExpensesAnalyticsView: React.FC<ExpensesAnalyticsViewProps> = ({
   const isDark = theme === 'dark';
 
   return (
-    <div className="animate-in fade-in space-y-10 pb-20 duration-1000">
+    <div className="animate-in fade-in space-y-3 pb-16 duration-500 sm:space-y-6 sm:pb-20">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-6 max-md:gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1 sm:gap-4 lg:gap-6">
         {/* Total Expenses */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-rose-600 to-rose-700 p-8 text-white shadow-2xl shadow-rose-500/30 transition-transform duration-500 hover:scale-[1.02]">
-          <div className="absolute right-0 top-0 transform p-6 opacity-20 transition-transform duration-500 group-hover:rotate-12">
-            <Receipt size={60} />
+        <div className="group relative min-w-0 overflow-hidden rounded-lg bg-gradient-to-br from-rose-600 to-rose-700 p-1.5 text-white shadow-sm transition-transform duration-500 hover:scale-[1.02] sm:rounded-2xl sm:p-5 sm:shadow-xl sm:shadow-rose-500/20 lg:p-6">
+          <div className="absolute right-0 top-0 hidden transform p-4 opacity-20 transition-transform duration-500 group-hover:rotate-12 sm:block">
+            <Receipt size={44} />
           </div>
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
-            إجمالي المصروفات
+          <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">
+            المصروفات
           </p>
-          <h2 dir="ltr" className="mb-1 font-mono text-3xl font-bold tracking-tighter">
+          <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">
             {formatCurrency(analytics.totalAmount)}
           </h2>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold">
+          <div className="mt-2 hidden items-center gap-2 sm:flex">
+            <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold">
               {analytics.count} عملية دفع
             </span>
           </div>
         </div>
 
         {/* Average */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-orange-500 to-amber-600 p-8 text-white shadow-2xl shadow-orange-500/30 transition-transform duration-500 hover:scale-[1.02]">
-          <div className="absolute right-0 top-0 transform p-6 opacity-20 transition-transform duration-500 group-hover:rotate-12">
-            <DollarSign size={60} />
+        <div className="group relative min-w-0 overflow-hidden rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 p-1.5 text-white shadow-sm transition-transform duration-500 hover:scale-[1.02] sm:rounded-2xl sm:p-5 sm:shadow-xl sm:shadow-orange-500/20 lg:p-6">
+          <div className="absolute right-0 top-0 hidden transform p-4 opacity-20 transition-transform duration-500 group-hover:rotate-12 sm:block">
+            <DollarSign size={44} />
           </div>
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
-            متوسط المصروف
+          <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">
+            المتوسط
           </p>
-          <h2 dir="ltr" className="mb-1 font-mono text-3xl font-bold tracking-tighter">
+          <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">
             {formatCurrency(analytics.avgAmount)}
           </h2>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold">
+          <div className="mt-2 hidden items-center gap-2 sm:flex">
+            <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold">
               لكل فاتورة
             </span>
           </div>
         </div>
 
         {/* Categories */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] border border-slate-100 bg-[var(--app-surface)] p-8 shadow-xl transition-transform duration-500 hover:scale-[1.02] dark:border-slate-800">
-          <div className="absolute bottom-0 right-0 transform p-6 opacity-5 transition-transform duration-500 group-hover:-translate-y-2">
-            <Tag size={80} className="text-purple-500" />
+        <div className="group relative min-w-0 overflow-hidden rounded-lg border border-slate-100 bg-[var(--app-surface)] p-1.5 shadow-sm transition-transform duration-500 hover:scale-[1.02] dark:border-slate-800 sm:rounded-2xl sm:p-5 sm:shadow-lg lg:p-6">
+          <div className="absolute bottom-0 right-0 hidden transform p-4 opacity-5 transition-transform duration-500 group-hover:-translate-y-2 sm:block">
+            <Tag size={56} className="text-purple-500" />
           </div>
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-            عدد التصنيفات
+          <p className="mb-0.5 truncate text-[10px] font-bold text-slate-400 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">
+            التصنيفات
           </p>
-          <h2 className="font-mono text-3xl font-bold tracking-tighter text-slate-900 dark:text-white">
+          <h2 className="font-mono text-sm font-black tracking-tight text-slate-900 dark:text-white sm:text-xl lg:text-2xl">
             {analytics.categoryData.length}
           </h2>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-[10px] font-bold uppercase text-purple-500">
-              Active Categories
+          <div className="mt-2 hidden items-center gap-2 sm:flex">
+            <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-0.5 text-[10px] font-bold text-purple-500">
+              تصنيف نشط
             </span>
           </div>
         </div>
 
         {/* Highest Category */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] border border-slate-100 bg-[var(--app-surface)] p-8 shadow-xl transition-transform duration-500 hover:scale-[1.02] dark:border-slate-800">
-          <div className="absolute bottom-0 right-0 transform p-6 opacity-5 transition-transform duration-500 group-hover:-translate-y-2">
-            <TrendingUp size={80} className="text-emerald-500" />
+        <div className="group relative min-w-0 overflow-hidden rounded-lg border border-slate-100 bg-[var(--app-surface)] p-1.5 shadow-sm transition-transform duration-500 hover:scale-[1.02] dark:border-slate-800 sm:rounded-2xl sm:p-5 sm:shadow-lg lg:p-6">
+          <div className="absolute bottom-0 right-0 hidden transform p-4 opacity-5 transition-transform duration-500 group-hover:-translate-y-2 sm:block">
+            <TrendingUp size={56} className="text-emerald-500" />
           </div>
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-            أعلى تصنيف إنفاق
+          <p className="mb-0.5 truncate text-[10px] font-bold text-slate-400 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">
+            الأعلى إنفاقاً
           </p>
-          <h2 className="mb-2 truncate border-b-2 border-emerald-500/20 pb-2 text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="truncate text-[10.5px] font-bold tracking-tight text-slate-900 dark:text-white sm:mb-1 sm:border-b sm:border-emerald-500/20 sm:pb-1 sm:text-base">
             {analytics.categoryData[0]?.name || '---'}
           </h2>
-          <p className="font-mono text-sm font-bold text-emerald-500" dir="ltr">
+          <p className="truncate font-mono text-[10px] font-bold text-emerald-500 sm:text-xs" dir="ltr">
             {analytics.categoryData[0] ? formatCurrency(analytics.categoryData[0].amount) : ''}
           </p>
         </div>

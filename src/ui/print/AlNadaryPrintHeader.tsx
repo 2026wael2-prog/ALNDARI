@@ -84,15 +84,17 @@ export const AlNadaryPrintHeader: React.FC<AlNadaryPrintHeaderProps> = ({
   return (
     <div role="banner" className="alnadary-header-wrapper relative">
       {/* زر تعديل القالب — يظهر على الشاشة فقط ويُخفى تماماً عند الطباعة */}
-      <button
-        type="button"
-        onClick={() => setEditorOpen(true)}
-        className="no-print absolute left-0 top-0 z-10 inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white/95 px-2 py-1 text-[11px] font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 hover:text-slate-950"
-        title="تعديل وتخصيص الترويسة والقالب"
-      >
-        <SlidersHorizontal size={12} />
-        <span>تعديل القالب</span>
-      </button>
+      <div className="no-print mb-1.5 flex justify-end md:mb-0">
+        <button
+          type="button"
+          onClick={() => setEditorOpen(true)}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white/95 px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 hover:text-slate-950 md:absolute md:left-0 md:top-0 md:z-10 md:py-1 md:text-[11px]"
+          title="تعديل وتخصيص الترويسة والقالب"
+        >
+          <SlidersHorizontal size={11} />
+          <span>تعديل القالب</span>
+        </button>
+      </div>
 
       {/* الصف العلوي ثلاثي الأعمدة: يمين (الاسم + الأحمر) | منتصف (الشعار) | يسار (العنوان + الهاتف + التاريخ) */}
       {!hideLetterhead && (

@@ -26,13 +26,13 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="animate-in fade-in fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/45 p-2 duration-100 sm:p-4">
+    <div className="animate-in fade-in fixed inset-0 z-[110] flex items-end justify-center bg-slate-900/45 p-0 duration-100 sm:items-center sm:p-4">
       <div
         style={{ backgroundColor: 'var(--app-surface)', color: 'var(--app-text)' }}
-        className="flex max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] shadow-2xl"
+        className="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] text-[var(--app-text)] shadow-2xl sm:rounded-2xl sm:pb-0"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2.5 sm:px-5 sm:py-3.5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-600/15 text-blue-600 dark:text-blue-400">
               <ArrowRightLeft size={20} />

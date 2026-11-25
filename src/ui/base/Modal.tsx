@@ -258,9 +258,9 @@ const Modal: React.FC<ModalProps> = ({
         }}
         style={modalStyle}
         className={cn(
-          'animate-in flex w-full flex-col border border-[var(--app-border)] bg-[var(--app-surface)] shadow-xl duration-100',
+          'animate-in flex w-full max-w-full flex-col overflow-x-hidden border border-[var(--app-border)] bg-[var(--app-surface)] shadow-xl duration-100',
           !position && sizeClasses[isMaximized ? 'full' : size === 'resizable' ? 'lg' : size],
-          !isMaximized && 'max-h-[88dvh] rounded-t-2xl md:max-h-[85dvh] md:rounded-2xl',
+          !isMaximized && 'max-h-[92dvh] rounded-t-2xl md:max-h-[88dvh] md:rounded-2xl',
           isMaximized && 'rounded-none'
         )}
       >
@@ -320,8 +320,8 @@ const Modal: React.FC<ModalProps> = ({
 
         {/* Mobile Drag Indicator Pill */}
         {!isMaximized && !hideHeader && (
-          <div className="flex shrink-0 justify-center bg-[var(--app-surface)] pt-2 md:hidden">
-            <div className="h-1 w-9 rounded-full bg-[var(--app-border)]" />
+          <div className="flex shrink-0 justify-center bg-[var(--app-surface)] pt-1.5 md:hidden">
+            <div className="h-1 w-8 rounded-full bg-[var(--app-border)]" />
           </div>
         )}
 
@@ -331,28 +331,28 @@ const Modal: React.FC<ModalProps> = ({
             data-modal-header="true"
             onMouseDown={handleDragStart}
             className={cn(
-              'flex shrink-0 items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2.5 md:p-5',
+              'flex shrink-0 items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-2.5 py-2 md:px-5 md:py-4',
               !isMaximized && 'md:cursor-move md:active:cursor-grabbing'
             )}
           >
             <div className="flex min-w-0 select-none items-center gap-2">
               {Icon && (
                 <div className="shrink-0 rounded-lg bg-blue-600 p-1.5 text-white shadow-sm md:p-2">
-                  <Icon size={15} className="md:hidden" />
-                  <Icon size={20} className="hidden md:block" />
+                  <Icon size={14} className="md:hidden" />
+                  <Icon size={19} className="hidden md:block" />
                 </div>
               )}
               <div className="min-w-0">
                 <h2
                   id={titleId}
-                  className="truncate text-sm font-extrabold leading-tight text-[var(--app-text)]"
+                  className="truncate text-[13px] font-extrabold leading-tight text-[var(--app-text)] md:text-sm"
                 >
                   {title}
                 </h2>
                 {description && (
                   <p
                     id={descId}
-                    className="mt-0.5 truncate text-[11px] font-semibold text-[var(--app-text-secondary)] md:text-xs"
+                    className="mt-0.5 truncate text-[10px] font-semibold text-[var(--app-text-secondary)] md:text-xs"
                   >
                     {description}
                   </p>
@@ -375,7 +375,7 @@ const Modal: React.FC<ModalProps> = ({
                 title="إغلاق النافذة (Esc)"
                 aria-label="إغلاق النافذة"
               >
-                <X size={18} />
+                <X size={17} />
               </button>
             </div>
           </div>
@@ -384,8 +384,8 @@ const Modal: React.FC<ModalProps> = ({
         {/* Content Segment */}
         <div
           className={cn(
-            'custom-scrollbar flex-1 overflow-y-auto bg-[var(--app-bg)]',
-            isMaximized || size === 'full' ? 'p-1.5 md:p-2 lg:p-3' : 'p-3 sm:p-5 md:p-6'
+            'custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto bg-[var(--app-bg)]',
+            isMaximized || size === 'full' ? 'p-1.5 md:p-2 lg:p-3' : 'p-2.5 sm:p-4 md:p-5'
           )}
         >
           {children}
@@ -393,7 +393,7 @@ const Modal: React.FC<ModalProps> = ({
 
         {/* Footer */}
         {footer && (
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-1.5 border-t border-[var(--app-border)] bg-[var(--app-bg)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:gap-2 sm:p-3 md:p-4 md:pb-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-1.5 border-t border-[var(--app-border)] bg-[var(--app-bg)] px-2.5 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:gap-2 sm:p-3 md:p-4 md:pb-4">
             {footer}
           </div>
         )}

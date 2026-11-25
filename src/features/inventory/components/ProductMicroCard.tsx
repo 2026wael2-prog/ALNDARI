@@ -22,121 +22,116 @@ const ProductMicroCard: React.FC<Props> = ({ product, onClick }) => {
         onClick(product);
       }}
       className={cn(
-        'group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border bg-[var(--app-surface)] shadow-xs transition-all duration-200 hover:shadow-md active:scale-[0.99]',
+        'group relative flex min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-lg border bg-[var(--app-surface)] shadow-xs transition-all duration-200 hover:shadow-md active:scale-[0.98] sm:rounded-xl',
         isLow
           ? 'border-amber-300/80 bg-amber-50/20 hover:border-amber-500 dark:border-amber-900/50 dark:bg-amber-950/15'
           : 'border-[var(--app-border)] hover:border-blue-500/60 hover:bg-blue-50/10'
       )}
     >
-      {/* Main Body */}
-      <div className="flex flex-1 flex-col justify-between space-y-2 p-2.5 sm:space-y-2.5 sm:p-3.5">
-        {/* Top Header: Image + Name + Status */}
-        <div className="flex items-start gap-2.5 sm:gap-3">
-          {/* Product Image / Icon */}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/80 sm:h-12 sm:w-12 sm:rounded-xl">
-            {product.image_url ? (
-              <img
-                src={product.image_url}
-                alt={product.name_ar || product.name}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-              />
-            ) : (
-              <Box size={18} className="text-slate-400 dark:text-slate-500 sm:size-5" />
-            )}
-          </div>
+      {/* Top Compact Visual Header (Optimized for 3 cards per row on mobile) */}
+      <div className="relative flex h-14 w-full shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-slate-50/90 dark:border-slate-800/80 dark:bg-slate-800/60 sm:h-16">
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name_ar || product.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <Box size={18} className="text-slate-300 dark:text-slate-600 sm:h-5 sm:w-5" />
+        )}
 
-          {/* Title & Brand */}
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center justify-between gap-1">
-              {product.brand && (
-                <span className="inline-flex max-w-[110px] items-center gap-1 truncate rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 sm:max-w-[130px] sm:px-2">
-                  <Factory size={10} className="shrink-0" />
-                  <span className="truncate">{product.brand}</span>
-                </span>
-              )}
-              <span
-                className={cn(
-                  'mr-auto inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold sm:px-2',
-                  isLow
-                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
-                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                )}
-              >
-                {isLow ? <AlertTriangle size={10} /> : <CheckCircle2 size={10} />}
-                <span>{isLow ? 'مخزون منخفض' : 'متوفر'}</span>
-              </span>
-            </div>
+        {/* Top-Right Stock Status Pill */}
+        <span
+          className={cn(
+            'absolute right-1 top-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-bold leading-none shadow-2xs sm:right-1.5 sm:top-1.5 sm:px-1.5',
+            isLow
+              ? 'bg-rose-500/90 text-white'
+              : 'bg-emerald-500/90 text-white'
+          )}
+        >
+          {isLow ? <AlertTriangle size={9} /> : <CheckCircle2 size={9} />}
+          <span className="hidden sm:inline">{isLow ? 'منخفض' : 'متوفر'}</span>
+        </span>
 
-            <div className="flex items-start gap-1.5">
-              <EntityInfoDot
-                type="product"
-                id={product.id}
-                label={product.name_ar || product.name}
-                size="xs"
-                className="mt-0.5"
-              />
-              <h3
-                className="line-clamp-2 flex-1 text-xs font-bold leading-snug text-slate-900 dark:text-white sm:text-sm"
-                title={product.name_ar || product.name}
-              >
-                {product.name_ar || product.name}
-              </h3>
-            </div>
-          </div>
+        {/* Top-Left Entity Inspector Dot */}
+        <div
+          className="absolute left-1 top-1 sm:left-1.5 sm:top-1.5"
+          onClick={e => {
+            e.stopPropagation();
+          }}
+        >
+          <EntityInfoDot
+            type="product"
+            id={product.id}
+            label={product.name_ar || product.name}
+            size="xs"
+          />
         </div>
+
+        {/* Bottom-Right Brand Pill overlay if present */}
+        {product.brand && (
+          <span className="absolute bottom-1 right-1 inline-flex max-w-[85%] items-center gap-0.5 truncate rounded bg-white/90 px-1 py-0.5 text-[10px] font-bold leading-none text-blue-700 shadow-2xs dark:bg-slate-900/90 dark:text-blue-300">
+            <Factory size={9} className="hidden shrink-0 sm:inline" />
+            <span className="truncate">{product.brand}</span>
+          </span>
+        )}
+      </div>
+
+      {/* Main Body */}
+      <div className="flex flex-1 flex-col justify-between gap-1 p-1.5 sm:gap-1.5 sm:p-2">
+        <h3
+          className="line-clamp-2 text-[11px] font-bold leading-snug text-slate-900 dark:text-white sm:text-xs"
+          title={product.name_ar || product.name}
+        >
+          {product.name_ar || product.name}
+        </h3>
 
         {/* Identifiers Row (Part Number / SKU / Location) */}
         {(partNumber || sku || product.location) && (
-          <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] sm:gap-1.5 sm:text-[11px]">
+          <div className="flex flex-wrap items-center gap-1 font-mono text-[10px]">
             {partNumber && (
-              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                <Tag size={10} className="text-slate-400" />
-                <span>{partNumber}</span>
+              <span className="inline-flex max-w-full items-center gap-0.5 truncate rounded bg-slate-100 px-1 py-0.5 font-bold leading-none text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                <Tag size={9} className="hidden shrink-0 text-slate-400 sm:inline" />
+                <span className="truncate">{partNumber}</span>
               </span>
             )}
-            {sku && (
-              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                <Hash size={10} className="text-slate-400" />
-                <span>{sku}</span>
+            {!partNumber && sku && (
+              <span className="inline-flex max-w-full items-center gap-0.5 truncate rounded bg-slate-100 px-1 py-0.5 leading-none text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                <Hash size={9} className="hidden shrink-0 text-slate-400 sm:inline" />
+                <span className="truncate">{sku}</span>
               </span>
             )}
             {product.location && (
-              <span className="mr-auto inline-flex items-center gap-1 font-sans text-[10px] text-slate-400 dark:text-slate-500">
-                <MapPin size={10} />
-                <span>{product.location}</span>
+              <span className="mr-auto hidden items-center gap-0.5 font-sans text-[10px] text-slate-400 dark:text-slate-500 sm:inline-flex">
+                <MapPin size={9} />
+                <span className="truncate">{product.location}</span>
               </span>
             )}
           </div>
         )}
       </div>
 
-      {/* Bottom Strip: Price & Stock (Clean border-t, no negative margins) */}
-      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-2.5 py-1.5 dark:border-slate-800/80 dark:bg-slate-900/40 sm:px-3.5 sm:py-2">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase text-slate-400">سعر البيع</span>
-          <span
-            dir="ltr"
-            className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 sm:text-sm"
-          >
-            {formatCurrency(price)}
-          </span>
-        </div>
+      {/* Bottom Strip: Price & Stock */}
+      <div className="flex items-center justify-between gap-1 border-t border-slate-100 bg-slate-50/80 px-1.5 py-1 dark:border-slate-800/80 dark:bg-slate-900/50 sm:px-2 sm:py-1.5">
+        <span
+          dir="ltr"
+          className="min-w-0 truncate font-mono text-[11px] font-black leading-none text-blue-600 dark:text-blue-400 sm:text-xs"
+        >
+          {formatCurrency(price)}
+        </span>
 
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] font-bold uppercase text-slate-400">الكمية بالمخزن</span>
-          <span
-            dir="ltr"
-            className={cn(
-              'rounded px-1.5 py-0.5 font-mono text-[10px] font-black sm:rounded-md sm:px-2 sm:text-xs',
-              isLow
-                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
-                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-            )}
-          >
-            {formatNumberDisplay(product.stock_quantity)} {product.unit || 'حبة'}
-          </span>
-        </div>
+        <span
+          dir="ltr"
+          className={cn(
+            'shrink-0 rounded px-1 py-0.5 font-mono text-[10px] font-black leading-none sm:px-1.5',
+            isLow
+              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+              : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+          )}
+        >
+          {formatNumberDisplay(product.stock_quantity)}
+        </span>
       </div>
     </div>
   );

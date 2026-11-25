@@ -35,28 +35,28 @@ export const ShipmentsKpiWidget: React.FC<ShipmentsKpiWidgetProps> = ({
   }, 0);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-4 gap-1 sm:gap-3">
       {/* 1. قيد النقل البري */}
       <button
         type="button"
         onClick={() => onFilterStage?.(selectedStage === 'in_transit' ? 'all' : 'in_transit')}
-        className={`p-3 rounded-xl border text-right transition-all flex items-center justify-between ${
+        className={`flex min-w-0 items-center justify-between rounded-lg border p-1.5 text-right transition-all sm:rounded-xl sm:p-3 ${
           selectedStage === 'in_transit'
-            ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-900/30 ring-2 ring-blue-500/20'
+            ? 'border-blue-500 bg-blue-50/70 ring-2 ring-blue-500/20 dark:bg-blue-900/30'
             : 'border-gray-200/80 bg-[var(--app-surface)] hover:border-blue-300 dark:border-slate-800'
         }`}
       >
-        <div>
-          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">
-            شحنات على الطريق البري
+        <div className="min-w-0">
+          <span className="block truncate text-[10px] font-bold text-gray-500 dark:text-gray-400 sm:text-[11px] sm:font-medium">
+            على الطريق
           </span>
-          <span className="font-mono text-xl font-bold text-blue-600 dark:text-blue-400">
+          <span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400 sm:text-xl">
             {inTransitCount}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5">خط صنعاء ➔ المهرة</span>
+          <span className="mt-0.5 hidden text-[10px] text-gray-400 sm:block">خط صنعاء ➔ المهرة</span>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
-          <Truck size={20} />
+        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 sm:flex">
+          <Truck size={18} />
         </div>
       </button>
 
@@ -64,23 +64,23 @@ export const ShipmentsKpiWidget: React.FC<ShipmentsKpiWidgetProps> = ({
       <button
         type="button"
         onClick={() => onFilterStage?.(selectedStage === 'arrived_at_office' ? 'all' : 'arrived_at_office')}
-        className={`p-3 rounded-xl border text-right transition-all flex items-center justify-between ${
+        className={`flex min-w-0 items-center justify-between rounded-lg border p-1.5 text-right transition-all sm:rounded-xl sm:p-3 ${
           selectedStage === 'arrived_at_office'
-            ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-900/30 ring-2 ring-amber-500/20'
+            ? 'border-amber-500 bg-amber-50/70 ring-2 ring-amber-500/20 dark:bg-amber-900/30'
             : 'border-gray-200/80 bg-[var(--app-surface)] hover:border-amber-300 dark:border-slate-800'
         }`}
       >
-        <div>
-          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">
-            وصلت مكاتب الشحن بالمهرة
+        <div className="min-w-0">
+          <span className="block truncate text-[10px] font-bold text-gray-500 dark:text-gray-400 sm:text-[11px] sm:font-medium">
+            بالمكاتب
           </span>
-          <span className="font-mono text-xl font-bold text-amber-600 dark:text-amber-400">
+          <span className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400 sm:text-xl">
             {arrivedOfficeCount}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5">الغيضة / شحن بانتظار الاستلام</span>
+          <span className="mt-0.5 hidden text-[10px] text-gray-400 sm:block">الغيضة / شحن بانتظار الاستلام</span>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-          <MapPin size={20} />
+        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 sm:flex">
+          <MapPin size={18} />
         </div>
       </button>
 
@@ -88,39 +88,39 @@ export const ShipmentsKpiWidget: React.FC<ShipmentsKpiWidgetProps> = ({
       <button
         type="button"
         onClick={() => onFilterStage?.(selectedStage === 'received_at_warehouse' ? 'all' : 'received_at_warehouse')}
-        className={`p-3 rounded-xl border text-right transition-all flex items-center justify-between ${
+        className={`flex min-w-0 items-center justify-between rounded-lg border p-1.5 text-right transition-all sm:rounded-xl sm:p-3 ${
           selectedStage === 'received_at_warehouse'
-            ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-900/30 ring-2 ring-emerald-500/20'
+            ? 'border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 dark:bg-emerald-900/30'
             : 'border-gray-200/80 bg-[var(--app-surface)] hover:border-emerald-300 dark:border-slate-800'
         }`}
       >
-        <div>
-          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">
-            تم الاستلام والفحص بالمستودع
+        <div className="min-w-0">
+          <span className="block truncate text-[10px] font-bold text-gray-500 dark:text-gray-400 sm:text-[11px] sm:font-medium">
+            بالمستودع
           </span>
-          <span className="font-mono text-xl font-bold text-emerald-600 dark:text-emerald-400">
+          <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400 sm:text-xl">
             {receivedCount}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5">جاهزة أو حُوّلت لمشتريات</span>
+          <span className="mt-0.5 hidden text-[10px] text-gray-400 sm:block">جاهزة أو حُوّلت لمشتريات</span>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 size={20} />
+        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 sm:flex">
+          <CheckCircle2 size={18} />
         </div>
       </button>
 
       {/* 4. إجمالي أجور الشحن المقدرة */}
-      <div className="p-3 rounded-xl border border-gray-200/80 bg-[var(--app-surface)] text-right flex items-center justify-between dark:border-slate-800">
-        <div>
-          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">
-            إجمالي أجور النقل التقديرية
+      <div className="flex min-w-0 items-center justify-between rounded-lg border border-gray-200/80 bg-[var(--app-surface)] p-1.5 text-right dark:border-slate-800 sm:rounded-xl sm:p-3">
+        <div className="min-w-0">
+          <span className="block truncate text-[10px] font-bold text-gray-500 dark:text-gray-400 sm:text-[11px] sm:font-medium">
+            أجور النقل
           </span>
-          <span className="font-mono text-base font-bold text-purple-600 dark:text-purple-400" dir="ltr">
+          <span className="block truncate font-mono text-[10.5px] font-bold text-purple-600 dark:text-purple-400 sm:text-base" dir="ltr">
             {formatCurrency(totalShippingCostYer, 'YER')}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5">لكل الشحنات المسجلة</span>
+          <span className="mt-0.5 hidden text-[10px] text-gray-400 sm:block">لكل الشحنات المسجلة</span>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
-          <DollarSign size={20} />
+        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400 sm:flex">
+          <DollarSign size={18} />
         </div>
       </div>
     </div>

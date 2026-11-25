@@ -189,25 +189,25 @@ const TotalCard: React.FC<{ invoice: PurchaseDetailInvoice; totalUnitsCount: num
       .total_document_amount ?? invoice.total_amount;
 
   return (
-    <div className="col-span-2 flex flex-col justify-between rounded-xl border border-blue-200 bg-blue-50/60 p-2.5 shadow-xs dark:border-blue-900/60 dark:bg-blue-950/40 sm:col-span-1 sm:p-3">
+    <div className="flex min-w-0 flex-col justify-between rounded-lg border border-blue-200 bg-blue-50/60 p-1.5 shadow-xs dark:border-blue-900/60 dark:bg-blue-950/40 sm:rounded-xl sm:p-3">
       <div>
-        <div className="mb-1 flex items-center gap-1 text-blue-600 dark:text-blue-400">
-          <DollarSign size={13} />
-          <span className="text-[10px] font-black uppercase tracking-wider">إجمالي الفاتورة</span>
+        <div className="mb-0.5 flex items-center gap-1 text-blue-600 dark:text-blue-400 sm:mb-1">
+          <DollarSign size={11} className="shrink-0 sm:h-[13px] sm:w-[13px]" />
+          <span className="truncate text-[10px] font-black uppercase tracking-wider sm:text-[10px]">الإجمالي</span>
         </div>
         <p
           dir="ltr"
-          className="font-mono text-base font-black text-blue-700 dark:text-blue-300 sm:text-lg"
+          className="truncate text-right font-mono text-[11px] font-black text-blue-700 dark:text-blue-300 sm:text-lg"
         >
           {formatCurrency(docTotal, currencyCode)}
         </p>
         {isForeign && (
-          <p dir="ltr" className="mt-0.5 font-mono text-[10px] font-bold text-blue-600/80 dark:text-blue-400/80">
+          <p dir="ltr" className="mt-0.5 hidden truncate font-mono text-[10px] font-bold text-blue-600/80 dark:text-blue-400/80 sm:block">
             المعادل: {formatCurrency(invoice.total_amount, 'SAR')}
           </p>
         )}
       </div>
-      <div className="mt-1.5 flex items-center justify-between border-t border-blue-200/60 pt-1.5 text-[10px] dark:border-blue-800/40 sm:text-[11px]">
+      <div className="mt-1 hidden items-center justify-between border-t border-blue-200/60 pt-1 text-[10px] dark:border-blue-800/40 sm:mt-1.5 sm:flex sm:pt-1.5 sm:text-[11px]">
         <span className="text-blue-700/80 dark:text-blue-400">عدد الأصناف:</span>
         <span className="font-mono font-bold text-blue-900 dark:text-blue-200">
           {itemsCount} صنف ({totalUnitsCount} وحدة)
@@ -219,7 +219,7 @@ const TotalCard: React.FC<{ invoice: PurchaseDetailInvoice; totalUnitsCount: num
 
 export const InvoiceMetaCards: React.FC<InvoiceMetaCardsProps> = ({ invoice, totalUnitsCount }) => {
   return (
-    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-4 gap-1 text-xs sm:gap-2">
       <SupplierCard invoice={invoice} />
       <DatesCard invoice={invoice} />
       <StatusCard invoice={invoice} />

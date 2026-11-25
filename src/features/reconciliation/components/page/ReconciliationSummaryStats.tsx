@@ -76,7 +76,7 @@ export const SummaryStats: React.FC<{ view: ReconciliationPageController['view']
   const varianceStyle = VARIANCE_STAT_STYLE[cashVarianceInfo.status];
 
   return (
-    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+    <div className="grid grid-cols-4 gap-1 sm:gap-2">
       <StatCard
         variant="compact"
         title="المتوقع بالدرج"

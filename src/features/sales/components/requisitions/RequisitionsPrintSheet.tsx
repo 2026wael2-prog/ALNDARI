@@ -45,7 +45,7 @@ export const RequisitionsPrintSheet: React.FC<RequisitionsPrintSheetProps> = ({
   const totalQuantity = sumRequisitionQuantities(displayItems);
 
   return (
-    <div className="requisitions-print-wrapper bg-white p-6 text-slate-900" dir="rtl">
+    <div className="requisitions-print-wrapper bg-white p-2.5 text-slate-900 sm:p-6" dir="rtl">
       <style>{`
         @media print {
           body { background-color: white !important; }
@@ -155,8 +155,8 @@ export const RequisitionsPrintSheet: React.FC<RequisitionsPrintSheetProps> = ({
       </div>
 
       {/* Excel-like Grid Table with Visible Lines */}
-      <div className="mb-4 overflow-hidden rounded border border-slate-400">
-        <table className="requisition-grid-table">
+      <div className="mb-4 overflow-x-auto rounded border border-slate-400 print:overflow-visible">
+        <table className="requisition-grid-table min-w-[520px] sm:min-w-0">
           <thead>
             <tr>
               <th style={{ width: '5%', textAlign: 'center' }}>#</th>
@@ -213,7 +213,7 @@ export const RequisitionsPrintSheet: React.FC<RequisitionsPrintSheetProps> = ({
       )}
 
       {/* Signature & Confirmation Block */}
-      <div className="mt-8 flex items-center justify-between border-t border-slate-300 pt-4 text-xs text-slate-500">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-slate-300 pt-3 text-[11px] text-slate-500 sm:mt-8 sm:pt-4 sm:text-xs">
         <div>
           <span>المسؤول عن الطلب: .................................</span>
         </div>

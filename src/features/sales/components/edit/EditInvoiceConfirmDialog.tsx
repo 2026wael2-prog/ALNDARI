@@ -23,10 +23,10 @@ export const EditInvoiceConfirmDialog: React.FC<EditInvoiceConfirmDialogProps> =
   onCancel,
   onConfirm,
 }) => (
-  <div className="animate-in fade-in fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/50 p-4 duration-100">
+  <div className="animate-in fade-in fixed inset-0 z-[120] flex items-end justify-center bg-slate-900/50 p-0 duration-100 sm:items-center sm:p-4">
     <div
       style={{ backgroundColor: 'var(--app-surface)', color: 'var(--app-text)' }}
-      className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-5 text-right shadow-2xl"
+      className="max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-right shadow-2xl sm:space-y-4 sm:rounded-2xl sm:p-5"
     >
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">

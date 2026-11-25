@@ -274,26 +274,26 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
     <>
       <div
         className={cn(
-          'font-cairo fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-2 backdrop-blur-sm transition-all duration-300 sm:p-4',
+          'font-cairo fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 p-0 backdrop-blur-sm transition-all duration-300 sm:items-center sm:p-4',
           isFullscreen && 'p-0'
         )}
         onClick={onClose}
       >
         <div
           className={cn(
-            'flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900 sm:rounded-3xl',
-            isFullscreen ? 'h-full w-full rounded-none' : 'max-h-[92vh] w-full max-w-4xl'
+            'flex flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900 sm:rounded-3xl',
+            isFullscreen ? 'h-[100dvh] w-full rounded-none' : 'max-h-[92dvh] w-full max-w-4xl'
           )}
           onClick={e => {
             e.stopPropagation();
           }}
         >
           {/* Header toolbar */}
-          <div className="no-print flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3.5 dark:border-slate-800 dark:bg-slate-950/60">
-            <div className="flex items-center gap-3">
+          <div className="no-print flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-950/60 sm:px-5 sm:py-3.5">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <div
                 className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-xl font-black shadow-sm',
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-black shadow-sm sm:h-10 sm:w-10',
                   isReceipt
                     ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
                     : isPayment
@@ -301,16 +301,17 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
                       : 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
                 )}
               >
-                <FileText size={20} />
+                <FileText size={16} className="sm:hidden" />
+                <FileText size={20} className="hidden sm:block" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                    معاينة السند الرسمي ({bond.payment_number})
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <h3 className="truncate text-xs font-black text-slate-900 dark:text-white sm:text-sm">
+                    سند ({bond.payment_number})
                   </h3>
                   <span
                     className={cn(
-                      'rounded-full px-2.5 py-0.5 text-[10px] font-black',
+                      'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black',
                       isReceipt
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
                         : isPayment
@@ -321,18 +322,18 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
                     {voucherTitle}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="hidden text-[11px] text-slate-400 sm:block">
                   شاشة معاينة وطباعة السندات الرسمية المعتمدة
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
               <button
                 onClick={() => {
                   handlePrint();
                 }}
-                className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-indigo-700"
+                className="flex items-center gap-1 rounded-xl bg-indigo-600 px-2.5 py-1.5 text-[11px] font-bold text-white shadow-sm transition-all hover:bg-indigo-700 sm:px-3.5 sm:text-xs"
                 title="طباعة السند"
               >
                 <Printer size={14} />
@@ -341,7 +342,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
               <button
                 onClick={handleExportPdf}
                 disabled={isExportingPdf}
-                className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 shadow-sm transition-all hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-400"
+                className="flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-bold text-rose-700 shadow-sm transition-all hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-400 sm:px-3 sm:text-xs"
                 title="تصدير السند بصيغة PDF"
               >
                 <FileText size={14} />
@@ -351,7 +352,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
               </button>
               <button
                 onClick={handleWhatsApp}
-                className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-400"
+                className="flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-400 sm:px-3 sm:text-xs"
                 title="مشاركة عبر واتساب"
               >
                 <MessageCircle size={14} />
@@ -359,7 +360,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
               </button>
               <button
                 onClick={handleExportExcel}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:px-3 sm:text-xs"
                 title="تصدير إكسل"
               >
                 <Download size={14} />
@@ -369,14 +370,14 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
                 onClick={() => {
                   setIsFullscreen(!isFullscreen);
                 }}
-                className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                className="hidden rounded-xl border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 md:inline-flex"
                 title={isFullscreen ? 'تصغير النافذة' : 'ملء الشاشة'}
               >
                 {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
               <button
                 onClick={onClose}
-                className="rounded-xl p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                className="rounded-xl p-1.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 sm:p-2"
                 title="إغلاق"
               >
                 <X size={18} />
@@ -385,8 +386,8 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
           </div>
 
           {/* Voucher Paper Area — Unified Al-Nadary Print Template */}
-          <div className="flex-1 overflow-y-auto bg-slate-100/70 p-4 dark:bg-slate-950 sm:p-6">
-            <div className="mx-auto max-w-3xl border border-slate-300 bg-white p-2 shadow-lg">
+          <div className="flex-1 overflow-y-auto bg-slate-100/70 p-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:bg-slate-950 sm:p-6">
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-lg border border-slate-300 bg-white p-1 shadow-lg sm:p-2">
               <AlNadaryPrintShell
                 documentTitle={voucherTitle}
                 documentDate={bond.date}

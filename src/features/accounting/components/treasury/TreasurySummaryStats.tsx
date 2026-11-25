@@ -182,11 +182,11 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
 
   if (isLoading) {
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 max-md:mb-3 max-md:gap-3 md:grid-cols-3">
+      <div className="mb-2.5 grid grid-cols-3 gap-1.5 sm:gap-3 md:mb-5 md:gap-4">
         {[1, 2, 3].map(i => (
           <div
             key={i}
-            className="h-24 animate-pulse border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm"
+            className="h-14 animate-pulse rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm md:h-24"
           />
         ))}
       </div>
@@ -201,7 +201,7 @@ const TreasurySummaryStats: React.FC<Props> = ({ accountId, dateRange }) => {
   );
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 max-md:mb-3 max-md:gap-3 md:grid-cols-3">
+    <div className="mb-2.5 grid grid-cols-3 gap-1.5 sm:gap-3 md:mb-5 md:gap-4">
       <StatCard
         title="الرصيد الحالي"
         value={

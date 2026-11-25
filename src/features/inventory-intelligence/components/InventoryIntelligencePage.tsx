@@ -264,22 +264,22 @@ const InventoryIntelligencePage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4">
-                    <div className="text-xs text-[var(--app-text-secondary)]">إجمالي الأصناف النشطة</div>
-                    <div className="mt-1 text-xl font-black">{Number(summaryData.totals?.total_products ?? 0).toLocaleString()}</div>
+                <div className="grid grid-cols-4 gap-1 sm:gap-3">
+                  <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 sm:rounded-xl sm:p-4">
+                    <div className="truncate text-[10px] text-[var(--app-text-secondary)] sm:text-xs">الأصناف النشطة</div>
+                    <div className="mt-0.5 truncate font-mono text-xs font-black sm:mt-1 sm:text-xl">{Number(summaryData.totals?.total_products ?? 0).toLocaleString()}</div>
                   </div>
-                  <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4">
-                    <div className="text-xs text-[var(--app-text-secondary)]">إجمالي الوحدات المتاحة</div>
-                    <div className="mt-1 text-xl font-black">{Number(summaryData.totals?.total_avail_qty ?? 0).toLocaleString()}</div>
+                  <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 sm:rounded-xl sm:p-4">
+                    <div className="truncate text-[10px] text-[var(--app-text-secondary)] sm:text-xs">الوحدات المتاحة</div>
+                    <div className="mt-0.5 truncate font-mono text-xs font-black sm:mt-1 sm:text-xl">{Number(summaryData.totals?.total_avail_qty ?? 0).toLocaleString()}</div>
                   </div>
-                  <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4">
-                    <div className="text-xs text-[var(--app-text-secondary)]">قيمة المخزون بالتكلفة</div>
-                    <div className="mt-1 text-xl font-black">{Number(summaryData.totals?.total_stock_cost ?? 0).toLocaleString()} ر.س</div>
+                  <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 sm:rounded-xl sm:p-4">
+                    <div className="truncate text-[10px] text-[var(--app-text-secondary)] sm:text-xs">قيمة المخزون</div>
+                    <div className="mt-0.5 truncate font-mono text-[10.5px] font-black sm:mt-1 sm:text-xl">{Number(summaryData.totals?.total_stock_cost ?? 0).toLocaleString()} ر.س</div>
                   </div>
-                  <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4">
-                    <div className="text-xs text-[var(--app-text-secondary)]">نقص / نفاد المخزون</div>
-                    <div className="mt-1 text-xl font-black text-amber-600">
+                  <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 sm:rounded-xl sm:p-4">
+                    <div className="truncate text-[10px] text-[var(--app-text-secondary)] sm:text-xs">نقص / نفاد</div>
+                    <div className="mt-0.5 truncate font-mono text-xs font-black text-amber-600 sm:mt-1 sm:text-xl">
                       {Number(summaryData.totals?.low_stock_count ?? 0)} / {Number(summaryData.totals?.out_of_stock_count ?? 0)}
                     </div>
                   </div>

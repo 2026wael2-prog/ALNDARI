@@ -143,16 +143,16 @@ export const DebtsModalShell: React.FC<DebtsModalShellProps> = ({
   const titleId = useId();
   if (!isOpen) return null;
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm duration-200 sm:items-center sm:p-4">
       <div
         dir="rtl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          'animate-in zoom-in-95 flex max-h-[90vh] w-full flex-col overflow-hidden border border-gray-100 bg-[var(--app-surface)] shadow-2xl duration-200 dark:border-slate-800',
+          'animate-in zoom-in-95 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-gray-100 bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl duration-200 dark:border-slate-800 sm:pb-0',
           shellSizeClass(size),
-          rounded
+          rounded === 'rounded-3xl' ? 'sm:rounded-3xl' : 'sm:rounded-2xl'
         )}
       >
         <ShellHeader

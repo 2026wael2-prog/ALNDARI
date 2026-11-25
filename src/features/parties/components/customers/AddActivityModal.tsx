@@ -67,10 +67,10 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-lg rounded-xl bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl sm:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between border-b border-gray-200 p-3 sm:p-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">إضافة نشاط جديد</h3>
             <p className="text-sm text-gray-500">العميل: {customerName}</p>

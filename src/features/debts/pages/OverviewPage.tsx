@@ -167,7 +167,7 @@ const StatsGrid: React.FC<{
 }> = ({ analytics, isLoading, baseCurrency, currencyMode, bucket, onSelectBucket }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-3 max-md:gap-1.5 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1 sm:gap-2.5 md:gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <LoadingCard key={i} />
         ))}
@@ -196,7 +196,7 @@ const StatsGrid: React.FC<{
       : 0;
 
   return (
-    <div className="grid grid-cols-2 gap-3 max-md:gap-1.5 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
+    <div className="grid grid-cols-4 gap-1 sm:gap-2.5 md:gap-4">
       {rows.map(s => {
         const targetBucket = bucketForTitle(s.title);
 

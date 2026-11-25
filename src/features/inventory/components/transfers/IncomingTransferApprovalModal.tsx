@@ -110,7 +110,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -121,10 +121,10 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
       />
 
       {/* بطاقة النافذة المنبثقة التفاعلية */}
-      <div className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900">
+      <div className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:pb-0">
         
         {/* الترويسة بلون مميز لطلبات المناقلة العاجلة */}
-        <div className="flex items-center justify-between border-b border-amber-200/80 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent p-4 dark:border-amber-800/60">
+        <div className="flex items-center justify-between border-b border-amber-200/80 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent p-3 dark:border-amber-800/60 sm:p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
               <ArrowRightLeft size={20} className="animate-pulse" />

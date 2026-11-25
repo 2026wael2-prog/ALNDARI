@@ -116,10 +116,10 @@ export const NewChatModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="flex h-[520px] w-full max-w-md flex-col rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="flex h-[82dvh] max-h-[520px] w-full max-w-md flex-col rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl sm:pb-0">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[var(--app-border)] p-4">
+        <div className="flex items-center justify-between border-b border-[var(--app-border)] p-3 sm:p-4">
           <h3 className="text-base font-bold text-[var(--app-text)]">محادثة جديدة</h3>
           <button
             onClick={onClose}

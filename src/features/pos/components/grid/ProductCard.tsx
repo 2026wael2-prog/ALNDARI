@@ -95,7 +95,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
             setShowWarehousePopover(false);
           }}
           className={cn(
-            'group relative flex h-48 select-none flex-col rounded-2xl border bg-[var(--app-surface)] p-2 text-right transition-all md:h-52',
+            'group relative flex h-36 min-w-0 select-none flex-col rounded-xl border bg-[var(--app-surface)] p-1.5 text-right transition-all sm:h-44 sm:rounded-2xl sm:p-2 md:h-52',
             hasStock
               ? isPurelyCrossBranch
                 ? 'cursor-pointer border-amber-200 shadow-xs hover:border-amber-500 hover:shadow-sm active:scale-95 dark:border-amber-900/50'
@@ -115,7 +115,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
           }}
         >
           {/* Image */}
-          <div className="relative mb-1.5 flex h-20 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100/50 bg-slate-50 dark:border-slate-700/30 dark:bg-slate-800/40 md:h-24">
+          <div className="relative mb-1 flex h-14 w-full shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100/50 bg-slate-50 dark:border-slate-700/30 dark:bg-slate-800/40 sm:mb-1.5 sm:h-20 sm:rounded-xl md:h-24">
             {product.image_url ? (
               <img
                 src={product.image_url}
@@ -127,9 +127,9 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
               />
             ) : (
               <Package
-                size={28}
+                size={22}
                 strokeWidth={1.5}
-                className="text-slate-300 transition-transform duration-300 group-hover:scale-110 dark:text-slate-600"
+                className="text-slate-300 transition-transform duration-300 group-hover:scale-110 dark:text-slate-600 sm:h-7 sm:w-7"
               />
             )}
 
@@ -141,35 +141,35 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
                   e.stopPropagation();
                   onViewDetails(product);
                 }}
-                className="absolute left-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-500 opacity-0 shadow-xs backdrop-blur-sm transition-all duration-200 hover:border-blue-500 hover:bg-blue-500 hover:text-white group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 max-md:opacity-100"
+                className="absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-500 opacity-0 shadow-xs transition-all duration-200 hover:border-blue-500 hover:bg-blue-500 hover:text-white group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 max-md:opacity-100 sm:left-1.5 sm:top-1.5 sm:h-7 sm:w-7"
                 title="عرض التفاصيل"
               >
-                <Eye size={14} />
+                <Eye size={11} className="sm:h-3.5 sm:w-3.5" />
               </button>
             )}
 
             {/* Stock Badge Overlay on Image */}
             {!hasStock ? (
-              <span className="absolute right-1.5 top-1.5 z-10 rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
-                نفذت الكمية
+              <span className="absolute right-1 top-1 z-10 rounded bg-rose-600 px-1 py-0.5 text-[10px] font-bold leading-none text-white shadow-xs sm:right-1.5 sm:top-1.5 sm:rounded-md sm:px-2">
+                نفذ
               </span>
             ) : isPurelyCrossBranch ? (
-              <span className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1 rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
-                <Building2 size={10} /> فرع آخر
+              <span className="absolute right-1 top-1 z-10 flex items-center gap-0.5 rounded bg-amber-500 px-1 py-0.5 text-[10px] font-bold leading-none text-white shadow-xs sm:right-1.5 sm:top-1.5 sm:gap-1 sm:rounded-md sm:px-1.5">
+                <Building2 size={9} /> <span className="hidden sm:inline">فرع آخر</span>
               </span>
             ) : isLowStock ? (
-              <span className="absolute right-1.5 top-1.5 z-10 rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
+              <span className="absolute right-1 top-1 z-10 rounded bg-amber-500 px-1 py-0.5 text-[10px] font-bold leading-none text-white shadow-xs sm:right-1.5 sm:top-1.5 sm:rounded-md sm:px-1.5">
                 شحيح
               </span>
             ) : null}
           </div>
 
-          <div className="flex flex-1 flex-col justify-between">
-            <div>
+          <div className="flex min-w-0 flex-1 flex-col justify-between">
+            <div className="min-w-0">
               {/* Product Name */}
               <h3
                 className={cn(
-                  'mb-1.5 line-clamp-2 text-xs font-bold leading-snug md:text-sm',
+                  'mb-0.5 line-clamp-2 text-[11px] font-bold leading-tight sm:mb-1.5 sm:text-xs sm:leading-snug md:text-sm',
                   hasStock
                     ? 'text-gray-800 dark:text-slate-100'
                     : 'text-gray-600 dark:text-slate-300'
@@ -179,26 +179,26 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
               </h3>
 
               {/* Match badges */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="hidden flex-wrap gap-1 sm:flex sm:gap-1.5">
                 {isMatchedByAlternative && (
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 md:text-[10px]">
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                     <Hash size={8} />
                     بديل
                   </span>
                 )}
                 {isSearching && product.part_number && product.part_number !== '---' && (
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500 dark:bg-slate-800 dark:text-slate-400 md:text-[10px]">
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                     {product.part_number}
                   </span>
                 )}
                 {isSearching && product.brand && (
-                  <span className="max-w-[90px] truncate rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 md:text-[10px]">
+                  <span className="max-w-[90px] truncate rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
                     {product.brand}
                   </span>
                 )}
                 {/* Warehouse count badge */}
                 {warehouseCount > 1 && (
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 md:text-[10px]">
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
                     <Store size={8} />
                     {warehouseCount} مستودع
                   </span>
@@ -206,7 +206,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
                 {/* Cross Branch badge */}
                 {isPurelyCrossBranch && (
                   <span
-                    className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 md:text-[10px]"
+                    className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
                     title="البضاعة متوفرة في فرع آخر فقط"
                   >
                     <Building2 size={8} />
@@ -217,11 +217,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
             </div>
 
             {/* Price + Stock Row */}
-            <div className="mt-2.5 flex w-full items-end justify-between">
+            <div className="mt-1 flex w-full items-end justify-between gap-1 sm:mt-2">
               <span
                 dir="ltr"
                 className={cn(
-                  'text-xs font-black tracking-tighter md:text-base',
+                  'min-w-0 truncate font-mono text-[11px] font-black tracking-tighter sm:text-xs md:text-base',
                   hasStock
                     ? 'text-blue-600 dark:text-blue-400'
                     : 'text-gray-500 dark:text-slate-400'
@@ -232,7 +232,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
               <span
                 dir="ltr"
                 className={cn(
-                  'flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase md:text-xs',
+                  'flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-bold uppercase sm:gap-1 sm:rounded-lg sm:px-2 md:text-xs',
                   hasStock
                     ? isLowStock
                       ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
@@ -240,8 +240,8 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
                     : 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400'
                 )}
               >
-                <Layers size={11} />
-                {hasStock ? formatNumberDisplay(product.stock_quantity) : '0 نفذ'}
+                <Layers size={10} className="hidden sm:inline" />
+                {hasStock ? formatNumberDisplay(product.stock_quantity) : '0'}
               </span>
             </div>
           </div>

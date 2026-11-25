@@ -18,54 +18,54 @@ interface BondKpiCardsProps {
 
 const BondKpiCards: React.FC<BondKpiCardsProps> = ({ totals, analytics }) => {
     return (
-        <div className="grid grid-cols-2 max-md:gap-3 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-emerald-500/30 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
-                <div className="absolute top-0 right-0 p-6 opacity-20 transform group-hover:rotate-12 transition-transform duration-500">
-                    <ArrowDownCircle size={60} />
+        <div className="grid grid-cols-4 gap-1 sm:gap-4 lg:gap-6">
+            <div className="group relative min-w-0 overflow-hidden rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 p-1.5 text-white shadow-sm transition-transform duration-500 hover:scale-[1.02] sm:rounded-2xl sm:p-5 sm:shadow-xl sm:shadow-emerald-500/20 lg:p-6">
+                <div className="absolute right-0 top-0 hidden transform p-4 opacity-20 transition-transform duration-500 group-hover:rotate-12 sm:block">
+                    <ArrowDownCircle size={44} />
                 </div>
-                <p className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em] mb-3">إجمالي القبض</p>
-                <h2 dir="ltr" className="text-3xl font-bold font-mono tracking-tighter mb-1">{formatCurrency(totals.receiptAmount)}</h2>
-                <div className="flex items-center gap-2 mt-4 text-[10px] font-bold">
-                    <span className="bg-white/10 px-3 py-1 rounded-full">{totals.receiptCount} سند قبض</span>
+                <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">إجمالي القبض</p>
+                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">{formatCurrency(totals.receiptAmount)}</h2>
+                <div className="mt-2 hidden items-center gap-2 text-[10px] font-bold sm:flex">
+                    <span className="rounded-full bg-white/10 px-2.5 py-0.5">{totals.receiptCount} سند قبض</span>
                 </div>
             </div>
 
-            <div className="bg-gradient-to-br from-rose-600 to-pink-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-rose-500/30 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
-                <div className="absolute top-0 right-0 p-6 opacity-20 transform group-hover:rotate-12 transition-transform duration-500">
-                    <ArrowUpCircle size={60} />
+            <div className="group relative min-w-0 overflow-hidden rounded-lg bg-gradient-to-br from-rose-600 to-pink-700 p-1.5 text-white shadow-sm transition-transform duration-500 hover:scale-[1.02] sm:rounded-2xl sm:p-5 sm:shadow-xl sm:shadow-rose-500/20 lg:p-6">
+                <div className="absolute right-0 top-0 hidden transform p-4 opacity-20 transition-transform duration-500 group-hover:rotate-12 sm:block">
+                    <ArrowUpCircle size={44} />
                 </div>
-                <p className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em] mb-3">إجمالي الصرف</p>
-                <h2 dir="ltr" className="text-3xl font-bold font-mono tracking-tighter mb-1">{formatCurrency(totals.paymentAmount)}</h2>
-                <div className="flex items-center gap-2 mt-4 text-[10px] font-bold">
-                    <span className="bg-white/10 px-3 py-1 rounded-full">{totals.paymentCount} سند صرف</span>
+                <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">إجمالي الصرف</p>
+                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">{formatCurrency(totals.paymentAmount)}</h2>
+                <div className="mt-2 hidden items-center gap-2 text-[10px] font-bold sm:flex">
+                    <span className="rounded-full bg-white/10 px-2.5 py-0.5">{totals.paymentCount} سند صرف</span>
                 </div>
             </div>
 
             <div className={cn(
-                "p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500",
+                "group relative min-w-0 overflow-hidden rounded-lg p-1.5 shadow-sm transition-transform duration-500 hover:scale-[1.02] sm:rounded-2xl sm:p-5 sm:shadow-xl lg:p-6",
                 totals.netAmount >= 0
-                    ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-blue-500/30'
-                    : 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-orange-500/30'
+                    ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white sm:shadow-blue-500/20'
+                    : 'bg-gradient-to-br from-orange-500 to-red-600 text-white sm:shadow-orange-500/20'
             )}>
-                <div className="absolute top-0 right-0 p-6 opacity-20 transform group-hover:scale-110 transition-transform duration-500">
-                    <Wallet size={60} />
+                <div className="absolute right-0 top-0 hidden transform p-4 opacity-20 transition-transform duration-500 group-hover:scale-110 sm:block">
+                    <Wallet size={44} />
                 </div>
-                <p className="text-[10px] font-bold uppercase opacity-60 tracking-[0.2em] mb-3">صافي التدفق</p>
-                <h2 dir="ltr" className="text-3xl font-bold font-mono tracking-tighter mb-1">{formatCurrency(Math.abs(totals.netAmount))}</h2>
-                <div className="flex items-center gap-2 mt-4">
-                    <span className="text-[10px] font-bold uppercase bg-white/20 px-3 py-1 rounded-full">
+                <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">صافي التدفق</p>
+                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">{formatCurrency(Math.abs(totals.netAmount))}</h2>
+                <div className="mt-2 hidden items-center gap-2 sm:flex">
+                    <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-bold">
                         {totals.netAmount >= 0 ? 'فائض نقدي' : 'عجز نقدي'}
                     </span>
                 </div>
             </div>
 
-            <div className="bg-[var(--app-surface)] border border-slate-100 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
-                <div className="absolute bottom-0 right-0 p-6 opacity-5 transform group-hover:-translate-y-2 transition-transform duration-500">
-                    <Activity size={80} className="text-amber-500" />
+            <div className="group relative min-w-0 overflow-hidden rounded-lg border border-slate-100 bg-[var(--app-surface)] p-1.5 shadow-sm transition-transform duration-500 hover:scale-[1.02] dark:border-slate-800 sm:rounded-2xl sm:p-5 sm:shadow-lg lg:p-6">
+                <div className="absolute bottom-0 right-0 hidden transform p-4 opacity-5 transition-transform duration-500 group-hover:-translate-y-2 sm:block">
+                    <Activity size={56} className="text-amber-500" />
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">متوسط قيمة السند</p>
-                <h2 dir="ltr" className="text-3xl font-bold text-slate-900 dark:text-white font-mono tracking-tighter mb-1">{formatCurrency(analytics.avgAmount)}</h2>
-                <p className="text-[10px] font-bold text-slate-400 mt-4 uppercase">Calculated from {analytics.count} bonds</p>
+                <p className="mb-0.5 truncate text-[10px] font-bold text-slate-400 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">متوسط السند</p>
+                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight text-slate-900 dark:text-white sm:text-xl lg:text-2xl">{formatCurrency(analytics.avgAmount)}</h2>
+                <p className="mt-2 hidden text-[10px] font-bold text-slate-400 sm:block">{analytics.count} سند</p>
             </div>
         </div>
     );

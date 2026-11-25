@@ -47,11 +47,11 @@ export const ReturnsFilterControls: React.FC<Props> = ({
   // filters مضمون النوع الآن (ReturnsListFilters) — لا حاجة لحاجز التحويل
   const safeFilters = filters;
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
-      <div className="flex flex-col gap-3 lg:flex-row">
+    <div className="rounded-lg border border-gray-100 bg-white p-1.5 dark:border-slate-700 dark:bg-slate-800 sm:rounded-xl sm:p-3">
+      <div className="flex flex-col gap-1.5 sm:gap-3 lg:flex-row">
         {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 sm:right-3" size={14} />
           <input
             type="text"
             value={localSearchTerm}
@@ -59,22 +59,22 @@ export const ReturnsFilterControls: React.FC<Props> = ({
               setLocalSearchTerm(e.target.value);
             }}
             placeholder={`بحث ب${type === 'sales' ? 'العميل' : 'المورد'}، رقم الفاتورة، سبب الإرجاع...`}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-3 pr-10 text-sm font-medium text-gray-900 placeholder-gray-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+            className="h-7 w-full rounded-lg border border-gray-200 bg-gray-50 pl-3 pr-8 text-xs font-medium text-gray-900 placeholder-gray-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white sm:h-9 sm:pr-10 sm:text-sm"
           />
           {localSearchTerm && (
             <button
               onClick={() => {
                 setLocalSearchTerm('');
               }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 sm:left-3"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
+        {/* Action Buttons — 4-up single row on mobile */}
+        <div className="grid grid-cols-4 gap-1 sm:flex sm:gap-2">
           <Button
             variant={showFilters ? 'primary' : 'outline'}
             size="sm"
@@ -131,8 +131,8 @@ export const ReturnsFilterControls: React.FC<Props> = ({
 
       {/* Advanced Filters Panel */}
       {showFilters && (
-        <div className="mt-3 border-t border-gray-200 pt-3 dark:border-slate-600">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+        <div className="mt-2 border-t border-gray-200 pt-2 dark:border-slate-600 sm:mt-3 sm:pt-3">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-3 lg:grid-cols-6">
             {/* Status Filter */}
             <div>
               <label className="mb-1 block text-xs font-bold text-gray-500">الحالة</label>

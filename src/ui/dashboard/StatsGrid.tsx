@@ -175,7 +175,9 @@ const StatsGrid: React.FC<StatsGridProps> = ({
   return (
     <section
       className={cn(
-        'grid grid-cols-2 gap-2.5 max-md:gap-2 md:grid-cols-3',
+        statItems.length > 4
+          ? 'no-scrollbar grid snap-x grid-flow-col auto-cols-[calc(25%-3px)] gap-1 overflow-x-auto sm:gap-2 md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:gap-2.5 md:overflow-visible'
+          : 'grid grid-cols-4 gap-1 sm:gap-2 md:grid-cols-4 md:gap-2.5',
         statItems.length >= 6 ? 'xl:grid-cols-6' : 'xl:grid-cols-5'
       )}
     >
@@ -210,30 +212,33 @@ const StatsGrid: React.FC<StatsGridProps> = ({
           <div
             key={item.title}
             onClick={() => navigate(item.path)}
-            className="group relative cursor-pointer"
+            className="group relative min-w-0 snap-start cursor-pointer"
           >
             <div
               className={cn(
-                'relative h-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 transition-all duration-200 md:p-3',
+                'relative h-full rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 transition-all duration-200 sm:rounded-xl sm:p-2.5 md:p-3',
                 'hover:-translate-y-0.5 hover:border-[var(--accent)]/40 hover:bg-[var(--app-surface-hover)] hover:shadow-md'
               )}
             >
-              <div className="flex h-full flex-col justify-between gap-1.5 md:gap-2">
+              <div className="flex h-full flex-col justify-between gap-1 sm:gap-1.5 md:gap-2">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-1.5">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="mb-0.5 truncate text-[10px] font-bold uppercase leading-tight tracking-wider text-[var(--app-text-secondary)] md:mb-1">
+                <div className="flex items-start justify-between gap-0.5 sm:gap-1.5">
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span
+                      className="truncate text-[10px] font-bold leading-tight text-[var(--app-text-secondary)] sm:mb-0.5 sm:text-[10px] sm:uppercase sm:tracking-wider md:mb-1"
+                      title={item.title}
+                    >
                       {item.title}
                     </span>
                     {item.subtitle && (
-                      <span className="truncate text-[10px] text-[var(--app-text-secondary)]">
+                      <span className="hidden truncate text-[10px] text-[var(--app-text-secondary)] sm:block">
                         {item.subtitle}
                       </span>
                     )}
                   </div>
                   <div
                     className={cn(
-                      'shrink-0 rounded-lg p-1.5 transition-colors md:p-2',
+                      'shrink-0 rounded-md p-0.5 transition-colors sm:rounded-lg sm:p-1.5 md:p-2',
                       item.colorClass.includes('emerald')
                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                         : item.colorClass.includes('rose')
@@ -243,16 +248,16 @@ const StatsGrid: React.FC<StatsGridProps> = ({
                             : 'bg-[var(--app-surface-hover)] text-[var(--accent)]'
                     )}
                   >
-                    <item.icon size={15} className="md:h-[18px] md:w-[18px]" />
+                    <item.icon size={11} className="sm:h-[15px] sm:w-[15px] md:h-[18px] md:w-[18px]" />
                   </div>
                 </div>
 
                 {/* Value + Sparkline Row */}
-                <div className="mt-0.5 flex items-end justify-between gap-1 md:mt-1">
+                <div className="flex items-end justify-between gap-0.5 sm:mt-0.5 sm:gap-1 md:mt-1">
                   <h3
                     dir="ltr"
                     className={cn(
-                      'min-w-0 truncate text-right font-mono text-sm font-bold leading-none tracking-tight sm:text-base md:text-xl',
+                      'min-w-0 flex-1 truncate text-right font-mono text-[11px] font-black leading-tight tabular-nums tracking-tight sm:text-base sm:font-bold sm:leading-none md:text-xl',
                       item.title === (t('net_loss') || 'صافي الخسارة')
                         ? 'text-rose-600 dark:text-rose-400'
                         : 'text-[var(--app-text)]'
@@ -269,16 +274,16 @@ const StatsGrid: React.FC<StatsGridProps> = ({
 
                 {/* Trend Badge */}
                 {trend && (
-                  <div className="mt-0.5 flex items-center justify-between md:mt-1">
+                  <div className="flex items-center justify-between sm:mt-0.5 md:mt-1">
                     <div
                       className={cn(
-                        'flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold',
+                        'flex items-center gap-0.5 rounded border px-1 py-0 text-[10px] font-semibold sm:gap-1 sm:rounded-md sm:px-1.5 sm:py-0.5 sm:text-[10px]',
                         trend.isPositive
                           ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
                           : 'border-rose-500/20 bg-rose-500/10 text-rose-500'
                       )}
                     >
-                      {trend.isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                      {trend.isPositive ? <ArrowUpRight size={9} /> : <ArrowDownRight size={9} />}
                       <span>{trend.value.toFixed(1)}%</span>
                     </div>
                   </div>

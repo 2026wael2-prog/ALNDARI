@@ -25,11 +25,11 @@ const TableSkeleton: React.FC = () => (
 );
 
 const GridSkeleton: React.FC = () => (
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-pulse">
+  <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 animate-pulse">
     {Array.from({ length: 8 }).map((_, i) => (
-      <div key={i} className="bg-[var(--app-surface)] rounded-2xl p-4 border border-[var(--app-border)]">
-        <div className="h-32 bg-[var(--app-surface-hover)] rounded-xl mb-3" />
-        <div className="h-4 bg-[var(--app-surface-hover)] rounded w-3/4 mb-2" />
+      <div key={i} className="bg-[var(--app-surface)] rounded-xl p-2.5 sm:rounded-2xl sm:p-4 border border-[var(--app-border)]">
+        <div className="h-20 sm:h-32 bg-[var(--app-surface-hover)] rounded-lg sm:rounded-xl mb-2 sm:mb-3" />
+        <div className="h-3.5 bg-[var(--app-surface-hover)] rounded w-3/4 mb-1.5" />
         <div className="h-3 bg-[var(--app-surface-hover)] rounded w-1/2" />
       </div>
     ))}
@@ -37,38 +37,38 @@ const GridSkeleton: React.FC = () => (
 );
 
 const FormSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse max-w-lg mx-auto">
+  <div className="space-y-4 sm:space-y-6 animate-pulse max-w-lg mx-auto">
     <div className="space-y-2">
       <div className="h-4 bg-[var(--app-surface-hover)] rounded w-24" />
-      <div className="h-10 bg-[var(--app-surface-hover)] rounded-lg" />
+      <div className="h-9 sm:h-10 bg-[var(--app-surface-hover)] rounded-lg" />
     </div>
     <div className="space-y-2">
       <div className="h-4 bg-[var(--app-surface-hover)] rounded w-32" />
-      <div className="h-10 bg-[var(--app-surface-hover)] rounded-lg" />
+      <div className="h-9 sm:h-10 bg-[var(--app-surface-hover)] rounded-lg" />
     </div>
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
       <div className="space-y-2">
         <div className="h-4 bg-[var(--app-surface-hover)] rounded w-16" />
-        <div className="h-10 bg-[var(--app-surface-hover)] rounded-lg" />
+        <div className="h-9 sm:h-10 bg-[var(--app-surface-hover)] rounded-lg" />
       </div>
       <div className="space-y-2">
         <div className="h-4 bg-[var(--app-surface-hover)] rounded w-20" />
-        <div className="h-10 bg-[var(--app-surface-hover)] rounded-lg" />
+        <div className="h-9 sm:h-10 bg-[var(--app-surface-hover)] rounded-lg" />
       </div>
     </div>
-    <div className="h-24 bg-[var(--app-surface-hover)] rounded-lg" />
-    <div className="h-12 bg-[var(--app-surface-hover)] rounded-lg w-32 mt-4" />
+    <div className="h-20 sm:h-24 bg-[var(--app-surface-hover)] rounded-lg" />
+    <div className="h-10 sm:h-12 bg-[var(--app-surface-hover)] rounded-lg w-32 mt-4" />
   </div>
 );
 
 const DashboardSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse">
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <div className="space-y-3 sm:space-y-6 animate-pulse">
+    <div className="grid grid-cols-4 gap-1.5 sm:gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="bg-[var(--app-surface)] rounded-2xl p-5 border border-[var(--app-border)]">
-          <div className="h-4 bg-[var(--app-surface-hover)] rounded w-16 mb-3" />
-          <div className="h-8 bg-[var(--app-surface-hover)] rounded w-24 mb-2" />
-          <div className="h-3 bg-[var(--app-surface-hover)] rounded w-20" />
+        <div key={i} className="bg-[var(--app-surface)] rounded-lg sm:rounded-2xl p-2 sm:p-5 border border-[var(--app-border)]">
+          <div className="h-2.5 sm:h-4 bg-[var(--app-surface-hover)] rounded w-12 sm:w-16 mb-1.5 sm:mb-3" />
+          <div className="h-4 sm:h-8 bg-[var(--app-surface-hover)] rounded w-full sm:w-24 mb-1 sm:mb-2" />
+          <div className="hidden sm:block h-3 bg-[var(--app-surface-hover)] rounded w-20" />
         </div>
       ))}
     </div>

@@ -70,63 +70,63 @@ export const ConfirmationMetadataCards: React.FC<ConfirmationMetadataCardsProps>
       </div>
     )}
 
-    {/* بطاقات البيانات الأساسية */}
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-      <div className="rounded-xl border border-slate-200/70 bg-slate-50/60 p-2.5 dark:border-slate-800 dark:bg-slate-800/40">
-        <div className="mb-1 flex items-center gap-1.5 text-slate-400">
-          <User size={12} className="text-blue-500" />
-          <span className="text-[10px] font-bold">{isSale ? 'العميل' : 'المورد'}</span>
+    {/* بطاقات البيانات الأساسية — 4-per-row on mobile */}
+    <div className="grid grid-cols-4 gap-1 sm:gap-2.5">
+      <div className="min-w-0 rounded-lg border border-slate-200/70 bg-slate-50/60 p-1.5 dark:border-slate-800 dark:bg-slate-800/40 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-slate-400 sm:mb-1 sm:gap-1.5">
+          <User size={11} className="shrink-0 text-blue-500 sm:h-3 sm:w-3" />
+          <span className="truncate text-[10px] font-bold sm:text-[10px]">{isSale ? 'العميل' : 'المورد'}</span>
         </div>
-        <p className="truncate text-xs font-black text-slate-800 dark:text-slate-100">
+        <p className="truncate text-[10px] font-black text-slate-800 dark:text-slate-100 sm:text-xs">
           {partyName || (isSale ? 'عميل نقدي' : 'مورد عام')}
         </p>
       </div>
-      <div className="rounded-xl border border-slate-200/70 bg-slate-50/60 p-2.5 dark:border-slate-800 dark:bg-slate-800/40">
-        <div className="mb-1 flex items-center gap-1.5 text-slate-400">
+      <div className="min-w-0 rounded-lg border border-slate-200/70 bg-slate-50/60 p-1.5 dark:border-slate-800 dark:bg-slate-800/40 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-slate-400 sm:mb-1 sm:gap-1.5">
           {isCredit ? (
-            <CreditCard size={12} className="text-amber-500" />
+            <CreditCard size={11} className="shrink-0 text-amber-500 sm:h-3 sm:w-3" />
           ) : (
-            <Banknote size={12} className="text-emerald-500" />
+            <Banknote size={11} className="shrink-0 text-emerald-500 sm:h-3 sm:w-3" />
           )}
-          <span className="text-[10px] font-bold">نوع السداد</span>
+          <span className="truncate text-[10px] font-bold sm:text-[10px]">السداد</span>
         </div>
         <span
-          className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-black ${
+          className={`inline-flex truncate rounded px-1 py-0 text-[10px] font-black sm:rounded-md sm:px-2 sm:py-0.5 sm:text-[11px] ${
             isCredit
               ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
               : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
           }`}
         >
-          {isCredit ? 'آجل (ذمم)' : 'نقداً'}
+          {isCredit ? 'آجل' : 'نقداً'}
         </span>
       </div>
-      <div className="rounded-xl border border-slate-200/70 bg-slate-50/60 p-2.5 dark:border-slate-800 dark:bg-slate-800/40">
-        <div className="mb-1 flex items-center gap-1.5 text-slate-400">
-          <Coins size={12} className="text-indigo-500" />
-          <span className="text-[10px] font-bold">العملة والصرف</span>
+      <div className="min-w-0 rounded-lg border border-slate-200/70 bg-slate-50/60 p-1.5 dark:border-slate-800 dark:bg-slate-800/40 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-slate-400 sm:mb-1 sm:gap-1.5">
+          <Coins size={11} className="shrink-0 text-indigo-500 sm:h-3 sm:w-3" />
+          <span className="truncate text-[10px] font-bold sm:text-[10px]">العملة</span>
         </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-mono text-xs font-black text-indigo-600 dark:text-indigo-400">
+        <div className="flex items-baseline gap-1">
+          <span className="font-mono text-[10.5px] font-black text-indigo-600 dark:text-indigo-400 sm:text-xs">
             {currency}
           </span>
           {isForeign && (
-            <span className="font-mono text-[10px] font-bold text-slate-500">
+            <span className="hidden font-mono text-[10px] font-bold text-slate-500 sm:inline">
               ({effectiveOperator === 'divide' ? '÷' : '×'} {effectiveRate})
             </span>
           )}
         </div>
       </div>
-      <div className="rounded-xl border border-slate-200/70 bg-slate-50/60 p-2.5 dark:border-slate-800 dark:bg-slate-800/40">
-        <div className="mb-1 flex items-center gap-1.5 text-slate-400">
-          <Wallet size={12} className="text-emerald-500" />
-          <span className="text-[10px] font-bold">
-            {!isCredit || hasPartialPayment ? 'الصندوق / البنك' : 'المستودع'}
+      <div className="min-w-0 rounded-lg border border-slate-200/70 bg-slate-50/60 p-1.5 dark:border-slate-800 dark:bg-slate-800/40 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-slate-400 sm:mb-1 sm:gap-1.5">
+          <Wallet size={11} className="shrink-0 text-emerald-500 sm:h-3 sm:w-3" />
+          <span className="truncate text-[10px] font-bold sm:text-[10px]">
+            {!isCredit || hasPartialPayment ? 'الصندوق' : 'المستودع'}
           </span>
         </div>
-        <p className="truncate text-xs font-bold text-slate-800 dark:text-slate-100">
+        <p className="truncate text-[10px] font-bold text-slate-800 dark:text-slate-100 sm:text-xs">
           {!isCredit || hasPartialPayment
             ? cashboxName || 'غير محدد'
-            : warehouseName || 'المستودع الرئيسي'}
+            : warehouseName || 'الرئيسي'}
         </p>
       </div>
     </div>

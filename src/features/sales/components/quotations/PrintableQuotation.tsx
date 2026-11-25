@@ -218,25 +218,26 @@ const PrintableQuotation: FC<PrintableQuotationProps> = ({
   return (
     <div className="w-full bg-white text-black">
       {!hideToolbar && (
-        <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            <span>معاينة الطباعة الرسمية (A4 — مع ترويسة شركة النظاري)</span>
+        <div className="no-print mb-2.5 flex flex-wrap items-center justify-between gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 sm:mb-3 sm:gap-2 sm:px-3 sm:py-2">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 sm:gap-2 sm:text-xs">
+            <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+            <span className="sm:hidden">معاينة الطباعة (A4)</span>
+            <span className="hidden sm:inline">معاينة الطباعة الرسمية (A4 — مع ترويسة شركة النظاري)</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {onExportPDF !== undefined && (
               <button
                 type="button"
                 onClick={onExportPDF}
                 disabled={isExporting}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-100 disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-100 disabled:opacity-50 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
               >
                 {isExporting ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 size={13} className="animate-spin" />
                 ) : (
-                  <FileDown size={14} />
+                  <FileDown size={13} />
                 )}
-                <span>تصدير PDF</span>
+                <span>PDF</span>
               </button>
             )}
             <button
@@ -247,10 +248,10 @@ const PrintableQuotation: FC<PrintableQuotationProps> = ({
                   window.print();
                 })
               }
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
+              className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 sm:gap-1.5 sm:px-3.5 sm:py-1.5 sm:text-xs"
             >
-              <Printer size={14} />
-              <span>طباعة عرض السعر</span>
+              <Printer size={13} />
+              <span>طباعة</span>
             </button>
           </div>
         </div>

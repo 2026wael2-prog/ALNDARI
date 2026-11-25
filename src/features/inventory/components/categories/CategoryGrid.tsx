@@ -29,9 +29,9 @@ const CategoryGrid: React.FC<Props> = ({ categories, onFilterProduct, deleteCate
     }
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 lg:grid-cols-4">
             {categories.map((cat) => (
-                <div key={cat.id} className="group relative bg-[var(--app-surface)] border border-gray-100 dark:border-slate-800 rounded-none p-2.5 transition-all hover:border-blue-500/40 hover:shadow-lg active:scale-[0.99] overflow-hidden flex flex-col justify-between min-h-[120px]">
+                <div key={cat.id} className="group relative flex min-h-[100px] min-w-0 flex-col justify-between overflow-hidden rounded-lg border border-gray-100 bg-[var(--app-surface)] p-1.5 transition-all hover:border-blue-500/40 hover:shadow-lg active:scale-[0.99] dark:border-slate-800 sm:min-h-[120px] sm:rounded-none sm:p-2.5">
                     {cat.hasAlert && (
                         <div className="absolute top-0 left-0 w-8 h-8 bg-rose-500 text-white flex items-center justify-center -translate-x-4 -translate-y-4 rotate-45 shadow-sm">
                             <AlertCircle size={7} className="-rotate-45 translate-x-0.5 translate-y-0.5" />

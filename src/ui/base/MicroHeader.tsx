@@ -91,26 +91,26 @@ const MicroHeader: React.FC<MicroHeaderProps> = ({
     >
       <div className="max-w-none mx-auto">
         {/* Main Row */}
-        <div className="flex min-h-[2.15rem] flex-wrap items-center justify-between gap-x-1.5 gap-y-0.5 px-1.5 py-0.5 sm:h-9 sm:flex-nowrap sm:px-2 sm:py-0 md:px-3">
-          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+        <div className="flex h-8 flex-nowrap items-center justify-between gap-x-1.5 px-1.5 sm:h-9 sm:px-2 md:px-3">
+          <div className="flex min-w-0 items-center gap-1 overflow-hidden sm:gap-1.5">
             {!isRoot && (
               <button
                 onClick={() => navigate(-1)}
                 className="shrink-0 rounded-lg p-1 transition-transform hover:bg-[var(--app-surface-hover)] active:scale-90"
                 aria-label="Go back"
               >
-                <BackIcon size={15} className="text-[var(--app-text-secondary)]" />
+                <BackIcon size={14} className="text-[var(--app-text-secondary)] sm:h-[15px] sm:w-[15px]" />
               </button>
             )}
-            <div className="flex min-w-0 items-center gap-1.5 rounded-full border border-[var(--app-border)] bg-[var(--app-bg)]/60 px-2.5 py-0.5">
-              <Icon className={cn('shrink-0', iconColor)} size={14} />
-              <h1 className="truncate whitespace-nowrap text-xs font-extrabold tracking-wide text-[var(--app-text)]">
+            <div className="flex min-w-0 items-center gap-1 rounded-full border border-[var(--app-border)] bg-[var(--app-bg)]/60 px-2 py-0.5 sm:gap-1.5 sm:px-2.5">
+              <Icon className={cn('shrink-0', iconColor)} size={13} />
+              <h1 className="truncate whitespace-nowrap text-[11px] font-extrabold tracking-wide text-[var(--app-text)] sm:text-xs">
                 {title}
               </h1>
             </div>
           </div>
 
-          <div className="no-scrollbar flex max-w-full shrink-0 items-center gap-1 overflow-x-auto md:gap-1.5">
+          <div className="no-scrollbar flex max-w-[65%] shrink-0 items-center gap-1 overflow-x-auto sm:max-w-none md:gap-1.5">
             {isMaximized && onToggleZen && (
               <button
                 onClick={onToggleZen}

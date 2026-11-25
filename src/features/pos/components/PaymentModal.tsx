@@ -175,12 +175,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   return (
     <div
-      className="font-cairo fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm"
+      className="font-cairo fixed inset-0 z-[200] flex items-end justify-center bg-slate-950/70 p-0 backdrop-blur-sm sm:items-center sm:p-3"
       onClick={e => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="animate-in zoom-in-95 flex max-h-[95dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[var(--app-surface)] shadow-2xl duration-200 dark:border-slate-800">
+      <div className="animate-in zoom-in-95 flex max-h-[95dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl duration-200 dark:border-slate-800 sm:rounded-2xl sm:pb-0">
         <PaymentHeader
           itemCount={validItems.length}
           total={total}

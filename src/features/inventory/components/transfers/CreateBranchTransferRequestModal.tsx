@@ -130,7 +130,7 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -139,8 +139,8 @@ export const CreateBranchTransferRequestModal: React.FC<CreateBranchTransferRequ
         onClick={onClose}
       />
 
-      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent px-5 py-4 dark:border-slate-800">
+      <div className="relative flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:pb-0">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent px-3.5 py-2.5 dark:border-slate-800 sm:px-5 sm:py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
               <ArrowRightLeft size={20} />

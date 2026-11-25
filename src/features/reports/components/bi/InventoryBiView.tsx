@@ -61,70 +61,70 @@ export const InventoryBiView: React.FC = () => {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1 sm:gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800/50" />
+            <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/50 sm:h-24 sm:rounded-2xl" />
           ))}
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">قيمة المخزون بالتكلفة</span>
-                <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-900/30">
+          <div className="grid grid-cols-4 gap-1 sm:gap-3">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">قيمة المخزون</span>
+                <div className="hidden rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-900/30 sm:block">
                   <Layers size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-xl font-black text-indigo-600 dark:text-indigo-400">
+              <div dir="ltr" className="mt-1 truncate text-right font-mono text-[11px] font-black text-indigo-600 dark:text-indigo-400 sm:mt-2 sm:text-xl">
                 {formatCurrency(summary?.total_valuation ?? 0, 'SAR')}
               </div>
-              <div className="mt-1 text-[10px] font-bold text-slate-400">
+              <div className="mt-1 hidden text-[10px] font-bold text-slate-400 sm:block">
                 {formatNumberDisplay(summary?.total_quantity ?? 0)} قطعة • {summary?.total_products ?? 0} صنف
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">تنبيهات النفاد والحد الأدنى</span>
-                <div className="rounded-xl bg-rose-50 p-2 text-rose-600 dark:bg-rose-900/30">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">النفاد</span>
+                <div className="hidden rounded-xl bg-rose-50 p-2 text-rose-600 dark:bg-rose-900/30 sm:block">
                   <AlertTriangle size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-xl font-black text-rose-600 dark:text-rose-400">
+              <div className="mt-1 truncate font-mono text-[11px] font-black text-rose-600 dark:text-rose-400 sm:mt-2 sm:text-xl">
                 {summary?.out_of_stock_count ?? 0} نافد
               </div>
-              <div className="mt-1 text-[10px] font-bold text-amber-600">
+              <div className="mt-1 hidden text-[10px] font-bold text-amber-600 sm:block">
                 {summary?.low_stock_count ?? 0} صنف قريب من النفاد
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">التحويلات بين الفروع</span>
-                <div className="rounded-xl bg-blue-50 p-2 text-blue-600 dark:bg-blue-900/30">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">التحويلات</span>
+                <div className="hidden rounded-xl bg-blue-50 p-2 text-blue-600 dark:bg-blue-900/30 sm:block">
                   <ArrowLeftRight size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-xl font-black text-slate-800 dark:text-slate-100">
-                {summary?.transfers_count ?? 0} تحويل
+              <div className="mt-1 truncate font-mono text-[11px] font-black text-slate-800 dark:text-slate-100 sm:mt-2 sm:text-xl">
+                {summary?.transfers_count ?? 0}
               </div>
-              <div className="mt-1 text-[10px] font-bold text-slate-400">
+              <div className="mt-1 hidden text-[10px] font-bold text-slate-400 sm:block">
                 {formatNumberDisplay(summary?.transfers_quantity ?? 0)} قطعة محولة (مستبعدة من المبيعات)
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-400">فروقات الجرد</span>
-                <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-900/30">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-4">
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">فروقات الجرد</span>
+                <div className="hidden rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-900/30 sm:block">
                   <ClipboardCheck size={16} />
                 </div>
               </div>
-              <div className="mt-2 font-mono text-xl font-black text-slate-800 dark:text-slate-100">
+              <div dir="ltr" className="mt-1 truncate text-right font-mono text-[11px] font-black text-slate-800 dark:text-slate-100 sm:mt-2 sm:text-xl">
                 {formatCurrency(summary?.audit_variance_value ?? 0, 'SAR')}
               </div>
-              <div className="mt-1 text-[10px] font-bold text-slate-400">
+              <div className="mt-1 hidden text-[10px] font-bold text-slate-400 sm:block">
                 {summary?.audit_sessions_count ?? 0} جلسة جرد • فرق كمية: {summary?.audit_variance_qty ?? 0}
               </div>
             </div>

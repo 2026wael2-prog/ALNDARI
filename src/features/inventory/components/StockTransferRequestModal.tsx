@@ -83,7 +83,7 @@ const StockTransferRequestModal: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="طلب نقل مخزون"
@@ -95,9 +95,9 @@ const StockTransferRequestModal: React.FC<Props> = ({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+      <div className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-2xl sm:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-5 py-4 dark:border-amber-800 dark:bg-amber-950/40">
+        <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3.5 py-3 dark:border-amber-800 dark:bg-amber-950/40 sm:gap-3 sm:px-5 sm:py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 shadow-sm">
               <ArrowRightLeft size={18} className="text-white" />

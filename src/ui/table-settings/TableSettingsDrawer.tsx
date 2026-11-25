@@ -140,16 +140,16 @@ export const TableSettingsDrawer: React.FC<TableSettingsDrawerProps> = ({
 
   return (
     <div
-      className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 backdrop-blur-xs"
+      className="no-print fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 backdrop-blur-xs sm:items-center sm:p-3"
       dir="rtl"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white text-right text-slate-900 shadow-2xl"
+        className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-slate-300 bg-white pb-[env(safe-area-inset-bottom)] text-right text-slate-900 shadow-2xl sm:rounded-2xl sm:pb-0"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
           <div>
             <h3 className="text-sm font-black text-slate-900">
               إعدادات الجدول {tableTitle ? `— ${tableTitle}` : ''}

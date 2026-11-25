@@ -62,7 +62,7 @@ const ProductDetailModal: React.FC<Props> = ({ product, onClose, onEdit, onDelet
         <div
             onClick={handleClose}
             className={cn(
-                "fixed inset-0 z-[100] flex items-center justify-center transition-all duration-300",
+                "fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300",
                 isClosing ? 'bg-slate-900/0' : 'bg-slate-900/60 backdrop-blur-sm'
             )}
             style={{ animation: isClosing ? 'none' : undefined }}
@@ -74,15 +74,15 @@ const ProductDetailModal: React.FC<Props> = ({ product, onClose, onEdit, onDelet
                 aria-label={`تفاصيل المنتج: ${product.name}`}
                 aria-modal="true"
                 className={cn(
-                    "bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex flex-col border transition-all duration-300 shadow-2xl overflow-hidden",
+                    "bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex flex-col border transition-all duration-300 shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0",
                     isMaximized
-                        ? "w-full h-full rounded-none border-0"
-                        : "w-full max-w-3xl max-h-[90vh] rounded-2xl border border-slate-200/80 dark:border-slate-800/80",
+                        ? "w-full h-[100dvh] rounded-none border-0"
+                        : "w-full max-w-3xl max-h-[92dvh] rounded-t-2xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800/80",
                     isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
                 )}
             >
                 {/* Glass Header */}
-                <div className="flex justify-between items-center px-4 py-2.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shrink-0 relative z-20 no-print">
+                <div className="flex justify-between items-center px-3 py-2 sm:px-4 sm:py-2.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shrink-0 relative z-20 no-print">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="w-9 h-9 shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                             <Box size={16} />

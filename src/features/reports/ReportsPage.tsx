@@ -93,12 +93,12 @@ const ReportSkeleton: React.FC<{ type?: 'financial' | 'default' }> = ({ type = '
       <div className="h-8 w-24 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
     </div>
     <div
-      className={`grid gap-3 ${type === 'financial' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}
+      className={`grid gap-1 sm:gap-3 ${type === 'financial' ? 'grid-cols-4' : 'grid-cols-3'}`}
     >
       {Array.from({ length: type === 'financial' ? 4 : 3 }).map((_, i) => (
         <div
           key={i}
-          className="h-24 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800/50 max-md:rounded-xl"
+          className="h-14 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/50 sm:h-24 sm:rounded-2xl"
         />
       ))}
     </div>

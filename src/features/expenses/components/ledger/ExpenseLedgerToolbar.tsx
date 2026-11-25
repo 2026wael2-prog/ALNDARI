@@ -163,8 +163,8 @@ export const ExpenseLedgerToolbar: React.FC<ExpenseLedgerToolbarProps> = ({
           />
         </div>
 
-        {/* Date Presets */}
-        <div className="flex flex-wrap items-center gap-1 lg:col-span-4">
+        {/* Date Presets — single scrollable strip on mobile */}
+        <div className="no-scrollbar flex flex-nowrap items-center gap-1 overflow-x-auto sm:flex-wrap lg:col-span-4">
           {DATE_PRESETS.map(preset => {
             const isActive = datePreset === preset.id;
             return (
@@ -177,7 +177,7 @@ export const ExpenseLedgerToolbar: React.FC<ExpenseLedgerToolbarProps> = ({
                   setDateFrom(range.from);
                   setDateTo(range.to);
                 }}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-all sm:px-2 sm:py-1 sm:text-[11px] ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-[var(--app-bg)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)]'

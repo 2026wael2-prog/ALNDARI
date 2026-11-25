@@ -97,18 +97,18 @@ export const InspectorHeaderCard: React.FC<InspectorHeaderCardProps> = ({
       </div>
     </div>
 
-    <div className="grid grid-cols-2 divide-x divide-x-reverse divide-[var(--app-border)] sm:grid-cols-4">
+    <div className="grid grid-cols-4 divide-x divide-x-reverse divide-[var(--app-border)]">
       {data.kpis.map((kpi, idx) => (
         <div
           key={idx}
-          className="flex flex-col justify-between border-b border-[var(--app-border)] p-3 sm:border-b-0"
+          className="flex min-w-0 flex-col justify-between p-1.5 sm:p-3"
         >
-          <span className="text-[11px] font-bold text-[var(--app-text-secondary)]">
+          <span className="truncate text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
             {kpi.label}
           </span>
           <span
             className={cn(
-              'mt-1 font-mono text-sm font-black tabular-nums md:text-base',
+              'mt-0.5 truncate text-right font-mono text-[11px] font-black tabular-nums sm:mt-1 sm:text-sm md:text-base',
               TONE_TEXT[kpi.tone ?? 'default']
             )}
             dir="ltr"
@@ -116,7 +116,7 @@ export const InspectorHeaderCard: React.FC<InspectorHeaderCardProps> = ({
             {kpi.value}
           </span>
           {kpi.subValue && (
-            <span className="mt-0.5 truncate text-[10px] font-semibold text-[var(--app-text-secondary)]">
+            <span className="mt-0.5 hidden truncate text-[10px] font-semibold text-[var(--app-text-secondary)] sm:block">
               {kpi.subValue}
             </span>
           )}

@@ -122,75 +122,75 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Segmentation Grid */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1 sm:gap-3">
         {/* VIP */}
-        <div className="rounded-2xl border border-purple-200/70 bg-gradient-to-br from-purple-50/80 to-purple-100/40 p-4 shadow-sm dark:border-purple-900/40 dark:from-purple-950/20 dark:to-purple-900/10">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-800 dark:text-purple-300">
-              {isCustomer ? 'عملاء كبار (VIP)' : 'كبار الموردين'}
+        <div className="min-w-0 rounded-lg border border-purple-200/70 bg-gradient-to-br from-purple-50/80 to-purple-100/40 p-1.5 shadow-sm dark:border-purple-900/40 dark:from-purple-950/20 dark:to-purple-900/10 sm:rounded-2xl sm:p-4">
+          <div className="flex items-center justify-between gap-1">
+            <span className="truncate text-[10px] font-bold text-purple-800 dark:text-purple-300 sm:text-xs">
+              {isCustomer ? 'عملاء VIP' : 'كبار الموردين'}
             </span>
-            <div className="rounded-xl bg-purple-100 p-2 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+            <div className="hidden rounded-xl bg-purple-100 p-2 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 sm:block">
               <Crown size={16} />
             </div>
           </div>
-          <div className="mt-3 font-mono text-2xl font-bold text-purple-900 dark:text-purple-100">
+          <div className="mt-1 font-mono text-sm font-bold text-purple-900 dark:text-purple-100 sm:mt-3 sm:text-2xl">
             {segmentation.vip}
           </div>
-          <span className="mt-1 block text-[10px] text-purple-600 dark:text-purple-400">
+          <span className="mt-1 hidden text-[10px] text-purple-600 dark:text-purple-400 sm:block">
             أرصدة تتجاوز 10,000
           </span>
         </div>
 
         {/* Active with balance */}
-        <div className="rounded-2xl border border-blue-200/70 bg-gradient-to-br from-blue-50/80 to-blue-100/40 p-4 shadow-sm dark:border-blue-900/40 dark:from-blue-950/20 dark:to-blue-900/10">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-800 dark:text-blue-300">
-              {isCustomer ? 'عليهم مديونية جارية' : 'مستحقات جارية'}
+        <div className="min-w-0 rounded-lg border border-blue-200/70 bg-gradient-to-br from-blue-50/80 to-blue-100/40 p-1.5 shadow-sm dark:border-blue-900/40 dark:from-blue-950/20 dark:to-blue-900/10 sm:rounded-2xl sm:p-4">
+          <div className="flex items-center justify-between gap-1">
+            <span className="truncate text-[10px] font-bold text-blue-800 dark:text-blue-300 sm:text-xs">
+              {isCustomer ? 'مديونية جارية' : 'مستحقات جارية'}
             </span>
-            <div className="rounded-xl bg-blue-100 p-2 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+            <div className="hidden rounded-xl bg-blue-100 p-2 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 sm:block">
               <TrendingUp size={16} />
             </div>
           </div>
-          <div className="mt-3 font-mono text-2xl font-bold text-blue-900 dark:text-blue-100">
+          <div className="mt-1 font-mono text-sm font-bold text-blue-900 dark:text-blue-100 sm:mt-3 sm:text-2xl">
             {segmentation.activeInDebt}
           </div>
-          <span className="mt-1 block text-[10px] text-blue-600 dark:text-blue-400">
+          <span className="mt-1 hidden text-[10px] text-blue-600 dark:text-blue-400 sm:block">
             جهات بأرصدة نشطة
           </span>
         </div>
 
         {/* High credit risk */}
-        <div className="rounded-2xl border border-rose-200/70 bg-gradient-to-br from-rose-50/80 to-rose-100/40 p-4 shadow-sm dark:border-rose-900/40 dark:from-rose-950/20 dark:to-rose-900/10">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-rose-800 dark:text-rose-300">
-              مخاطر ائتمانية مرتفعة
+        <div className="min-w-0 rounded-lg border border-rose-200/70 bg-gradient-to-br from-rose-50/80 to-rose-100/40 p-1.5 shadow-sm dark:border-rose-900/40 dark:from-rose-950/20 dark:to-rose-900/10 sm:rounded-2xl sm:p-4">
+          <div className="flex items-center justify-between gap-1">
+            <span className="truncate text-[10px] font-bold text-rose-800 dark:text-rose-300 sm:text-xs">
+              مخاطر مرتفعة
             </span>
-            <div className="rounded-xl bg-rose-100 p-2 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300">
+            <div className="hidden rounded-xl bg-rose-100 p-2 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 sm:block">
               <ShieldAlert size={16} />
             </div>
           </div>
-          <div className="mt-3 font-mono text-2xl font-bold text-rose-900 dark:text-rose-100">
+          <div className="mt-1 font-mono text-sm font-bold text-rose-900 dark:text-rose-100 sm:mt-3 sm:text-2xl">
             {segmentation.highRisk}
           </div>
-          <span className="mt-1 block text-[10px] text-rose-600 dark:text-rose-400">
+          <span className="mt-1 hidden text-[10px] text-rose-600 dark:text-rose-400 sm:block">
             مديونية تتجاوز 20,000
           </span>
         </div>
 
         {/* Settled / Zero Balance */}
-        <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 p-4 shadow-sm dark:border-emerald-900/40 dark:from-emerald-950/20 dark:to-emerald-900/10">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-              أرصدة مسواة بالكامل
+        <div className="min-w-0 rounded-lg border border-emerald-200/70 bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 p-1.5 shadow-sm dark:border-emerald-900/40 dark:from-emerald-950/20 dark:to-emerald-900/10 sm:rounded-2xl sm:p-4">
+          <div className="flex items-center justify-between gap-1">
+            <span className="truncate text-[10px] font-bold text-emerald-800 dark:text-emerald-300 sm:text-xs">
+              أرصدة مسواة
             </span>
-            <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+            <div className="hidden rounded-xl bg-emerald-100 p-2 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 sm:block">
               <CheckCircle2 size={16} />
             </div>
           </div>
-          <div className="mt-3 font-mono text-2xl font-bold text-emerald-900 dark:text-emerald-100">
+          <div className="mt-1 font-mono text-sm font-bold text-emerald-900 dark:text-emerald-100 sm:mt-3 sm:text-2xl">
             {segmentation.zeroBalance}
           </div>
-          <span className="mt-1 block text-[10px] text-emerald-600 dark:text-emerald-400">
+          <span className="mt-1 hidden text-[10px] text-emerald-600 dark:text-emerald-400 sm:block">
             لا توجد مستحقات معلقة
           </span>
         </div>

@@ -181,7 +181,7 @@ const InventoryViewRenderer: React.FC<InventoryViewRendererProps> = ({
           <p className="text-xs font-bold">لا توجد منتجات تطابق البحث</p>
         </div>
       ) : (
-        <div className="custom-scrollbar grid min-h-0 flex-1 auto-rows-max grid-cols-1 content-start gap-2 overflow-y-auto p-2 pb-14 sm:grid-cols-2 sm:gap-3 sm:p-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="custom-scrollbar grid min-h-0 flex-1 auto-rows-max grid-cols-3 content-start gap-1.5 overflow-y-auto p-1.5 pb-16 sm:grid-cols-3 sm:gap-2.5 sm:p-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {products.map(p => (
             <ProductMicroCard key={p.id} product={p} onClick={setSelectedProduct} />
           ))}

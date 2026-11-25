@@ -181,8 +181,8 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
             })}
           </div>
 
-          {/* Controls: Currency, Category, Sort */}
-          <div className="grid w-full grid-cols-2 items-center gap-1.5 sm:flex sm:w-auto sm:flex-wrap sm:gap-2">
+          {/* Controls: Currency, Category, Sort — 3-up single bar on mobile */}
+          <div className="grid w-full grid-cols-3 items-center gap-1 sm:flex sm:w-auto sm:flex-wrap sm:gap-2">
             {/* Currency Filter */}
             <select
               value={currencyFilter}
@@ -190,14 +190,14 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
                 setCurrencyFilter(e.target.value);
               }}
               aria-label="تصفية حسب العملة"
-              className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+              className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1.5 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-xs"
             >
-              <option value="all">كل العملات</option>
-              <option value="SAR">ريال سعودي (SAR)</option>
-              <option value="YER">ريال يمني (YER)</option>
-              <option value="USD">دولار أمريكي (USD)</option>
-              <option value="OMR">ريال عماني (OMR)</option>
-              <option value="CNY">يوان صيني (CNY)</option>
+              <option value="all">العملة</option>
+              <option value="SAR">ر.س (SAR)</option>
+              <option value="YER">ر.ي (YER)</option>
+              <option value="USD">دولار (USD)</option>
+              <option value="OMR">عماني (OMR)</option>
+              <option value="CNY">يوان (CNY)</option>
             </select>
 
             {/* Category Filter */}
@@ -208,9 +208,9 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
                   setCategoryFilter(e.target.value);
                 }}
                 aria-label="تصفية حسب التصنيف"
-                className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+                className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1.5 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-xs"
               >
-                <option value="all">كل التصنيفات</option>
+                <option value="all">التصنيف</option>
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -228,14 +228,14 @@ const ExpensesListView: React.FC<ExpensesListViewProps> = ({
                 setSortOrder(order as 'asc' | 'desc');
               }}
               aria-label="ترتيب وفرز المصروفات"
-              className="focus:outline-hidden h-8 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg)] px-2 text-xs font-bold text-[var(--app-text)] focus:border-blue-500"
+              className="focus:outline-hidden h-7 min-w-0 rounded-md border border-[var(--app-border)] bg-[var(--app-bg)] px-1.5 text-[10px] font-bold text-[var(--app-text)] focus:border-blue-500 sm:h-8 sm:rounded-lg sm:px-2 sm:text-xs"
             >
-              <option value="date_desc">الأحدث تاريخاً / وقتاً</option>
-              <option value="date_asc">الأقدم تاريخاً</option>
+              <option value="date_desc">الأحدث</option>
+              <option value="date_asc">الأقدم</option>
               <option value="amount_desc">الأعلى مبلغاً</option>
               <option value="amount_asc">الأقل مبلغاً</option>
-              <option value="voucher_desc">رقم السند (تنازلي)</option>
-              <option value="voucher_asc">رقم السند (تصاعدي)</option>
+              <option value="voucher_desc">رقم (تنازلي)</option>
+              <option value="voucher_asc">رقم (تصاعدي)</option>
             </select>
 
             {/* Voided Expenses Toggle Button */}

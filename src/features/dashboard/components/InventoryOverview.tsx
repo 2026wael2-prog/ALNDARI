@@ -200,23 +200,23 @@ const InventoryOverview: React.FC<InventoryOverviewProps> = ({
         </div>
 
         {/* 4-Stat High Density Metrics Grid */}
-        <div className="relative z-10 mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="relative z-10 mb-2 grid grid-cols-4 gap-1 sm:mb-3 sm:gap-2">
           <div
             onClick={() => {
               setFilterMode('all');
             }}
             className={cn(
-              'cursor-pointer rounded-xl border p-2.5 transition-all',
+              'min-w-0 cursor-pointer rounded-lg border p-1.5 transition-all sm:rounded-xl sm:p-2.5',
               filterMode === 'all'
                 ? 'border-cyan-500 bg-cyan-50/50 dark:bg-cyan-950/20'
                 : 'border-[var(--app-border)] bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-800/30'
             )}
           >
-            <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--app-text-secondary)]">
-              <span>إجمالي النواقص</span>
-              <AlertTriangle size={12} className="text-amber-500" />
+            <div className="mb-0.5 flex items-center justify-between gap-0.5 text-[10px] text-[var(--app-text-secondary)] sm:mb-1 sm:text-[10px]">
+              <span className="truncate">النواقص</span>
+              <AlertTriangle size={10} className="shrink-0 text-amber-500 sm:h-3 sm:w-3" />
             </div>
-            <p className="font-mono text-base font-bold text-[var(--app-text)]">
+            <p className="truncate font-mono text-xs font-bold text-[var(--app-text)] sm:text-base">
               {enrichedLowStock.length}
             </p>
           </div>
@@ -226,17 +226,17 @@ const InventoryOverview: React.FC<InventoryOverviewProps> = ({
               setFilterMode('zero');
             }}
             className={cn(
-              'cursor-pointer rounded-xl border p-2.5 transition-all',
+              'min-w-0 cursor-pointer rounded-lg border p-1.5 transition-all sm:rounded-xl sm:p-2.5',
               filterMode === 'zero'
                 ? 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/20'
                 : 'border-[var(--app-border)] bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-800/30'
             )}
           >
-            <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--app-text-secondary)]">
-              <span>نفاد تام (0)</span>
-              <AlertOctagon size={12} className="text-rose-500" />
+            <div className="mb-0.5 flex items-center justify-between gap-0.5 text-[10px] text-[var(--app-text-secondary)] sm:mb-1 sm:text-[10px]">
+              <span className="truncate">نفاد تام</span>
+              <AlertOctagon size={10} className="shrink-0 text-rose-500 sm:h-3 sm:w-3" />
             </div>
-            <p className="font-mono text-base font-bold text-rose-600 dark:text-rose-400">
+            <p className="truncate font-mono text-xs font-bold text-rose-600 dark:text-rose-400 sm:text-base">
               {zeroStockCount}
             </p>
           </div>
@@ -246,17 +246,17 @@ const InventoryOverview: React.FC<InventoryOverviewProps> = ({
               setFilterMode('core');
             }}
             className={cn(
-              'cursor-pointer rounded-xl border p-2.5 transition-all',
+              'min-w-0 cursor-pointer rounded-lg border p-1.5 transition-all sm:rounded-xl sm:p-2.5',
               filterMode === 'core'
                 ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20'
                 : 'border-[var(--app-border)] bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-800/30'
             )}
           >
-            <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--app-text-secondary)]">
-              <span>أصناف رئيسية</span>
-              <Layers size={12} className="text-amber-500" />
+            <div className="mb-0.5 flex items-center justify-between gap-0.5 text-[10px] text-[var(--app-text-secondary)] sm:mb-1 sm:text-[10px]">
+              <span className="truncate">رئيسية</span>
+              <Layers size={10} className="shrink-0 text-amber-500 sm:h-3 sm:w-3" />
             </div>
-            <p className="font-mono text-base font-bold text-amber-600 dark:text-amber-400">
+            <p className="truncate font-mono text-xs font-bold text-amber-600 dark:text-amber-400 sm:text-base">
               {coreStockCount}
             </p>
           </div>

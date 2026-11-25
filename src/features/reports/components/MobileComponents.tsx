@@ -46,25 +46,28 @@ export const MobileStatCard: React.FC<MobileStatCardProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 shadow-sm sm:p-4',
+        'flex min-w-0 flex-col items-start gap-0.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-sm sm:flex-row sm:items-center sm:gap-3 sm:rounded-xl sm:p-3.5',
         className
       )}
     >
       {icon && (
         <div
           className={cn(
-            'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10',
+            'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md sm:h-9 sm:w-9 sm:rounded-xl',
             colorClass
           )}
         >
           {icon}
         </div>
       )}
-      <div className="min-w-0">
-        <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">
+      <div className="min-w-0 w-full">
+        <p className="truncate text-[10px] font-bold leading-tight text-slate-400 sm:text-xs sm:uppercase sm:tracking-wider">
           {title}
         </p>
-        <p className="truncate text-sm font-black text-slate-800 dark:text-slate-100 sm:text-base md:text-lg">
+        <p
+          dir="ltr"
+          className="truncate text-right font-mono text-[11px] font-black leading-tight text-slate-800 dark:text-slate-100 sm:text-base md:text-lg"
+        >
           {value}
         </p>
       </div>
@@ -86,12 +89,12 @@ export const ResponsiveGrid: React.FC<ResponsiveGridProps> = ({
   const gridCols = {
     1: 'grid-cols-1',
     2: 'grid-cols-2',
-    3: 'grid-cols-2 sm:grid-cols-3',
-    4: 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4',
+    3: 'grid-cols-3',
+    4: 'grid-cols-4',
   };
 
   return (
-    <div className={cn('grid max-md:gap-2 sm:gap-3 md:gap-4', gridCols[cols], className)}>
+    <div className={cn('grid gap-1 sm:gap-3 md:gap-4', gridCols[cols], className)}>
       {children}
     </div>
   );

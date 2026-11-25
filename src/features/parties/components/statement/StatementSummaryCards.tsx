@@ -88,12 +88,75 @@ export const StatementSummaryCards: React.FC<StatementSummaryCardsProps> = ({
         return (
           <div
             key={item.currency}
-            className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-[var(--app-surface)] p-3 shadow-lg shadow-blue-500/5 dark:border-slate-800 md:p-5"
+            className="group relative overflow-hidden rounded-xl border border-slate-200 bg-[var(--app-surface)] p-2 shadow-sm dark:border-slate-800 sm:rounded-2xl sm:p-3 md:p-5"
           >
             {/* Background Accent */}
-            <div className="no-print absolute right-0 top-0 -mr-16 -mt-16 h-32 w-32 rounded-full bg-blue-500/5 blur-3xl transition-colors group-hover:bg-blue-500/10" />
+            <div className="no-print absolute right-0 top-0 -mr-16 -mt-16 hidden h-32 w-32 rounded-full bg-blue-500/5 blur-3xl transition-colors group-hover:bg-blue-500/10 md:block" />
 
-            <div className="relative grid grid-cols-1 items-center gap-3 md:grid-cols-3 md:gap-6">
+            {/* Mobile Ultra-Compact 3-Box Strip + Inline Status/Tafqeet */}
+            <div className="space-y-1.5 md:hidden">
+              <div className="grid grid-cols-3 gap-1">
+                <div className="min-w-0 rounded-lg border border-emerald-200/60 bg-emerald-50/50 p-1.5 text-center dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                  <span className="block truncate text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                    إجمالي المدين
+                  </span>
+                  <strong dir="ltr" className="mt-0.5 block truncate font-mono text-[11px] font-black text-emerald-700 dark:text-emerald-300">
+                    {formatCurrency(item.totalDebit, item.currency)}
+                  </strong>
+                </div>
+
+                <div className="min-w-0 rounded-lg border border-rose-200/60 bg-rose-50/50 p-1.5 text-center dark:border-rose-900/40 dark:bg-rose-950/20">
+                  <span className="block truncate text-[10px] font-bold text-rose-700 dark:text-rose-400">
+                    إجمالي الدائن
+                  </span>
+                  <strong dir="ltr" className="mt-0.5 block truncate font-mono text-[11px] font-black text-rose-700 dark:text-rose-300">
+                    {formatCurrency(item.totalCredit, item.currency)}
+                  </strong>
+                </div>
+
+                <div className="min-w-0 rounded-lg border border-blue-200/70 bg-blue-50/60 p-1.5 text-center dark:border-blue-900/40 dark:bg-blue-950/30">
+                  <span className="block truncate text-[10px] font-bold text-blue-700 dark:text-blue-400">
+                    الصافي ({item.currency})
+                  </span>
+                  <strong
+                    dir="ltr"
+                    className={cn(
+                      'mt-0.5 block truncate font-mono text-[11px] font-black',
+                      finalBalance === 0
+                        ? 'text-slate-800 dark:text-slate-100'
+                        : isOwed
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                    )}
+                  >
+                    {formatCurrency(finalBalance, item.currency)}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-1.5 rounded-lg border border-blue-100 bg-blue-50/40 px-2 py-1 text-[10px] dark:border-blue-900/40 dark:bg-blue-950/20">
+                <span className="min-w-0 truncate font-bold text-slate-700 dark:text-slate-200">
+                  {finalBalance === 0
+                    ? 'الرصيد مصفر حالياً'
+                    : `فقط ${tafqeet(absBalance, currencyLabel(item.currency))} لا غير.`}
+                </span>
+                <span
+                  className={cn(
+                    'shrink-0 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-bold',
+                    finalBalance === 0
+                      ? 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                      : isOwed
+                        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-300'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300'
+                  )}
+                >
+                  {statusText}
+                </span>
+              </div>
+            </div>
+
+            {/* Desktop Full 3-Column Financial Summary */}
+            <div className="relative hidden grid-cols-3 items-center gap-6 md:grid">
               {/* Status Indicator & Movement Totals */}
               <div className="space-y-3 md:col-span-1">
                 <div className="space-y-1">

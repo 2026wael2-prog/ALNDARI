@@ -18,24 +18,24 @@ export const IntelligenceStudyPrintTemplate = React.forwardRef<HTMLDivElement, P
       <div
         ref={ref}
         dir="rtl"
-        className="mx-auto w-[794px] bg-white p-6 text-slate-900"
+        className="mx-auto w-full max-w-[794px] bg-white p-2.5 text-slate-900 print:w-[794px] print:p-6 sm:p-6"
         style={{ fontFamily: 'Tahoma, Arial, sans-serif' }}
       >
-        <div className="mb-4 flex items-center justify-between border-b-2 border-slate-800 pb-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b-2 border-slate-800 pb-3">
           <div>
-            <h1 className="text-lg font-bold text-slate-900">{companyName}</h1>
-            <p className="text-xs font-bold text-blue-700">
+            <h1 className="text-base font-bold text-slate-900 sm:text-lg">{companyName}</h1>
+            <p className="text-[11px] font-bold text-blue-700 sm:text-xs">
               الدراسة التنفيذية الشاملة لذكاء المخزون والمشتريات والفروع
             </p>
           </div>
-          <div className="text-left text-xs text-slate-600">
+          <div className="text-left text-[11px] text-slate-600 sm:text-xs">
             <div>تاريخ التقرير: {new Date(output.generatedAt).toLocaleDateString('ar-YE')}</div>
             <div>النموذج الفائز: {output.championModel}</div>
           </div>
         </div>
 
         {/* KPIs Summary */}
-        <div className="mb-5 grid grid-cols-4 gap-2 text-xs">
+        <div className="mb-4 grid grid-cols-2 gap-1.5 text-[11px] print:grid-cols-4 sm:mb-5 sm:grid-cols-4 sm:gap-2 sm:text-xs">
           <div className="rounded border border-slate-300 bg-slate-50 p-2.5">
             <div className="text-slate-500">الأصناف المحللة</div>
             <div className="mt-1 font-mono text-sm font-bold">{formatNumberDisplay(k.totalAnalyzedProducts)}</div>
@@ -61,11 +61,11 @@ export const IntelligenceStudyPrintTemplate = React.forwardRef<HTMLDivElement, P
         </div>
 
         {/* Top Purchases */}
-        <div className="mb-5" data-pdf-break>
+        <div className="mb-5 overflow-x-auto print:overflow-visible" data-pdf-break>
           <h2 className="mb-2 border-r-4 border-blue-700 pr-2 text-xs font-bold text-slate-800">
             1. أولويات الشراء الصافية (أهم {topPurchases.length} صنف)
           </h2>
-          <table className="w-full border-collapse border border-slate-300 text-xs">
+          <table className="w-full min-w-[520px] border-collapse border border-slate-300 text-xs print:min-w-0 sm:min-w-0">
             <thead className="bg-slate-100 font-bold">
               <tr>
                 <th className="border border-slate-300 p-1.5 text-right">الصنف</th>
@@ -101,11 +101,11 @@ export const IntelligenceStudyPrintTemplate = React.forwardRef<HTMLDivElement, P
 
         {/* Transfers */}
         {topTransfers.length > 0 && (
-          <div className="mb-5" data-pdf-break>
+          <div className="mb-5 overflow-x-auto print:overflow-visible" data-pdf-break>
             <h2 className="mb-2 border-r-4 border-emerald-700 pr-2 text-xs font-bold text-slate-800">
               2. فرص إعادة التوزيع بين الفروع (أهم {topTransfers.length} تحويل)
             </h2>
-            <table className="w-full border-collapse border border-slate-300 text-xs">
+            <table className="w-full min-w-[460px] border-collapse border border-slate-300 text-xs print:min-w-0 sm:min-w-0">
               <thead className="bg-slate-100 font-bold">
                 <tr>
                   <th className="border border-slate-300 p-1.5 text-right">الصنف</th>
@@ -136,11 +136,11 @@ export const IntelligenceStudyPrintTemplate = React.forwardRef<HTMLDivElement, P
 
         {/* Dead & Excess */}
         {topDead.length > 0 && (
-          <div data-pdf-break>
+          <div className="overflow-x-auto print:overflow-visible" data-pdf-break>
             <h2 className="mb-2 border-r-4 border-amber-700 pr-2 text-xs font-bold text-slate-800">
               3. أعلى الأصناف في المخزون الراكد والفائض
             </h2>
-            <table className="w-full border-collapse border border-slate-300 text-xs">
+            <table className="w-full min-w-[420px] border-collapse border border-slate-300 text-xs print:min-w-0 sm:min-w-0">
               <thead className="bg-slate-100 font-bold">
                 <tr>
                   <th className="border border-slate-300 p-1.5 text-right">الصنف</th>

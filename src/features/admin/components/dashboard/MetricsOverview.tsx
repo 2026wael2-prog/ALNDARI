@@ -76,11 +76,11 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
   if (isLoading || !metrics) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1 sm:gap-3">
           {[1, 2, 3, 4].map(i => (
             <div
               key={i}
-              className="h-28 animate-pulse rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-hover)]"
+              className="h-14 animate-pulse rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] sm:h-28 sm:rounded-xl"
             />
           ))}
         </div>
@@ -161,30 +161,30 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
         </div>
       </div>
 
-      {/* 2. Primary KPI Grid — Clean, High-Density, Calm Monochromatic Surfaces */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* 2. Primary KPI Grid — 4-per-row on mobile too */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-3">
         {/* Companies Card */}
         <div
           onClick={() => {
             onNavigateTab('companies');
           }}
-          className="group cursor-pointer rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 shadow-xs transition-colors hover:border-blue-500/50"
+          className="group min-w-0 cursor-pointer rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xs transition-colors hover:border-blue-500/50 sm:rounded-xl sm:p-3.5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-[var(--app-text-secondary)]">
-              إجمالي المنشآت
+          <div className="flex items-center justify-between gap-0.5">
+            <span className="truncate text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
+              المنشآت
             </span>
-            <Building2 size={15} className="text-[var(--app-text-secondary)]" />
+            <Building2 size={13} className="hidden shrink-0 text-[var(--app-text-secondary)] sm:inline" />
           </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-xl font-black text-[var(--app-text)]">
+          <div className="mt-1 flex items-baseline justify-between gap-1 sm:mt-2">
+            <span className="font-mono text-xs font-black text-[var(--app-text)] sm:text-xl">
               {metrics.total_companies}
             </span>
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="hidden text-[11px] font-bold text-emerald-600 dark:text-emerald-400 sm:inline">
               {metrics.active_companies} نشطة ({activePercent}%)
             </span>
           </div>
-          <div className="mt-2.5 flex items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)]">
+          <div className="mt-2.5 hidden items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)] sm:flex">
             <span>إدارة المنشآت</span>
             <ArrowUpRight size={12} className="transition-transform group-hover:translate-x-0.5" />
           </div>
@@ -195,41 +195,41 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
           onClick={() => {
             onNavigateTab('users');
           }}
-          className="group cursor-pointer rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 shadow-xs transition-colors hover:border-blue-500/50"
+          className="group min-w-0 cursor-pointer rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xs transition-colors hover:border-blue-500/50 sm:rounded-xl sm:p-3.5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-[var(--app-text-secondary)]">
-              المستخدمين المسجلين
+          <div className="flex items-center justify-between gap-0.5">
+            <span className="truncate text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
+              المستخدمين
             </span>
-            <Users size={15} className="text-[var(--app-text-secondary)]" />
+            <Users size={13} className="hidden shrink-0 text-[var(--app-text-secondary)] sm:inline" />
           </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-xl font-black text-[var(--app-text)]">{metrics.total_users}</span>
-            <span className="text-[11px] text-[var(--app-text-secondary)]">حسابات نشطة</span>
+          <div className="mt-1 flex items-baseline justify-between gap-1 sm:mt-2">
+            <span className="font-mono text-xs font-black text-[var(--app-text)] sm:text-xl">{metrics.total_users}</span>
+            <span className="hidden text-[11px] text-[var(--app-text-secondary)] sm:inline">حسابات نشطة</span>
           </div>
-          <div className="mt-2.5 flex items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)]">
+          <div className="mt-2.5 hidden items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)] sm:flex">
             <span>دليل المستخدمين</span>
             <ArrowUpRight size={12} className="transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
 
         {/* Total Invoices Card */}
-        <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-[var(--app-text-secondary)]">
-              الفواتير والعمليات
+        <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xs sm:rounded-xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5">
+            <span className="truncate text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
+              الفواتير
             </span>
-            <Receipt size={15} className="text-[var(--app-text-secondary)]" />
+            <Receipt size={13} className="hidden shrink-0 text-[var(--app-text-secondary)] sm:inline" />
           </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-xl font-black text-[var(--app-text)]">
+          <div className="mt-1 flex items-baseline justify-between gap-1 sm:mt-2">
+            <span className="font-mono text-xs font-black text-[var(--app-text)] sm:text-xl">
               {metrics.total_invoices}
             </span>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+            <span className="hidden items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 sm:flex">
               <TrendingUp size={11} />+{metrics.today_invoices} اليوم
             </span>
           </div>
-          <div className="mt-2.5 flex items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)]">
+          <div className="mt-2.5 hidden items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)] sm:flex">
             <span>عبر كافة المنشآت</span>
             <span className="font-mono text-[10px]">SAR / YER</span>
           </div>
@@ -240,23 +240,23 @@ export const MetricsOverview: React.FC<MetricsOverviewProps> = ({
           onClick={() => {
             onNavigateTab('telemetry');
           }}
-          className="group cursor-pointer rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 shadow-xs transition-colors hover:border-blue-500/50"
+          className="group min-w-0 cursor-pointer rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-xs transition-colors hover:border-blue-500/50 sm:rounded-xl sm:p-3.5"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-[var(--app-text-secondary)]">
-              استهلاك الذكاء الاصطناعي
+          <div className="flex items-center justify-between gap-0.5">
+            <span className="truncate text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">
+              الذكاء AI
             </span>
-            <Bot size={15} className="text-[var(--app-text-secondary)]" />
+            <Bot size={13} className="hidden shrink-0 text-[var(--app-text-secondary)] sm:inline" />
           </div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-xl font-black text-[var(--app-text)]">
+          <div className="mt-1 flex items-baseline justify-between gap-1 sm:mt-2">
+            <span className="font-mono text-xs font-black text-[var(--app-text)] sm:text-xl">
               {metrics.total_ai_requests}
             </span>
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="hidden text-[11px] font-bold text-emerald-600 dark:text-emerald-400 sm:inline">
               وفر الكاش: {cacheHitPercent}%
             </span>
           </div>
-          <div className="mt-2.5 flex items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)]">
+          <div className="mt-2.5 hidden items-center justify-between border-t border-[var(--app-border)] pt-2 text-[11px] text-[var(--app-text-secondary)] sm:flex">
             <span>مراقبة الخدمات</span>
             <ArrowUpRight size={12} className="transition-transform group-hover:translate-x-0.5" />
           </div>

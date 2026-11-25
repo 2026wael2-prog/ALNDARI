@@ -93,7 +93,7 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 md:p-6"
       role="dialog"
       aria-modal="true"
     >
@@ -106,10 +106,10 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
       />
 
       {/* نافذة التأكيد */}
-      <div className="animate-in zoom-in-95 relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900">
+      <div className="animate-in zoom-in-95 relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-slate-200/80 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:pb-0">
         {/* شريط العنوان العلوي */}
         <div
-          className={`flex items-center justify-between border-b px-5 py-3.5 ${
+          className={`flex items-center justify-between border-b px-3.5 py-2.5 sm:px-5 sm:py-3.5 ${
             isSale
               ? 'border-emerald-100 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300'
               : 'border-blue-100 bg-blue-50/70 text-blue-950 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-300'

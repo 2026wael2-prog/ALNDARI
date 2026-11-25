@@ -2015,11 +2015,11 @@ a:focus-visible {
 /* Phone portrait */
 @media (max-width: 480px) {
   .phone-portrait .stat-card {
-    padding: 1rem;
+    padding: 0.375rem;
   }
 
   .phone-portrait .stat-card .value {
-    font-size: 1.5rem;
+    font-size: 0.75rem;
   }
 
   .phone-portrait .excel-table {
@@ -2028,7 +2028,7 @@ a:focus-visible {
 
   .phone-portrait .excel-table td,
   .phone-portrait .excel-table th {
-    padding: 0.5rem;
+    padding: 0.375rem;
   }
 }
 

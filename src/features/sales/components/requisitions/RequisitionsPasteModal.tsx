@@ -35,9 +35,9 @@ export const RequisitionsPasteModal: React.FC<RequisitionsPasteModalProps> = ({
   };
 
   return (
-    <div className="backdrop-blur-xs fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+    <div className="backdrop-blur-xs fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 p-0 sm:items-center sm:p-4">
       <div
-        className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:rounded-xl sm:p-5"
         dir="rtl"
       >
         <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">

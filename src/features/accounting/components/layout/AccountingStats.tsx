@@ -14,11 +14,11 @@ const AccountingStats: React.FC<AccountingStatsProps> = ({ dateRange }) => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="no-scrollbar grid snap-x grid-flow-col auto-cols-[calc(25%-3px)] gap-1 overflow-x-auto md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:gap-2 lg:grid-cols-6">
         {[1, 2, 3, 4, 5, 6].map(i => (
           <div
             key={i}
-            className="h-28 animate-pulse border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm"
+            className="h-14 animate-pulse rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm md:h-24"
           />
         ))}
       </div>
@@ -46,7 +46,7 @@ const AccountingStats: React.FC<AccountingStatsProps> = ({ dateRange }) => {
   const totalLiabilities = financials?.balanceSheet?.totals?.liabilities || 0;
 
   return (
-    <div className="grid grid-cols-2 gap-2 transition-colors duration-300 md:grid-cols-3 lg:grid-cols-6">
+    <div className="no-scrollbar grid snap-x grid-flow-col auto-cols-[calc(25%-3px)] gap-1 overflow-x-auto transition-colors duration-300 md:grid-flow-row md:auto-cols-auto md:grid-cols-3 md:gap-2 md:overflow-visible lg:grid-cols-6">
       <StatCard
         title="صافي الربح"
         value={formatCurrency(netIncome)}

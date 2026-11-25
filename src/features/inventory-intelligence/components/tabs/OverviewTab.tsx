@@ -118,8 +118,8 @@ export const OverviewTab: React.FC<Props> = React.memo(({ data, history = [], or
         </div>
       </div>
 
-      {/* KPI Grid (8 balanced cards) */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {/* KPI Grid (8 balanced cards — 4-per-row on mobile) */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-3">
         {cards.map(c => {
           const Icon = c.icon;
           return (
@@ -129,54 +129,54 @@ export const OverviewTab: React.FC<Props> = React.memo(({ data, history = [], or
               onClick={() => {
                 onNavigateTab(c.tab);
               }}
-              className="flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 text-start transition-all hover:-translate-y-0.5 hover:border-blue-500/40 hover:shadow-sm"
+              className="flex min-w-0 items-center justify-between rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 text-start transition-all hover:-translate-y-0.5 hover:border-blue-500/40 hover:shadow-sm sm:rounded-xl sm:p-3.5"
             >
-              <div>
-                <p className="text-[11px] font-bold text-[var(--app-text-secondary)]">{c.title}</p>
-                <p dir="ltr" className="mt-1 font-mono text-2xl font-bold text-[var(--app-text)]">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[10px] font-bold text-[var(--app-text-secondary)] sm:text-[11px]">{c.title}</p>
+                <p dir="ltr" className="mt-0.5 truncate text-right font-mono text-xs font-bold text-[var(--app-text)] sm:mt-1 sm:text-2xl">
                   {c.value}
                 </p>
               </div>
-              <div className={`rounded-xl p-2.5 ${c.color}`}>
-                <Icon size={20} />
+              <div className={`hidden shrink-0 rounded-xl p-2 sm:block ${c.color}`}>
+                <Icon size={18} />
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Financial Impact Row */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--app-text-secondary)]">
-            <DollarSign size={14} className="text-emerald-500" />
-            <span>القيمة التقديرية للمشتريات الموصى بها</span>
+      {/* Financial Impact Row — 3-up side-by-side on mobile */}
+      <div className="grid grid-cols-3 gap-1 sm:gap-3">
+        <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 sm:rounded-xl sm:p-4">
+          <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--app-text-secondary)] sm:gap-2 sm:text-xs">
+            <DollarSign size={12} className="shrink-0 text-emerald-500 sm:h-3.5 sm:w-3.5" />
+            <span className="truncate">مشتريات موصى بها</span>
           </div>
-          <p dir="ltr" className="mt-2 font-mono text-xl font-bold text-emerald-600 dark:text-emerald-400">
+          <p dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400 sm:mt-2 sm:text-xl">
             {formatCurrency(overviewKpis.estimatedRecommendedPurchaseValue)}
           </p>
-          <p className="mt-1 text-[11px] text-[var(--app-text-secondary)]">
+          <p className="mt-1 hidden text-[11px] text-[var(--app-text-secondary)] sm:block">
             بناءً على أسعار الموردين والتكلفة الفعلية بعد خصم المتاح والوارد
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--app-text-secondary)]">
-            <ArrowLeftRight size={14} className="text-indigo-500" />
-            <span>رأس المال الموفَّر عبر التحويلات الداخلية</span>
+        <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 sm:rounded-xl sm:p-4">
+          <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--app-text-secondary)] sm:gap-2 sm:text-xs">
+            <ArrowLeftRight size={12} className="shrink-0 text-indigo-500 sm:h-3.5 sm:w-3.5" />
+            <span className="truncate">وفر التحويلات</span>
           </div>
-          <p dir="ltr" className="mt-2 font-mono text-xl font-bold text-indigo-600 dark:text-indigo-400">
+          <p dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-bold text-indigo-600 dark:text-indigo-400 sm:mt-2 sm:text-xl">
             {formatCurrency(overviewKpis.estimatedTransferCapitalSaved)}
           </p>
-          <p className="mt-1 text-[11px] text-[var(--app-text-secondary)]">
+          <p className="mt-1 hidden text-[11px] text-[var(--app-text-secondary)] sm:block">
             مشتريات يمكن تفاديها بإعادة توزيع الفائض بين الفروع الثلاثة
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--app-text-secondary)]">
-            <Archive size={14} className="text-rose-500" />
-            <span>قيمة المخزون الراكد والفائض المجمد</span>
+        <div className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 sm:rounded-xl sm:p-4">
+          <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--app-text-secondary)] sm:gap-2 sm:text-xs">
+            <Archive size={12} className="shrink-0 text-rose-500 sm:h-3.5 sm:w-3.5" />
+            <span className="truncate">المخزون الراكد</span>
           </div>
           <p dir="ltr" className="mt-2 font-mono text-xl font-bold text-rose-600 dark:text-rose-400">
             {formatCurrency(overviewKpis.totalExcessInventoryValue)}

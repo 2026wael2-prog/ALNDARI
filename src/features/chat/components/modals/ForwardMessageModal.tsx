@@ -58,8 +58,8 @@ export const ForwardMessageModal: React.FC<Props> = ({ isOpen, message, onClose 
   };
 
   return (
-    <div className="backdrop-blur-xs animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 duration-150">
-      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl">
+    <div className="backdrop-blur-xs animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 duration-150 sm:items-center sm:p-4">
+      <div className="flex max-h-[88dvh] w-full max-w-md flex-col rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl sm:pb-0">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--app-border)] p-3.5">
           <div className="flex items-center gap-2">

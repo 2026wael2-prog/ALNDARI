@@ -95,10 +95,10 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl">
+    <div className="animate-in fade-in fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm duration-200 sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl sm:pb-0">
         {/* Header */}
-        <div className="border-b border-[var(--app-border)] bg-[var(--app-surface)] p-4">
+        <div className="border-b border-[var(--app-border)] bg-[var(--app-surface)] p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Send className="h-5 w-5 text-blue-600 dark:text-blue-400" />

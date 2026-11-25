@@ -96,7 +96,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return createPortal(
     <div
-      className="animate-in fade-in fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm duration-200"
+      className="animate-in fade-in fixed inset-0 z-[9999] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm duration-200 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       tabIndex={-1}
@@ -113,11 +113,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         onClick={isLoading ? undefined : onClose}
       />
 
-      <div className="animate-in zoom-in-95 relative z-10 w-full max-w-md overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl duration-200">
+      <div className="animate-in zoom-in-95 relative z-10 max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl duration-200 sm:rounded-xl">
         {/* Header Strip */}
         <div className={cn('h-1.5 w-full', getHeaderStripColor(variant))} />
 
-        <div className="p-6 sm:p-8">
+        <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-8">
           <div className="flex items-start gap-4">
             <div className={cn('shrink-0 rounded-xl p-3.5', getBgColor(variant))}>
               {getModalIcon(variant)}

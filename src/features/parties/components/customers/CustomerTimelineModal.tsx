@@ -99,10 +99,10 @@ export const CustomerTimelineModal: React.FC<CustomerTimelineModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-[var(--app-surface)] shadow-xl">
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
+        <div className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl sm:pb-0">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-slate-700">
+          <div className="flex items-center justify-between border-b border-gray-200 p-3 dark:border-slate-700 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-900/30">
                 <History className="h-5 w-5 text-purple-600 dark:text-purple-400" />

@@ -30,16 +30,16 @@ const AgingTile: React.FC<AgingTileProps> = ({
         onSelect(bucketKey);
       }}
       title={`عرض عملاء شريحة: ${meta.label}`}
-      className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-2 text-right transition-all hover:border-blue-400 hover:shadow-sm active:scale-[0.98] md:p-3"
+      className="min-w-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-1.5 text-right transition-all hover:border-blue-400 hover:shadow-sm active:scale-[0.98] sm:rounded-xl sm:p-2 md:p-3"
     >
-      <span className={`flex items-center gap-1.5 text-[10px] font-bold ${meta.colorClass}`}>
-        <span className={`h-2 w-2 shrink-0 rounded-full ${meta.barClass}`} />
-        {meta.label}
+      <span className={`flex items-center gap-1 truncate text-[10px] font-bold sm:gap-1.5 sm:text-[10px] ${meta.colorClass}`}>
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full sm:h-2 sm:w-2 ${meta.barClass}`} />
+        <span className="truncate">{meta.label}</span>
       </span>
-      <span className="mt-1 block truncate font-mono text-xs font-bold text-[var(--app-text)] sm:text-sm md:mt-1.5 md:text-base">
+      <span dir="ltr" className="mt-0.5 block truncate text-right font-mono text-[10.5px] font-black text-[var(--app-text)] sm:mt-1 sm:text-sm sm:font-bold md:mt-1.5 md:text-base">
         {formatCurrency(value, baseCurrency)}
       </span>
-      <span className="mt-0.5 block text-[10px] text-[var(--app-text-secondary)]">
+      <span className="mt-0.5 block truncate text-[10px] text-[var(--app-text-secondary)] sm:text-[10px]">
         {count} عميل
       </span>
     </button>
@@ -75,7 +75,7 @@ const AgingBuckets: React.FC<AgingBucketsProps> = ({ aging, baseCurrency }) => {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 max-md:gap-1.5 md:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1 sm:gap-2">
         {AGING_ORDER.map(key => {
           const row = byKey.get(key);
 

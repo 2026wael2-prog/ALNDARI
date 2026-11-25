@@ -62,29 +62,34 @@ const StatCard: React.FC<StatCardProps> = ({
           }
         : {})}
       className={cn(
-        'stat-card group flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm transition-all duration-300 hover:border-[var(--accent)]/30 hover:shadow-md',
-        isCompact ? 'p-1.5 lg:p-2.5' : 'p-2 md:p-3 lg:rounded-xl lg:p-3.5 xl:p-4',
+        'stat-card group flex min-w-0 flex-col justify-between overflow-hidden rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm transition-all duration-300 hover:border-[var(--accent)]/30 hover:shadow-md sm:rounded-xl',
+        isCompact ? 'p-1.5 sm:p-2 lg:p-2.5' : 'p-1.5 sm:p-2.5 md:p-3 lg:p-3.5 xl:p-4',
         isInteractive && 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50',
         isActive && 'border-[var(--accent)]/60 ring-2 ring-[var(--accent)]/40',
         className
       )}
     >
 
-      <div className={cn('flex items-start justify-between gap-1', isCompact ? 'mb-0.5' : 'mb-0.5 md:mb-1')}>
-        <div className="flex min-w-0 flex-col">
+      <div className={cn('flex items-start justify-between gap-0.5 sm:gap-1.5', isCompact ? 'mb-0.5' : 'mb-0.5 md:mb-1')}>
+        <div className="flex min-w-0 flex-1 flex-col">
           <span
             className={cn(
-              'truncate font-medium leading-tight text-[var(--app-text-secondary)]',
-              isCompact ? 'mb-0.5 text-[10px]' : 'mb-0.5 text-[11px] md:mb-1 md:text-xs'
+              'truncate font-bold leading-tight text-[var(--app-text-secondary)] sm:font-medium',
+              isCompact
+                ? 'mb-0.5 text-[10px]'
+                : 'mb-0.5 text-[10px] sm:text-[11px] md:mb-1 md:text-xs'
             )}
+            title={title}
           >
             {title}
           </span>
           <h3
             dir="ltr"
             className={cn(
-              'truncate text-right font-mono font-bold tabular-nums leading-none tracking-tight',
-              isCompact ? 'text-sm lg:text-lg' : 'text-sm sm:text-base md:text-xl lg:text-2xl',
+              'truncate text-right font-mono font-black leading-tight tabular-nums tracking-tight sm:font-bold sm:leading-none',
+              isCompact
+                ? 'text-[11px] sm:text-sm lg:text-lg'
+                : 'text-[11px] sm:text-base md:text-xl lg:text-2xl',
               colorClass
             )}
           >
@@ -93,8 +98,8 @@ const StatCard: React.FC<StatCardProps> = ({
         </div>
         <div
           className={cn(
-            'flex shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-110',
-            isCompact ? 'p-1 lg:p-1.5' : 'p-1 md:p-1.5 lg:rounded-lg lg:p-2',
+            'flex shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-110 sm:rounded-lg',
+            isCompact ? 'p-0.5 sm:p-1 lg:p-1.5' : 'p-0.5 sm:p-1.5 lg:p-2',
             iconBgClass + ' bg-opacity-10'
           )}
         >
@@ -102,22 +107,27 @@ const StatCard: React.FC<StatCardProps> = ({
             className={cn(
               colorClass,
               isCompact
-                ? 'h-3 w-3 lg:h-3.5 lg:w-3.5'
-                : 'h-3 w-3 md:h-4 md:w-4 lg:h-5 lg:w-5'
+                ? 'h-2.5 w-2.5 sm:h-3 sm:w-3 lg:h-3.5 lg:w-3.5'
+                : 'h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 lg:h-5 lg:w-5'
             )}
           />
         </div>
       </div>
 
       {(subtext || trend) && (
-        <div className="mt-1 flex items-center justify-between border-t border-[var(--app-border)] pt-1 md:mt-1.5 md:pt-1.5">
-          <span className="max-w-[70%] truncate text-[10px] font-medium text-[var(--app-text-secondary)]">
+        <div
+          className={cn(
+            'mt-1 items-center justify-between border-t border-[var(--app-border)] pt-1 md:mt-1.5 md:pt-1.5',
+            trend ? 'flex' : 'hidden sm:flex'
+          )}
+        >
+          <span className="hidden max-w-[70%] truncate text-[10px] font-medium text-[var(--app-text-secondary)] sm:inline">
             {subtext}
           </span>
           {trend && (
             <span
               className={cn(
-                'rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                'rounded-full border px-1 py-0 text-[10px] font-semibold sm:px-2 sm:py-0.5 sm:text-[10px]',
                 trend.isPositive
                   ? 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-900/20'
                   : 'border-rose-100 bg-rose-50 text-rose-600 dark:border-rose-800 dark:bg-rose-900/20'

@@ -20,15 +20,15 @@ const TransferStats: React.FC<TransferStatsProps> = ({ stats }) => {
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-1 sm:gap-2">
             {statConfigs.map((s, i) => (
-                <div key={i} className="bg-[var(--app-surface)] rounded-lg border border-gray-50 dark:border-slate-800 p-2 flex items-center gap-2 shadow-sm">
-                    <div className={cn("p-1.5 rounded-md", s.color)}>
+                <div key={i} className="flex min-w-0 items-center gap-1 rounded-lg border border-gray-50 bg-[var(--app-surface)] p-1.5 shadow-sm dark:border-slate-800 sm:gap-2 sm:p-2">
+                    <div className={cn("hidden shrink-0 rounded-md p-1.5 sm:block", s.color)}>
                         <s.icon size={14} />
                     </div>
-                    <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase block tracking-tighter">{s.label}</span>
-                        <span className="text-sm font-black font-mono text-gray-800 dark:text-gray-100 leading-none">{s.value}</span>
+                    <div className="min-w-0">
+                        <span className="block truncate text-[10px] font-black uppercase tracking-tighter text-gray-400 sm:text-[10px]">{s.label}</span>
+                        <span className="font-mono text-xs font-black leading-none text-gray-800 dark:text-gray-100 sm:text-sm">{s.value}</span>
                     </div>
                 </div>
             ))}

@@ -125,16 +125,16 @@ export const SalesStats: React.FC<SalesStatsProps> = ({
 
       {/* Stats Cards Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 animate-pulse">
+        <div className="grid grid-cols-4 gap-1 sm:gap-2 animate-pulse">
           {[1, 2, 3, 4].map(i => (
             <div
               key={i}
-              className="h-24 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)]"
+              className="h-14 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] sm:h-24 sm:rounded-2xl"
             />
           ))}
         </div>
       ) : stats ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-md:gap-2">
+        <div className="grid grid-cols-4 gap-1 sm:gap-2">
           <StatCard
             title="صافي المبيعات"
             value={formatCurrency(stats.netSales ?? stats.totalSales)}

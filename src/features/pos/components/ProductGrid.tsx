@@ -46,11 +46,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-2 p-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8">
-        {[...Array(10)].map((_, i) => (
+      <div className="grid grid-cols-3 gap-1.5 p-1.5 sm:gap-2 sm:p-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8">
+        {[...Array(12)].map((_, i) => (
           <div
             key={i}
-            className="h-28 animate-pulse rounded-xl border bg-[var(--app-surface)] shadow-sm dark:border-slate-800"
+            className="h-32 animate-pulse rounded-lg border bg-[var(--app-surface)] shadow-sm dark:border-slate-800 sm:h-40 sm:rounded-xl"
           ></div>
         ))}
       </div>
@@ -58,7 +58,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   }
 
   return (
-    <div className="custom-scrollbar h-full overflow-y-auto p-2 pb-32">
+    <div className="custom-scrollbar h-full overflow-y-auto p-1.5 pb-32 sm:p-2">
       <CategoryPills
         categories={categories}
         selectedCategory={selectedCategory}
@@ -66,8 +66,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       />
 
       {isSearching && (
-        <div className="mb-3 flex items-center gap-2 px-2">
-          <div className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+        <div className="mb-2 flex items-center gap-2 px-1 sm:mb-3 sm:px-2">
+          <div className="flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 sm:px-3 sm:py-1.5">
             <Search size={12} />
             <span className="text-xs font-bold">
               {filteredProducts.length} نتيجة عن "{searchTerm}"
@@ -81,7 +81,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 3xl:grid-cols-5">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5 3xl:grid-cols-5">
         {filteredProducts.map(product => (
           <ProductCard
             key={product.id}

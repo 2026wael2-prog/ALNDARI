@@ -38,10 +38,10 @@ const ExportGroup: React.FC<ExportGroupProps> = ({
       type="button"
       onClick={onPrint}
       disabled={isExporting}
-      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-black text-white shadow-xs transition-all hover:bg-black active:scale-95 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 sm:flex-none"
+      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-slate-900 px-2.5 py-1.5 text-[11px] font-black text-white shadow-xs transition-all hover:bg-black active:scale-95 disabled:opacity-50 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 sm:flex-none sm:gap-1.5 sm:px-3.5 sm:py-2 sm:text-xs"
       title="طباعة الفاتورة مباشرة"
     >
-      <Printer size={14} />
+      <Printer size={13} />
       <span>طباعة</span>
     </button>
 
@@ -50,10 +50,10 @@ const ExportGroup: React.FC<ExportGroupProps> = ({
         type="button"
         onClick={onShare}
         disabled={isExporting}
-        className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-bold text-emerald-700 shadow-xs transition-colors hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 sm:flex-none"
+        className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] font-bold text-emerald-700 shadow-xs transition-colors hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 sm:flex-none sm:px-2.5 sm:py-2 sm:text-xs"
         title="مشاركة عبر واتساب"
       >
-        {isExporting ? <Loader2 className="animate-spin" size={14} /> : <Share2 size={14} />}
+        {isExporting ? <Loader2 className="animate-spin" size={13} /> : <Share2 size={13} />}
         <span>مشاركة</span>
       </button>
     )}
@@ -62,10 +62,10 @@ const ExportGroup: React.FC<ExportGroupProps> = ({
       type="button"
       onClick={onExportExcel}
       disabled={isExporting}
-      className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-emerald-300/80 bg-emerald-600 px-2.5 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-500 disabled:opacity-50 sm:flex-none"
+      className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-emerald-300/80 bg-emerald-600 px-2 py-1.5 text-[11px] font-bold text-white shadow-xs transition-colors hover:bg-emerald-500 disabled:opacity-50 sm:flex-none sm:px-2.5 sm:py-2 sm:text-xs"
       title="تصدير إلى Excel"
     >
-      <FileSpreadsheet size={14} />
+      <FileSpreadsheet size={13} />
       <span>Excel</span>
     </button>
 
@@ -73,10 +73,10 @@ const ExportGroup: React.FC<ExportGroupProps> = ({
       type="button"
       onClick={onExportPDF}
       disabled={isExporting}
-      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-md shadow-blue-500/20 transition-colors hover:bg-blue-500 disabled:opacity-50 sm:flex-none"
+      className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-blue-600 px-2.5 py-1.5 text-[11px] font-black text-white shadow-md shadow-blue-500/20 transition-colors hover:bg-blue-500 disabled:opacity-50 sm:flex-none sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs"
       title="تصدير ملف PDF"
     >
-      {isExporting ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
+      {isExporting ? <Loader2 className="animate-spin" size={13} /> : <Download size={13} />}
       <span>PDF</span>
     </button>
   </div>

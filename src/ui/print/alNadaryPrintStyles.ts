@@ -393,6 +393,290 @@ export const ALNADARY_PRINT_CSS = `
     padding-top: 3px;
   }
 
+  /* ── تكيّف معاينة الطباعة على شاشات الهواتف فقط (لا يؤثر إطلاقاً على الطباعة الفعلية A4 ولا على تصدير PDF) ── */
+  @media screen and (max-width: 767px) {
+    .alnadary-print-sheet {
+      padding: 8px 10px;
+      line-height: 1.35;
+      overflow-x: hidden;
+    }
+
+    .alnadary-print-sheet main {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .alnadary-header-grid {
+      padding: 2px 0 6px 0;
+    }
+
+    .alnadary-header-right {
+      width: 41% !important;
+      padding-inline-end: 3px;
+    }
+
+    .alnadary-header-center {
+      width: 18% !important;
+      padding: 0 2px;
+    }
+
+    .alnadary-header-left {
+      width: 41% !important;
+      padding-inline-start: 3px;
+    }
+
+    .alnadary-company-title {
+      font-size: 13px;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .alnadary-tagline {
+      font-size: 9px;
+      line-height: 1.3;
+    }
+
+    .alnadary-logo-img {
+      height: 46px;
+      max-width: 56px;
+    }
+
+    .alnadary-address-block {
+      font-size: 9px;
+      line-height: 1.35;
+      margin-bottom: 3px;
+    }
+
+    .alnadary-date-row {
+      font-size: 9.5px;
+      gap: 3px;
+      padding: 1px 5px;
+    }
+
+    .alnadary-doc-title {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .alnadary-meta-grid {
+      font-size: 10px;
+      margin: 4px 0 2px 0;
+    }
+
+    .alnadary-meta-col-right,
+    .alnadary-meta-grid > div:first-child {
+      width: 54% !important;
+      padding-inline-end: 4px;
+    }
+
+    .alnadary-meta-col-left,
+    .alnadary-meta-grid > div:last-child {
+      width: 46% !important;
+      padding-inline-start: 4px;
+    }
+
+    .alnadary-meta-item {
+      gap: 4px;
+    }
+
+    .alnadary-table {
+      table-layout: auto;
+      margin-bottom: 8px;
+    }
+
+    .alnadary-table th,
+    .alnadary-table td {
+      padding: 3px 4px;
+      font-size: 10px;
+    }
+
+    .alnadary-totals-section {
+      font-size: 10.5px;
+      gap: 5px;
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: 1fr !important;
+    }
+
+    .alnadary-total-bar {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+
+    .alnadary-total-bar-label {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      width: auto !important;
+      flex: 0 0 auto;
+      padding: 3px 8px;
+      font-size: 10.5px;
+    }
+
+    .alnadary-total-bar-amount {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      width: auto !important;
+      flex: 1 1 auto;
+      padding: 3px 8px;
+      font-size: 12px;
+    }
+
+    .alnadary-total-bar-words {
+      display: block !important;
+      flex: 1 0 100%;
+      order: 3;
+      border-left: none;
+      border-top: 1px solid #000000;
+      padding: 3px 6px;
+      font-size: 10px;
+    }
+
+    .alnadary-inline-summary {
+      gap: 8px 12px;
+      font-size: 10.5px;
+      padding: 2px 2px;
+    }
+
+    .alnadary-remaining-row {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 8px;
+    }
+
+    .alnadary-remaining-row > div:nth-child(1),
+    .alnadary-remaining-row > div:nth-child(2) {
+      display: block !important;
+      width: auto !important;
+      padding-inline-end: 0;
+    }
+
+    .alnadary-remaining-row > div:nth-child(3) {
+      display: block !important;
+      flex: 1 0 100%;
+    }
+
+    .alnadary-remaining-words-box,
+    .alnadary-notes-box {
+      font-size: 10px;
+      padding: 4px 6px;
+    }
+
+    .alnadary-footer {
+      margin-top: 10px;
+      padding-top: 6px;
+      font-size: 10px;
+    }
+
+    .alnadary-terms-row {
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .alnadary-signatures-row {
+      font-size: 10px;
+      margin-top: 6px;
+    }
+
+    .alnadary-signatures-row > div {
+      padding: 0 3px;
+    }
+
+    .alnadary-sig-line {
+      margin-top: 14px;
+    }
+
+    /* الحفاظ على مقاسات A4 الأصلية 100% داخل حاوية تصدير PDF المخفية حتى عند التصدير من الهاتف */
+    .pdf-capture-host .alnadary-print-sheet {
+      padding: 14px 18px;
+      line-height: 1.45;
+      overflow-x: visible;
+    }
+    .pdf-capture-host .alnadary-print-sheet main {
+      overflow-x: visible;
+    }
+    .pdf-capture-host .alnadary-header-right,
+    .pdf-capture-host .alnadary-header-left {
+      width: 39% !important;
+    }
+    .pdf-capture-host .alnadary-header-center {
+      width: 22% !important;
+    }
+    .pdf-capture-host .alnadary-company-title {
+      font-size: 22px;
+    }
+    .pdf-capture-host .alnadary-tagline,
+    .pdf-capture-host .alnadary-address-block,
+    .pdf-capture-host .alnadary-date-row {
+      font-size: 11.5px;
+    }
+    .pdf-capture-host .alnadary-logo-img {
+      height: 84px;
+      max-width: 110px;
+    }
+    .pdf-capture-host .alnadary-doc-title {
+      font-size: 14px;
+    }
+    .pdf-capture-host .alnadary-meta-grid {
+      font-size: 12px;
+    }
+    .pdf-capture-host .alnadary-meta-col-right,
+    .pdf-capture-host .alnadary-meta-grid > div:first-child {
+      width: 58% !important;
+    }
+    .pdf-capture-host .alnadary-meta-col-left,
+    .pdf-capture-host .alnadary-meta-grid > div:last-child {
+      width: 42% !important;
+    }
+    .pdf-capture-host .alnadary-table {
+      table-layout: fixed;
+    }
+    .pdf-capture-host .alnadary-table th {
+      font-size: 12px;
+      padding: 5px 6px;
+    }
+    .pdf-capture-host .alnadary-table td {
+      font-size: 11.5px;
+      padding: 5px 6px;
+    }
+    .pdf-capture-host .alnadary-total-bar {
+      display: table !important;
+    }
+    .pdf-capture-host .alnadary-total-bar-label {
+      display: table-cell !important;
+      width: 115px !important;
+      font-size: 12px;
+    }
+    .pdf-capture-host .alnadary-total-bar-words {
+      display: table-cell !important;
+      border-top: none;
+      border-left: 1px solid #000000;
+      font-size: 12px;
+    }
+    .pdf-capture-host .alnadary-total-bar-amount {
+      display: table-cell !important;
+      width: 130px !important;
+      font-size: 13px;
+    }
+    .pdf-capture-host .alnadary-remaining-row {
+      display: table !important;
+    }
+    .pdf-capture-host .alnadary-remaining-row > div:nth-child(1) {
+      display: table-cell !important;
+      width: 135px !important;
+    }
+    .pdf-capture-host .alnadary-remaining-row > div:nth-child(2) {
+      display: table-cell !important;
+      width: 95px !important;
+    }
+    .pdf-capture-host .alnadary-remaining-row > div:nth-child(3) {
+      display: table-cell !important;
+    }
+  }
+
   /* ── قواعد الطباعة A4 ── */
   @media print {
     @page {

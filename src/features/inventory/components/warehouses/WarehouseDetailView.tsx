@@ -47,7 +47,7 @@ const WarehouseDetailView: React.FC<Props> = ({ warehouseId, warehouses }) => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 flex-shrink-0">
+            <div className="grid grid-cols-4 gap-1 sm:gap-2.5 flex-shrink-0">
                 <StatCard
                     title="قيمة المخزون"
                     value={formatCurrency(Number(warehouse.stockValue || 0))}

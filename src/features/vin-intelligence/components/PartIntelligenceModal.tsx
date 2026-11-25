@@ -92,10 +92,10 @@ export const PartIntelligenceModal: React.FC<PartIntelligenceModalProps> = ({
   };
 
   return (
-    <div className="backdrop-blur-xs animate-in fade-in font-cairo fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 duration-200">
-      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+    <div className="backdrop-blur-xs animate-in fade-in font-cairo fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 p-0 duration-200 sm:items-center sm:p-4">
+      <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:rounded-3xl sm:pb-0">
         {/* ── Modal Header ── */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-gradient-to-l from-slate-900 via-slate-900 to-indigo-950 p-5 text-white">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-gradient-to-l from-slate-900 via-slate-900 to-indigo-950 p-3 text-white sm:gap-3 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl border border-blue-500/30 bg-blue-600/20 p-2.5 text-blue-400">
               <Sparkles size={22} className="animate-pulse text-amber-400" />

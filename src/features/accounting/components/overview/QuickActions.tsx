@@ -44,10 +44,10 @@ const QuickActions: React.FC<Props> = ({ onNewJournal }) => {
 
   return (
     <Card variant="ledger">
-      <h3 className="mb-3 px-1 text-[10px] font-bold uppercase tracking-widest text-[var(--app-text-secondary)]">
+      <h3 className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest text-[var(--app-text-secondary)] sm:mb-3">
         إجراءات سريعة
       </h3>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-4 gap-1 sm:gap-2">
         {actions.map(action => {
           const c = colorMap[action.color];
           const Icon = action.icon;
@@ -55,13 +55,13 @@ const QuickActions: React.FC<Props> = ({ onNewJournal }) => {
             <button
               key={c.label}
               onClick={action.onClick}
-              className={`group rounded-[var(--radius)] border p-3 text-right transition-all ${c.btn}`}
+              className={`group flex flex-col items-center justify-center rounded-[var(--radius)] border p-1.5 text-center transition-all sm:items-start sm:p-3 sm:text-right ${c.btn}`}
             >
               <Icon
-                size={16}
-                className={`mb-2 transition-transform group-hover:scale-110 ${c.icon}`}
+                size={14}
+                className={`mb-1 transition-transform group-hover:scale-110 sm:mb-2 sm:h-4 sm:w-4 ${c.icon}`}
               />
-              <span className="block text-[11px] font-bold">{c.label}</span>
+              <span className="block truncate text-[10px] font-bold sm:text-[11px]">{c.label}</span>
             </button>
           );
         })}

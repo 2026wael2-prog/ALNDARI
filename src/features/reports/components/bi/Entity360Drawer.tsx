@@ -96,10 +96,10 @@ export const Entity360Drawer: React.FC<Entity360DrawerProps> = ({
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="relative flex h-full w-full max-w-2xl flex-col overflow-hidden border-r border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        className="relative flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden border-r border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:pb-0"
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/70 px-5 py-4 dark:border-slate-800 dark:bg-slate-800/40">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/40 sm:px-5 sm:py-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="shrink-0 rounded-xl bg-blue-50 p-2.5 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
               {entityType === 'customer' ? (

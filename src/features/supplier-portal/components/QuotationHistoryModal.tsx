@@ -47,10 +47,10 @@ export const QuotationHistoryModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="backdrop-blur-xs animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 duration-150">
-      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[var(--app-surface)] shadow-xl dark:border-slate-800">
+    <div className="backdrop-blur-xs animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 p-0 duration-150 sm:items-center sm:p-4">
+      <div className="flex max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-xl dark:border-slate-800 sm:rounded-2xl sm:pb-0">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 p-4 text-white">
+        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 p-3 text-white sm:p-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-indigo-400">
               <History className="h-4 w-4" />

@@ -91,64 +91,64 @@ export const InvoiceDetailsSummaryCards: React.FC<InvoiceDetailsSummaryCardsProp
       : remainingAmount;
 
   return (
-    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800/60">
-        <div className="mb-1 flex items-center gap-1.5 text-slate-400">
-          <User size={13} className="text-blue-500" />
-          <span className="text-[10px] font-bold uppercase">العميل</span>
+    <div className="grid grid-cols-4 gap-1 text-xs sm:gap-2">
+      <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-800/60 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-slate-400 sm:mb-1 sm:gap-1.5">
+          <User size={11} className="shrink-0 text-blue-500 sm:h-[13px] sm:w-[13px]" />
+          <span className="truncate text-[10px] font-bold uppercase sm:text-[10px]">العميل</span>
         </div>
         <p
-          className="truncate font-bold text-slate-800 dark:text-slate-100"
+          className="truncate text-[10px] font-bold text-slate-800 dark:text-slate-100 sm:text-xs"
           title={invoice.parties?.name || 'عميل نقدي'}
         >
           {invoice.parties?.name || 'عميل نقدي'}
         </p>
         {invoice.parties?.phone && (
-          <p className="mt-0.5 font-mono text-[10px] text-slate-400">{invoice.parties.phone}</p>
+          <p className="mt-0.5 hidden truncate font-mono text-[10px] text-slate-400 sm:block">{invoice.parties.phone}</p>
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800/60">
-        <div className="mb-1 flex items-center gap-1.5 text-slate-400">
-          <Calendar size={13} className="text-purple-500" />
-          <span className="text-[10px] font-bold uppercase">التاريخ والرقم</span>
+      <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-800/60 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-slate-400 sm:mb-1 sm:gap-1.5">
+          <Calendar size={11} className="shrink-0 text-purple-500 sm:h-[13px] sm:w-[13px]" />
+          <span className="truncate text-[10px] font-bold uppercase sm:text-[10px]">التاريخ</span>
         </div>
-        <p className="font-mono font-bold text-slate-800 dark:text-slate-100">
+        <p className="truncate font-mono text-[10px] font-bold text-slate-800 dark:text-slate-100 sm:text-xs">
           {invoice.issue_date}
         </p>
-        <p className="mt-0.5 font-mono text-[10px] text-slate-400">#{invoice.invoice_number}</p>
+        <p className="mt-0.5 truncate font-mono text-[10px] text-slate-400 sm:text-[10px]">#{invoice.invoice_number}</p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800/60">
-        <div className="mb-1 flex items-center gap-1.5 text-slate-400">
-          <CreditCard size={13} className="text-amber-500" />
-          <span className="text-[10px] font-bold uppercase">الحالة والدفع</span>
+      <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-800/60 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-slate-400 sm:mb-1 sm:gap-1.5">
+          <CreditCard size={11} className="shrink-0 text-amber-500 sm:h-[13px] sm:w-[13px]" />
+          <span className="truncate text-[10px] font-bold uppercase sm:text-[10px]">الحالة</span>
         </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1">
-          <span className={cn('rounded border px-1.5 py-0.5 text-[10px] font-bold', badge.cls)}>
+        <div className="mt-0.5 flex flex-wrap items-center gap-0.5 sm:gap-1">
+          <span className={cn('truncate rounded border px-1 py-0 text-[10px] font-bold sm:px-1.5 sm:py-0.5 sm:text-[10px]', badge.cls)}>
             {badge.label}
           </span>
-          <span className="text-[10px] font-bold text-slate-500">
+          <span className="hidden text-[10px] font-bold text-slate-500 sm:inline">
             {invoice.payment_method === 'credit' ? 'آجل' : 'نقداً'}
           </span>
         </div>
       </div>
 
-      <div className="col-span-2 rounded-xl border border-blue-100 bg-blue-50/60 p-2.5 dark:border-blue-900/60 dark:bg-blue-950/30 sm:col-span-1">
-        <div className="mb-1 flex items-center gap-1.5 text-blue-500">
-          <DollarSign size={13} />
-          <span className="text-[10px] font-bold uppercase">المبلغ الإجمالي</span>
+      <div className="min-w-0 rounded-lg border border-blue-100 bg-blue-50/60 p-1.5 dark:border-blue-900/60 dark:bg-blue-950/30 sm:rounded-xl sm:p-2.5">
+        <div className="mb-0.5 flex items-center gap-1 text-blue-500 sm:mb-1 sm:gap-1.5">
+          <DollarSign size={11} className="shrink-0 sm:h-[13px] sm:w-[13px]" />
+          <span className="truncate text-[10px] font-bold uppercase sm:text-[10px]">الإجمالي</span>
         </div>
-        <p className="font-mono text-sm font-black text-blue-700 dark:text-blue-300">
+        <p dir="ltr" className="truncate text-right font-mono text-[10.5px] font-black text-blue-700 dark:text-blue-300 sm:text-sm">
           {formatCurrency(showDocTotal ? docTotal : invoice.total_amount, currency)}
         </p>
         {showDocTotal && (
-          <p className="mt-0.5 font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 hidden truncate font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 sm:block">
             المعادل: {formatCurrency(invoice.total_amount, 'SAR')}
           </p>
         )}
         {remainingAmount != null && remainingAmount > 0 && (
-          <p className="mt-0.5 font-mono text-[10px] font-bold text-rose-600">
+          <p className="mt-0.5 truncate font-mono text-[10px] font-bold text-rose-600 sm:text-[10px]">
             متبقي: {formatCurrency(docRemaining ?? remainingAmount, currency)}
             {showDocTotal && ` (≈ ${formatCurrency(remainingAmount, 'SAR')})`}
           </p>

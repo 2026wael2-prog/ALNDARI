@@ -114,54 +114,54 @@ export const ProductBiView: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-slate-400">إجمالي المبيعات</span>
-            <div className="rounded-lg bg-blue-50 p-1.5 text-blue-600 dark:bg-blue-900/30">
+      {/* KPI Cards Row — 4-per-row on mobile */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-3">
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5">
+            <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[10px] sm:uppercase">المبيعات</span>
+            <div className="hidden rounded-lg bg-blue-50 p-1.5 text-blue-600 dark:bg-blue-900/30 sm:block">
               <DollarSign size={15} />
             </div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <span className="font-mono text-lg font-black text-blue-600 dark:text-blue-400">
+          <div className="mt-0.5 flex items-baseline justify-between gap-1 sm:mt-1">
+            <span dir="ltr" className="truncate font-mono text-[10.5px] font-black text-blue-600 dark:text-blue-400 sm:text-lg">
               {formatCurrency(summaryRev, 'SAR')}
             </span>
-            <span className="text-[10px] font-bold text-slate-400">{totalCount} صنف</span>
+            <span className="hidden shrink-0 text-[10px] font-bold text-slate-400 sm:inline">{totalCount} صنف</span>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
-              إجمالي الربح المحقق
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5">
+            <span className="truncate text-[10px] font-bold text-emerald-600 dark:text-emerald-400 sm:text-[10px] sm:uppercase">
+              الربح
             </span>
-            <div className="rounded-lg bg-emerald-50 p-1.5 text-emerald-600 dark:bg-emerald-900/30">
+            <div className="hidden rounded-lg bg-emerald-50 p-1.5 text-emerald-600 dark:bg-emerald-900/30 sm:block">
               <TrendingUp size={15} />
             </div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <span className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-400">
+          <div className="mt-0.5 flex items-baseline justify-between gap-1 sm:mt-1">
+            <span dir="ltr" className="truncate font-mono text-[10.5px] font-black text-emerald-600 dark:text-emerald-400 sm:text-lg">
               {formatCurrency(summaryProfit, 'SAR')}
             </span>
-            <span className="text-[10px] font-bold text-slate-400">
+            <span className="hidden shrink-0 text-[10px] font-bold text-slate-400 sm:inline">
               إجمالي الشريحة
             </span>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-slate-400">تكلفة البضاعة (COGS)</span>
-            <div className="rounded-lg bg-amber-50 p-1.5 text-amber-600 dark:bg-amber-900/30">
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-3.5">
+          <div className="flex items-center justify-between gap-0.5">
+            <span className="truncate text-[10px] font-bold text-slate-400 sm:text-[10px] sm:uppercase">التكلفة</span>
+            <div className="hidden rounded-lg bg-amber-50 p-1.5 text-amber-600 dark:bg-amber-900/30 sm:block">
               <Wallet size={15} />
             </div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <span className="font-mono text-lg font-black text-slate-700 dark:text-slate-200">
+          <div className="mt-0.5 flex items-baseline justify-between gap-1 sm:mt-1">
+            <span dir="ltr" className="truncate font-mono text-[10.5px] font-black text-slate-700 dark:text-slate-200 sm:text-lg">
               {formatCurrency(summaryCogs, 'SAR')}
             </span>
-            <span className="text-[10px] font-bold text-slate-400">التكلفة المعتمدة</span>
+            <span className="hidden shrink-0 text-[10px] font-bold text-slate-400 sm:inline">التكلفة المعتمدة</span>
           </div>
         </div>
 

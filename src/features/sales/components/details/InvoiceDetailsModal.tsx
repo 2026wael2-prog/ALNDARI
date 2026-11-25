@@ -232,8 +232,8 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
                 )}
               </>
             ) : (
-              <div className="custom-scrollbar flex max-h-[60vh] justify-center overflow-auto rounded-xl bg-slate-200 p-3 dark:bg-slate-900">
-                <div className="w-full max-w-4xl shrink-0 rounded-xl border border-slate-300 bg-white p-2 shadow-lg">
+              <div className="custom-scrollbar flex max-h-[68dvh] justify-center overflow-auto rounded-xl bg-slate-200 p-1 dark:bg-slate-900 sm:p-3">
+                <div className="w-full max-w-4xl shrink-0 overflow-hidden rounded-lg border border-slate-300 bg-white p-1 shadow-lg sm:rounded-xl sm:p-2">
                   <PrintableInvoice
                     invoice={fullInvoiceData}
                     onPrint={() => {

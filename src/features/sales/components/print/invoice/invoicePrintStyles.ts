@@ -50,6 +50,16 @@ const INVOICE_PRINT_CSS_TEMPLATE = `
       line-height: 1.45;
       font-variant-numeric: tabular-nums;
   }
+  @media screen and (max-width: 767px) {
+      .invoice-page-box {
+          max-width: 100%;
+          padding: 6px;
+      }
+      .pdf-capture-host .invoice-page-box {
+          max-width: 210mm;
+          padding: 8mm 10mm;
+      }
+  }
   .inv-cell-header {
       background-color: __ACCENT_COLOR__ !important;
       color: #ffffff !important;

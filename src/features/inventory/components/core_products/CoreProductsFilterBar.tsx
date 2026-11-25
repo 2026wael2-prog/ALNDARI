@@ -70,53 +70,53 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
   };
 
   return (
-    <div className="flex shrink-0 flex-col gap-2.5">
+    <div className="flex shrink-0 flex-col gap-1.5 sm:gap-2.5">
       {/* Banner & Quick Status Mode Pills */}
-      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-amber-200/70 bg-gradient-to-l from-amber-500/15 via-amber-500/5 to-transparent p-3 shadow-sm dark:border-amber-800/40 dark:from-amber-500/20 dark:via-amber-500/5 md:flex-row md:items-center">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 shadow-sm ring-1 ring-amber-500/30 dark:text-amber-400">
-            <Star size={24} className="fill-amber-400 text-amber-500" />
+      <div className="flex flex-col items-start justify-between gap-1.5 rounded-xl border border-amber-200/70 bg-gradient-to-l from-amber-500/15 via-amber-500/5 to-transparent p-2 shadow-sm dark:border-amber-800/40 dark:from-amber-500/20 dark:via-amber-500/5 sm:gap-3 sm:rounded-2xl sm:p-3 md:flex-row md:items-center">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 shadow-sm ring-1 ring-amber-500/30 dark:text-amber-400 sm:h-11 sm:w-11 sm:rounded-xl">
+            <Star size={16} className="fill-amber-400 text-amber-500 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h2 className="text-xs font-extrabold text-slate-900 dark:text-white sm:text-base">
                 المنتجات الاستراتيجية
               </h2>
-              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 sm:px-2.5 sm:text-[10px]">
                 العمود الفقري ⭐
               </span>
             </div>
-            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+            <p className="mt-0.5 hidden text-xs text-slate-600 dark:text-slate-400 sm:block">
               أصناف حيوية يراقبها النظام على مدار الساعة ويرسل تنبيهات عاجلة عند اقتراب نفاذها
               لحماية مبيعاتك.
             </p>
           </div>
         </div>
 
-        {/* Mode Pills */}
-        <div className="flex w-full flex-wrap items-center gap-1.5 md:w-auto">
+        {/* Mode Pills — Single horizontal scrollable strip on mobile */}
+        <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:flex-wrap sm:gap-1.5 md:w-auto">
           <button
             type="button"
             onClick={() => {
               onFilterModeChange('core_only');
             }}
             className={cn(
-              'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
+              'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[10px] font-bold transition-all sm:gap-1.5 sm:rounded-xl sm:px-3 sm:py-1.5 sm:text-xs',
               filterMode === 'core_only'
                 ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
                 : 'border border-slate-200 bg-white text-slate-700 hover:bg-amber-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/60'
             )}
           >
             <Star
-              size={14}
+              size={12}
               className={
                 filterMode === 'core_only'
                   ? 'fill-white text-white'
                   : 'fill-amber-400 text-amber-500'
               }
             />
-            الأصناف الاستراتيجية
-            <span className="py-0.2 rounded-full bg-white/20 px-1.5 font-mono text-[10px]">
+            الاستراتيجية
+            <span className="rounded-full bg-white/20 px-1 font-mono text-[10px] sm:px-1.5 sm:text-[10px]">
               {String(stats.totalCore)}
             </span>
           </button>
@@ -127,19 +127,19 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
               onFilterModeChange('critical_stock');
             }}
             className={cn(
-              'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
+              'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[10px] font-bold transition-all sm:gap-1.5 sm:rounded-xl sm:px-3 sm:py-1.5 sm:text-xs',
               filterMode === 'critical_stock'
                 ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
                 : 'border border-slate-200 bg-white text-slate-700 hover:bg-rose-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/60'
             )}
           >
             <AlertTriangle
-              size={14}
+              size={12}
               className={filterMode === 'critical_stock' ? 'text-white' : 'text-rose-500'}
             />
-            حرجة (مهددة بالنفاذ)
+            حرجة
             {stats.criticalCount > 0 && (
-              <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              <span className="rounded-full bg-rose-500 px-1 py-0 text-[10px] font-bold text-white sm:px-1.5 sm:py-0.5 sm:text-[10px]">
                 {String(stats.criticalCount)}
               </span>
             )}
@@ -151,19 +151,19 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
               onFilterModeChange('out_of_stock');
             }}
             className={cn(
-              'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
+              'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[10px] font-bold transition-all sm:gap-1.5 sm:rounded-xl sm:px-3 sm:py-1.5 sm:text-xs',
               filterMode === 'out_of_stock'
                 ? 'bg-slate-700 text-white shadow-md shadow-slate-700/20'
                 : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/60'
             )}
           >
             <PackageX
-              size={14}
+              size={12}
               className={filterMode === 'out_of_stock' ? 'text-white' : 'text-slate-500'}
             />
-            نافدة كلياً
+            نافدة
             {stats.outOfStockCount > 0 && (
-              <span className="rounded-full bg-slate-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              <span className="rounded-full bg-slate-600 px-1 py-0 text-[10px] font-bold text-white sm:px-1.5 sm:py-0.5 sm:text-[10px]">
                 {String(stats.outOfStockCount)}
               </span>
             )}
@@ -175,7 +175,7 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
               onFilterModeChange('all_inventory');
             }}
             className={cn(
-              'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all',
+              'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[10px] font-bold transition-all sm:gap-1.5 sm:rounded-xl sm:px-3 sm:py-1.5 sm:text-xs',
               filterMode === 'all_inventory'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                 : 'border border-slate-200 bg-white text-slate-700 hover:bg-indigo-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/60'
@@ -183,10 +183,10 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
             title="استعراض كافة المخزون لتحديد الأصناف الاستراتيجية"
           >
             <Layers
-              size={14}
+              size={12}
               className={filterMode === 'all_inventory' ? 'text-white' : 'text-indigo-500'}
             />
-            كافة المخزون ⭐
+            كافة المخزون
           </button>
 
           <button
@@ -194,10 +194,10 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
             onClick={onRefresh}
             disabled={isRefreshing}
             title="تحديث البيانات"
-            className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2 text-slate-600 transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            className="flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 sm:rounded-xl sm:p-2"
           >
             <RefreshCw
-              size={14}
+              size={13}
               className={cn(isRefreshing ? 'animate-spin text-amber-500' : '')}
             />
           </button>
@@ -205,26 +205,26 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
       </div>
 
       {/* Advanced Filters: Supplier & Manufacturer */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-slate-200/90 bg-white/95 p-2.5 shadow-xs backdrop-blur-xs dark:border-slate-800 dark:bg-slate-900/90">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 px-1 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-xl border border-slate-200/90 bg-white/95 p-1.5 shadow-xs dark:border-slate-800 dark:bg-slate-900/90 sm:gap-2.5 sm:rounded-2xl sm:p-2.5">
+        <div className="grid w-full grid-cols-3 items-center gap-1 sm:flex sm:w-auto sm:flex-wrap sm:gap-2">
+          <div className="hidden items-center gap-1.5 px-1 text-xs font-extrabold text-slate-700 dark:text-slate-300 sm:flex">
             <SlidersHorizontal size={14} className="text-amber-500" />
             <span>فلترة المنتجات:</span>
           </div>
 
           {/* فلتر الشركة الصانعة (Manufacturer / Brand) */}
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 py-1 text-xs transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
-            <Factory size={13} className="text-blue-500" />
-            <span className="font-bold text-slate-500 dark:text-slate-400">الشركة الصانعة:</span>
+          <div className="flex min-w-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/70 px-1.5 py-1 text-[10px] transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/80 sm:rounded-xl sm:px-2.5 sm:text-xs">
+            <Factory size={12} className="shrink-0 text-blue-500" />
+            <span className="hidden font-bold text-slate-500 dark:text-slate-400 sm:inline">الشركة الصانعة:</span>
             <select
               value={selectedBrand}
               onChange={e => {
                 onBrandChange(e.target.value);
               }}
-              className="bg-transparent font-bold text-slate-800 outline-none dark:text-slate-200"
+              className="w-full min-w-0 bg-transparent font-bold text-slate-800 outline-none dark:text-slate-200"
               title="تصفية حسب الشركة الصانعة / الماركة"
             >
-              <option value="">جميع الشركات الصانعة</option>
+              <option value="">الماركة</option>
               {brands.map(b => (
                 <option key={b} value={b} className="dark:bg-slate-900">
                   {b}
@@ -234,18 +234,18 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
           </div>
 
           {/* فلتر المورد (Supplier) */}
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 py-1 text-xs transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
-            <Building2 size={13} className="text-emerald-500" />
-            <span className="font-bold text-slate-500 dark:text-slate-400">المورد:</span>
+          <div className="flex min-w-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/70 px-1.5 py-1 text-[10px] transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/80 sm:rounded-xl sm:px-2.5 sm:text-xs">
+            <Building2 size={12} className="shrink-0 text-emerald-500" />
+            <span className="hidden font-bold text-slate-500 dark:text-slate-400 sm:inline">المورد:</span>
             <select
               value={selectedSupplierId}
               onChange={e => {
                 onSupplierChange(e.target.value);
               }}
-              className="max-w-[180px] truncate bg-transparent font-bold text-slate-800 outline-none dark:text-slate-200"
+              className="w-full min-w-0 truncate bg-transparent font-bold text-slate-800 outline-none dark:text-slate-200 sm:max-w-[180px]"
               title="تصفية حسب المورد"
             >
-              <option value="">جميع الموردين</option>
+              <option value="">المورد</option>
               {suppliers.map(s => (
                 <option key={s.id} value={s.id} className="dark:bg-slate-900">
                   {s.name}
@@ -256,18 +256,18 @@ export const CoreProductsFilterBar: React.FC<CoreProductsFilterBarProps> = ({
 
           {/* فلتر المستودع (Warehouse) */}
           {warehouses && warehouses.length > 0 && onWarehouseChange && (
-            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 py-1 text-xs transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/80">
-              <Warehouse size={13} className="text-purple-500" />
-              <span className="font-bold text-slate-500 dark:text-slate-400">المستودع:</span>
+            <div className="flex min-w-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/70 px-1.5 py-1 text-[10px] transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/80 sm:rounded-xl sm:px-2.5 sm:text-xs">
+              <Warehouse size={12} className="shrink-0 text-purple-500" />
+              <span className="hidden font-bold text-slate-500 dark:text-slate-400 sm:inline">المستودع:</span>
               <select
                 value={selectedWarehouseId ?? ''}
                 onChange={e => {
                   onWarehouseChange(e.target.value);
                 }}
-                className="max-w-[180px] truncate bg-transparent font-bold text-slate-800 outline-none dark:text-slate-200"
+                className="w-full min-w-0 truncate bg-transparent font-bold text-slate-800 outline-none dark:text-slate-200 sm:max-w-[180px]"
                 title="تصفية حسب المستودع"
               >
-                <option value="">جميع المستودعات</option>
+                <option value="">المستودع</option>
                 {warehouses.map(w => (
                   <option key={w.id} value={w.id} className="dark:bg-slate-900">
                     {w.name_ar}

@@ -82,15 +82,17 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
   const calculatedDiscount = Math.max(0, calculatedSubtotal - Number(quotation.total_amount || 0));
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" size="xl">
-      <div className="space-y-4 text-right" dir="rtl">
+    <Modal isOpen={isOpen} onClose={onClose} title="وثيقة عرض السعر الرسمية" size="xl" hideHeader>
+      <div className="space-y-3 text-right sm:space-y-4" dir="rtl">
         {/* Action Controls (Hidden on paper print) */}
-        <div className="no-print flex items-center justify-between border-b border-slate-800 pb-3 print:hidden">
-          <div className="flex items-center gap-2 text-emerald-400">
-            <FileText size={18} />
-            <h3 className="text-sm font-black text-white">وثيقة عرض السعر الرسمية</h3>
+        <div className="no-print flex items-center justify-between gap-2 border-b border-[var(--app-border)] pb-2.5 print:hidden sm:pb-3">
+          <div className="flex min-w-0 items-center gap-2 text-emerald-600 dark:text-emerald-400">
+            <FileText size={16} className="shrink-0" />
+            <h3 className="truncate text-xs font-black text-[var(--app-text)] sm:text-sm">
+              وثيقة عرض السعر الرسمية
+            </h3>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <Button
               type="button"
               variant="primary"
@@ -98,15 +100,15 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
               onClick={() => {
                 handlePrint();
               }}
-              className="flex items-center gap-1.5 bg-emerald-600 font-bold hover:bg-emerald-500"
+              className="flex items-center gap-1.5 bg-emerald-600 px-2.5 py-1 text-[11px] font-bold hover:bg-emerald-500 sm:px-3 sm:text-xs"
             >
-              <Printer size={15} />
-              <span>طباعة / حفظ PDF</span>
+              <Printer size={14} />
+              <span>طباعة / PDF</span>
             </Button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+              className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             >
               <X size={18} />
             </button>
@@ -118,7 +120,7 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
           id="supplier-quotation-printable"
           ref={printRef}
           dir="rtl"
-          className="rounded-2xl border border-slate-700 bg-white p-6 text-right text-slate-900 shadow-xl print:border-none print:p-0 print:shadow-none"
+          className="rounded-xl border border-slate-300 bg-white p-2.5 text-right text-slate-900 shadow-lg print:border-none print:p-0 print:shadow-none sm:rounded-2xl sm:p-6"
         >
           {/* Document Header */}
           <div className="mb-4">
@@ -145,7 +147,7 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
           </div>
 
           {/* Unified Supplier Info & Validity Card */}
-          <div className="my-3 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+          <div className="my-2.5 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs sm:my-3 sm:grid-cols-2 sm:gap-3 sm:p-3">
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-slate-500">
                 بيانات المورد المقدم للعرض:
@@ -177,8 +179,8 @@ export const SupplierQuotationPrintModal: React.FC<Props> = ({
           </div>
 
           {/* Items Table */}
-          <div className="overflow-hidden rounded-xl border border-slate-300">
-            <table className="w-full text-right text-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-300 print:overflow-visible">
+            <table className="w-full min-w-[520px] text-right text-[11px] sm:min-w-0 sm:text-xs">
               <thead>
                 <tr className="border-b border-slate-300 bg-slate-100 font-bold text-slate-700">
                   <th className="w-10 p-2.5 text-center">#</th>

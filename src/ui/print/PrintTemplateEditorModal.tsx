@@ -501,27 +501,29 @@ export const PrintTemplateEditorModal: React.FC<PrintTemplateEditorModalProps> =
 
   return (
     <div
-      className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-xs"
+      className="no-print fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-xs sm:items-center sm:p-3"
       dir="rtl"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-300 bg-white p-5 text-right text-slate-900 shadow-2xl"
+        className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-slate-300 bg-white p-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] text-right text-slate-900 shadow-2xl sm:rounded-2xl sm:p-5"
         onClick={e => {
           e.stopPropagation();
         }}
       >
-        <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
-          <div>
-            <h3 className="text-base font-black text-slate-900">تعديل وتخصيص قالب الطباعة الموحد</h3>
-            <p className="text-xs text-slate-500">
+        <div className="mb-3 flex items-center justify-between gap-2 border-b border-slate-200 pb-2.5 sm:mb-4 sm:pb-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-black text-slate-900 sm:text-base">
+              تعديل وتخصيص قالب الطباعة الموحد
+            </h3>
+            <p className="text-[11px] text-slate-500 sm:text-xs">
               يُطبّق التعديل فوراً على جميع الفواتير وكشوف الحساب والسندات ورسائل الواتساب والإكسل
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
           >
             <X size={18} />
           </button>

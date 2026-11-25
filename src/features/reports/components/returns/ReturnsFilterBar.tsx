@@ -16,97 +16,100 @@ const ReturnsFilterBar: React.FC<Props> = ({
   handlePrint,
 }) => {
   return (
-    <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 shadow-sm sm:p-4">
-      <div className="mb-3.5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <div>
-          <div className="mb-0.5 flex items-center gap-2">
-            <div className="h-4 w-1.5 rounded-full bg-rose-500" />
-            <h3 className="text-base font-bold tracking-tight text-slate-800 dark:text-white">
+    <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-sm sm:rounded-xl sm:p-4">
+      <div className="mb-2 flex items-center justify-between gap-2 sm:mb-3.5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:mb-0.5 sm:gap-2">
+            <div className="h-3.5 w-1 rounded-full bg-rose-500 sm:h-4 sm:w-1.5" />
+            <h3 className="truncate text-xs font-bold tracking-tight text-slate-800 dark:text-white sm:text-base">
               تحليل المرتجعات
             </h3>
           </div>
-          <p className="text-[10px] font-semibold text-slate-400">
+          <p className="hidden text-[10px] font-semibold text-slate-400 sm:block">
             تصفية حركات مرتجعات المبيعات والمشتريات
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <button
             onClick={handleExportExcel}
-            className="flex min-h-[36px] items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
+            className="flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95 sm:h-9 sm:gap-1.5 sm:px-3 sm:text-xs"
           >
-            <FileSpreadsheet size={14} />
-            <span>تصدير إكسل</span>
+            <FileSpreadsheet size={13} />
+            <span>إكسل</span>
           </button>
           <button
             onClick={handlePrint}
-            className="flex min-h-[36px] items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-200 active:scale-95 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="flex h-7 items-center gap-1 rounded-lg bg-slate-100 px-2 text-[10px] font-bold text-slate-700 transition-all hover:bg-slate-200 active:scale-95 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:h-9 sm:gap-1.5 sm:px-3 sm:text-xs"
           >
-            <Printer size={14} />
+            <Printer size={13} />
             <span>طباعة</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Grid */}
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Filter Grid — 4 filters in 1 single bar on mobile! */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-2.5">
         {/* Period Filter */}
-        <div>
-          <label className="mb-1 block text-[10px] font-bold text-slate-400">النطاق الزمني</label>
+        <div className="min-w-0">
+          <label className="mb-0.5 hidden truncate text-[10px] font-bold text-slate-400 sm:block">النطاق الزمني</label>
           <div className="relative">
             <Calendar
-              size={14}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={12}
+              className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 text-slate-400 sm:block"
             />
             <select
               value={filters.dateRange}
               onChange={e => {
                 setFilters({ ...filters, dateRange: e.target.value as DateRange });
               }}
-              className="min-h-[36px] w-full appearance-none rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] py-1.5 pl-3 pr-8 text-xs font-bold outline-none transition-colors focus:border-rose-500 dark:text-white"
+              aria-label="النطاق الزمني"
+              className="h-7 w-full appearance-none rounded-md border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-1.5 text-[10px] font-bold outline-none transition-colors focus:border-rose-500 dark:text-white sm:h-9 sm:rounded-lg sm:pl-3 sm:pr-7 sm:text-xs"
             >
               <option value="today">اليوم</option>
-              <option value="week">آخر 7 أيام</option>
-              <option value="month">آخر 30 يوم</option>
-              <option value="year">السنة الحالية</option>
-              <option value="custom">تاريخ مخصص</option>
+              <option value="week">7 أيام</option>
+              <option value="month">30 يوم</option>
+              <option value="year">السنة</option>
+              <option value="custom">مخصص</option>
             </select>
           </div>
         </div>
 
         {/* Flow Type Filter */}
-        <div>
-          <label className="mb-1 block text-[10px] font-bold text-slate-400">نوع التدفق</label>
+        <div className="min-w-0">
+          <label className="mb-0.5 hidden truncate text-[10px] font-bold text-slate-400 sm:block">نوع التدفق</label>
           <div className="relative">
             <Filter
-              size={14}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={12}
+              className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 text-slate-400 sm:block"
             />
             <select
               value={filters.type}
               onChange={e => {
                 setFilters({ ...filters, type: e.target.value as ReturnsType });
               }}
-              className="min-h-[36px] w-full appearance-none rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] py-1.5 pl-3 pr-8 text-xs font-bold outline-none transition-colors focus:border-rose-500 dark:text-white"
+              aria-label="نوع التدفق"
+              className="h-7 w-full appearance-none rounded-md border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-1.5 text-[10px] font-bold outline-none transition-colors focus:border-rose-500 dark:text-white sm:h-9 sm:rounded-lg sm:pl-3 sm:pr-7 sm:text-xs"
             >
-              <option value="all">كافة التدفقات</option>
-              <option value="sales">مرتجعات المبيعات</option>
-              <option value="purchase">مرتجعات المشتريات</option>
+              <option value="all">التدفق</option>
+              <option value="sales">مبيعات</option>
+              <option value="purchase">مشتريات</option>
             </select>
           </div>
         </div>
 
         {/* Status Filter */}
-        <div>
-          <label className="mb-1 block text-[10px] font-bold text-slate-400">الحالة</label>
+        <div className="min-w-0">
+          <label className="mb-0.5 hidden truncate text-[10px] font-bold text-slate-400 sm:block">الحالة</label>
           <select
             value={filters.status}
             onChange={e => {
               setFilters({ ...filters, status: e.target.value });
             }}
-            className="min-h-[36px] w-full appearance-none rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-3 py-1.5 text-xs font-bold outline-none transition-colors focus:border-rose-500 dark:text-white"
+            aria-label="الحالة"
+            className="h-7 w-full appearance-none rounded-md border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-1.5 text-[10px] font-bold outline-none transition-colors focus:border-rose-500 dark:text-white sm:h-9 sm:rounded-lg sm:px-3 sm:text-xs"
           >
-            <option value="all">جميع الحالات</option>
+            <option value="all">الحالة</option>
             <option value="draft">مسودة</option>
             <option value="posted">معتمد</option>
             <option value="paid">مدفوع</option>
@@ -115,22 +118,23 @@ const ReturnsFilterBar: React.FC<Props> = ({
         </div>
 
         {/* Causation Filter */}
-        <div>
-          <label className="mb-1 block text-[10px] font-bold text-slate-400">سبب الإرجاع</label>
+        <div className="min-w-0">
+          <label className="mb-0.5 hidden truncate text-[10px] font-bold text-slate-400 sm:block">سبب الإرجاع</label>
           <select
             value={filters.reason}
             onChange={e => {
               setFilters({ ...filters, reason: e.target.value });
             }}
-            className="min-h-[36px] w-full appearance-none rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-3 py-1.5 text-xs font-bold outline-none transition-colors focus:border-rose-500 dark:text-white"
+            aria-label="سبب الإرجاع"
+            className="h-7 w-full appearance-none rounded-md border border-[var(--app-border)] bg-[var(--app-surface-hover)] px-1.5 text-[10px] font-bold outline-none transition-colors focus:border-rose-500 dark:text-white sm:h-9 sm:rounded-lg sm:px-3 sm:text-xs"
           >
-            <option value="all">جميع المسببات</option>
-            <option value="defective">منتج تالف</option>
+            <option value="all">السبب</option>
+            <option value="defective">تالف</option>
             <option value="not_as_described">غير مطابق</option>
             <option value="wrong_item">صنف خاطئ</option>
-            <option value="quality_issue">مشكلة جودة</option>
+            <option value="quality_issue">جودة</option>
             <option value="changed_mind">تغيير رأي</option>
-            <option value="expired">منتهي الصلاحية</option>
+            <option value="expired">منتهي</option>
             <option value="other">أخرى</option>
           </select>
         </div>

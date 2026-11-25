@@ -112,10 +112,10 @@ const AICategoryReviewModal: React.FC<Props> = ({ isOpen, onClose, onComplete })
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-[var(--app-surface)] w-full max-w-4xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-[var(--app-surface)] w-full max-w-4xl max-h-[92dvh] rounded-t-2xl sm:rounded-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0 shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800">
                 {/* Header */}
-                <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+                <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                     <div className="flex items-center gap-2">
                         <div className="p-1.5 bg-blue-600 text-white rounded shadow-sm">
                             <Sparkles size={16} />

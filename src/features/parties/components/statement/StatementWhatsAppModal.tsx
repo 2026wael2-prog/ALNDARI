@@ -155,19 +155,19 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
-      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm duration-200 sm:items-center sm:p-4">
+      <div className="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl sm:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-white/15 p-2 backdrop-blur-md">
-              <Share2 size={20} className="text-white" />
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--app-border)] bg-gradient-to-r from-emerald-600 to-teal-700 px-3.5 py-2.5 text-white sm:px-6 sm:py-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="shrink-0 rounded-xl bg-white/15 p-1.5 backdrop-blur-md sm:p-2">
+              <Share2 size={17} className="text-white sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-white">
+            <div className="min-w-0">
+              <h2 className="truncate text-sm font-bold text-white sm:text-base">
                 إرسال كشف الحساب عبر واتساب (Excel Grid)
               </h2>
-              <p className="text-xs text-emerald-100">
+              <p className="hidden text-xs text-emerald-100 sm:block">
                 كشف حساب تفصيلي منظم وعصري مع تفريق كامل بين الريال السعودي والريال اليمني
               </p>
             </div>

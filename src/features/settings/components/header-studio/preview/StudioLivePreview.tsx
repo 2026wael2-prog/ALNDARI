@@ -31,14 +31,14 @@ export const StudioLivePreview: React.FC<StudioLivePreviewProps> = ({
 }) => {
   return (
     <div className="space-y-3 lg:col-span-6">
-      <div className="flex items-center justify-between px-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-          <Eye className="h-4 w-4 text-blue-600" />
-          <span>المعاينة الحية المتزامنة (Live Preview)</span>
+          <Eye className="h-4 w-4 shrink-0 text-blue-600" />
+          <span>المعاينة الحية المتزامنة</span>
         </div>
 
         {/* Document Preview Tab Switcher */}
-        <div className="flex items-center gap-1 rounded-lg bg-slate-200/80 p-0.5 text-[11px] font-medium dark:bg-slate-800">
+        <div className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-lg bg-slate-200/80 p-0.5 text-[11px] font-medium dark:bg-slate-800">
           <button
             type="button"
             onClick={() => setPreviewTab('sales_invoice')}
@@ -99,7 +99,7 @@ export const StudioLivePreview: React.FC<StudioLivePreviewProps> = ({
 
       {/* Paper / Simulation Container */}
       {previewTab !== 'whatsapp' ? (
-        <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-md">
+        <div className="flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-2.5 text-slate-900 shadow-md sm:min-h-[420px] sm:p-4">
           {/* Universal Header in action */}
           <UniversalDocumentHeader
             config={currentHeaderConfig}

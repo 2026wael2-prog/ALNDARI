@@ -290,8 +290,8 @@ export const OpenInvoicesTabs: React.FC<OpenInvoicesTabsProps> = ({ disabled = f
 
       {/* نافذة تأكيد إغلاق الفاتورة التي تحتوي على أصناف */}
       {draftToClose && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="w-full max-w-sm rounded-t-2xl border border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:rounded-2xl sm:p-5">
             <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
                 <AlertCircle size={22} />

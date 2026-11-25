@@ -135,7 +135,7 @@ const PartiesStats: React.FC<Props> = ({
       {perCurrencyCards.length > 0 && (
         <div
           data-testid="parties-per-currency-cards"
-          className="grid grid-cols-1 gap-2.5 md:grid-cols-2"
+          className="grid grid-cols-2 gap-1.5 sm:gap-2.5"
         >
           {perCurrencyCards.map(cur => {
             const isSar = cur.currency === 'SAR';
@@ -153,7 +153,7 @@ const PartiesStats: React.FC<Props> = ({
                   }
                 }}
                 className={cn(
-                  'rounded-xl border bg-white p-2.5 shadow-sm transition-all dark:bg-slate-900 md:p-3.5',
+                  'min-w-0 rounded-lg border bg-white p-1.5 shadow-sm transition-all dark:bg-slate-900 sm:rounded-xl sm:p-2.5 md:p-3.5',
                   canToggle && 'cursor-pointer hover:shadow-md',
                   isSelectedCurr
                     ? isYer
@@ -164,67 +164,67 @@ const PartiesStats: React.FC<Props> = ({
                       : 'border-emerald-200/70 hover:border-emerald-300 dark:border-emerald-900/40'
                 )}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-1 sm:gap-2">
+                  <div className="flex min-w-0 items-center gap-1 sm:gap-2">
                     <div
                       className={cn(
-                        'flex h-6 w-6 shrink-0 items-center justify-center rounded-lg md:h-7 md:w-7',
+                        'flex h-5 w-5 shrink-0 items-center justify-center rounded-md sm:h-6 sm:w-6 sm:rounded-lg md:h-7 md:w-7',
                         isYer
                           ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
                           : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
                       )}
                     >
-                      <Coins size={14} />
+                      <Coins size={11} className="sm:h-3.5 sm:w-3.5" />
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-xs font-black text-slate-800 dark:text-slate-100">
-                        حسابات {CURRENCY_LABELS[cur.currency] ?? cur.currency}
+                      <div className="truncate text-[10px] font-black text-slate-800 dark:text-slate-100 sm:text-xs">
+                        {CURRENCY_LABELS[cur.currency] ?? cur.currency}
                       </div>
-                      <div className="text-[10px] font-bold text-slate-400">
+                      <div className="hidden text-[10px] font-bold text-slate-400 sm:block">
                         {formatNumberDisplay(cur.count)} حساب نشط
                       </div>
                     </div>
                   </div>
                   {isSelectedCurr && (
-                    <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-black text-white">
+                    <span className="shrink-0 rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-black text-white sm:px-2 sm:text-[10px]">
                       مُفعّل
                     </span>
                   )}
                 </div>
 
-                <div className="mt-2 grid grid-cols-3 gap-1.5 border-t border-slate-100 pt-2 dark:border-slate-800 md:mt-3 md:gap-2 md:pt-2.5">
-                  <div className="min-w-0 rounded-lg bg-emerald-50/70 p-1.5 dark:bg-emerald-950/20 md:p-2">
-                    <div className="truncate text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                <div className="mt-1.5 grid grid-cols-3 gap-1 border-t border-slate-100 pt-1.5 dark:border-slate-800 sm:mt-2 sm:gap-1.5 sm:pt-2 md:mt-3 md:gap-2 md:pt-2.5">
+                  <div className="min-w-0 rounded-md bg-emerald-50/70 p-1 dark:bg-emerald-950/20 sm:rounded-lg sm:p-1.5 md:p-2">
+                    <div className="truncate text-[10px] font-bold text-emerald-700 dark:text-emerald-300 sm:text-[10px]">
                       {type === 'supplier' ? 'لنا' : 'مدين'} ({formatNumberDisplay(cur.debtorCount)})
                     </div>
                     <div
                       dir="ltr"
-                      className="mt-0.5 truncate font-mono text-xs font-black text-emerald-700 dark:text-emerald-300 sm:text-sm"
+                      className="mt-0.5 truncate font-mono text-[10px] font-black text-emerald-700 dark:text-emerald-300 sm:text-sm"
                     >
                       {formatCurrency(cur.receivable, cur.currency)}
                     </div>
                   </div>
 
-                  <div className="min-w-0 rounded-lg bg-rose-50/70 p-1.5 dark:bg-rose-950/20 md:p-2">
-                    <div className="truncate text-[10px] font-bold text-rose-700 dark:text-rose-300">
+                  <div className="min-w-0 rounded-md bg-rose-50/70 p-1 dark:bg-rose-950/20 sm:rounded-lg sm:p-1.5 md:p-2">
+                    <div className="truncate text-[10px] font-bold text-rose-700 dark:text-rose-300 sm:text-[10px]">
                       {type === 'supplier' ? 'علينا' : 'دائن'} ({formatNumberDisplay(cur.creditorCount)})
                     </div>
                     <div
                       dir="ltr"
-                      className="mt-0.5 truncate font-mono text-xs font-black text-rose-700 dark:text-rose-300 sm:text-sm"
+                      className="mt-0.5 truncate font-mono text-[10px] font-black text-rose-700 dark:text-rose-300 sm:text-sm"
                     >
                       {formatCurrency(cur.payable, cur.currency)}
                     </div>
                   </div>
 
-                  <div className="min-w-0 rounded-lg bg-slate-50 p-1.5 dark:bg-slate-800/60 md:p-2">
-                    <div className="truncate text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                  <div className="min-w-0 rounded-md bg-slate-50 p-1 dark:bg-slate-800/60 sm:rounded-lg sm:p-1.5 md:p-2">
+                    <div className="truncate text-[10px] font-bold text-slate-500 dark:text-slate-400 sm:text-[10px]">
                       صافي {cur.currency}
                     </div>
                     <div
                       dir="ltr"
                       className={cn(
-                        'mt-0.5 truncate font-mono text-xs font-black sm:text-sm',
+                        'mt-0.5 truncate font-mono text-[10px] font-black sm:text-sm',
                         cur.balance >= 0
                           ? 'text-slate-900 dark:text-white'
                           : 'text-rose-600 dark:text-rose-400'
@@ -240,8 +240,8 @@ const PartiesStats: React.FC<Props> = ({
         </div>
       )}
 
-      {/* 4 Summary Cards Grid */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
+      {/* 4 Summary Cards Grid — 4-per-row on mobile too */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-2.5 md:gap-3">
         {/* Card 1: Count & Status */}
         <div
           onClick={() => {
@@ -252,28 +252,28 @@ const PartiesStats: React.FC<Props> = ({
             }
           }}
           className={cn(
-            'group relative overflow-hidden rounded-xl border bg-white p-2.5 shadow-sm transition-all dark:bg-slate-900 md:p-3.5',
+            'group relative min-w-0 overflow-hidden rounded-lg border bg-white p-1.5 shadow-sm transition-all dark:bg-slate-900 sm:rounded-xl sm:p-2.5 md:p-3.5',
             onFilterChange && 'cursor-pointer hover:shadow-md',
             activeFilter === 'active' || activeFilter === 'blocked'
               ? 'border-blue-500 ring-2 ring-blue-500/20 dark:border-blue-400'
               : 'border-slate-200/80 hover:border-slate-300 dark:border-slate-800'
           )}
         >
-          <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center justify-between gap-0.5 sm:gap-1">
             <span className="truncate text-[10px] font-bold text-slate-500 dark:text-slate-400 sm:text-[11px]">
               {partyLabel}
             </span>
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 md:h-7 md:w-7">
-              <Users size={14} />
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 sm:h-6 sm:w-6 sm:rounded-lg md:h-7 md:w-7">
+              <Users size={10} className="sm:h-3.5 sm:w-3.5" />
             </div>
           </div>
-          <div className="mt-1.5 flex items-baseline gap-1.5 md:mt-2 md:gap-2">
-            <span className="font-mono text-lg font-bold tracking-tight text-slate-900 dark:text-white md:text-2xl">
+          <div className="mt-1 flex items-baseline gap-1 sm:mt-1.5 md:mt-2 md:gap-2">
+            <span className="font-mono text-xs font-black tracking-tight text-slate-900 dark:text-white sm:text-lg sm:font-bold md:text-2xl">
               {formatNumberDisplay(stats.totalCount)}
             </span>
-            <span className="text-[10px] text-slate-400">جهة</span>
+            <span className="hidden text-[10px] text-slate-400 sm:inline">جهة</span>
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-1.5 text-[10px] dark:border-slate-800 md:mt-2 md:pt-2">
+          <div className="mt-1.5 hidden flex-wrap items-center gap-1.5 border-t border-slate-100 pt-1.5 text-[10px] dark:border-slate-800 sm:flex md:mt-2 md:pt-2">
             <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               {formatNumberDisplay(stats.activeCount)} نشط
@@ -307,30 +307,30 @@ const PartiesStats: React.FC<Props> = ({
             }
           }}
           className={cn(
-            'group relative overflow-hidden rounded-xl border bg-emerald-50/40 p-2.5 shadow-sm transition-all dark:bg-emerald-950/20 md:p-3.5',
+            'group relative min-w-0 overflow-hidden rounded-lg border bg-emerald-50/40 p-1.5 shadow-sm transition-all dark:bg-emerald-950/20 sm:rounded-xl sm:p-2.5 md:p-3.5',
             onFilterChange && 'cursor-pointer hover:shadow-md',
             activeFilter === 'debtors'
               ? 'border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400'
               : 'border-emerald-200/60 hover:border-emerald-300 dark:border-emerald-900/40'
           )}
         >
-          <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center justify-between gap-0.5 sm:gap-1">
             <span className="truncate text-[10px] font-bold text-emerald-800 dark:text-emerald-300 sm:text-[11px]">
               {type === 'customer'
-                ? 'مستحقات لنا (مدين)'
+                ? 'مستحقات لنا'
                 : type === 'employee'
-                  ? 'سلف مستردة (لنا)'
-                  : 'دفعات مقدمة للموردين'}
+                  ? 'سلف لنا'
+                  : 'دفعات مقدمة'}
               {focusedCurrencyStat ? ` (${displayCurrency})` : ''}
             </span>
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 md:h-7 md:w-7">
-              <TrendingUp size={14} />
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 sm:h-6 sm:w-6 sm:rounded-lg md:h-7 md:w-7">
+              <TrendingUp size={10} className="sm:h-3.5 sm:w-3.5" />
             </div>
           </div>
-          <div className="mt-1.5 md:mt-2">
+          <div className="mt-1 sm:mt-1.5 md:mt-2">
             <span
               dir="ltr"
-              className="block truncate font-mono text-sm font-bold tracking-tight text-emerald-700 dark:text-emerald-300 sm:text-base md:text-xl"
+              className="block truncate text-right font-mono text-[10.5px] font-black tracking-tight text-emerald-700 dark:text-emerald-300 sm:text-base sm:font-bold md:text-xl"
             >
               {formatCurrency(totalRec, displayCurrency)}
             </span>
@@ -354,30 +354,30 @@ const PartiesStats: React.FC<Props> = ({
             }
           }}
           className={cn(
-            'group relative overflow-hidden rounded-xl border bg-amber-50/40 p-2.5 shadow-sm transition-all dark:bg-amber-950/20 md:p-3.5',
+            'group relative min-w-0 overflow-hidden rounded-lg border bg-amber-50/40 p-1.5 shadow-sm transition-all dark:bg-amber-950/20 sm:rounded-xl sm:p-2.5 md:p-3.5',
             onFilterChange && 'cursor-pointer hover:shadow-md',
             activeFilter === 'creditors'
               ? 'border-amber-500 ring-2 ring-amber-500/20 dark:border-amber-400'
               : 'border-amber-200/60 hover:border-amber-300 dark:border-amber-900/40'
           )}
         >
-          <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center justify-between gap-0.5 sm:gap-1">
             <span className="truncate text-[10px] font-bold text-amber-800 dark:text-amber-300 sm:text-[11px]">
               {type === 'customer'
-                ? 'أمانات / دائن'
+                ? 'دائن / أمانات'
                 : type === 'employee'
-                  ? 'رواتب ومستحقات'
-                  : 'مستحقات علينا'}
+                  ? 'مستحقات'
+                  : 'علينا'}
               {focusedCurrencyStat ? ` (${displayCurrency})` : ''}
             </span>
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 md:h-7 md:w-7">
-              <TrendingDown size={14} />
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 sm:h-6 sm:w-6 sm:rounded-lg md:h-7 md:w-7">
+              <TrendingDown size={10} className="sm:h-3.5 sm:w-3.5" />
             </div>
           </div>
-          <div className="mt-1.5 md:mt-2">
+          <div className="mt-1 sm:mt-1.5 md:mt-2">
             <span
               dir="ltr"
-              className="block truncate font-mono text-sm font-bold tracking-tight text-amber-700 dark:text-amber-300 sm:text-base md:text-xl"
+              className="block truncate text-right font-mono text-[10.5px] font-black tracking-tight text-amber-700 dark:text-amber-300 sm:text-base sm:font-bold md:text-xl"
             >
               {formatCurrency(totalPay, displayCurrency)}
             </span>
@@ -401,28 +401,28 @@ const PartiesStats: React.FC<Props> = ({
             }
           }}
           className={cn(
-            'group relative overflow-hidden rounded-xl border bg-white p-2.5 shadow-sm transition-all dark:bg-slate-900 md:p-3.5',
+            'group relative min-w-0 overflow-hidden rounded-lg border bg-white p-1.5 shadow-sm transition-all dark:bg-slate-900 sm:rounded-xl sm:p-2.5 md:p-3.5',
             onFilterChange && 'cursor-pointer hover:shadow-md',
             activeFilter === 'all' && !isFiltered
               ? 'border-indigo-500 ring-2 ring-indigo-500/20 dark:border-indigo-400'
               : 'border-slate-200/80 hover:border-slate-300 dark:border-slate-800'
           )}
         >
-          <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center justify-between gap-0.5 sm:gap-1">
             <span className="truncate text-[10px] font-bold text-slate-500 dark:text-slate-400 sm:text-[11px]">
               {focusedCurrencyStat
-                ? `صافي رصيد (${displayCurrency})`
-                : 'صافي المعادل (SAR)'}
+                ? `صافي (${displayCurrency})`
+                : 'صافي الرصيد'}
             </span>
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 md:h-7 md:w-7">
-              <Wallet size={14} />
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 sm:h-6 sm:w-6 sm:rounded-lg md:h-7 md:w-7">
+              <Wallet size={10} className="sm:h-3.5 sm:w-3.5" />
             </div>
           </div>
-          <div className="mt-1.5 md:mt-2">
+          <div className="mt-1 sm:mt-1.5 md:mt-2">
             <span
               dir="ltr"
               className={cn(
-                'block truncate font-mono text-sm font-bold tracking-tight sm:text-base md:text-xl',
+                'block truncate text-right font-mono text-[10.5px] font-black tracking-tight sm:text-base sm:font-bold md:text-xl',
                 totalNet >= 0
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : 'text-rose-600 dark:text-rose-400'
@@ -432,7 +432,7 @@ const PartiesStats: React.FC<Props> = ({
             </span>
           </div>
           {!focusedCurrencyStat && stats.byCurrency && stats.byCurrency.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1 border-t border-slate-100 pt-2 dark:border-slate-800">
+            <div className="mt-2 hidden flex-wrap gap-1 border-t border-slate-100 pt-2 dark:border-slate-800 sm:flex">
               {stats.byCurrency.slice(0, 3).map(c => (
                 <span
                   key={c.currency}

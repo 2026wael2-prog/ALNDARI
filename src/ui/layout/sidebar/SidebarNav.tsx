@@ -107,20 +107,17 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
         aria-label={t(item.labelKey)}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'group relative flex w-full items-center gap-3 rounded-xl border px-2.5 py-2 text-start text-xs font-bold transition-colors duration-75',
+          'group relative flex w-full items-center gap-3 rounded-xl border px-2.5 py-2 text-start text-xs font-bold transition-all duration-150',
           isActive
-            ? cn(theme.activeItemBg, 'shadow-sm')
-            : 'border-transparent text-slate-800 hover:bg-slate-100/70 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-slate-800/50 dark:hover:text-white',
+            ? 'border-[#6b452a] bg-[#432918] text-white shadow-sm'
+            : 'border-transparent text-white/90 hover:bg-white/10 hover:text-white',
           isCollapsed ? 'justify-center px-0' : ''
         )}
       >
         {/* Active Pill Indicator on edge */}
         {isActive && (
           <span
-            className={cn(
-              'absolute bottom-2 right-0 top-2 w-1 rounded-l-full',
-              theme.activeBadge.split(' ')[0] || 'bg-blue-600'
-            )}
+            className="absolute bottom-2 right-0 top-2 w-1 rounded-l-full bg-amber-500"
           />
         )}
 
@@ -129,7 +126,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
           className={cn(
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border shadow-xs transition-colors duration-75',
             isActive
-              ? theme.activeBadge
+              ? 'bg-gradient-to-tr from-amber-600 to-amber-700 text-white border-amber-500/50 shadow-md ring-2 ring-amber-400/20'
               : cn(theme.badgeBg, theme.badgeBorder, theme.iconColor, theme.hoverBadge)
           )}
         >
@@ -147,16 +144,14 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
           <div className="flex min-w-0 flex-1 items-center justify-between gap-1 overflow-hidden">
             <span
               className={cn(
-                'truncate whitespace-nowrap',
-                isActive
-                  ? theme.activeItemText
-                  : 'text-slate-900 group-hover:text-slate-950 dark:text-slate-100 dark:group-hover:text-white'
+                'truncate whitespace-nowrap text-white font-bold',
+                isActive ? 'font-extrabold text-white' : 'text-white/95'
               )}
             >
               {t(item.labelKey)}
             </span>
             {SHORTCUT_HINTS[item.id] && (
-              <span className="ms-1 hidden shrink-0 rounded border border-slate-300/60 bg-slate-200/50 px-1 py-0.2 font-mono text-[9px] font-bold text-slate-600 opacity-60 group-hover:inline-block group-hover:opacity-100 dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-400">
+              <span className="ms-1 hidden shrink-0 rounded border border-white/20 bg-white/10 px-1 py-0.2 font-mono text-[9px] font-bold text-white/80 opacity-70 group-hover:inline-block group-hover:opacity-100">
                 {SHORTCUT_HINTS[item.id]}
               </span>
             )}

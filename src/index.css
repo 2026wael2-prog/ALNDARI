@@ -4262,21 +4262,28 @@ html[dir='ltr'][data-preset='espresso-cream-blue'] aside nav button:not([aria-cu
 }
 
 html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover > div {
-  background-color: rgba(140, 208, 255, 0.25) !important;
-  border-color: rgba(184, 221, 247, 0.6) !important;
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
 }
 
+/* العنصر النشط (الصفحة المفتوحة): خلفية بنية دافئة راقية (Warm Espresso) مع شريط ذهبي كهرماني أنيق — بدون أي أزرق خلف النص الأبيض */
 html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-right: 3.5px solid #8cd0ff !important;
+  background: linear-gradient(135deg, #432918 0%, #54341e 100%) !important;
+  border: 1px solid #6b452a !important;
+  border-right: 4px solid #d97706 !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px -2px rgba(10, 6, 3, 0.5) !important;
+  box-shadow: 0 4px 14px -2px rgba(10, 6, 3, 0.55) !important;
+}
+
+html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
+  background: linear-gradient(135deg, #2b1a10 0%, #3a2316 100%) !important;
+  border: 1px solid #5a3720 !important;
+  border-right: 4px solid #f59e0b !important;
 }
 
 html[dir='ltr'][data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
-  border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-left: 3.5px solid #8cd0ff !important;
+  border-right: 1px solid #6b452a !important;
+  border-left: 4px solid #d97706 !important;
 }
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] span,
@@ -4288,15 +4295,15 @@ html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] > div,
 html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div {
-  background: linear-gradient(135deg, #8cd0ff 0%, #38bdf8 100%) !important;
-  border-color: #c7e6fd !important;
-  color: #180d07 !important;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
 }
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] > div svg,
 html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div svg {
-  color: #180d07 !important;
-  stroke: #180d07 !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside > button[title],
@@ -4308,9 +4315,9 @@ html.dark[data-preset='espresso-cream-blue'] aside > button[title] {
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside > button[title]:hover,
 html.dark[data-preset='espresso-cream-blue'] aside > button[title]:hover {
-  background-color: #8cd0ff !important;
-  border-color: #c7e6fd !important;
-  color: #180d07 !important;
+  background-color: #5c3a21 !important;
+  border-color: #855331 !important;
+  color: #ffffff !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside .border-t,

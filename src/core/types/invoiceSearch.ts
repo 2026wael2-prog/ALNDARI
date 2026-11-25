@@ -39,6 +39,7 @@ export interface SearchInvoiceResultRow {
   status: string;
   payment_method: string;
   total_amount: number;
+  total_document_amount?: number | null;
   currency_code: string;
   exchange_rate: number;
   issue_date: string;

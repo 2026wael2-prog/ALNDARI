@@ -113,6 +113,7 @@ export const purchasesService = {
 
       issue_date: r.issue_date,
       total_amount: r.total_amount ?? 0,
+      total_document_amount: r.total_document_amount ?? null,
       currency_code: r.currency_code,
       exchange_rate: r.exchange_rate ?? 1,
       status: r.status,

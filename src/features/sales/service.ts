@@ -153,13 +153,20 @@ export const salesService = {
         partyPhone: r.party_phone,
         date: formatLocalDate(r.issue_date),
         createdAt: (r as any).created_at || r.issue_date,
-        // [CURRENCY] total_amount مخزن بالعملة الأساسية (SAR) مسبقاً؛ نشتق مبلغ الوثيقة عند غياب total_document_amount
+        // [CURRENCY] total_amount مخزن بالعملة الأساسية (SAR) مسبقاً؛ نستخدم total_document_amount أولاً،
+        // ثم مجموع أصناف الفاتورة بعملتها الأصلية (عند اكتمالها) لتجنب فروق التقريب (±0.20) عند القسمة على سعر الصرف
         total: (() => {
           const base = Number(r.total_amount) || 0;
           const doc = Number((r as { total_document_amount?: number | null }).total_document_amount) || 0;
           const foreign = (r.currency_code || 'SAR') !== 'SAR';
           if (!foreign) return base;
           if (doc > 0) return doc;
+          const items = Array.isArray(r.matched_items) ? r.matched_items : [];
+          const count = Number(r.item_count) || 0;
+          if (count > 0 && items.length >= count) {
+            const exactItemsSum = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
+            if (exactItemsSum > 0) return Math.round(exactItemsSum * 100) / 100;
+          }
           const rate = Number(r.exchange_rate) || 1;
           return rate > 0 && rate !== 1 ? Math.round((base / rate) * 100) / 100 : base;
         })(),

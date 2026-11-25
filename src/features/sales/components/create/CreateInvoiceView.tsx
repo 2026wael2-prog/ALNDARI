@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import InvoiceHeader from './InvoiceHeader';
 import InvoiceMeta from './InvoiceMeta';
 import InteractiveInvoiceTable from './InteractiveInvoiceTable';
@@ -82,7 +83,28 @@ const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onSuccess }) => {
               entityName={selectedCustomer?.name}
             />
             {/* Modern Enterprise Invoice Workspace Container */}
-            <div className="flex flex-col rounded-2xl border border-slate-200 bg-[var(--app-surface)] shadow-xl dark:border-slate-800">
+            <div
+              className={`flex flex-col rounded-2xl border shadow-xl transition-all duration-300 ${
+                invoiceType === 'credit'
+                  ? 'border-rose-400/90 bg-rose-50/25 ring-2 ring-rose-500/20 dark:border-rose-600/80 dark:bg-rose-950/15 dark:ring-rose-500/25'
+                  : 'border-slate-200 bg-[var(--app-surface)] dark:border-slate-800'
+              }`}
+            >
+              {invoiceType === 'credit' && (
+                <div className="flex items-center justify-between gap-2 rounded-t-2xl border-b border-rose-200/90 bg-gradient-to-l from-rose-50 via-rose-100/80 to-rose-50 px-3 py-1.5 text-xs font-bold text-rose-800 dark:border-rose-800/70 dark:from-rose-950/70 dark:via-rose-900/50 dark:to-rose-950/70 dark:text-rose-200">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-300">
+                      <AlertTriangle size={13} className="animate-pulse" />
+                    </span>
+                    <span>
+                      وضع البيع الآجل (Credit) مفعّل — سيتم قيد المبلغ المتبقي كمديونية على حساب العميل
+                    </span>
+                  </div>
+                  <span className="hidden rounded-full border border-rose-300 bg-white/80 px-2 py-0.5 text-[10px] font-black text-rose-700 dark:border-rose-700 dark:bg-rose-950 dark:text-rose-200 sm:inline-block">
+                    فاتورة آجلة
+                  </span>
+                </div>
+              )}
               {comp && (
                 <div className="hidden md:block">
                   <InvoiceHeader company={comp} />

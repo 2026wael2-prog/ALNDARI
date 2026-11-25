@@ -15,11 +15,14 @@ import InvoiceRow from './InvoiceRow';
 
 const ProductSelectionModal = lazy(() => import('./ProductSelectionModal'));
 
+const DEFAULT_INVOICE_ROWS = 5;
+
 const InteractiveInvoiceTable: React.FC = () => {
   const {
     items,
     warehouseId,
     currency,
+    initializeItems,
     setProductForRow,
     addItem,
     updateItem,
@@ -27,6 +30,13 @@ const InteractiveInvoiceTable: React.FC = () => {
     showDiscount,
     toggleColumn,
   } = useSalesStore();
+
+  // ضمان وجود 5 صفوف افتراضية جاهزة للإدخال عند فتح فاتورة جديدة أو بعد تصفير السلة
+  useEffect(() => {
+    if (items.length === 0) {
+      initializeItems(DEFAULT_INVOICE_ROWS);
+    }
+  }, [items.length, initializeItems]);
 
   const tableRef = useRef<HTMLTableElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();

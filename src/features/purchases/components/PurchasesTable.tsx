@@ -35,6 +35,11 @@ const getBaseAmount = (row: PurchaseTableRow): number => Number(row.total_amount
 const getDocumentAmount = (row: PurchaseTableRow): number => {
   if (!hasForeignCurrency(row)) return getBaseAmount(row);
   if (Number(row.total_document_amount) > 0) return Number(row.total_document_amount);
+  const items = Array.isArray(row.matched_items) ? row.matched_items : [];
+  if (items.length > 0 && items.length < 5) {
+    const exactItemsSum = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
+    if (exactItemsSum > 0) return Math.round(exactItemsSum * 100) / 100;
+  }
   const rate = Number(row.exchange_rate);
   if (rate > 0 && rate !== 1) return Math.round((getBaseAmount(row) / rate) * 100) / 100;
   return getBaseAmount(row);

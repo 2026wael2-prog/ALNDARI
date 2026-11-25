@@ -76,12 +76,10 @@ export const WorkspaceTabBar: React.FC = () => {
     return () => cancelAnimationFrame(rafId);
   }, [activeTabId]);
 
-  // معالجة النقر على تبويب بانتقال غير مانع (Concurrent Transition)
+  // معالجة النقر على تبويب بانتقال فوري وسريع
   const handleTabClick = (tab: WorkspaceTab) => {
     setActiveTab(tab.id);
-    React.startTransition(() => {
-      navigate(tab.path);
-    });
+    navigate(tab.path);
   };
 
   // معالجة إغلاق التبويب
@@ -92,9 +90,7 @@ export const WorkspaceTabBar: React.FC = () => {
       }
       const nextPath = closeTab(tabId);
       if (nextPath) {
-        React.startTransition(() => {
-          navigate(nextPath);
-        });
+        navigate(nextPath);
       }
     },
     [closeTab, navigate]

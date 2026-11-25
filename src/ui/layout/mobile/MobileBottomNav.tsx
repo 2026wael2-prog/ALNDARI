@@ -103,9 +103,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   );
 
   const handleNavigate = (path: string) => {
-    React.startTransition(() => {
-      navigate(path);
-    });
+    navigate(path);
   };
 
   return (

@@ -34,9 +34,12 @@ import { useAccompanyingInfoStore } from '../../../features/accompanying-info/st
 
 const HeaderActions: React.FC = () => {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useThemeStore();
-  const { user } = useAuthStore();
-  const { lang, dir, setLang } = useI18nStore();
+  const theme = useThemeStore(s => s.theme);
+  const toggleTheme = useThemeStore(s => s.toggleTheme);
+  const user = useAuthStore(s => s.user);
+  const lang = useI18nStore(s => s.lang);
+  const dir = useI18nStore(s => s.dir);
+  const setLang = useI18nStore(s => s.setLang);
   const { t } = useTranslation();
   const status = useNetworkStatus();
   const [pendingCount, setPendingCount] = useState(0);
@@ -44,8 +47,8 @@ const HeaderActions: React.FC = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const { logout: performLogout, isLoggingOut } = useLogout();
   const { data: isSuperAdmin } = useIsSuperAdmin();
-  const { enabled: isAccompanyingEnabled, toggleEnabled: toggleAccompanyingEnabled } =
-    useAccompanyingInfoStore();
+  const isAccompanyingEnabled = useAccompanyingInfoStore(s => s.enabled);
+  const toggleAccompanyingEnabled = useAccompanyingInfoStore(s => s.toggleEnabled);
 
   // شارة غير المقروء: اشتراك حقيقي في المخزن (selector عددي مستقر).
   // القراءة السابقة عبر `useChatStore.getState()` داخل JSX لا تُشترك في التحديثات
@@ -68,13 +71,15 @@ const HeaderActions: React.FC = () => {
     };
   }, []);
 
-  const { getCompanyUnreadCount, notifications } = useNotificationStore();
+  const getCompanyUnreadCount = useNotificationStore(s => s.getCompanyUnreadCount);
+  const notifications = useNotificationStore(s => s.notifications);
   const companyId = user?.company_id || '';
   const unreadCount = useMemo(
-    () => getCompanyUnreadCount(companyId),
+    () => (typeof getCompanyUnreadCount === 'function' ? getCompanyUnreadCount(companyId) : 0),
     [getCompanyUnreadCount, companyId, notifications]
   );
-  const { isSoundEnabled, toggleSound } = useSoundStore();
+  const isSoundEnabled = useSoundStore(s => s.isSoundEnabled);
+  const toggleSound = useSoundStore(s => s.toggleSound);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);

@@ -7,7 +7,7 @@
  * @module ui/layout/tabs/MultiViewContainer
  */
 
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useOutlet, useLocation } from 'react-router-dom';
 import { useWorkspaceTabStore, type WorkspaceTab } from '../../../core/store/workspaceTabStore';
 import { useBreakpoint } from '../../../lib/hooks/useBreakpoint';
@@ -131,7 +131,6 @@ function useViewsCache(
   tabsKey: string
 ): React.RefObject<Map<string, CacheEntry>> {
   const viewsCacheRef = useRef<Map<string, CacheEntry>>(new Map());
-  const [, forceUpdate] = useState({});
 
   // Synchronous cache update during render so the active view is immediately available.
   // Keep the existing `view` reference when the tab is already cached so TabPanel's
@@ -145,13 +144,13 @@ function useViewsCache(
     }
   }
 
-  useEffect(() => {
-    const openIds = new Set(tabs.map(t => t.id));
-    const dirtyIds = new Set(tabs.filter(t => t.isDirty === true).map(t => t.id));
-    if (pruneViewCache(viewsCacheRef.current, openIds, dirtyIds, activeTabId)) {
-      forceUpdate({});
-    }
-  }, [tabs, tabsKey, activeTabId]);
+  // Prune directly during render without an extra post-render useEffect + forceUpdate cycle
+  const openIds = useMemo(() => new Set(tabs.map(t => t.id)), [tabsKey]);
+  const dirtyIds = useMemo(
+    () => new Set(tabs.filter(t => t.isDirty === true).map(t => t.id)),
+    [tabs]
+  );
+  pruneViewCache(viewsCacheRef.current, openIds, dirtyIds, activeTabId);
 
   return viewsCacheRef;
 }

@@ -11,15 +11,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * خارج صفحة المحادثة (وهي الحالة الوحيدة التي تظهر فيها الشارة أصلاً).
  */
 vi.mock('../../../lib/themeStore', () => ({
-  useThemeStore: () => ({ theme: 'dark' as const, toggleTheme: vi.fn() }),
+  useThemeStore: (sel?: any) =>
+    typeof sel === 'function'
+      ? sel({ theme: 'dark' as const, toggleTheme: vi.fn() })
+      : { theme: 'dark' as const, toggleTheme: vi.fn() },
 }));
 
 vi.mock('../../../features/auth/store', () => ({
-  useAuthStore: () => ({ user: { id: 'user-1', company_id: 'comp-1', full_name: 'أحمد' } }),
+  useAuthStore: (sel?: any) =>
+    typeof sel === 'function'
+      ? sel({ user: { id: 'user-1', company_id: 'comp-1', full_name: 'أحمد' } })
+      : { user: { id: 'user-1', company_id: 'comp-1', full_name: 'أحمد' } },
 }));
 
 vi.mock('../../../lib/i18nStore', () => ({
-  useI18nStore: () => ({ lang: 'ar', dir: 'rtl', setLang: vi.fn() }),
+  useI18nStore: (sel?: any) =>
+    typeof sel === 'function'
+      ? sel({ lang: 'ar', dir: 'rtl', setLang: vi.fn() })
+      : { lang: 'ar', dir: 'rtl', setLang: vi.fn() },
 }));
 
 vi.mock('../../../lib/hooks/useTranslation', () => ({
@@ -27,8 +36,14 @@ vi.mock('../../../lib/hooks/useTranslation', () => ({
 }));
 
 vi.mock('../../../features/notifications/store', () => ({
-  useNotificationStore: () => ({ getCompanyUnreadCount: () => 0 }),
-  useSoundStore: () => ({ isSoundEnabled: true, toggleSound: vi.fn() }),
+  useNotificationStore: (sel?: any) =>
+    typeof sel === 'function'
+      ? sel({ getCompanyUnreadCount: () => 0, notifications: [] })
+      : { getCompanyUnreadCount: () => 0, notifications: [] },
+  useSoundStore: (sel?: any) =>
+    typeof sel === 'function'
+      ? sel({ isSoundEnabled: true, toggleSound: vi.fn() })
+      : { isSoundEnabled: true, toggleSound: vi.fn() },
 }));
 
 vi.mock('../../../lib/hooks/useNetworkStatus', () => ({

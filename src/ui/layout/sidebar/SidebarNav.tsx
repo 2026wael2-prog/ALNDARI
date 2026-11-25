@@ -51,6 +51,21 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const filteredItems = useVisibleMenuItems();
+  const prefetchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleItemHover = React.useCallback((path: string) => {
+    if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current);
+    prefetchTimerRef.current = setTimeout(() => {
+      prefetchRoute(path);
+    }, 80);
+  }, []);
+
+  const handleItemLeave = React.useCallback(() => {
+    if (prefetchTimerRef.current) {
+      clearTimeout(prefetchTimerRef.current);
+      prefetchTimerRef.current = null;
+    }
+  }, []);
 
   const groupedSections = useMemo(() => {
     const byId = new Map(filteredItems.map(item => [item.id, item]));
@@ -93,16 +108,11 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
         key={item.id}
         type="button"
         onClick={() => {
-          React.startTransition(() => {
-            navigate(item.path);
-          });
+          navigate(item.path);
         }}
-        onMouseEnter={() => {
-          prefetchRoute(item.path);
-        }}
-        onFocus={() => {
-          prefetchRoute(item.path);
-        }}
+        onMouseEnter={() => handleItemHover(item.path)}
+        onMouseLeave={handleItemLeave}
+        onFocus={() => prefetchRoute(item.path)}
         title={isCollapsed ? t(item.labelKey) : ''}
         aria-label={t(item.labelKey)}
         aria-current={isActive ? 'page' : undefined}

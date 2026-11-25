@@ -76,9 +76,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </button>
           <div
             onClick={() => {
-              React.startTransition(() => {
-                navigate('/');
-              });
+              navigate('/');
             }}
             className="shrink-0 cursor-pointer rounded-md bg-gradient-to-tr from-orange-600 to-amber-500 p-1 text-white shadow-xs shadow-orange-600/25 ring-1 ring-white/30 transition-all duration-300 active:scale-95 md:hidden"
             aria-label="الرئيسية"

@@ -115,9 +115,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ className }) => {
 
   const handleGo = (target: string, baseRoute: string) => {
     prefetchRoute(baseRoute);
-    React.startTransition(() => {
-      navigate(target);
-    });
+    navigate(target);
   };
 
   return (

@@ -1,21 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import {
-  X,
-  Send,
-  Trash2,
-  FileSpreadsheet,
-  FileText,
-  Calculator,
-  Loader2,
-  Plus,
-  Search,
-} from 'lucide-react';
-import { formatCurrency } from '../../../core/utils';
+import { X, FileSpreadsheet, FileText, Calculator } from 'lucide-react';
 import { formatLocalDate } from '../../../core/utils/dateUtils';
 import { calculateQuotationItem, calculateQuotationTotals } from '../services/quotationCalculator';
 import { exportQuotationToExcel } from '../services/excelEngine';
 import { generateQuotationPDF } from '../services/pdfEngine';
-import type { QuotationItemDraft, VendorProductItem, ItemAvailability } from '../types';
+import type { QuotationItemDraft, VendorProductItem } from '../types';
+import { QuotationBuilderMetadataBar } from './quotation-builder/QuotationBuilderMetadataBar';
+import { QuotationBuilderItemsTable } from './quotation-builder/QuotationBuilderItemsTable';
+import {
+  QuotationBuilderFooter,
+  QuotationBuilderTermsFields,
+} from './quotation-builder/QuotationBuilderFooter';
 
 interface Props {
   isOpen: boolean;
@@ -74,21 +69,12 @@ export const QuotationBuilderDrawer: React.FC<Props> = ({
   const [productSearch, setProductSearch] = useState('');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
 
-  // Synchronize initialItems when opened
   React.useEffect(() => {
-    if (initialItems.length > 0) {
-      setItems(initialItems.map(item => calculateQuotationItem(item)));
-    } else {
-      setItems([]);
-    }
+    setItems(initialItems.length > 0 ? initialItems.map(item => calculateQuotationItem(item)) : []);
   }, [initialItems]);
 
-  // Recalculate totals
-  const totals = useMemo(() => {
-    return calculateQuotationTotals(items);
-  }, [items]);
+  const totals = useMemo(() => calculateQuotationTotals(items), [items]);
 
-  // Handlers for modifying lines (Type-Safe)
   const handleUpdateItem = <K extends keyof QuotationItemDraft>(
     index: number,
     field: K,
@@ -98,8 +84,7 @@ export const QuotationBuilderDrawer: React.FC<Props> = ({
       const copy = [...prev];
       const current = copy[index];
       if (!current) return prev;
-      const updated: QuotationItemDraft = { ...current, [field]: value };
-      copy[index] = calculateQuotationItem(updated);
+      copy[index] = calculateQuotationItem({ ...current, [field]: value });
       return copy;
     });
   };
@@ -132,7 +117,6 @@ export const QuotationBuilderDrawer: React.FC<Props> = ({
     setIsAddingProduct(false);
   };
 
-  // Filtered available products to add
   const filteredAvailableProducts = useMemo(() => {
     if (!productSearch.trim()) return [];
     const lower = productSearch.toLowerCase();
@@ -225,7 +209,9 @@ export const QuotationBuilderDrawer: React.FC<Props> = ({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={handleExportExcel}
+              onClick={() => {
+                void handleExportExcel();
+              }}
               className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               title="تصدير Excel"
             >
@@ -233,7 +219,9 @@ export const QuotationBuilderDrawer: React.FC<Props> = ({
             </button>
             <button
               type="button"
-              onClick={handleExportPDF}
+              onClick={() => {
+                void handleExportPDF();
+              }}
               className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               title="تصدير PDF"
             >
@@ -251,347 +239,56 @@ export const QuotationBuilderDrawer: React.FC<Props> = ({
 
         {/* Form Body */}
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
-          {/* Metadata Controls */}
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200/80 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40 md:grid-cols-4">
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                العملة
-              </label>
-              <select
-                value={currency}
-                onChange={e => {
-                  setCurrency(e.target.value);
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-[var(--app-surface)] px-2.5 py-1.5 text-xs font-bold focus:ring-1 focus:ring-indigo-500 dark:border-slate-700"
-              >
-                <option value="SAR">ريال سعودي (SAR)</option>
-                <option value="YER">ريال يمني (YER)</option>
-                <option value="USD">دولار أمريكي (USD)</option>
-                <option value="OMR">ريال عماني (OMR)</option>
-              </select>
-            </div>
+          <QuotationBuilderMetadataBar
+            currency={currency}
+            onCurrencyChange={setCurrency}
+            leadTimeDays={leadTimeDays}
+            onLeadTimeDaysChange={setLeadTimeDays}
+            warrantyDays={warrantyDays}
+            onWarrantyDaysChange={setWarrantyDays}
+            validityDate={validityDate}
+            onValidityDateChange={setValidityDate}
+            productSearch={productSearch}
+            onProductSearchChange={value => {
+              setProductSearch(value);
+              setIsAddingProduct(true);
+            }}
+            isAddingProduct={isAddingProduct}
+            onFocusSearch={() => {
+              setIsAddingProduct(true);
+            }}
+            filteredAvailableProducts={filteredAvailableProducts}
+            onAddProduct={handleAddProductToDraft}
+          />
 
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                التوريد (أيام)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={leadTimeDays}
-                onChange={e => {
-                  setLeadTimeDays(Number(e.target.value) || 0);
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-[var(--app-surface)] px-2.5 py-1.5 text-xs font-bold focus:ring-1 focus:ring-indigo-500 dark:border-slate-700"
-              />
-            </div>
+          <QuotationBuilderItemsTable
+            items={items}
+            currency={currency}
+            onUpdateItem={handleUpdateItem}
+            onRemoveItem={handleRemoveItem}
+          />
 
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                الضمان (أيام)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={warrantyDays}
-                onChange={e => {
-                  setWarrantyDays(Number(e.target.value) || 0);
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-[var(--app-surface)] px-2.5 py-1.5 text-xs font-bold focus:ring-1 focus:ring-indigo-500 dark:border-slate-700"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                الصلاحية حتى
-              </label>
-              <input
-                type="date"
-                value={validityDate}
-                onChange={e => {
-                  setValidityDate(e.target.value);
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-[var(--app-surface)] px-2.5 py-1.5 text-xs font-bold focus:ring-1 focus:ring-indigo-500 dark:border-slate-700"
-              />
-            </div>
-          </div>
-
-          {/* Quick Product Add Bar */}
-          <div className="relative">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="ابحث لإضافة صنف جديد لعرض السعر بالاسم أو رقم OEM..."
-                  value={productSearch}
-                  onChange={e => {
-                    setProductSearch(e.target.value);
-                    setIsAddingProduct(true);
-                  }}
-                  onFocus={() => {
-                    setIsAddingProduct(true);
-                  }}
-                  className="w-full rounded-lg border border-slate-200 bg-[var(--app-surface)] py-1.5 pl-3 pr-8 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700"
-                />
-              </div>
-            </div>
-
-            {isAddingProduct && filteredAvailableProducts.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-48 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200 bg-[var(--app-surface)] shadow-lg dark:divide-slate-800 dark:border-slate-700">
-                {filteredAvailableProducts.map(p => (
-                  <button
-                    key={p.product_id}
-                    type="button"
-                    onClick={() => {
-                      handleAddProductToDraft(p);
-                    }}
-                    className="flex w-full items-center justify-between p-2.5 text-right text-xs transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    <div>
-                      <span className="block font-bold text-slate-900 dark:text-white">
-                        {p.product_name}
-                      </span>
-                      <span className="font-mono text-[10px] text-slate-400">
-                        OEM: {p.oem_number || p.sku}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400"
-                        dir="ltr"
-                      >
-                        {formatCurrency(p.cost_price, currency)}
-                      </span>
-                      <Plus className="h-3.5 w-3.5 text-slate-400" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Line Items Table */}
-          <div className="overflow-hidden rounded-xl border border-slate-200 shadow-xs dark:border-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800/60">
-              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                بنود عرض السعر ({items.length})
-              </h3>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead className="border-b border-slate-200 bg-slate-50/50 text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/30">
-                  <tr>
-                    <th className="w-8 p-2 text-center">#</th>
-                    <th className="min-w-[180px] p-2">الصنف / OEM</th>
-                    <th className="w-16 p-2 text-center">الكمية</th>
-                    <th className="w-24 p-2 text-center">سعر الوحدة</th>
-                    <th className="w-16 p-2 text-center">الخصم %</th>
-                    <th className="w-24 p-2 text-center">الإجمالي</th>
-                    <th className="w-24 p-2 text-center">التوفر</th>
-                    <th className="w-8 p-2"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {items.map((item, idx) => (
-                    <tr
-                      key={idx}
-                      className="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/30"
-                    >
-                      <td className="p-2 text-center font-mono text-[11px] text-slate-400">
-                        {idx + 1}
-                      </td>
-                      <td className="p-2">
-                        <div className="font-bold leading-tight text-slate-900 dark:text-white">
-                          {item.product_name}
-                        </div>
-                        {item.oem_number && (
-                          <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400">
-                            OEM: {item.oem_number}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          step="any"
-                          min="0.001"
-                          value={item.quantity}
-                          onChange={e => {
-                            handleUpdateItem(idx, 'quantity', Number(e.target.value) || 1);
-                          }}
-                          className="w-full rounded border border-slate-200 bg-[var(--app-surface)] py-1 text-center text-xs font-bold dark:border-slate-700"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          value={item.unit_price}
-                          onChange={e => {
-                            handleUpdateItem(idx, 'unit_price', Number(e.target.value) || 0);
-                          }}
-                          className="w-full rounded border border-slate-200 bg-[var(--app-surface)] py-1 text-center font-mono text-xs font-bold dark:border-slate-700"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="number"
-                          step="any"
-                          min="0"
-                          max="100"
-                          value={item.discount_percentage}
-                          onChange={e => {
-                            handleUpdateItem(
-                              idx,
-                              'discount_percentage',
-                              Number(e.target.value) || 0
-                            );
-                          }}
-                          className="w-full rounded border border-slate-200 bg-[var(--app-surface)] py-1 text-center text-xs font-bold text-rose-500 dark:border-slate-700"
-                        />
-                      </td>
-                      <td
-                        className="p-2 text-center font-mono text-xs font-bold text-slate-900 dark:text-white"
-                        dir="ltr"
-                      >
-                        {formatCurrency(item.total_price, currency)}
-                      </td>
-                      <td className="p-2">
-                        <select
-                          value={item.availability}
-                          onChange={e => {
-                            handleUpdateItem(
-                              idx,
-                              'availability',
-                              e.target.value as ItemAvailability
-                            );
-                          }}
-                          className="w-full rounded border border-slate-200 bg-[var(--app-surface)] px-1 py-1 text-[11px] dark:border-slate-700"
-                        >
-                          <option value="in_stock">متوفر</option>
-                          <option value="on_order">تحت الطلب</option>
-                          <option value="unavailable">غير متوفر</option>
-                        </select>
-                      </td>
-                      <td className="p-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleRemoveItem(idx);
-                          }}
-                          className="p-1 text-slate-400 transition-colors hover:text-rose-500"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {items.length === 0 && (
-                <div className="py-8 text-center text-slate-400">
-                  <p className="text-xs">
-                    لا توجد بنود مضافة لعرض السعر. استخدم شريط البحث أعلاه لإضافة أصناف.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Terms & Notes */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                الشروط والأحكام
-              </label>
-              <textarea
-                rows={2}
-                value={terms}
-                onChange={e => {
-                  setTerms(e.target.value);
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-[var(--app-surface)] p-2 text-xs focus:ring-1 focus:ring-indigo-500 dark:border-slate-700"
-                placeholder="شروط التسليم والدفع..."
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                ملاحظات إضافية
-              </label>
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={e => {
-                  setNotes(e.target.value);
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-[var(--app-surface)] p-2 text-xs focus:ring-1 focus:ring-indigo-500 dark:border-slate-700"
-                placeholder="أي توضيحات للمشتري..."
-              />
-            </div>
-          </div>
+          <QuotationBuilderTermsFields
+            terms={terms}
+            onTermsChange={setTerms}
+            notes={notes}
+            onNotesChange={setNotes}
+          />
         </div>
 
-        {/* Compact Drawer Footer Summary & Submit */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center gap-4">
-            <div>
-              <span className="block text-[10px] text-slate-400">المجموع الفرعي</span>
-              <span
-                className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200"
-                dir="ltr"
-              >
-                {formatCurrency(totals.subtotal, currency)}
-              </span>
-            </div>
-            {totals.discountAmount > 0 && (
-              <div>
-                <span className="block text-[10px] text-rose-500">الخصم</span>
-                <span className="font-mono text-xs font-bold text-rose-500" dir="ltr">
-                  -{formatCurrency(totals.discountAmount, currency)}
-                </span>
-              </div>
-            )}
-            <div className="border-l border-slate-200 pl-3 dark:border-slate-700">
-              <span className="block text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
-                الإجمالي الصافي
-              </span>
-              <span
-                className="font-mono text-base font-bold text-indigo-600 dark:text-indigo-400"
-                dir="ltr"
-              >
-                {formatCurrency(totals.grandTotal, currency)}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-            >
-              إلغاء
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={items.length === 0 || isSubmitting}
-              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
-              <span>إرسال واعتماد المراجعة (#{revisionNumber})</span>
-            </button>
-          </div>
-        </div>
+        <QuotationBuilderFooter
+          currency={currency}
+          subtotal={totals.subtotal}
+          discountAmount={totals.discountAmount}
+          grandTotal={totals.grandTotal}
+          revisionNumber={revisionNumber}
+          itemsCount={items.length}
+          isSubmitting={isSubmitting}
+          onClose={onClose}
+          onSubmit={() => {
+            void handleSubmit();
+          }}
+        />
       </div>
     </div>
   );

@@ -4,30 +4,24 @@ import { cn } from '../../core/utils';
 import { useTableKeyboardNavigation } from './useTableKeyboardNavigation';
 import { useTableDragDrop } from './hooks/useTableDragDrop';
 import { useTableSelection } from './hooks/useTableSelection';
-import { useColumnResize } from './hooks/useColumnResize';
 import { useExcelTableData, type TableSortConfig } from './hooks/useExcelTableData';
 import { useTableDrag } from './hooks/useTableDrag';
 import { useTableWrapperResize } from './hooks/useTableWrapperResize';
-import {
-  buildDefaultColumnWidths,
-  getColumnIds,
-  migrateLegacyIndexWidths,
-  toIndexedWidths,
-  type ColumnWidths,
-} from './excelTableColumnWidths';
+import { useExcelTableColumns } from './hooks/useExcelTableColumns';
+import { useExcelTablePanZoom } from './hooks/useExcelTablePanZoom';
 import { ExcelTableHeader } from './ExcelTableHeader';
 import { ExcelTableBody } from './ExcelTableBody';
+import { ExcelTableFooter } from './ExcelTableFooter';
 import { ExcelTablePagination } from './ExcelTablePagination';
 import { ExcelTableResizeHandles } from './ExcelTableResizeHandles';
+import { exportExcelTableData } from './excelTableExport';
 import FullscreenContainer from '../base/FullscreenContainer';
 import ExcelTableToolbar from './ExcelTableToolbar';
 import { EXCEL_TABLE_THEMES, type ExcelTableColorTheme } from './excelTableThemes';
-import { exportGenericTableToExcel } from '../../core/utils/genericExcelExporter';
 import {
   TableSettingsButton,
   useTableCustomization,
 } from '../table-settings/TableSettingsButton';
-import type { TableColumnDescriptor } from '../table-settings/TableSettingsDrawer';
 
 export interface Column<T> {
   header: string;
@@ -50,9 +44,7 @@ interface ExcelTableProps<T> {
   colorTheme?: ExcelTableColorTheme;
   onExport?: (() => void) | undefined;
   showSearch?: boolean;
-  /** External search value for a "main" search box (bypasses internal client-side filtering). */
   searchValue?: string;
-  /** Callback when the toolbar search input changes. If provided, internal search is disabled. */
   onSearchChange?: ((value: string) => void) | undefined;
   onRowClick?: ((row: T) => void) | undefined;
   onRowDoubleClick?: ((row: T) => void) | undefined;
@@ -69,7 +61,6 @@ interface ExcelTableProps<T> {
   isRTL?: boolean;
   enableResize?: boolean;
   enableDrag?: boolean;
-  /** مفتاح تخصيص حفظ عروض الأعمدة في localStorage (افتراضياً يُشتق من title) */
   resizeStorageKey?: string;
   isLoading?: boolean;
 }
@@ -102,27 +93,15 @@ function ExcelTable<T>({
   isLoading = false,
 }: ExcelTableProps<T>) {
   const [sortConfig, setSortConfig] = useState<TableSortConfig | null>(null);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [isPanMode, setIsPanMode] = useState(false);
-  const [isPanning, setIsPanning] = useState(false);
-  const panStateRef = useRef<{
-    startX: number;
-    startY: number;
-    scrollLeft: number;
-    scrollTop: number;
-  } | null>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
-  const tableWrapperRef = useRef<HTMLDivElement>(null);
-
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(pageSize);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setItemsPerPage(pageSize);
   }, [pageSize]);
 
-  // ── الفلترة + الفرز (معزولة في هوك مع اختبارات مستقلة) ────────────
   const { effectiveSearch, handleSearchInput, searchTerm, processedData } = useExcelTableData({
     data,
     columns,
@@ -130,17 +109,6 @@ function ExcelTable<T>({
     onSearchChange,
     sortConfig,
   });
-
-  // ── سحب الجدول وتغيير حجمه (مستمعات `document` منظَّفة دائماً) ────
-  const { isDragging, position, handleTableDragStart, resetPosition } = useTableDrag({
-    enableDrag,
-    isZoomed,
-  });
-  const {
-    customSize,
-    handleWrapperResizeStart,
-    resetSize: resetWrapperSize,
-  } = useTableWrapperResize({ tableWrapperRef });
 
   const currentTheme = EXCEL_TABLE_THEMES[colorTheme];
   const tableSettingsId = useMemo(
@@ -154,110 +122,31 @@ function ExcelTable<T>({
             .join('|')}`),
     [resizeStorageKey, title, columns]
   );
-  const { settings: tableSettings, customized: isTableCustomized, containerProps: tableCustomProps } =
-    useTableCustomization(tableSettingsId);
-  const [zoomLevel, setZoomLevel] = useState(tableSettings.zoom || 1);
 
-  useEffect(() => {
-    if (tableSettings.zoom && tableSettings.zoom !== zoomLevel) {
-      setZoomLevel(tableSettings.zoom);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableSettings.zoom]);
-
-  // دمج الأعمدة الأصلية + الأعمدة المضافة + الترتيب + الإخفاء
-  const baseColumnDescriptors = useMemo<TableColumnDescriptor[]>(() => {
-    const ids = getColumnIds(columns);
-    return columns.map((col, idx) => ({
-      id: ids[idx] ?? String(idx),
-      header: col.header,
-    }));
-  }, [columns]);
-
-  const availableFields = useMemo<string[]>(() => {
-    const sample = data[0];
-    if (!sample || typeof sample !== 'object') return [];
-    return Object.keys(sample as Record<string, unknown>).filter(
-      k => !k.startsWith('_') && k !== 'id' && k !== 'company_id'
-    );
-  }, [data]);
-
-  const effectiveColumns = useMemo<Array<Column<T>>>(() => {
-    const baseIds = getColumnIds(columns);
-    const tagged: Array<{ id: string; col: Column<T> }> = columns.map((col, idx) => ({
-      id: baseIds[idx] ?? String(idx),
-      col,
-    }));
-
-    // إضافة الأعمدة المخصّصة التي أضافها المستخدم
-    for (const custom of tableSettings.customColumns) {
-      if (!tagged.some(t => t.id === custom.id)) {
-        tagged.push({
-          id: custom.id,
-          col: {
-            header: custom.header,
-            accessorKey: custom.fieldKey,
-            accessor: row => {
-              const raw = (row as Record<string, unknown>)[custom.fieldKey];
-              if (raw === null || raw === undefined || raw === '') return '—';
-              if (typeof raw === 'object') return JSON.stringify(raw);
-              return String(raw);
-            },
-            align: 'center',
-          },
-        });
-      }
-    }
-
-    // تطبيق ترتيب الأعمدة
-    const ordered =
-      tableSettings.columnOrder.length > 0
-        ? [...tagged].sort((a, b) => {
-            const ia = tableSettings.columnOrder.indexOf(a.id);
-            const ib = tableSettings.columnOrder.indexOf(b.id);
-            return (ia === -1 ? 9999 : ia) - (ib === -1 ? 9999 : ib);
-          })
-        : tagged;
-
-    // تطبيق الإخفاء (مع الإبقاء على عمود واحد ظاهر على الأقل)
-    const visible = ordered.filter(item => !tableSettings.hiddenColumns.includes(item.id));
-    return (visible.length > 0 ? visible : ordered).map(item => item.col);
-  }, [columns, tableSettings.customColumns, tableSettings.columnOrder, tableSettings.hiddenColumns]);
-
-  // ── Column Resize (موحّدة + محفوظة + ناعمة) ──────────────────────
-  const tableResizeStorageKey =
-    resizeStorageKey ?? (title ? `excel-table-cols:${title.trim()}` : undefined);
-  // هوية كل عمود (لا ترتيبه) — فيبقى عرض المستخدم على العمود نفسه عند إخفاء/إظهار أعمدة
-  const columnIds = useMemo(() => getColumnIds(effectiveColumns), [effectiveColumns]);
-  const defaultColWidths = useMemo(
-    () => buildDefaultColumnWidths(effectiveColumns),
-    [effectiveColumns]
-  );
-  // ترحيل العروض المحفوظة قديماً بترتيب الأعمدة إلى هوية العمود
-  const migrateLegacyWidths = useCallback(
-    (raw: ColumnWidths) => migrateLegacyIndexWidths(raw, columnIds, defaultColWidths),
-    [columnIds, defaultColWidths]
-  );
   const {
-    colWidths,
-    isResizing: isColumnResizing,
+    settings: tableSettings,
+    customized: isTableCustomized,
+    containerProps: tableCustomProps,
+  } = useTableCustomization(tableSettingsId);
+
+  const {
+    baseColumnDescriptors,
+    availableFields,
+    effectiveColumns,
+    columnIds,
+    indexedColWidths,
+    isColumnResizing,
     onResizeMouseDown,
     resetWidths,
-  } = useColumnResize({
-    ...(tableResizeStorageKey ? { storageKey: tableResizeStorageKey } : {}),
-    defaultWidths: defaultColWidths,
-    minWidth: 40,
+  } = useExcelTableColumns({
+    columns,
+    data,
+    tableSettings,
+    resizeStorageKey,
+    title,
     isRTL,
-    migrateRaw: migrateLegacyWidths,
   });
-  // العروض بصيغة الترتيب التي تستهلكها الترويسة و colgroup
-  const indexedColWidths = useMemo(
-    () => toIndexedWidths(colWidths, columnIds),
-    [colWidths, columnIds]
-  );
 
-
-  // Reset page when search/data changes or when currentPage exceeds totalPages
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, data]);
@@ -276,11 +165,11 @@ function ExcelTable<T>({
     }
   }, [currentPage, totalPages]);
 
-  // Custom Hooks
   const {
     orderedData,
     handlers: { handleDragStart, handleDragEnter, handleDragOver, handleDragEnd, handleDrop },
   } = useTableDragDrop(paginatedData, onOrderChange, tableRef);
+
   const { toggleAllSelection, toggleRowSelection, isAllVisibleSelected, hasSomeVisibleSelected } =
     useTableSelection(orderedData, selectedRowIds, onSelectionChange, getRowId);
 
@@ -294,15 +183,10 @@ function ExcelTable<T>({
     startEditing,
     saveEdit,
     selection,
-    copyCells: _copyCells,
-    copySelection: _copySelection,
-    pasteCells: _pasteCells,
     handleCellClick,
     startSelection,
-    updateSelection: _updateSelection,
     endSelection,
     pageSizeRef,
-    moveFocus: _moveFocus,
   } = useTableKeyboardNavigation({
     tableRef: tableRef as React.RefObject<HTMLDivElement>,
     orderedData,
@@ -312,14 +196,41 @@ function ExcelTable<T>({
     onCellUpdate,
   });
 
-  // Update page size ref
   useEffect(() => {
     pageSizeRef.current = itemsPerPage;
   }, [itemsPerPage, pageSizeRef]);
 
+  const {
+    isZoomed,
+    setIsZoomed,
+    zoomLevel,
+    setZoomLevel,
+    isPanMode,
+    setIsPanMode,
+    isPanning,
+    handleWheel,
+    handleContainerMouseDown,
+    handleContainerMouseMove,
+    stopPanAndSelection,
+  } = useExcelTablePanZoom({
+    initialZoom: tableSettings.zoom || 1,
+    tableRef,
+    endSelection,
+  });
+
+  const { isDragging, position, handleTableDragStart, resetPosition } = useTableDrag({
+    enableDrag,
+    isZoomed,
+  });
+  const {
+    customSize,
+    handleWrapperResizeStart,
+    resetSize: resetWrapperSize,
+  } = useTableWrapperResize({ tableWrapperRef });
+
   const handleSort = (key: string) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig?.key === key && sortConfig?.direction === 'asc') direction = 'desc';
+    const direction: 'asc' | 'desc' =
+      sortConfig?.key === key && sortConfig?.direction === 'asc' ? 'desc' : 'asc';
     setSortConfig({ key, direction });
   };
 
@@ -328,15 +239,14 @@ function ExcelTable<T>({
     resetPosition();
     setIsZoomed(false);
     resetWidths();
-  }, [resetWrapperSize, resetPosition, resetWidths]);
+  }, [resetWrapperSize, resetPosition, setIsZoomed, resetWidths]);
 
   const handleEditInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       await saveEdit();
       if (editingCell) {
-        const nextRow = Math.min(orderedData.length - 1, editingCell.row + 1);
-        setFocusedCell({ row: nextRow, col: editingCell.col });
+        setFocusedCell({ row: Math.min(orderedData.length - 1, editingCell.row + 1), col: editingCell.col });
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -359,66 +269,17 @@ function ExcelTable<T>({
     }
   };
 
-  // Handle mouse selection
   const handleMouseDownCell = (e: React.MouseEvent, rowIdx: number, colIdx: number) => {
-    if (e.shiftKey) {
-      handleCellClick(rowIdx, colIdx, true);
-    } else {
-      startSelection(rowIdx, colIdx);
-    }
+    if (e.shiftKey) handleCellClick(rowIdx, colIdx, true);
+    else startSelection(rowIdx, colIdx);
   };
-
-const extractTextFromReactNode = (node: React.ReactNode): string => {
-  if (node === null || node === undefined || typeof node === 'boolean') return '';
-  if (typeof node === 'string' || typeof node === 'number') return String(node);
-  if (Array.isArray(node)) {
-    return node.map(extractTextFromReactNode).filter(Boolean).join(' ').trim();
-  }
-  if (React.isValidElement(node)) {
-    const props = node.props as { children?: React.ReactNode } | null;
-    return extractTextFromReactNode(props?.children);
-  }
-  return '';
-};
 
   const handleExport = useCallback(() => {
     if (onExport) {
       onExport();
       return;
     }
-    if (processedData.length === 0) return;
-    const exportHeaders = effectiveColumns
-      .map(c => c.header)
-      .filter(h => typeof h === 'string' && h.trim() !== '');
-
-    const exportRows = processedData.map(row => {
-      return effectiveColumns
-        .filter(c => typeof c.header === 'string' && c.header.trim() !== '')
-        .map(col => {
-          if (col.accessorKey) {
-            const raw = (row as Record<string, unknown>)[String(col.accessorKey)];
-            if (raw === null || raw === undefined) return '';
-            if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
-              return raw;
-            }
-            return String(raw);
-          }
-          const val = col.accessor(row);
-          if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
-            return val;
-          }
-          return extractTextFromReactNode(val);
-        });
-    });
-
-    const safeTitle = title?.trim() ? title : 'بيانات_الجدول';
-    void exportGenericTableToExcel({
-      title: safeTitle,
-      subtitle: subtitle?.trim() ? subtitle : undefined,
-      headers: exportHeaders,
-      rows: exportRows,
-      colorTheme,
-    });
+    exportExcelTableData({ processedData, effectiveColumns, title, subtitle, colorTheme });
   }, [onExport, processedData, effectiveColumns, title, subtitle, colorTheme]);
 
   return (
@@ -462,19 +323,14 @@ const extractTextFromReactNode = (node: React.ReactNode): string => {
           }
         />
 
-        {/* Table Wrapper with Resize Handles */}
         <div
           ref={tableWrapperRef}
           data-table-customized={isTableCustomized ? 'true' : undefined}
           className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-sm"
           style={{
             ...(tableCustomProps.style ?? {}),
-            ...(customSize.width !== undefined && customSize.width !== ''
-              ? { width: customSize.width }
-              : {}),
-            ...(customSize.height !== undefined && customSize.height !== ''
-              ? { maxHeight: customSize.height }
-              : {}),
+            ...(customSize.width !== undefined && customSize.width !== '' ? { width: customSize.width } : {}),
+            ...(customSize.height !== undefined && customSize.height !== '' ? { maxHeight: customSize.height } : {}),
             ...(position.x !== 0 || position.y !== 0
               ? { transform: `translate(${String(position.x)}px, ${String(position.y)}px)` }
               : {}),
@@ -485,12 +341,12 @@ const extractTextFromReactNode = (node: React.ReactNode): string => {
           {enableResize && !isZoomed && (
             <ExcelTableResizeHandles onResizeStart={handleWrapperResizeStart} />
           )}
-          {/* Drag Handle in Title */}
           {enableDrag && !isZoomed && (
             <div className="absolute left-2 top-2 z-20 cursor-grab text-[var(--app-text-secondary)] hover:text-blue-500 active:cursor-grabbing">
               <GripVertical size={14} />
             </div>
           )}
+
           <div
             ref={tableRef}
             tabIndex={0}
@@ -498,54 +354,11 @@ const extractTextFromReactNode = (node: React.ReactNode): string => {
               'custom-scrollbar scroll-x-hint-surface min-h-0 flex-1 overflow-auto overscroll-contain outline-none',
               isPanMode && (isPanning ? 'cursor-grabbing select-none' : 'cursor-grab select-none')
             )}
-            onWheel={e => {
-              if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                const delta = e.deltaY < 0 ? 0.1 : -0.1;
-                setZoomLevel(z =>
-                  Math.min(2.0, Math.max(0.6, Math.round((z + delta) * 10) / 10))
-                );
-              }
-            }}
-            onMouseDown={e => {
-              const container = tableRef.current;
-              if (!container) return;
-              const shouldPan = isPanMode || e.button === 1 || (e.altKey && e.button === 0);
-              if (!shouldPan) return;
-              const tag = (e.target as HTMLElement)?.tagName;
-              if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') {
-                return;
-              }
-              e.preventDefault();
-              setIsPanning(true);
-              panStateRef.current = {
-                startX: e.clientX,
-                startY: e.clientY,
-                scrollLeft: container.scrollLeft,
-                scrollTop: container.scrollTop,
-              };
-            }}
-            onMouseMove={e => {
-              if (!panStateRef.current || !tableRef.current) return;
-              const dx = e.clientX - panStateRef.current.startX;
-              const dy = e.clientY - panStateRef.current.startY;
-              tableRef.current.scrollLeft = panStateRef.current.scrollLeft - dx;
-              tableRef.current.scrollTop = panStateRef.current.scrollTop - dy;
-            }}
-            onMouseUp={() => {
-              if (panStateRef.current) {
-                panStateRef.current = null;
-                setIsPanning(false);
-              }
-              endSelection();
-            }}
-            onMouseLeave={() => {
-              if (panStateRef.current) {
-                panStateRef.current = null;
-                setIsPanning(false);
-              }
-              endSelection();
-            }}
+            onWheel={handleWheel}
+            onMouseDown={handleContainerMouseDown}
+            onMouseMove={handleContainerMouseMove}
+            onMouseUp={stopPanAndSelection}
+            onMouseLeave={stopPanAndSelection}
           >
             <table
               role="table"
@@ -627,41 +440,15 @@ const extractTextFromReactNode = (node: React.ReactNode): string => {
                 isRTL={isRTL}
                 scrollRef={tableRef as React.RefObject<HTMLDivElement>}
               />
-              {effectiveColumns.some(c => c.footer) && (
-                <tfoot className="border-t-2 border-[var(--app-border)] bg-[var(--app-bg)]">
-                  <tr>
-                    {enableSelection && (
-                      <td className="border-r border-[var(--app-border)] p-2"></td>
-                    )}
-                    <td className="border-r border-[var(--app-border)] p-2 text-center text-[10px] font-bold text-[var(--app-text-secondary)]">
-                      الإجمالي
-                    </td>
-                    {effectiveColumns.map((col, idx) => (
-                      <td
-                        key={idx}
-                        className={cn(
-                          'border-r border-[var(--app-border)] p-2 text-[11px] font-bold',
-                          col.align === 'center' && 'text-center',
-                          col.align === 'left' && 'text-left',
-                          col.align === 'right' && 'text-right',
-                          col.className
-                        )}
-                      >
-                        {col.footer
-                          ? (col.footer as (pageData: T[], fullData: T[]) => React.ReactNode)(
-                              orderedData,
-                              processedData
-                            )
-                          : ''}
-                      </td>
-                    ))}
-                  </tr>
-                </tfoot>
-              )}
+              <ExcelTableFooter
+                columns={effectiveColumns}
+                enableSelection={enableSelection}
+                orderedData={orderedData}
+                processedData={processedData}
+              />
             </table>
           </div>
 
-          {/* Pagination Footer */}
           <ExcelTablePagination
             enablePagination={enablePagination}
             totalPages={totalPages}

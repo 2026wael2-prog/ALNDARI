@@ -211,6 +211,20 @@ export function useEditInvoiceForm(params: {
       setCurrencyCode('YER');
       setExchangeRateDisplay(rate);
     }
+
+    // مزامنة حساب الصندوق/الخزينة تلقائياً مع العملة الجديدة لمنع خطأ تعارض عملة الصندوق
+    const accountsList = (paymentAccounts || []) as Array<{
+      id: string;
+      currency_code?: string | null;
+    }>;
+    const currentBox = accountsList.find(a => a.id === paymentAccountId);
+    const currentBoxCurr = String(currentBox?.currency_code || 'SAR').toUpperCase();
+    if (!currentBox || currentBoxCurr !== nextCurrency) {
+      const matchingBox = accountsList.find(
+        a => String(a.currency_code || 'SAR').toUpperCase() === nextCurrency
+      );
+      setPaymentAccountId(matchingBox?.id || '');
+    }
   };
 
   const handleQuantityChange = (index: number, newQty: number) => {
@@ -247,6 +261,10 @@ export function useEditInvoiceForm(params: {
     if (existingIndex >= 0) {
       handleQuantityChange(existingIndex, items[existingIndex].quantity + 1);
     } else {
+      const baseSalePrice = Number(product.sale_price || 0);
+      const effectiveRate = exchangeRateDisplay > 1 ? exchangeRateDisplay : defaultYerRate;
+      const convertedPrice =
+        currencyCode === 'YER' ? Math.round(baseSalePrice * effectiveRate) : baseSalePrice;
       setItems(prev => [
         ...prev,
         {
@@ -254,7 +272,7 @@ export function useEditInvoiceForm(params: {
           name: product.name_ar,
           sku: product.sku || '',
           quantity: 1,
-          unitPrice: Number(product.sale_price || 0),
+          unitPrice: convertedPrice,
           discount: 0,
           taxRate: 0,
         },

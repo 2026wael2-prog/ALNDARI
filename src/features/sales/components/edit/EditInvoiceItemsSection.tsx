@@ -75,47 +75,89 @@ export const EditInvoiceItemsSection: React.FC<EditInvoiceItemsSectionProps> = (
         </div>
 
         {isProductSearchOpen && productSearchTerm.trim().length >= 2 && (
-          <div className="absolute right-0 top-full z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-2xl">
+          <div className="absolute right-0 top-full z-50 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-slate-300 bg-[var(--app-surface)] shadow-2xl dark:border-slate-700">
             {searchResults.length === 0 ? (
               <div className="p-4 text-center text-xs text-[var(--app-text-secondary)]">
                 لم يتم العثور على أصناف مطابقة.
               </div>
             ) : (
-              <div className="space-y-1">
-                {searchResults.map(prod => (
-                  <div
-                    key={prod.id}
-                    onClick={() => handleSelectProduct(prod)}
-                    className="flex cursor-pointer items-center justify-between rounded-lg p-2.5 transition-colors hover:bg-[var(--app-surface-hover)]"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--app-text)]">
-                        <EntityInfoDot
-                          type="product"
-                          id={prod.id}
-                          label={prod.name_ar}
-                          size="sm"
-                        />
-                        <span className="truncate">{prod.name_ar}</span>
-                      </div>
-                      <div className="font-mono text-[10px] text-[var(--app-text-secondary)]">
-                        SKU: {prod.sku || '—'} | المتوفر: {prod.quantity ?? 0}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400"
+              <table className="w-full border-collapse text-right text-xs">
+                <thead className="sticky top-0 z-10 border-b border-slate-300 bg-slate-100 text-[11px] font-black uppercase text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  <tr>
+                    <th className="w-8 border-l border-slate-300 px-2 py-2 text-center dark:border-slate-700">#</th>
+                    <th className="border-l border-slate-300 px-3 py-2 text-start font-black dark:border-slate-700">
+                      اسم المنتج
+                    </th>
+                    <th className="w-32 border-l border-slate-300 px-2.5 py-2 text-center font-black dark:border-slate-700">
+                      رقم المنتج
+                    </th>
+                    <th className="w-28 border-l border-slate-300 px-2.5 py-2 text-center font-black dark:border-slate-700">
+                      الشركة الصانعة
+                    </th>
+                    <th className="w-24 border-l border-slate-300 px-2.5 py-2 text-center font-black dark:border-slate-700">
+                      السعر
+                    </th>
+                    <th className="w-20 border-l border-slate-300 px-2 py-2 text-center font-black dark:border-slate-700">
+                      المخزون
+                    </th>
+                    <th className="w-16 px-2 py-2 text-center font-black">إضافة</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-[var(--app-surface)] dark:divide-slate-800">
+                  {searchResults.map((prod, idx) => (
+                    <tr
+                      key={prod.id}
+                      onClick={() => handleSelectProduct(prod)}
+                      className="group cursor-pointer transition-colors hover:bg-amber-50/70 dark:hover:bg-amber-950/20"
+                    >
+                      <td className="border-l border-slate-200 px-2 py-2 text-center font-mono text-[11px] font-bold text-slate-400 dark:border-slate-800">
+                        {idx + 1}
+                      </td>
+                      <td className="border-l border-slate-200 px-3 py-2 dark:border-slate-800">
+                        <div className="flex items-center gap-1.5 font-bold text-[var(--app-text)]">
+                          <EntityInfoDot
+                            type="product"
+                            id={prod.id}
+                            label={prod.name_ar}
+                            size="sm"
+                          />
+                          <span className="truncate">{prod.name_ar}</span>
+                        </div>
+                      </td>
+                      <td
+                        className="border-l border-slate-200 px-2.5 py-2 text-center font-mono text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-300"
+                        dir="ltr"
+                      >
+                        {prod.part_number || prod.sku || '—'}
+                      </td>
+                      <td className="border-l border-slate-200 px-2.5 py-2 text-center font-bold text-slate-600 dark:border-slate-800 dark:text-slate-400">
+                        {prod.brand || '—'}
+                      </td>
+                      <td
+                        className="border-l border-slate-200 px-2.5 py-2 text-center font-mono text-xs font-black text-emerald-600 dark:border-slate-800 dark:text-emerald-400"
                         dir="ltr"
                       >
                         {formatCurrency(prod.sale_price, currencyCode)}
-                      </span>
-                      <span className="rounded bg-blue-600/15 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300">
-                        + إضافة
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </td>
+                      <td className="border-l border-slate-200 px-2 py-2 text-center font-mono text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                        {prod.quantity ?? 0}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleSelectProduct(prod);
+                          }}
+                          className="rounded bg-blue-600/15 px-2 py-0.5 text-[10px] font-bold text-blue-700 transition-colors hover:bg-blue-600 hover:text-white dark:bg-blue-500/20 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white"
+                        >
+                          + إضافة
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}

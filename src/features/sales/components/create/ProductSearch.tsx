@@ -91,42 +91,91 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ onSelectProduct }) => {
 
       {/* Results Dropdown */}
       {searchTerm.trim().length >= 2 && (
-        <div className="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+        <div className="absolute z-50 mt-2 max-h-80 w-full overflow-auto rounded-xl border border-slate-300 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-850">
           {isLoading ? (
-            <div className="p-4 text-center text-gray-500">جاري البحث...</div>
+            <div className="p-4 text-center text-xs text-gray-500">جاري البحث...</div>
           ) : !hasResults ? (
-            <div className="p-4 text-center text-gray-500">لا توجد نتائج</div>
+            <div className="p-4 text-center text-xs text-gray-500">لا توجد نتائج مطابقة</div>
           ) : (
-            <ul>
-              {products.map((product: ProductSearchResult) => (
-                <li
-                  key={product.id}
-                  onClick={() => {
-                    handleSelect(product);
-                  }}
-                  className="cursor-pointer border-b border-gray-100 p-3 last:border-0 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-700"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+            <table className="w-full border-collapse text-right text-xs">
+              <thead className="sticky top-0 z-10 border-b border-slate-300 bg-slate-100 text-[11px] font-black uppercase text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                <tr>
+                  <th className="w-8 border-l border-slate-300 px-2 py-2 text-center dark:border-slate-700">#</th>
+                  <th className="border-l border-slate-300 px-3 py-2 text-start font-black dark:border-slate-700">
+                    اسم المنتج
+                  </th>
+                  <th className="w-32 border-l border-slate-300 px-2.5 py-2 text-center font-black dark:border-slate-700">
+                    رقم المنتج
+                  </th>
+                  <th className="w-28 border-l border-slate-300 px-2.5 py-2 text-center font-black dark:border-slate-700">
+                    الشركة الصانعة
+                  </th>
+                  <th className="w-24 border-l border-slate-300 px-2.5 py-2 text-center font-black dark:border-slate-700">
+                    السعر
+                  </th>
+                  <th className="w-20 border-l border-slate-300 px-2 py-2 text-center font-black dark:border-slate-700">
+                    المخزون
+                  </th>
+                  <th className="w-16 px-2 py-2 text-center font-black">إضافة</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                {products.map((product: ProductSearchResult, idx: number) => (
+                  <tr
+                    key={product.id}
+                    onClick={() => {
+                      handleSelect(product);
+                    }}
+                    className="group cursor-pointer transition-colors hover:bg-amber-50/70 dark:hover:bg-amber-950/20"
+                  >
+                    <td className="border-l border-slate-200 px-2 py-2 text-center font-mono text-[11px] font-bold text-slate-400 dark:border-slate-800">
+                      {idx + 1}
+                    </td>
+                    <td className="border-l border-slate-200 px-3 py-2 dark:border-slate-800">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
                         <EntityInfoDot type="product" id={product.id} label={product.name_ar} size="xs" />
-                        <span>{product.name_ar}</span>
+                        <span className="truncate">{product.name_ar}</span>
                         {searchTerm && product.alternative_numbers?.includes(searchTerm) && (
-                          <span className="rounded-md bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700">
+                          <span className="rounded-md bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                             بديل
                           </span>
                         )}
-                      </p>
-                      <p className="text-sm text-gray-500">{product.sku}</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-blue-600">{product.sale_price}</p>
-                      <p className="text-xs text-gray-500">المخزون: {product.quantity}</p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                      </div>
+                    </td>
+                    <td
+                      className="border-l border-slate-200 px-2.5 py-2 text-center font-mono text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-300"
+                      dir="ltr"
+                    >
+                      {product.part_number || product.sku || '—'}
+                    </td>
+                    <td className="border-l border-slate-200 px-2.5 py-2 text-center font-bold text-slate-600 dark:border-slate-800 dark:text-slate-400">
+                      {product.brand || '—'}
+                    </td>
+                    <td
+                      className="border-l border-slate-200 px-2.5 py-2 text-center font-mono text-xs font-black text-emerald-600 dark:border-slate-800 dark:text-emerald-400"
+                      dir="ltr"
+                    >
+                      {product.sale_price}
+                    </td>
+                    <td className="border-l border-slate-200 px-2 py-2 text-center font-mono text-xs font-bold text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                      {product.quantity ?? 0}
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleSelect(product);
+                        }}
+                        className="rounded bg-blue-600/15 px-2 py-0.5 text-[10px] font-bold text-blue-700 transition-colors hover:bg-blue-600 hover:text-white dark:bg-blue-500/20 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white"
+                      >
+                        + إضافة
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
 
           {/* [FIX #6] رابط فتح مستكشف الأصناف المتقدم */}

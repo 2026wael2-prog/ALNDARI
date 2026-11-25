@@ -4245,42 +4245,50 @@ html.dark[data-preset='espresso-cream-blue'] aside nav button:not([aria-current=
   color: #d7ecfb !important;
 }
 
+html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']) {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
 html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover {
-  background-color: rgba(125, 211, 252, 0.2) !important;
-  border-color: rgba(154, 203, 235, 0.55) !important;
-  transform: translateX(-4px) scale(1.02) !important;
-  box-shadow: 0 6px 14px -4px rgba(15, 10, 6, 0.45) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  transform: translateX(-4px) scale(1.01) !important;
+  box-shadow: 0 4px 12px -3px rgba(10, 6, 3, 0.45) !important;
 }
 
 html[dir='ltr'][data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover {
-  transform: translateX(4px) scale(1.02) !important;
+  transform: translateX(4px) scale(1.01) !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside nav button:not([aria-current='page']):hover > div {
-  background-color: rgba(125, 211, 252, 0.32) !important;
-  border-color: rgba(184, 221, 247, 0.7) !important;
+  background-color: rgba(140, 208, 255, 0.25) !important;
+  border-color: rgba(184, 221, 247, 0.6) !important;
 }
 
 html[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
-  background: linear-gradient(90deg, rgba(125, 211, 252, 0.3) 0%, rgba(125, 211, 252, 0.16) 100%) !important;
-  border-color: rgba(125, 211, 252, 0.75) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-right: 3.5px solid #8cd0ff !important;
   color: #ffffff !important;
-  box-shadow: inset 3px 0 0 0 #7dd3fc, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
+  box-shadow: 0 4px 12px -2px rgba(10, 6, 3, 0.5) !important;
 }
 
-html[dir='rtl'][data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
-  box-shadow: inset -3px 0 0 0 #7dd3fc, 0 4px 12px -3px rgba(15, 10, 6, 0.35) !important;
+html[dir='ltr'][data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] {
+  border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-left: 3.5px solid #8cd0ff !important;
 }
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] span,
 html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] span {
   color: #ffffff !important;
   font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] > div,
 html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div {
-  background-color: #8cd0ff !important;
+  background: linear-gradient(135deg, #8cd0ff 0%, #38bdf8 100%) !important;
   border-color: #c7e6fd !important;
   color: #180d07 !important;
 }
@@ -4288,6 +4296,7 @@ html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page
 html[data-preset='espresso-cream-blue']:not(.dark) aside nav button[aria-current='page'] > div svg,
 html.dark[data-preset='espresso-cream-blue'] aside nav button[aria-current='page'] > div svg {
   color: #180d07 !important;
+  stroke: #180d07 !important;
 }
 
 html[data-preset='espresso-cream-blue']:not(.dark) aside > button[title],

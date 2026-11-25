@@ -408,4 +408,4 @@ const HeaderActions: React.FC = () => {
   );
 };
 
-export default HeaderActions;
+export default React.memo(HeaderActions);

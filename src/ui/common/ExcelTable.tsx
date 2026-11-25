@@ -466,4 +466,5 @@ function ExcelTable<T>({
   );
 }
 
-export default ExcelTable;
+const MemoizedExcelTable = React.memo(ExcelTable) as typeof ExcelTable;
+export default MemoizedExcelTable;

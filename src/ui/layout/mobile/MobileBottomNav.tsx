@@ -38,11 +38,8 @@ interface MobileBottomNavProps {
  * organized "More" bottom sheet covering all core operational modules.
  * Labels and visibility are unified with Sidebar & Classic Ribbon via `useVisibleMenuItems`.
  */
-export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
-  isMoreSheetOpen,
-  onOpenMoreSheet,
-  onCloseMoreSheet,
-}) => {
+export const MobileBottomNav = React.memo<MobileBottomNavProps>(
+  ({ isMoreSheetOpen, onOpenMoreSheet, onCloseMoreSheet }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -212,4 +209,4 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       </BottomSheet>
     </>
   );
-};
+});

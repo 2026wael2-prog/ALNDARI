@@ -17,7 +17,7 @@ import { useTranslation } from '../../../lib/hooks/useTranslation';
 import { cn } from '../../../core/utils';
 import { prefetchRoute } from '../../../core/utils/routePrefetcher';
 
-export const WorkspaceTabBar: React.FC = () => {
+export const WorkspaceTabBar: React.FC = React.memo(() => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, dir, lang } = useTranslation();
@@ -103,6 +103,32 @@ export const WorkspaceTabBar: React.FC = () => {
       handleCloseTab(null, tab.id);
     }
   };
+
+  // كبح التحميل المسبق عند مرور الفأرة سريعاً فوق ألسنة التبويبات لمنع ازدحام الشبكة والمعالج
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTabMouseEnter = useCallback((path: string) => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = setTimeout(() => {
+      prefetchRoute(path);
+      hoverTimerRef.current = null;
+    }, 80);
+  }, []);
+
+  const handleTabMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, []);
 
   // فتح القائمة بالزر الأيمن
   const handleContextMenu = (e: React.MouseEvent, tab: WorkspaceTab) => {
@@ -206,8 +232,9 @@ export const WorkspaceTabBar: React.FC = () => {
                 handleContextMenu(e, tab);
               }}
               onMouseEnter={() => {
-                prefetchRoute(tab.path);
+                handleTabMouseEnter(tab.path);
               }}
+              onMouseLeave={handleTabMouseLeave}
               title={`${tab.title} (${tab.isClosable ? 'انقر بالزر الأوسط للإغلاق' : 'الرئيسية'})`}
               className={cn(
                 'group relative flex h-8 min-w-[112px] max-w-[190px] shrink-0 cursor-pointer items-center gap-1.5 rounded-t-lg border border-b-0 px-2.5 text-xs font-bold transition-all duration-150',
@@ -363,4 +390,4 @@ export const WorkspaceTabBar: React.FC = () => {
       )}
     </div>
   );
-};
+});

@@ -104,6 +104,7 @@ export function prefetchCriticalRoutes(): void {
       '/pos',
       '/clients',
       '/purchases',
+      '/bonds',
       '/accounting',
     ];
     criticalRoutes.forEach((path, index) => {

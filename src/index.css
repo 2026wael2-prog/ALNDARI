@@ -4788,6 +4788,13 @@ a svg,
   transition-timing-function: ease-out !important;
 }
 
+/* تسريع فتح النوافذ المنبثقة والقوائم وتفادي إعادة حساب كامل الصفحة */
+[role='dialog'],
+[role='menu'],
+[role='listbox'] {
+  contain: layout style;
+}
+
 /* أسرع دخول للقوائم المنسدلة والنوافذ دون بطء أو ثقل */
 .animate-in {
   animation-duration: 90ms !important;

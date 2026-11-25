@@ -5,9 +5,13 @@ import { RelatedProductsPanel } from './RelatedProductsPanel';
 import { analyzeAutomotiveQuery } from '../../../ai/automotiveCrossSell';
 import type { Product } from '../../../inventory/types';
 
+const nowIso = new Date().toISOString();
+const yesterdayIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
 const mockTransferRequests = [
+  // Today + pending -> MUST appear
   {
-    id: 'req-1',
+    id: 'req-today-pending',
     batch_id: 'batch-1',
     company_id: 'c-1',
     requester_branch_id: 'branch-2',
@@ -21,12 +25,70 @@ const mockTransferRequests = [
     product_brand: 'Toyota',
     requested_quantity: 2,
     status: 'pending' as const,
-    created_at: '2026-11-25T12:00:00Z',
-    updated_at: '2026-11-25T12:00:00Z',
+    created_at: nowIso,
+    updated_at: nowIso,
+  },
+  // Today + approved -> MUST disappear
+  {
+    id: 'req-today-approved',
+    batch_id: null,
+    company_id: 'c-1',
+    requester_branch_id: 'branch-2',
+    requester_branch_name: 'فرع غمدان',
+    source_branch_id: 'branch-1',
+    source_branch_name: 'فرع وائل',
+    product_id: 'p-2',
+    product_name: 'منتج معتمد يجب أن يختفي',
+    product_sku: 'SKU-2',
+    product_part_number: '11111',
+    product_brand: 'Toyota',
+    requested_quantity: 1,
+    status: 'approved' as const,
+    created_at: nowIso,
+    updated_at: nowIso,
+  },
+  // Today + rejected -> MUST disappear
+  {
+    id: 'req-today-rejected',
+    batch_id: null,
+    company_id: 'c-1',
+    requester_branch_id: 'branch-2',
+    requester_branch_name: 'فرع غمدان',
+    source_branch_id: 'branch-1',
+    source_branch_name: 'فرع وائل',
+    product_id: 'p-3',
+    product_name: 'منتج مرفوض يجب أن يختفي',
+    product_sku: 'SKU-3',
+    product_part_number: '22222',
+    product_brand: 'Toyota',
+    requested_quantity: 1,
+    status: 'rejected' as const,
+    created_at: nowIso,
+    updated_at: nowIso,
+  },
+  // Yesterday + pending -> MUST disappear (historical)
+  {
+    id: 'req-yesterday-pending',
+    batch_id: null,
+    company_id: 'c-1',
+    requester_branch_id: 'branch-2',
+    requester_branch_name: 'فرع غمدان',
+    source_branch_id: 'branch-1',
+    source_branch_name: 'فرع وائل',
+    product_id: 'p-4',
+    product_name: 'منتج قديم من أمس',
+    product_sku: 'SKU-4',
+    product_part_number: '33333',
+    product_brand: 'Toyota',
+    requested_quantity: 1,
+    status: 'pending' as const,
+    created_at: yesterdayIso,
+    updated_at: yesterdayIso,
   },
 ];
 
 const mockRefetch = vi.fn();
+const mockRespond = vi.fn();
 const mockShowToast = vi.fn();
 
 vi.mock('../../../inventory/hooks/useStockTransferRequests', () => ({
@@ -36,16 +98,16 @@ vi.mock('../../../inventory/hooks/useStockTransferRequests', () => ({
     isFetching: false,
     refetch: mockRefetch,
   }),
+  useRespondToTransferRequest: () => ({
+    mutate: mockRespond,
+    isPending: false,
+  }),
 }));
 
 vi.mock('../../../feedback/store', () => ({
   useFeedbackStore: () => ({
     showToast: mockShowToast,
   }),
-}));
-
-vi.mock('../../../entity-inspector', () => ({
-  EntityInfoDot: () => <span data-testid="entity-dot" />,
 }));
 
 const sampleCompanionProduct: Product = {
@@ -73,7 +135,7 @@ const sampleCompanionProduct: Product = {
   barcode: null,
   image_url: null,
   is_core: false,
-  created_at: '2026-11-25T00:00:00Z',
+  created_at: nowIso,
 };
 
 describe('ProductSelectionModal Enhancements', () => {
@@ -81,33 +143,46 @@ describe('ProductSelectionModal Enhancements', () => {
     vi.clearAllMocks();
   });
 
-  it('BranchTransferHeaderBar displays incoming pending requests and triggers review modal', () => {
+  it('BranchTransferHeaderBar shows ONLY today active pending requests and hides historical/approved/rejected ones', () => {
     const onOpenNewRequest = vi.fn();
     const onReviewIncoming = vi.fn();
+    const onCloseModal = vi.fn();
 
     render(
       <BranchTransferHeaderBar
         activeBranchId="branch-1"
+        totalProductsCount={42}
         onOpenNewRequest={onOpenNewRequest}
         onReviewIncoming={onReviewIncoming}
+        onCloseModal={onCloseModal}
       />
     );
 
-    expect(screen.getByText('طلبات الفروع')).toBeTruthy();
-    expect(screen.getByText('واردة قيد الانتظار:')).toBeTruthy();
+    expect(screen.getByText('مستكشف الأصناف')).toBeTruthy();
+    expect(screen.getByText('طلبات اليوم الواردة:')).toBeTruthy();
 
-    // Expand the showcase drawer
+    // Expand floating overlay drawer
     fireEvent.click(screen.getByRole('button', { name: /توسيع شريط طلبات الفروع/i }));
-    expect(screen.getByText('مراجعة واعتماد')).toBeTruthy();
 
-    fireEvent.click(screen.getByText('مراجعة واعتماد'));
+    // Only today's pending request is shown
+    expect(screen.getByText('راس عكس هايلوكس')).toBeTruthy();
+    expect(screen.queryByText('منتج معتمد يجب أن يختفي')).toBeNull();
+    expect(screen.queryByText('منتج مرفوض يجب أن يختفي')).toBeNull();
+    expect(screen.queryByText('منتج قديم من أمس')).toBeNull();
+
+    // Trigger review modal
+    fireEvent.click(screen.getByText('مراجعة واعتماد / رفض'));
     expect(onReviewIncoming).toHaveBeenCalledWith([mockTransferRequests[0]]);
 
+    // Trigger new request & close
     fireEvent.click(screen.getByText('طلب من فرع'));
     expect(onOpenNewRequest).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'إغلاق مستكشف الأصناف' }));
+    expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('RelatedProductsPanel renders companion system chips, Google link, branch request, and add button', () => {
+  it('RelatedProductsPanel renders compact companion pill, Google link, branch request, and add action', () => {
     const onSelectProduct = vi.fn();
     const onRequestFromBranch = vi.fn();
     const onSearchChipClick = vi.fn();
@@ -126,10 +201,10 @@ describe('ProductSelectionModal Enhancements', () => {
     );
 
     expect(screen.getByText('منظومة العكوس والدفع')).toBeTruthy();
-    expect(screen.getByText('المركبة: هايلوكس')).toBeTruthy();
+    expect(screen.getByText('هايلوكس')).toBeTruthy();
     expect(screen.getByText('ربلة عكس خارجي هايلوكس')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: /إضافة/i }));
+    fireEvent.click(screen.getByText('ربلة عكس خارجي هايلوكس'));
     expect(onSelectProduct).toHaveBeenCalledWith(sampleCompanionProduct);
 
     fireEvent.click(screen.getByTitle('طلب هذه القطعة من فرع آخر'));

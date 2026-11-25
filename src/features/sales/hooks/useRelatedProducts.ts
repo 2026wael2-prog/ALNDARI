@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabaseClient';
 import { useAuthStore } from '../../auth/store';
@@ -13,8 +13,8 @@ import {
 interface UseRelatedProductsOptions {
   /** Active search query typed by the cashier */
   searchQuery: string;
-  /** Currently focused/hovered product in the search table (fallback context) */
-  focusedProduct: Product | null;
+  /** Explicitly selected product (via click or keyboard arrow — NEVER passive mouse hover) */
+  selectedProduct: Product | null;
   /** IDs of products already visible in the primary results to avoid duplication */
   excludeProductIds: string[];
   effectiveBranchId: string | null;
@@ -26,7 +26,6 @@ export interface RelatedProductsResult {
   relation: AutomotiveRelationResult;
   relatedProducts: Product[];
   isLoading: boolean;
-  /** Source text used for generating recommendations (query or focused product name) */
   contextLabel: string;
 }
 
@@ -51,14 +50,14 @@ function sanitizeFilterToken(token: string): string {
   return token.replace(/[%_,()]/g, '').trim();
 }
 
-function buildContextText(searchQuery: string, focusedProduct: Product | null): string {
+function buildContextText(searchQuery: string, selectedProduct: Product | null): string {
   const q = searchQuery.trim();
-  const pBaseName = focusedProduct
-    ? focusedProduct.name_ar !== ''
-      ? focusedProduct.name_ar
-      : focusedProduct.name
+  const pBaseName = selectedProduct
+    ? selectedProduct.name_ar !== ''
+      ? selectedProduct.name_ar
+      : selectedProduct.name
     : '';
-  const pName = focusedProduct ? `${pBaseName} ${focusedProduct.brand ?? ''}`.trim() : '';
+  const pName = selectedProduct ? `${pBaseName} ${selectedProduct.brand ?? ''}`.trim() : '';
 
   if (q.length >= 2) {
     const qAnalysis = analyzeAutomotiveQuery(q);
@@ -69,25 +68,38 @@ function buildContextText(searchQuery: string, focusedProduct: Product | null): 
   return pName !== '' ? pName : q;
 }
 
-/* eslint-disable complexity -- multi-factor relevance scoring across vehicle, OEM prefix, companion terms, brand & stock */
+/* eslint-disable complexity -- strict multi-factor relevance scoring requiring vehicle match when vehicle context exists */
 function scoreCompanionProduct(product: Product, ctx: ScoreContext): number {
   const baseName = product.name_ar !== '' ? product.name_ar : product.name;
   const normName = normalizeAutomotiveText(
     `${baseName} ${product.specifications ?? ''} ${product.brand ?? ''}`
   );
-  let score = 0;
 
+  let vehicleMatchCount = 0;
   for (const v of ctx.normVehicles) {
-    if (v !== '' && normName.includes(v)) score += 50;
+    if (v !== '' && normName.includes(v)) vehicleMatchCount += 1;
   }
 
-  if (ctx.partPrefix !== null && (product.part_number?.startsWith(ctx.partPrefix) ?? false)) {
-    score += 40;
+  const partFamilyMatch =
+    ctx.partPrefix !== null && (product.part_number?.startsWith(ctx.partPrefix) ?? false);
+
+  // Strict accuracy rule: when a car model is specified (e.g. هايلوكس / كامري),
+  // discard unrelated car models unless they share the exact OEM part-number family.
+  if (ctx.normVehicles.length > 0 && vehicleMatchCount === 0 && !partFamilyMatch) {
+    return -1;
   }
 
+  let companionMatchCount = 0;
   for (const t of ctx.normSearchTokens) {
-    if (t !== '' && normName.includes(t)) score += 25;
+    if (t !== '' && normName.includes(t)) companionMatchCount += 1;
   }
+
+  if (companionMatchCount === 0 && !partFamilyMatch) {
+    return -1;
+  }
+
+  let score = vehicleMatchCount * 60 + companionMatchCount * 30;
+  if (partFamilyMatch) score += 50;
 
   if (
     ctx.focusedBrandNorm !== '' &&
@@ -103,7 +115,7 @@ function scoreCompanionProduct(product: Product, ctx: ScoreContext): number {
     Array.isArray(product.warehouse_distribution) &&
     product.warehouse_distribution.some(w => w.quantity > 0)
   ) {
-    score += 6;
+    score += 5;
   }
 
   return score;
@@ -112,6 +124,7 @@ function scoreCompanionProduct(product: Product, ctx: ScoreContext): number {
 async function fetchCompanionCandidates(params: {
   companyId: string;
   queryTokens: readonly string[];
+  vehicleTokens: readonly string[];
   partPrefix: string | null;
   warehouseId?: string | null | undefined;
   effectiveBranchId: string | null;
@@ -122,7 +135,7 @@ async function fetchCompanionCandidates(params: {
   }
   if (orClauses.length === 0) return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('products')
     .select(
       `
@@ -143,9 +156,15 @@ async function fetchCompanionCandidates(params: {
     )
     .eq('company_id', params.companyId)
     .is('deleted_at', null)
-    .or(orClauses.join(','))
-    .limit(36);
+    .or(orClauses.join(','));
 
+  // Push the primary vehicle model token directly into SQL for laser-accurate DB results
+  const primaryVehicle = params.vehicleTokens.at(0);
+  if (primaryVehicle !== undefined && sanitizeFilterToken(primaryVehicle).length >= 2) {
+    query = query.ilike('name_ar', `%${sanitizeFilterToken(primaryVehicle)}%`);
+  }
+
+  const { data, error } = await query.limit(24);
   if (error !== null) return [];
   return productService.mapRawProducts(data, params.warehouseId, params.effectiveBranchId);
 }
@@ -153,17 +172,16 @@ async function fetchCompanionCandidates(params: {
 /**
  * useRelatedProducts
  * ----------------------------------------------------------------------------
- * Smart companion-parts hook for ProductSelectionModal:
- * - Debounces rapid row hover (`focusedProduct`) by 280ms to prevent query storms
- *   and UI flicker while gliding the cursor across rows.
- * - Analyzes query/product via the automotive mechanical-systems graph.
- * - Fetches real companion products in a single cached Supabase query and ranks
- *   them by vehicle match, OEM part-number family, companion terms, and stock.
+ * High-precision companion-parts hook for ProductSelectionModal:
+ * - Only activates on an explicit search query (>= 2 chars) or explicit product
+ *   selection — never flickers on passive mouse hover or empty search.
+ * - Filters strictly by vehicle model in SQL & scoring so recommendations are
+ *   laser-accurate for the customer's exact car.
  */
-/* eslint-disable max-lines-per-function, complexity -- cohesive React Query hook combining hover debounce, query & ranking */
+/* eslint-disable max-lines-per-function, complexity -- cohesive React Query hook for accurate vehicle-scoped companion parts */
 export function useRelatedProducts({
   searchQuery,
-  focusedProduct,
+  selectedProduct,
   excludeProductIds,
   effectiveBranchId,
   warehouseId,
@@ -172,26 +190,17 @@ export function useRelatedProducts({
   const { user } = useAuthStore();
   const companyId = user?.company_id ?? '';
 
-  // Debounce focusedProduct so moving the mouse across rows never triggers rapid queries
-  const [debouncedFocused, setDebouncedFocused] = useState<Product | null>(focusedProduct);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedFocused(focusedProduct);
-    }, 280);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [focusedProduct]);
+  const hasExplicitContext = searchQuery.trim().length >= 2 || selectedProduct !== null;
 
   const contextText = useMemo(
-    () => buildContextText(searchQuery, debouncedFocused),
-    [searchQuery, debouncedFocused]
+    () => (hasExplicitContext ? buildContextText(searchQuery, selectedProduct) : ''),
+    [hasExplicitContext, searchQuery, selectedProduct]
   );
 
   const relation = useMemo(() => analyzeAutomotiveQuery(contextText), [contextText]);
   const partPrefix = useMemo(
-    () => extractPartNumberPrefix(debouncedFocused?.part_number),
-    [debouncedFocused?.part_number]
+    () => extractPartNumberPrefix(selectedProduct?.part_number),
+    [selectedProduct?.part_number]
   );
   const queryTokens = useMemo(
     () => relation.searchTokens.map(sanitizeFilterToken).filter(t => t.length >= 2).slice(0, 6),
@@ -199,11 +208,14 @@ export function useRelatedProducts({
   );
 
   const shouldFetch =
-    enabled && companyId !== '' && (queryTokens.length > 0 || partPrefix !== null);
+    enabled &&
+    hasExplicitContext &&
+    companyId !== '' &&
+    (queryTokens.length > 0 || partPrefix !== null);
 
   const { data: candidates = [], isLoading } = useQuery<Product[]>({
     queryKey: [
-      'related_companion_products',
+      'related_companion_products_v2',
       companyId,
       effectiveBranchId,
       queryTokens.join('|'),
@@ -217,6 +229,7 @@ export function useRelatedProducts({
       fetchCompanionCandidates({
         companyId,
         queryTokens,
+        vehicleTokens: relation.vehicleTokens,
         partPrefix,
         warehouseId,
         effectiveBranchId,
@@ -230,30 +243,31 @@ export function useRelatedProducts({
       normSearchTokens: queryTokens.map(normalizeAutomotiveText),
       partPrefix,
       focusedBrandNorm:
-        debouncedFocused?.brand !== null && debouncedFocused?.brand !== undefined
-          ? normalizeAutomotiveText(debouncedFocused.brand)
+        selectedProduct?.brand !== null && selectedProduct?.brand !== undefined
+          ? normalizeAutomotiveText(selectedProduct.brand)
           : '',
     }),
-    [relation.vehicleTokens, queryTokens, partPrefix, debouncedFocused?.brand]
+    [relation.vehicleTokens, queryTokens, partPrefix, selectedProduct?.brand]
   );
 
   const relatedProducts = useMemo(() => {
     if (candidates.length === 0) return [];
-    const focusedId = debouncedFocused?.id;
+    const selectedId = selectedProduct?.id;
 
     return candidates
-      .filter(p => p.id !== focusedId && !excludeSet.has(p.id))
+      .filter(p => p.id !== selectedId && !excludeSet.has(p.id))
       .map(p => ({ product: p, score: scoreCompanionProduct(p, scoreCtx) }))
+      .filter(entry => entry.score >= 30)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
+      .slice(0, 8)
       .map(entry => entry.product);
-  }, [candidates, excludeSet, debouncedFocused?.id, scoreCtx]);
+  }, [candidates, excludeSet, selectedProduct?.id, scoreCtx]);
 
   const contextLabel =
-    debouncedFocused !== null
-      ? debouncedFocused.name !== ''
-        ? debouncedFocused.name
-        : debouncedFocused.name_ar
+    selectedProduct !== null
+      ? selectedProduct.name !== ''
+        ? selectedProduct.name
+        : selectedProduct.name_ar
       : searchQuery.trim();
 
   return {

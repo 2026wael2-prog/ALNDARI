@@ -50,7 +50,7 @@ export const ProductSelectionToolbar: React.FC<ProductSelectionToolbarProps> = (
   activeBranches,
   columnSettingsSlot,
 }) => (
-  <div className="flex flex-wrap items-center gap-2 border-b bg-[var(--app-surface)] p-2 dark:border-slate-800 max-md:gap-2 max-md:p-2">
+  <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b bg-[var(--app-surface)] px-2.5 py-1.5 dark:border-slate-800 max-md:gap-1.5 max-md:p-1.5">
     <button
       type="button"
       onClick={onOpenAddProduct}

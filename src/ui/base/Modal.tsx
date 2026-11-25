@@ -16,6 +16,8 @@ interface ModalProps {
   zIndex?: string;
   /** Hide the draggable header row entirely (caller renders its own header inside the body). */
   hideHeader?: boolean;
+  /** Remove default inner padding and outer body scroll so edge-to-edge tables fill 100% height. */
+  noPadding?: boolean;
   /** Allow closing by clicking outside on the backdrop (default false to prevent accidental data loss). */
   closeOnBackdropClick?: boolean;
 }
@@ -59,6 +61,7 @@ const Modal: React.FC<ModalProps> = ({
   size = 'lg',
   zIndex,
   hideHeader = false,
+  noPadding = false,
   closeOnBackdropClick = false,
 }) => {
   const [isMaximized, setIsMaximized] = useState(size === 'full');
@@ -434,8 +437,13 @@ const Modal: React.FC<ModalProps> = ({
         {/* Content Segment */}
         <div
           className={cn(
-            'custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto bg-[var(--app-bg)]',
-            isMaximized || size === 'full' ? 'p-1.5 md:p-2 lg:p-3' : 'p-2.5 sm:p-4 md:p-5'
+            'custom-scrollbar flex-1 overflow-x-hidden bg-[var(--app-bg)]',
+            noPadding
+              ? 'overflow-hidden p-0'
+              : cn(
+                  'overflow-y-auto',
+                  isMaximized || size === 'full' ? 'p-1.5 md:p-2 lg:p-3' : 'p-2.5 sm:p-4 md:p-5'
+                )
           )}
         >
           {children}

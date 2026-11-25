@@ -42,6 +42,8 @@ export function useProductSelectionTable({
 
   // Keyboard navigation state
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const focusSourceRef = useRef<'keyboard' | 'mouse'>('mouse');
+  const [selectedPreviewProduct, setSelectedPreviewProduct] = useState<Product | null>(null);
 
   // Column sorting state
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(
@@ -244,6 +246,7 @@ export function useProductSelectionTable({
   const clickCountRef = useRef<Record<string, number>>({});
 
   const handleRowClick = (p: Product) => {
+    setSelectedPreviewProduct(p);
     const id = p.id;
     clickCountRef.current[id] = (clickCountRef.current[id] ?? 0) + 1;
 
@@ -269,17 +272,25 @@ export function useProductSelectionTable({
     }
   };
 
+  const handleHoverRow = useCallback((idx: number) => {
+    focusSourceRef.current = 'mouse';
+    setFocusedIndex(idx);
+  }, []);
+
   // Keyboard navigation: Arrow Up/Down + Enter for selection
   const handleTableKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
+        focusSourceRef.current = 'keyboard';
         setFocusedIndex(prev => {
           const max = paginatedProducts.length - 1;
           if (max < 0) return -1;
           if (prev < 0) return 0;
           const next = e.key === 'ArrowDown' ? prev + 1 : prev - 1;
-          return Math.max(0, Math.min(max, next));
+          const clamped = Math.max(0, Math.min(max, next));
+          setSelectedPreviewProduct(paginatedProducts[clamped] ?? null);
+          return clamped;
         });
       } else if (
         e.key === 'Enter' &&
@@ -302,9 +313,9 @@ export function useProductSelectionTable({
     [paginatedProducts, focusedIndex, mode, showToast, onSelect]
   );
 
-  // Scroll focused row into view when focusedIndex changes
+  // Scroll focused row into view ONLY on keyboard navigation — NEVER on mouse hover (prevents scroll jitter!)
   useEffect(() => {
-    if (focusedIndex >= 0 && tableBodyRef.current) {
+    if (focusSourceRef.current === 'keyboard' && focusedIndex >= 0 && tableBodyRef.current) {
       const row = tableBodyRef.current.children[focusedIndex] as HTMLElement | undefined;
       row?.scrollIntoView({ block: 'nearest' });
     }
@@ -313,6 +324,7 @@ export function useProductSelectionTable({
   // Reset keyboard focus when products change or modal opens/closes
   useEffect(() => {
     setFocusedIndex(-1);
+    setSelectedPreviewProduct(null);
   }, [products, isOpen]);
 
   return {
@@ -336,6 +348,8 @@ export function useProductSelectionTable({
     handlePageChange,
     focusedIndex,
     setFocusedIndex,
+    handleHoverRow,
+    selectedPreviewProduct,
     tableBodyRef,
     handleKeyDown,
     handleTableKeyDown,

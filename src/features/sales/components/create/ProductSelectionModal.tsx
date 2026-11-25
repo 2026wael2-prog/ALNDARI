@@ -87,7 +87,8 @@ const ProductSelectionModal: React.FC<Props> = ({
     paginatedProducts,
     handlePageChange,
     focusedIndex,
-    setFocusedIndex,
+    handleHoverRow,
+    selectedPreviewProduct,
     tableBodyRef,
     handleKeyDown,
     handleTableKeyDown,
@@ -112,11 +113,6 @@ const ProductSelectionModal: React.FC<Props> = ({
     StockTransferRequest[] | null
   >(null);
 
-  const focusedProduct =
-    focusedIndex >= 0
-      ? (paginatedProducts[focusedIndex] ?? null)
-      : (paginatedProducts[0] ?? null);
-
   const excludeProductIds = useMemo(
     () => paginatedProducts.slice(0, 20).map(p => p.id),
     [paginatedProducts]
@@ -128,7 +124,7 @@ const ProductSelectionModal: React.FC<Props> = ({
     isLoading: isRelatedLoading,
   } = useRelatedProducts({
     searchQuery: submittedQuery,
-    focusedProduct,
+    selectedProduct: selectedPreviewProduct,
     excludeProductIds,
     effectiveBranchId,
     warehouseId,
@@ -217,29 +213,20 @@ const ProductSelectionModal: React.FC<Props> = ({
         onClose={onClose}
         icon={Box}
         size="full"
+        hideHeader
+        noPadding
         title="مستكشف الأصناف المتقدم"
-        description="انقر مرتين على المنتج لإضافته للفاتورة"
-        footer={
-          <div className="flex w-full items-center justify-between gap-2 max-md:gap-2">
-            <span className="font-mono text-[10px] text-gray-400">{products.length} منتج</span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded bg-gray-100 py-2 text-[10px] font-bold uppercase transition-colors hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700"
-            >
-              إغلاق
-            </button>
-          </div>
-        }
       >
-        <div className="flex h-[76vh] flex-col bg-[var(--app-surface)]">
-          {/* Live Branch Transfer Requests Header */}
+        <div className="flex h-full w-full flex-col overflow-hidden bg-[var(--app-surface)]">
+          {/* Unified Fullscreen Top Header + Live Today-Only Pending Branch Transfers */}
           <BranchTransferHeaderBar
             activeBranchId={effectiveBranchId}
+            totalProductsCount={products.length}
             onOpenNewRequest={() =>
               setTransferRequestState({ isOpen: true, product: null, sourceBranchId: null })
             }
             onReviewIncoming={reqs => setIncomingReviewRequests(reqs)}
+            onCloseModal={onClose}
           />
 
           {/* Toolbar */}
@@ -368,7 +355,7 @@ const ProductSelectionModal: React.FC<Props> = ({
                       onRequestFromBranch={handleRequestFromBranch}
                       onRowClick={handleRowClick}
                       onMouseEnter={() => {
-                        setFocusedIndex(idx);
+                        handleHoverRow(idx);
                       }}
                     />
                   ))

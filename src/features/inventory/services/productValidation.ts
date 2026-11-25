@@ -29,10 +29,33 @@ export async function validateProductUniqueness({
   const trimmedPartNo = partNumber?.trim();
   const trimmedBrand = brand?.trim();
 
+  // If updating an existing product, check current values to avoid false-positive collisions
+  // when the user didn't modify a field (or when historical duplicate records already exist).
+  let currentProduct: {
+    name_ar?: string | null;
+    sku?: string | null;
+    barcode?: string | null;
+    part_number?: string | null;
+    brand?: string | null;
+  } | null = null;
+
+  if (excludeProductId) {
+    try {
+      const { data: prod } = await supabase
+        .from('products')
+        .select('name_ar, sku, barcode, part_number, brand')
+        .eq('id', excludeProductId)
+        .maybeSingle();
+      if (prod) currentProduct = prod;
+    } catch {
+      // Non-fatal fallback
+    }
+  }
+
   const checks: Array<Promise<void>> = [];
 
-  // 1. Prevent duplicate product name in company
-  if (trimmedName) {
+  // 1. Prevent duplicate product name in company (only if creating new OR name actually changed)
+  if (trimmedName && (!currentProduct || currentProduct.name_ar !== trimmedName)) {
     checks.push(
       (async () => {
         let query = supabase
@@ -57,8 +80,8 @@ export async function validateProductUniqueness({
     );
   }
 
-  // 2. Prevent duplicate SKU in company
-  if (trimmedSku) {
+  // 2. Prevent duplicate SKU in company (only if creating new OR SKU actually changed)
+  if (trimmedSku && (!currentProduct || currentProduct.sku !== trimmedSku)) {
     checks.push(
       (async () => {
         let query = supabase
@@ -83,8 +106,8 @@ export async function validateProductUniqueness({
     );
   }
 
-  // 3. Prevent duplicate Barcode in company
-  if (trimmedBarcode) {
+  // 3. Prevent duplicate Barcode in company (only if creating new OR barcode actually changed)
+  if (trimmedBarcode && (!currentProduct || currentProduct.barcode !== trimmedBarcode)) {
     checks.push(
       (async () => {
         let query = supabase
@@ -109,8 +132,13 @@ export async function validateProductUniqueness({
     );
   }
 
-  // 4. Prevent duplicate Part Number + Brand in company
-  if (trimmedPartNo) {
+  // 4. Prevent duplicate Part Number + Brand in company (only if creating new OR partNumber/brand changed)
+  const partChanged =
+    !currentProduct ||
+    currentProduct.part_number !== trimmedPartNo ||
+    (currentProduct.brand ?? '') !== trimmedBrand;
+
+  if (trimmedPartNo && partChanged) {
     checks.push(
       (async () => {
         let query = supabase
@@ -122,6 +150,8 @@ export async function validateProductUniqueness({
 
         if (trimmedBrand) {
           query = query.ilike('brand', trimmedBrand);
+        } else {
+          query = query.is('brand', null);
         }
         if (excludeProductId) {
           query = query.neq('id', excludeProductId);

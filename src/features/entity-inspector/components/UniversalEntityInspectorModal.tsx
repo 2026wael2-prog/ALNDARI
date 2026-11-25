@@ -14,7 +14,9 @@ import Modal from '../../../ui/base/Modal';
 import PageLoader from '../../../ui/base/PageLoader';
 import { cn } from '../../../core/utils';
 import { logger } from '../../../core/utils/logger';
+import { parseError } from '../../../core/utils/errorUtils';
 import { useAuthStore } from '../../auth/store';
+import { useFeedbackStore } from '../../feedback/store';
 import { useBranchFilterStore } from '../../branches/store';
 import { useProductMutations } from '../../inventory/hooks/useProducts';
 import { useEntityInspectorStore } from '../store';
@@ -36,6 +38,7 @@ export const UniversalEntityInspectorModal: React.FC = () => {
   const close = useEntityInspectorStore(s => s.close);
 
   const user = useAuthStore(s => s.user);
+  const showToast = useFeedbackStore(s => s.showToast);
   const activeBranchId = useBranchFilterStore(s => s.activeBranchId);
   const companyId = user?.company_id || '';
   const canViewCost = user?.role !== 'cashier' && user?.role !== 'sales_rep';
@@ -346,9 +349,12 @@ export const UniversalEntityInspectorModal: React.FC = () => {
               try {
                 await saveProduct({ data: formData, id: data.product!.id });
                 setIsEditProductOpen(false);
+                showToast('تم تحديث بيانات المنتج بنجاح', 'success');
                 await refetch();
               } catch (err) {
-                logger.error('UniversalEntityInspectorModal', 'Product update failed:', err);
+                const appErr = parseError(err);
+                logger.error('UniversalEntityInspectorModal', 'Product update failed:', appErr);
+                showToast(appErr.message || 'فشل تحديث بيانات المنتج', 'error');
               }
             }}
           />

@@ -185,17 +185,17 @@ export const productService = {
       throw new Error('معرف المنشأة (companyId) مطلوب لتحديث المنتج');
     }
 
-    await validateProductUniqueness({
-      companyId,
-      name: trimmedName,
-      sku: trimmedSku,
-      barcode: trimmedBarcode,
-      partNumber: trimmedPartNo,
-      brand: trimmedBrand,
-      excludeProductId: id,
-    });
-
     try {
+      await validateProductUniqueness({
+        companyId,
+        name: trimmedName,
+        sku: trimmedSku,
+        barcode: trimmedBarcode,
+        partNumber: trimmedPartNo,
+        brand: trimmedBrand,
+        excludeProductId: id,
+      });
+
       const payload: TableUpdate<'products'> = {};
 
       if (trimmedName) payload.name_ar = trimmedName;
@@ -212,7 +212,10 @@ export const productService = {
       if (trimmedSku) payload.sku = trimmedSku;
       if (data.part_number !== undefined) payload.part_number = trimmedPartNo || null;
       if (data.brand !== undefined) payload.brand = trimmedBrand || null;
-      if (data.specifications !== undefined) payload.description = data.specifications || null;
+      if (data.specifications !== undefined) {
+        payload.description = data.specifications || null;
+        payload.specifications = data.specifications || null;
+      }
       if (data.size !== undefined) payload.size = data.size || null;
       if (data.image_url !== undefined) payload.image_url = data.image_url || null;
       if (data.alternative_numbers !== undefined) {
@@ -225,13 +228,14 @@ export const productService = {
       if (data.category !== undefined) {
         payload.category_id = data.category && data.category.length === 36 ? data.category : null;
       }
+      payload.updated_at = new Date().toISOString();
 
       logger.debug('ProductService', `Sending update payload to API`, payload);
       const { data: product, error } = await inventoryApi.updateProduct(id, payload);
 
       if (error) {
         logger.error('ProductService', `API update failed`, error);
-        throw error;
+        throw parseError(error);
       }
 
       if (data.uoms) {
@@ -242,7 +246,7 @@ export const productService = {
       return product;
     } catch (err) {
       logger.error('ProductService', `Critical failure in updateProduct`, err);
-      throw err instanceof Error ? err : parseError(err);
+      throw parseError(err);
     }
   },
 

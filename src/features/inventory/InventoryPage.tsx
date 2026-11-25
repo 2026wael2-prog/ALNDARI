@@ -32,8 +32,11 @@ import InventoryViewRenderer from './components/InventoryViewRenderer';
 import { getInventoryTabs } from './constants';
 import ServerPaginationBar from '../../ui/common/ServerPaginationBar';
 import { logger } from '../../core/utils/logger';
+import { parseError } from '../../core/utils/errorUtils';
+import { useFeedbackStore } from '../feedback/store';
 
 const InventoryPage: React.FC = () => {
+  const { showToast } = useFeedbackStore();
   const {
     searchTerm,
     setSearchTerm,
@@ -450,7 +453,9 @@ const InventoryPage: React.FC = () => {
                   }
                   handleCloseModal();
                 } catch (err) {
-                  logger.error('InventoryPage', 'Validation or API error:', err);
+                  const appErr = parseError(err);
+                  logger.error('InventoryPage', 'Validation or API error:', appErr);
+                  showToast(appErr.message || 'فشل تحديث بيانات المنتج', 'error');
                 }
               }}
               isSubmitting={isSaving}

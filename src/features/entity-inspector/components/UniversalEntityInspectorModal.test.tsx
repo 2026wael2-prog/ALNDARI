@@ -8,11 +8,17 @@ import type { Product, ProductFormData } from '../../inventory/types';
 
 const mockSaveProduct = vi.fn();
 const mockFetchInspectedEntity = vi.fn();
+const mockShowToast = vi.fn();
 let mockAuthUser: { id: string; company_id: string; role: string } | null = {
   id: 'u-1',
   company_id: 'c-1',
   role: 'admin',
 };
+
+vi.mock('../../feedback/store', () => ({
+  useFeedbackStore: (selector?: (s: { showToast: typeof mockShowToast }) => unknown) =>
+    selector ? selector({ showToast: mockShowToast }) : { showToast: mockShowToast },
+}));
 
 vi.mock('../../auth/store', () => ({
   useAuthStore: (selector?: (s: { user: typeof mockAuthUser }) => unknown) =>
@@ -163,7 +169,23 @@ describe('UniversalEntityInspectorModal — product editing', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('mock-add-product-modal')).toBeNull();
     });
+    expect(mockShowToast).toHaveBeenCalledWith('تم تحديث بيانات المنتج بنجاح', 'success');
     expect(mockFetchInspectedEntity.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('displays user-friendly error toast when saveProduct fails', async () => {
+    mockSaveProduct.mockRejectedValueOnce(new Error('رمز الصنف (SKU) مسجل مسبقاً'));
+    renderModal();
+
+    const editButtons = await screen.findAllByRole('button', { name: /تعديل المنتج/i });
+    fireEvent.click(editButtons[0]);
+
+    await screen.findByTestId('mock-add-product-modal');
+    fireEvent.click(screen.getByRole('button', { name: 'حفظ التعديل التجريبي' }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('رمز الصنف (SKU) مسجل مسبقاً', 'error');
+    });
   });
 
   it('hides edit product button for restricted roles (cashier / viewer)', async () => {

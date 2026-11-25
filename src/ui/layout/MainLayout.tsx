@@ -29,6 +29,8 @@ import { useConnectionStore } from '../../core/store/connectionStore';
 import { NetworkStatusPill } from './NetworkStatusPill';
 import { MobileBottomNav } from './mobile/MobileBottomNav';
 import { EntityInspectorHost } from '../../features/entity-inspector';
+import { useGlobalShortcuts } from '../../core/shortcuts/useGlobalShortcuts';
+import ShortcutsHelpModal from '../components/ShortcutsHelpModal';
 /**
  * ⚡ Lazy floating overlays — لا تنتمي لمسار الإقلاع الحرج.
  * برميل `features/chat` يصدّر وحدات المحادثات كاملة (خدمات، متاجر، هوكات صوتية،
@@ -68,6 +70,7 @@ const MainLayout: React.FC = () => {
     return () => clearTimeout(t);
   }, []);
   const { isOnline } = useNetworkStatus();
+  const { isHelpOpen, closeHelp, shortcuts } = useGlobalShortcuts();
   const isUnstable = useConnectionStore(s => s.isUnstable);
   const { isIPad } = useDevice();
   const { isTabletLandscape, isTabletPortrait } = useOrientation();
@@ -235,6 +238,13 @@ const MainLayout: React.FC = () => {
 
         {/* Global Universal Entity Inspector (نقطة الاستعلام الفوري — لا يُحمَّل إلا عند النقر) */}
         <EntityInspectorHost />
+
+        {/* Global Keyboard Shortcuts Cheat Sheet */}
+        <ShortcutsHelpModal
+          isOpen={isHelpOpen}
+          onClose={closeHelp}
+          shortcuts={shortcuts}
+        />
       </div>
     </div>
   );

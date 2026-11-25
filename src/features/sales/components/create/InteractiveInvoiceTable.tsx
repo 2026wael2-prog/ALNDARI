@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSalesStore, type SalesCartItem } from '../../store';
 import { useDiscountStore } from '../../../settings/taxDiscountStore';
 import type { Product } from '../../../inventory/types';
@@ -28,6 +29,7 @@ const InteractiveInvoiceTable: React.FC = () => {
   } = useSalesStore();
 
   const tableRef = useRef<HTMLTableElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     rowIndex: number;
@@ -104,6 +106,36 @@ const InteractiveInvoiceTable: React.FC = () => {
   const handleOpenSearch = useCallback((index: number, query = '') => {
     setModalState({ isOpen: true, rowIndex: index, query });
   }, []);
+
+  // Listen to global shortcut trigger or URL action to open Product Selection Explorer
+  useEffect(() => {
+    const handleTriggerExplorer = () => {
+      setModalState(prev => {
+        if (prev.isOpen) {
+          return { ...prev, isOpen: false };
+        }
+        const targetRow = items.length > 0 ? items.length - 1 : 0;
+        return { isOpen: true, rowIndex: targetRow, query: '' };
+      });
+    };
+
+    if (searchParams.get('action') === 'explore-products') {
+      handleTriggerExplorer();
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.delete('action');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+
+    window.addEventListener('alzhra-open-product-selection', handleTriggerExplorer);
+    return () => {
+      window.removeEventListener('alzhra-open-product-selection', handleTriggerExplorer);
+    };
+  }, [searchParams, setSearchParams, items.length]);
 
   const handleProductSelect = (product: Product) => {
     setProductForRow(modalState.rowIndex, product);

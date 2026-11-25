@@ -65,6 +65,14 @@ const InventoryPage: React.FC = () => {
       next.delete('action');
       setSearchParams(next, { replace: true });
     }
+
+    const handleOpenAdd = () => {
+      handleAdd();
+    };
+    window.addEventListener('alzhra-open-add-product', handleOpenAdd);
+    return () => {
+      window.removeEventListener('alzhra-open-add-product', handleOpenAdd);
+    };
   }, [searchParams, handleAdd, setSearchParams]);
 
   const { t } = useTranslation();

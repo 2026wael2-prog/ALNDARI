@@ -11,6 +11,7 @@ import {
   MessageSquare,
   ShieldCheck,
   TableProperties,
+  Keyboard,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeStore } from '../../../lib/themeStore';
@@ -196,6 +197,18 @@ const HeaderActions: React.FC = () => {
       <div className="hidden md:block">
         <AccompanyingInfoToggle />
       </div>
+
+      {/* Global Keyboard Shortcuts Help Button */}
+      <button
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('alzhra-toggle-shortcuts-help'));
+        }}
+        className="relative hidden h-8 w-8 items-center justify-center rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-hover)] text-[var(--app-text-secondary)] transition-all duration-200 hover:bg-[var(--app-surface)] hover:text-[var(--accent)] focus:outline-none active:scale-95 sm:flex"
+        title="اختصارات لوحة المفاتيح السريعة (Shift + ؟)"
+        aria-label="اختصارات لوحة المفاتيح"
+      >
+        <Keyboard size={15} className="transition-transform duration-150" />
+      </button>
 
       {/* Internal Branch Chat & Collaboration (Hidden on narrow mobile since floating chat button & sidebar cover it) */}
       <button

@@ -39,6 +39,13 @@ const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
   },
 ];
 
+const SHORTCUT_HINTS: Record<string, string> = {
+  sales: 'Ctrl+ف',
+  inventory: 'Ctrl+م',
+  clients: 'Ctrl+ك',
+  bonds: 'Ctrl+ق',
+};
+
 const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -137,16 +144,23 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
 
         {/* Label */}
         {!isCollapsed && (
-          <span
-            className={cn(
-              'overflow-hidden whitespace-nowrap',
-              isActive
-                ? theme.activeItemText
-                : 'text-slate-900 group-hover:text-slate-950 dark:text-slate-100 dark:group-hover:text-white'
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-1 overflow-hidden">
+            <span
+              className={cn(
+                'truncate whitespace-nowrap',
+                isActive
+                  ? theme.activeItemText
+                  : 'text-slate-900 group-hover:text-slate-950 dark:text-slate-100 dark:group-hover:text-white'
+              )}
+            >
+              {t(item.labelKey)}
+            </span>
+            {SHORTCUT_HINTS[item.id] && (
+              <span className="ms-1 hidden shrink-0 rounded border border-slate-300/60 bg-slate-200/50 px-1 py-0.2 font-mono text-[9px] font-bold text-slate-600 opacity-60 group-hover:inline-block group-hover:opacity-100 dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-400">
+                {SHORTCUT_HINTS[item.id]}
+              </span>
             )}
-          >
-            {t(item.labelKey)}
-          </span>
+          </div>
         )}
       </button>
     );

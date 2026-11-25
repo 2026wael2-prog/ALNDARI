@@ -94,6 +94,19 @@ const BondsPage: React.FC = () => {
       next.delete('action');
       setSearchParams(next, { replace: true });
     }
+
+    const handleCustomBondOpen = (e: Event) => {
+      const customEvent = e as CustomEvent<{ type?: BondType }>;
+      const targetType = customEvent.detail?.type || 'receipt';
+      setActiveTabState(targetType);
+      setModalType(targetType);
+      setIsModalOpen(true);
+    };
+
+    window.addEventListener('alzhra-open-bond-modal', handleCustomBondOpen);
+    return () => {
+      window.removeEventListener('alzhra-open-bond-modal', handleCustomBondOpen);
+    };
   }, [searchParams, activeTab, setSearchParams]);
   const [viewType, setViewType] = useState<ViewType>('list');
   const [displayMode, setDisplayMode] = useState<'table' | 'cards'>('table');

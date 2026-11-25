@@ -24,7 +24,7 @@ const BondKpiCards: React.FC<BondKpiCardsProps> = ({ totals, analytics }) => {
                     <ArrowDownCircle size={44} />
                 </div>
                 <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">إجمالي القبض</p>
-                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">{formatCurrency(totals.receiptAmount)}</h2>
+                <h2 dir="ltr" title={formatCurrency(totals.receiptAmount)} className="break-words text-right font-mono text-[11px] font-black leading-tight tracking-tight sm:text-base lg:text-xl">{formatCurrency(totals.receiptAmount)}</h2>
                 <div className="mt-2 hidden items-center gap-2 text-[10px] font-bold sm:flex">
                     <span className="rounded-full bg-white/10 px-2.5 py-0.5">{totals.receiptCount} سند قبض</span>
                 </div>
@@ -35,7 +35,7 @@ const BondKpiCards: React.FC<BondKpiCardsProps> = ({ totals, analytics }) => {
                     <ArrowUpCircle size={44} />
                 </div>
                 <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">إجمالي الصرف</p>
-                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">{formatCurrency(totals.paymentAmount)}</h2>
+                <h2 dir="ltr" title={formatCurrency(totals.paymentAmount)} className="break-words text-right font-mono text-[11px] font-black leading-tight tracking-tight sm:text-base lg:text-xl">{formatCurrency(totals.paymentAmount)}</h2>
                 <div className="mt-2 hidden items-center gap-2 text-[10px] font-bold sm:flex">
                     <span className="rounded-full bg-white/10 px-2.5 py-0.5">{totals.paymentCount} سند صرف</span>
                 </div>
@@ -51,7 +51,7 @@ const BondKpiCards: React.FC<BondKpiCardsProps> = ({ totals, analytics }) => {
                     <Wallet size={44} />
                 </div>
                 <p className="mb-0.5 truncate text-[10px] font-bold opacity-80 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">صافي التدفق</p>
-                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight sm:text-xl lg:text-2xl">{formatCurrency(Math.abs(totals.netAmount))}</h2>
+                <h2 dir="ltr" title={formatCurrency(Math.abs(totals.netAmount))} className="break-words text-right font-mono text-[11px] font-black leading-tight tracking-tight sm:text-base lg:text-xl">{formatCurrency(Math.abs(totals.netAmount))}</h2>
                 <div className="mt-2 hidden items-center gap-2 sm:flex">
                     <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-bold">
                         {totals.netAmount >= 0 ? 'فائض نقدي' : 'عجز نقدي'}
@@ -64,7 +64,7 @@ const BondKpiCards: React.FC<BondKpiCardsProps> = ({ totals, analytics }) => {
                     <Activity size={56} className="text-amber-500" />
                 </div>
                 <p className="mb-0.5 truncate text-[10px] font-bold text-slate-400 sm:mb-2 sm:text-[10px] sm:uppercase sm:tracking-widest">متوسط السند</p>
-                <h2 dir="ltr" className="truncate text-right font-mono text-[11px] font-black tracking-tight text-slate-900 dark:text-white sm:text-xl lg:text-2xl">{formatCurrency(analytics.avgAmount)}</h2>
+                <h2 dir="ltr" title={formatCurrency(analytics.avgAmount)} className="break-words text-right font-mono text-[11px] font-black leading-tight tracking-tight text-slate-900 dark:text-white sm:text-base lg:text-xl">{formatCurrency(analytics.avgAmount)}</h2>
                 <p className="mt-2 hidden text-[10px] font-bold text-slate-400 sm:block">{analytics.count} سند</p>
             </div>
         </div>

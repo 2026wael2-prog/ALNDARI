@@ -1,23 +1,41 @@
-import React, { useState } from 'react';
-import { User, Mail, Shield, Save, CheckCircle, Camera } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, Shield, Save, CheckCircle, Camera, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../../auth/store';
 import { useFeedbackStore } from '../../feedback/store';
 import Input from '../../../ui/base/Input';
 import { cn } from '../../../core/utils';
 import { useUpdateProfile } from '../hooks/useProfileUpdate';
 
+const EMAIL_FORMAT_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
 const PersonalProfile: React.FC = () => {
+  const navigate = useNavigate();
   const { user, login } = useAuthStore();
   const { showToast } = useFeedbackStore();
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [saved, setSaved] = useState(false);
   const updateProfile = useUpdateProfile();
 
+  useEffect(() => {
+    setFullName(user?.full_name || '');
+  }, [user?.full_name]);
+
+  const rawEmail = (user?.email || '').trim();
+  const isEmailFormatValid = rawEmail === '' || EMAIL_FORMAT_REGEX.test(rawEmail);
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    const cleanedName = fullName.trim();
+    if (cleanedName.length < 2) {
+      showToast('يرجى إدخال اسم كامل صالح (حرفين على الأقل)', 'error');
+      return;
+    }
     try {
-      await updateProfile.mutateAsync({ full_name: fullName });
-      login({ ...user!, full_name: fullName });
+      await updateProfile.mutateAsync({ full_name: cleanedName });
+      login({ ...user, full_name: cleanedName });
+      setFullName(cleanedName);
       setSaved(true);
       showToast('تم تحديث البيانات الشخصية بنجاح', 'success');
       setTimeout(() => {
@@ -37,8 +55,8 @@ const PersonalProfile: React.FC = () => {
   return (
     <div className="animate-in fade-in p-3 duration-500 max-md:p-3 md:p-6">
       <div className="mx-auto max-w-none space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        {/* Header (shown on mobile only — desktop SettingsPage already displays the section title) */}
+        <div className="flex items-center justify-between lg:hidden">
           <div className="flex items-center gap-3 max-md:gap-3">
             <div className="rounded-xl bg-indigo-600 p-2 text-white shadow-lg shadow-indigo-500/20 max-md:p-2.5">
               <User size={20} />
@@ -63,6 +81,11 @@ const PersonalProfile: React.FC = () => {
                 {userInitial}
               </div>
               <button
+                type="button"
+                onClick={() => {
+                  showToast('تغيير الصورة الشخصية غير متاح حالياً — يتم عرض الحرف الأول من الاسم', 'info');
+                }}
+                aria-label="تغيير الصورة الشخصية"
                 className="absolute -bottom-2 -right-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-2 text-[var(--app-text-secondary)] shadow-xs transition-colors duration-150 hover:bg-[var(--app-surface-hover)] hover:text-[var(--app-text)]"
                 title="تغيير الصورة"
               >
@@ -95,14 +118,29 @@ const PersonalProfile: React.FC = () => {
                 icon={<User size={16} />}
                 required
               />
-              <Input
-                label="البريد الإلكتروني"
-                value={user?.email || ''}
-                readOnly
-                disabled
-                icon={<Mail size={16} />}
-                className="cursor-not-allowed bg-gray-50 dark:bg-slate-800/50"
-              />
+              <div>
+                <Input
+                  label="البريد الإلكتروني"
+                  type="email"
+                  value={user?.email || ''}
+                  readOnly
+                  disabled
+                  icon={<Mail size={16} />}
+                  className={cn(
+                    'cursor-not-allowed bg-gray-50 dark:bg-slate-800/50',
+                    !isEmailFormatValid && 'border-amber-400 dark:border-amber-600'
+                  )}
+                />
+                {!isEmailFormatValid && (
+                  <p className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                    <AlertTriangle size={13} className="shrink-0" />
+                    <span>
+                      صيغة البريد الإلكتروني غير قياسية (مثل النهاية الرقمية)، يُنصح بتصحيحه من
+                      إدارة المستخدمين.
+                    </span>
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-start">
@@ -147,7 +185,13 @@ const PersonalProfile: React.FC = () => {
               </p>
             </div>
           </div>
-          <button className="rounded-lg bg-amber-500 px-6 py-2.5 text-[10px] font-black text-white shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-600">
+          <button
+            type="button"
+            onClick={() => {
+              navigate('/settings?tab=security');
+            }}
+            className="rounded-lg bg-amber-500 px-6 py-2.5 text-[10px] font-black text-white shadow-lg shadow-amber-500/20 transition-all hover:bg-amber-600"
+          >
             تغيير كلمة المرور
           </button>
         </div>

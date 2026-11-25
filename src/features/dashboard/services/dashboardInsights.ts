@@ -129,7 +129,10 @@ export const calculateDashboardInsights = (data: {
 
   const olderSales = getSum(olderHalf, 'sales') || getSum(olderHalf, 'value');
   const newerSales = getSum(newerHalf, 'sales') || getSum(newerHalf, 'value');
-  const salesTrend = olderSales > 0 ? ((newerSales - olderSales) / olderSales) * 100 : 0;
+  // تجنب إظهار سهم هابط -100% مضلل عندما تكون مبيعات الفترة موجبة (> 0) ولكن نصف الرسم البياني الأحدث فارغ
+  const rawSalesTrend = olderSales > 0 ? ((newerSales - olderSales) / olderSales) * 100 : 0;
+  const salesTrend =
+    totalSales > 0 && newerSales === 0 && rawSalesTrend <= -99 ? 0 : rawSalesTrend;
 
   const olderPurchases = getSum(olderHalf, 'purchases');
   const newerPurchases = getSum(newerHalf, 'purchases');
@@ -197,10 +200,23 @@ export const calculateDashboardInsights = (data: {
     });
   }
 
-  // معدل التحصيل المحاسبي: نسبة المقبوضات المحصلة إلى إجمالي المبيعات، محصورة منطقياً بين 0% و 100%
+  // معدل التحصيل المحاسبي: إذا كانت الديون التراكمية أكبر بكثير من مبيعات الفترة القصيرة (مثل "اليوم")،
+  // نعتمد نسبة سندات القبض إلى مبيعات الفترة (أو 50% محايدة عند غياب السندات) بدل تصفير النسبة أو تضخيمها لـ 100%.
   const collectedSales = Math.max(0, totalSales - Math.min(totalSales, totalReceivables));
+  const isCumulativeDebtVsShortPeriod = totalSales > 0 && totalReceivables > totalSales * 5;
+  const periodReceipts = Math.max(0, data.receiptBonds ?? 0);
+  const periodCashCollectionRate =
+    totalSales > 0
+      ? periodReceipts > 0
+        ? Math.min(100, (periodReceipts / totalSales) * 100)
+        : 50
+      : 100;
   const collectionRate =
-    totalSales > 0 ? Math.min(100, Math.max(0, (collectedSales / totalSales) * 100)) : 100;
+    totalSales > 0
+      ? isCumulativeDebtVsShortPeriod
+        ? periodCashCollectionRate
+        : Math.min(100, Math.max(0, (collectedSales / totalSales) * 100))
+      : 100;
   if (collectionRate < 80 && totalSales > 0) {
     insights.push({
       id: 'collection',

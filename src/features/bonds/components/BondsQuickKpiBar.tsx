@@ -70,7 +70,7 @@ export const BondsQuickKpiBar: React.FC<BondsQuickKpiBarProps> = ({
             </div>
           </div>
           <div className="mt-0.5 flex items-baseline justify-between gap-1 sm:mt-1">
-            <span dir="ltr" className="truncate font-mono text-[10.5px] font-black text-emerald-600 dark:text-emerald-400 sm:text-base lg:text-lg">
+            <span dir="ltr" title={formatCurrency(totals.receiptAmount, 'SAR')} className="min-w-0 break-words font-mono text-[10.5px] font-black leading-tight text-emerald-600 dark:text-emerald-400 sm:text-sm lg:text-base">
               {formatCurrency(totals.receiptAmount, 'SAR')}
             </span>
             <span className="hidden shrink-0 font-mono text-[10px] font-bold text-slate-400 sm:inline">
@@ -97,7 +97,7 @@ export const BondsQuickKpiBar: React.FC<BondsQuickKpiBarProps> = ({
             </div>
           </div>
           <div className="mt-0.5 flex items-baseline justify-between gap-1 sm:mt-1">
-            <span dir="ltr" className="truncate font-mono text-[10.5px] font-black text-rose-600 dark:text-rose-400 sm:text-base lg:text-lg">
+            <span dir="ltr" title={formatCurrency(totals.paymentAmount, 'SAR')} className="min-w-0 break-words font-mono text-[10.5px] font-black leading-tight text-rose-600 dark:text-rose-400 sm:text-sm lg:text-base">
               {formatCurrency(totals.paymentAmount, 'SAR')}
             </span>
             <span className="hidden shrink-0 font-mono text-[10px] font-bold text-slate-400 sm:inline">
@@ -126,8 +126,9 @@ export const BondsQuickKpiBar: React.FC<BondsQuickKpiBarProps> = ({
           <div className="mt-0.5 flex items-baseline justify-between gap-1 sm:mt-1">
             <span
               dir="ltr"
+              title={formatCurrency(totals.netAmount, 'SAR')}
               className={cn(
-                'truncate font-mono text-[10.5px] font-black sm:text-base lg:text-lg',
+                'min-w-0 break-words font-mono text-[10.5px] font-black leading-tight sm:text-sm lg:text-base',
                 totals.netAmount >= 0
                   ? 'text-blue-600 dark:text-blue-400'
                   : 'text-amber-600 dark:text-amber-400'
@@ -157,7 +158,7 @@ export const BondsQuickKpiBar: React.FC<BondsQuickKpiBarProps> = ({
             </div>
           </div>
           <div className="mt-0.5 flex items-baseline justify-between gap-1 sm:mt-1">
-            <span dir="ltr" className="truncate font-mono text-[10.5px] font-black text-slate-800 dark:text-slate-100 sm:text-base lg:text-lg">
+            <span dir="ltr" title={formatCurrency(analytics.avgAmount, 'SAR')} className="min-w-0 break-words font-mono text-[10.5px] font-black leading-tight text-slate-800 dark:text-slate-100 sm:text-sm lg:text-base">
               {formatCurrency(analytics.avgAmount, 'SAR')}
             </span>
             <span className="hidden shrink-0 font-mono text-[10px] font-bold text-slate-400 sm:inline">

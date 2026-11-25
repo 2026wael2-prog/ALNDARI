@@ -16,24 +16,14 @@ import PageLoader from '../../base/PageLoader';
 import { cn } from '../../../core/utils';
 
 /**
- * Maximum number of screens kept alive at once.
+ * Maximum number of screens kept alive at once (active tab + 1 previous tab).
  *
  * Every kept-alive tab holds its React Query observers, timers, charts and DOM.
- * The previous unbounded cache let a long session reach the 15-tab limit, so a
- * single realtime invalidation refetched ALL of them and navigation became
- * progressively heavier. LRU eviction drops the least recently used tabs —
- * never a dirty one — and re-activating an evicted tab simply mounts it again
- * (its data is still in the React Query cache).
+ * Evicting immediately whenever the cache exceeds `MAX_MOUNTED_TABS` prevents
+ * DOM bloat (thousands of hidden nodes, duplicate headings, and orphaned inputs)
+ * while still keeping back-and-forth switching between two screens instant.
  */
-const MAX_MOUNTED_TABS = 3;
-
-/**
- * A tab is only evicted after being inactive for this long. No page currently
- * flags itself dirty (workspaceTabStore.setIsDirty is unused by screens), so the
- * time window is the practical safeguard against discarding in-progress input:
- * a tab the user was just working in is never the first to go.
- */
-const EVICTION_IDLE_MS = 60 * 1000;
+const MAX_MOUNTED_TABS = 2;
 
 interface CacheEntry {
   view: React.ReactNode;
@@ -41,7 +31,7 @@ interface CacheEntry {
 }
 
 /**
- * Drops views of closed tabs and enforces the keep-alive budget.
+ * Drops views of closed tabs and strictly enforces the keep-alive budget.
  * Uses a Map (no dynamic object keys) and returns `true` when it changed the
  * cache so the caller can re-render.
  */
@@ -62,14 +52,10 @@ function pruneViewCache(
 
   if (cache.size <= MAX_MOUNTED_TABS) return changed;
 
-  const now = Date.now();
+  // Hard LRU cap: evict least-recently-used non-active clean tabs immediately
+  // (no idle grace window that allows rapid navigation to accumulate 15+ mounted DOM trees).
   const evictable = Array.from(cache.entries())
-    .filter(([id, entry]) => {
-      const isOtherTab = id !== activeTabId;
-      const isClean = !dirtyIds.has(id);
-      const isIdle = now - entry.lastUsed > EVICTION_IDLE_MS;
-      return isOtherTab && isClean && isIdle;
-    })
+    .filter(([id]) => id !== activeTabId && !dirtyIds.has(id))
     .sort((a, b) => a[1].lastUsed - b[1].lastUsed)
     .slice(0, cache.size - MAX_MOUNTED_TABS);
 

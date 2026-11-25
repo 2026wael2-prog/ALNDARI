@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useThemeStore } from '../../../../lib/themeStore';
 import { reportService } from '../../services/reportService';
 import { useAuthStore } from '../../../auth/store';
-import { Loader2, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { cn, formatCurrency } from '@/core/utils';
 import { useBranchFilter } from '../../../branches/hooks/useBranchFilter';
 import { logger } from '../../../../core/utils/logger';
@@ -72,20 +72,18 @@ const FinancialPerformanceChart: React.FC<FinancialPerformanceChartProps> = ({ y
     );
   }
 
-  return (
-    <div ref={containerRef} className="group relative h-52 w-full p-1 md:h-72 md:p-2">
-      <div className="absolute end-0 top-0 z-10 p-2 opacity-0 transition-opacity group-hover:opacity-100 md:p-4">
-        <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 shadow-xl backdrop-blur-md">
-          <TrendingUp size={12} className="text-emerald-500" />
-          <span className="text-[10px] font-bold uppercase tracking-tighter text-emerald-500">
-            Performance Optimized
-          </span>
-        </div>
-      </div>
+  const formatYAxisTick = (v: number): string => {
+    const abs = Math.abs(v);
+    if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${Math.round(v / 1_000)}K`;
+    return String(Math.round(v));
+  };
 
+  return (
+    <div ref={containerRef} className="relative h-52 w-full p-1 md:h-72 md:p-2">
       {isMounted && (
         <ResponsiveContainer width="100%" height="100%" minWidth={1} debounce={1} minHeight={180}>
-          <BarChart data={data ?? []} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+          <BarChart data={data ?? []} margin={{ top: 12, right: 12, left: 4, bottom: 0 }}>
             <defs>
               <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
@@ -112,8 +110,8 @@ const FinancialPerformanceChart: React.FC<FinancialPerformanceChartProps> = ({ y
               tick={{ fontSize: 10, fill: '#94a3b8' }}
               axisLine={false}
               tickLine={false}
-              width={40}
-              tickFormatter={v => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
+              width={48}
+              tickFormatter={formatYAxisTick}
             />
             <Tooltip
               cursor={{ fill: isDark ? '#ffffff05' : '#00000005' }}

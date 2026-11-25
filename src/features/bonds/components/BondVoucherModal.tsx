@@ -307,7 +307,7 @@ export const BondVoucherModal: React.FC<BondVoucherModalProps> = ({ isOpen, onCl
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <h3 className="truncate text-xs font-black text-slate-900 dark:text-white sm:text-sm">
-                    سند ({bond.payment_number})
+                    معاينة السند الرسمي ({bond.payment_number})
                   </h3>
                   <span
                     className={cn(

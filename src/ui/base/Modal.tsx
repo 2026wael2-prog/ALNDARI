@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, type LucideIcon, Expand, Shrink } from 'lucide-react';
 import { cn } from '../../core/utils';
@@ -49,9 +49,12 @@ const Modal: React.FC<ModalProps> = ({
   const [customSize, setCustomSize] = useState<Size | null>(null);
   const [stackOrder, setStackOrder] = useState(1);
 
-  const titleId = `modal-title-${title.replace(/\s/g, '-')}`;
-  const descId = `modal-desc-${title.replace(/\s/g, '-')}`;
+  const reactId = useId();
+  const titleId = `modal-title-${reactId}`;
+  const descId = `modal-desc-${reactId}`;
   const modalRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const dragRef = useRef<{
     isDragging: boolean;
     startX: number;
@@ -81,6 +84,40 @@ const Modal: React.FC<ModalProps> = ({
     }
   }, [isOpen, size]);
 
+  // Close topmost modal on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && stackOrder === openModalStackCounter) {
+        e.stopPropagation();
+        onCloseRef.current();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, stackOrder]);
+
+  const handleDragMove = useCallback((e: MouseEvent) => {
+    if (!dragRef.current?.isDragging) return;
+
+    const deltaX = e.clientX - dragRef.current.startX;
+    const deltaY = e.clientY - dragRef.current.startY;
+
+    setPosition({
+      x: dragRef.current.initialX + deltaX,
+      y: dragRef.current.initialY + deltaY,
+    });
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    dragRef.current = null;
+    document.body.style.userSelect = '';
+    window.removeEventListener('mousemove', handleDragMove);
+    window.removeEventListener('mouseup', handleDragEnd);
+  }, [handleDragMove]);
+
   const handleDragStart = (e: React.MouseEvent) => {
     if (isMaximized) return;
     const rect = modalRef.current?.getBoundingClientRect();
@@ -99,57 +136,15 @@ const Modal: React.FC<ModalProps> = ({
     window.addEventListener('mouseup', handleDragEnd);
   };
 
-  const handleDragMove = (e: MouseEvent) => {
-    if (!dragRef.current?.isDragging) return;
-
-    const deltaX = e.clientX - dragRef.current.startX;
-    const deltaY = e.clientY - dragRef.current.startY;
-
-    setPosition({
-      x: dragRef.current.initialX + deltaX,
-      y: dragRef.current.initialY + deltaY,
-    });
-  };
-
-  const handleDragEnd = () => {
-    dragRef.current = null;
-    document.body.style.userSelect = '';
-    window.removeEventListener('mousemove', handleDragMove);
-    window.removeEventListener('mouseup', handleDragEnd);
-  };
-
-  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
-    e.stopPropagation();
-    if (isMaximized) return;
-
-    const rect = modalRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    resizeRef.current = {
-      isResizing: true,
-      direction,
-      startX: e.clientX,
-      startY: e.clientY,
-      initialWidth: rect.width,
-      initialHeight: rect.height,
-      initialX: rect.left,
-      initialY: rect.top,
-    };
-
-    document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', handleResizeMove);
-    window.addEventListener('mouseup', handleResizeEnd);
-  };
-
-  const handleResizeMove = (e: MouseEvent) => {
+  const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!resizeRef.current?.isResizing) return;
     const { direction, startX, startY, initialWidth, initialHeight, initialX, initialY } =
       resizeRef.current;
 
     let newWidth = initialWidth;
     let newHeight = initialHeight;
-    let newX = position?.x ?? initialX;
-    let newY = position?.y ?? initialY;
+    let newX = initialX;
+    let newY = initialY;
 
     const deltaX = e.clientX - startX;
     const deltaY = e.clientY - startY;
@@ -175,14 +170,45 @@ const Modal: React.FC<ModalProps> = ({
 
     setCustomSize({ width: newWidth, height: newHeight });
     setPosition({ x: newX, y: newY });
-  };
+  }, []);
 
-  const handleResizeEnd = () => {
+  const handleResizeEnd = useCallback(() => {
     resizeRef.current = null;
     document.body.style.userSelect = '';
     window.removeEventListener('mousemove', handleResizeMove);
     window.removeEventListener('mouseup', handleResizeEnd);
+  }, [handleResizeMove]);
+
+  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
+    e.stopPropagation();
+    if (isMaximized) return;
+
+    const rect = modalRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    resizeRef.current = {
+      isResizing: true,
+      direction,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialWidth: rect.width,
+      initialHeight: rect.height,
+      initialX: rect.left,
+      initialY: rect.top,
+    };
+
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleResizeMove);
+    window.addEventListener('mouseup', handleResizeEnd);
   };
+
+  // Cleanup any active drag/resize listeners if modal closes or unmounts mid-gesture
+  useEffect(() => {
+    return () => {
+      handleDragEnd();
+      handleResizeEnd();
+    };
+  }, [handleDragEnd, handleResizeEnd]);
 
   if (!isOpen) return null;
 

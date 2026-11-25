@@ -127,7 +127,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
         <div className="min-w-0 rounded-lg border border-purple-200/70 bg-gradient-to-br from-purple-50/80 to-purple-100/40 p-1.5 shadow-sm dark:border-purple-900/40 dark:from-purple-950/20 dark:to-purple-900/10 sm:rounded-2xl sm:p-4">
           <div className="flex items-center justify-between gap-1">
             <span className="truncate text-[10px] font-bold text-purple-800 dark:text-purple-300 sm:text-xs">
-              {isCustomer ? 'عملاء VIP' : 'كبار الموردين'}
+              {isCustomer ? 'عملاء كبار (VIP)' : 'كبار الموردين'}
             </span>
             <div className="hidden rounded-xl bg-purple-100 p-2 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 sm:block">
               <Crown size={16} />
@@ -163,7 +163,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
         <div className="min-w-0 rounded-lg border border-rose-200/70 bg-gradient-to-br from-rose-50/80 to-rose-100/40 p-1.5 shadow-sm dark:border-rose-900/40 dark:from-rose-950/20 dark:to-rose-900/10 sm:rounded-2xl sm:p-4">
           <div className="flex items-center justify-between gap-1">
             <span className="truncate text-[10px] font-bold text-rose-800 dark:text-rose-300 sm:text-xs">
-              مخاطر مرتفعة
+              مخاطر ائتمانية مرتفعة
             </span>
             <div className="hidden rounded-xl bg-rose-100 p-2 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 sm:block">
               <ShieldAlert size={16} />
@@ -181,7 +181,7 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
         <div className="min-w-0 rounded-lg border border-emerald-200/70 bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 p-1.5 shadow-sm dark:border-emerald-900/40 dark:from-emerald-950/20 dark:to-emerald-900/10 sm:rounded-2xl sm:p-4">
           <div className="flex items-center justify-between gap-1">
             <span className="truncate text-[10px] font-bold text-emerald-800 dark:text-emerald-300 sm:text-xs">
-              أرصدة مسواة
+              أرصدة مسواة بالكامل
             </span>
             <div className="hidden rounded-xl bg-emerald-100 p-2 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 sm:block">
               <CheckCircle2 size={16} />

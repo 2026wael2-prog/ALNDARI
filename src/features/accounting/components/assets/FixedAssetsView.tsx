@@ -84,7 +84,7 @@ const FixedAssetsView: React.FC = () => {
             <span className="truncate text-[10px] font-bold sm:text-xs">تكلفة الأصول</span>
             <Building2 size={14} className="hidden shrink-0 text-blue-500 sm:inline" />
           </div>
-          <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-black text-slate-800 dark:text-slate-100 sm:mt-2 sm:text-lg sm:font-bold">
+          <div dir="ltr" title={formatCurrency(totals.totalCost)} className="mt-1 break-words text-right font-mono text-[10.5px] font-black leading-tight text-slate-800 dark:text-slate-100 sm:mt-2 sm:text-base sm:font-bold">
             {formatCurrency(totals.totalCost)}
           </div>
           <div className="mt-1 hidden text-[10px] text-slate-400 sm:block">{totals.totalCount} أصل مسجل</div>
@@ -95,7 +95,7 @@ const FixedAssetsView: React.FC = () => {
             <span className="truncate text-[10px] font-bold sm:text-xs">مجمع الإهلاك</span>
             <TrendingDown size={14} className="hidden shrink-0 text-amber-500 sm:inline" />
           </div>
-          <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-black text-amber-600 dark:text-amber-400 sm:mt-2 sm:text-lg sm:font-bold">
+          <div dir="ltr" title={formatCurrency(totals.totalDepreciated)} className="mt-1 break-words text-right font-mono text-[10.5px] font-black leading-tight text-amber-600 dark:text-amber-400 sm:mt-2 sm:text-base sm:font-bold">
             {formatCurrency(totals.totalDepreciated)}
           </div>
           <div className="mt-1 hidden text-[10px] text-slate-400 sm:block">حساب 1390 الدفتري</div>
@@ -106,7 +106,7 @@ const FixedAssetsView: React.FC = () => {
             <span className="truncate text-[10px] font-bold sm:text-xs">القيمة الدفترية</span>
             <Coins size={14} className="hidden shrink-0 text-emerald-500 sm:inline" />
           </div>
-          <div dir="ltr" className="mt-1 truncate text-right font-mono text-[10.5px] font-black text-emerald-600 dark:text-emerald-400 sm:mt-2 sm:text-lg sm:font-bold">
+          <div dir="ltr" title={formatCurrency(totals.netBookValue)} className="mt-1 break-words text-right font-mono text-[10.5px] font-black leading-tight text-emerald-600 dark:text-emerald-400 sm:mt-2 sm:text-base sm:font-bold">
             {formatCurrency(totals.netBookValue)}
           </div>
           <div className="mt-1 hidden text-[10px] text-emerald-600/80 sm:block">المدرجة في المركز المالي</div>

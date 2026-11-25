@@ -63,9 +63,9 @@ interface DhikrState extends DhikrSettings {
   detectGpsLocation: () => Promise<{ success: boolean; city?: string; error?: string }>;
 }
 
-// Default to Yemen - Al-Mahrah (Shahan) coordinates
+// Default to disabled so financial screens remain calm & distraction-free (users can opt-in from Settings → Dhikr)
 const defaultSettings: DhikrSettings = {
-  enabled: true,
+  enabled: false,
   soundEnabled: true,
   volume: 0.9,
   adhanReciter: 'makkah',
@@ -146,6 +146,17 @@ export const useDhikrStore = create<DhikrState>()(
         });
       },
     }),
-    { name: 'al-zahra-dhikr-v3' }
+    {
+      name: 'al-zahra-dhikr-v3',
+      version: 2,
+      migrate: (persistedState: unknown, version: number) => {
+        const state = (persistedState as Partial<DhikrSettings>) || {};
+        if (version < 2) {
+          // One-time migration: disable ticker by default so financial views stay uncluttered (preserves city/audio prefs)
+          return { ...defaultSettings, ...state, enabled: false };
+        }
+        return { ...defaultSettings, ...state };
+      },
+    }
   )
 );

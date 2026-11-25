@@ -33,7 +33,7 @@ export const DEFAULT_ROOT_TAB: WorkspaceTab = {
   isClosable: false,
 };
 
-export const MAX_TABS_LIMIT = 15;
+export const MAX_TABS_LIMIT = 8;
 
 interface WorkspaceTabState {
   /** قائمة التبويبات المفتوحة حالياً */
@@ -223,14 +223,22 @@ export const useWorkspaceTabStore = create<WorkspaceTabState>()(
         const persistedTabs = Array.isArray(p?.tabs) && p.tabs.length > 0 ? p.tabs : current.tabs;
         // التأكد من أن التبويب الرئيسي موجود دائماً وغير قابل للإغلاق
         const hasRoot = persistedTabs.some(t => t.id === '/');
-        const finalTabs = hasRoot
+        const normalizedTabs = hasRoot
           ? persistedTabs.map(t => (t.id === '/' ? { ...t, isClosable: false } : t))
           : [DEFAULT_ROOT_TAB, ...persistedTabs];
 
+        // قص أي تبويبات زائدة مخزنة من جلسات قديمة لمنع تراكم عشرات التبويبات
         const activeId =
-          p?.activeTabId && finalTabs.some(t => t.id === p.activeTabId)
+          p?.activeTabId && normalizedTabs.some(t => t.id === p.activeTabId)
             ? p.activeTabId
-            : finalTabs[0].id;
+            : normalizedTabs[0].id;
+
+        const finalTabs = [...normalizedTabs];
+        while (finalTabs.length > MAX_TABS_LIMIT) {
+          const dropIdx = finalTabs.findIndex(t => t.isClosable && t.id !== activeId);
+          if (dropIdx < 0) break;
+          finalTabs.splice(dropIdx, 1);
+        }
 
         return {
           ...current,

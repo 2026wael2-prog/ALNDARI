@@ -61,14 +61,16 @@ export const useInvoiceListColumns = ({
             )}
           </div>
         ),
-        width: 'w-32',
+        width: 'w-40',
       },
       {
         header: 'العميل',
         accessorKey: 'customerName' as keyof InvoiceListItem,
         accessor: (row: InvoiceListItem) => (
           <div className="flex flex-col gap-1">
-            <span className="font-bold text-gray-800 dark:text-slate-100">{row.customerName}</span>
+            <span className="font-bold text-gray-800 dark:text-slate-100" title={row.customerName}>
+              {row.customerName}
+            </span>
             {row.partyPhone && (
               <span className="font-mono text-[10px] text-gray-500 dark:text-slate-400">
                 {row.partyPhone}
@@ -76,7 +78,7 @@ export const useInvoiceListColumns = ({
             )}
           </div>
         ),
-        width: 'w-40',
+        width: 'w-52',
       },
       {
         header: 'الأصناف والقطع',
@@ -159,25 +161,30 @@ export const useInvoiceListColumns = ({
           return (
             <div className="flex items-center gap-1">
               <button
+                type="button"
                 onClick={e => handleShareExcel(e, row)}
                 className="rounded p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
                 title="تنزيل / مشاركة Excel"
+                aria-label="تنزيل أو مشاركة Excel"
               >
                 <FileSpreadsheet size={15} />
               </button>
               {handleEditInvoice && !isInternal && row.type === 'sale' && row.status !== 'void' && (
                 <button
+                  type="button"
                   onClick={e => {
                     e.stopPropagation();
                     handleEditInvoice(row.id);
                   }}
                   className="rounded p-1.5 text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
                   title="تعديل الفاتورة"
+                  aria-label="تعديل الفاتورة"
                 >
                   <Edit size={15} />
                 </button>
               )}
               <button
+                type="button"
                 onMouseEnter={() => {
                   handlePrefetchDetails(row.id);
                 }}
@@ -186,16 +193,19 @@ export const useInvoiceListColumns = ({
                 }}
                 className="rounded p-1.5 text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-slate-800"
                 title="معاينة تفاصيل الفاتورة"
+                aria-label="معاينة تفاصيل الفاتورة"
               >
                 <Eye size={15} />
               </button>
               {!isInternal && (
                 <button
+                  type="button"
                   onClick={e => {
                     handleDelete(e, row);
                   }}
                   disabled={isDeleting}
                   title="حذف / إلغاء الفاتورة"
+                  aria-label="حذف أو إلغاء الفاتورة"
                   className="rounded p-1.5 text-rose-600 transition-colors hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20"
                 >
                   <Trash2 size={15} />

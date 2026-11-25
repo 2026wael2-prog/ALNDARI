@@ -29,7 +29,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   isInventoryOnly = false,
   requesterBranchId = null,
 }) => {
-  const { products, isLoading: isProductsLoading } = useProducts(searchTerm);
+  const { products, isLoading: isProductsLoading } = useProducts(searchTerm, {
+    ...(selectedWarehouseId ? { warehouseId: selectedWarehouseId } : {}),
+  });
   const { data: categories = [], isLoading: isCategoriesLoading } = useInventoryCategories();
   const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
   const { playNotificationSound } = useSoundStore();

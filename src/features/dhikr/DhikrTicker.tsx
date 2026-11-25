@@ -8,7 +8,7 @@
  */
 import React, { useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { Sparkles, Moon, Clock, Volume2, VolumeX, MapPin, BookOpen, X } from 'lucide-react';
+import { Sparkles, Clock, Volume2, VolumeX, MapPin, BookOpen, X } from 'lucide-react';
 import { cn } from '../../core/utils';
 import { useI18nStore } from '../../lib/i18nStore';
 import { useDhikrStore } from './dhikrStore';
@@ -22,9 +22,8 @@ const MARQUEE_KEYFRAMES = `
 @keyframes dhikr-ticker-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
 `;
 
-const DhikrTicker: React.FC = () => {
-  const { enabled, setEnabled, soundEnabled, setSoundEnabled, city, detectGpsLocation } =
-    useDhikrStore();
+const DhikrTickerActive: React.FC = () => {
+  const { setEnabled, soundEnabled, setSoundEnabled, city, detectGpsLocation } = useDhikrStore();
 
   const reducedMotion = useReducedMotion();
   const { dir } = useI18nStore();
@@ -32,41 +31,6 @@ const DhikrTicker: React.FC = () => {
   const item = useDhikrTicker(prayerTimes);
   const [paused, setPaused] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Collapsed Quick-Restore Pill
-  if (!enabled) {
-    return (
-      <div className="no-print hidden h-6 w-full items-center justify-between border-b border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 sm:flex">
-        <button
-          type="button"
-          onClick={() => {
-            setEnabled(true);
-          }}
-          className="flex cursor-pointer items-center gap-1.5 transition-all hover:underline"
-        >
-          <Moon size={12} className="text-emerald-600 dark:text-emerald-400" />
-          <span>إظهار شريط الذكر وأوقات الصلاة 📿</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-1 rounded-md bg-emerald-600/15 px-2 py-0.5 text-[10px] transition-colors hover:bg-emerald-600/25"
-        >
-          <BookOpen size={11} />
-          <span>مواقيت الصلاة والأدعية</span>
-        </button>
-        <PrayerTimesModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-          }}
-        />
-      </div>
-    );
-  }
 
   const animationName = dir === 'rtl' ? 'dhikr-ticker-rtl' : 'dhikr-ticker-ltr';
 
@@ -221,6 +185,16 @@ const DhikrTicker: React.FC = () => {
       />
     </>
   );
+};
+
+/**
+ * Outer guard: when disabled, neither usePrayerTimes nor useDhikrTicker mounts,
+ * ensuring zero background intervals or surprise adhan audio when turned off.
+ */
+const DhikrTicker: React.FC = () => {
+  const enabled = useDhikrStore(s => s.enabled);
+  if (!enabled) return null;
+  return <DhikrTickerActive />;
 };
 
 export default DhikrTicker;

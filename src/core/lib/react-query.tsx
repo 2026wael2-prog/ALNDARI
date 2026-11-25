@@ -189,6 +189,57 @@ const useSyncQueue = (queryClient: QueryClient): void => {
   };
 };
 
+// Skip persisting heavy paginated/analytical/PII queries to IndexedDB so
+// sensitive customer/financial records stay out of plaintext client storage
+// and JSON.stringify on every throttle tick does not freeze the main thread.
+const NON_PERSISTED_PREFIXES = new Set([
+  'products_paginated',
+  'product_search',
+  'sales_analytics',
+  'purchases_analytics',
+  'audit_journals',
+  'audit_logs',
+  'security_alerts',
+  'ledger',
+  'trial_balance',
+  'balance_sheet',
+  'income_statement',
+  'vat_return_report',
+  'profit_loss',
+  'debt_report',
+  'stock_movements',
+  'dashboard_raw_data',
+  'parties',
+  'party',
+  'party_detail',
+  'party_statement',
+  'party_balances',
+  'party_currencies',
+  'customers',
+  'suppliers',
+  'employees',
+  'users',
+  'user_roles',
+  'debts',
+  'debt_queue',
+  'debt_overview',
+  'debt_analytics',
+  'debt_collection',
+  'debt_promises',
+  'debt_reminders',
+  'reconciliation',
+  'daily_reconciliation',
+  'expenses',
+  'expense_stats',
+  'invoices',
+  'sales_quotations',
+  'purchases',
+  'purchase_quotations',
+  'bonds',
+  'chat_messages',
+  'chat_channels',
+]);
+
 export const ReactQueryProvider: React.FC<ReactQueryProviderProps> = ({ children, client }) => {
   // Single shared client + persister instance. This is THE client used by the
   // whole app (and by src/features/auth/store.ts on logout), so clearing it on
@@ -204,29 +255,6 @@ export const ReactQueryProvider: React.FC<ReactQueryProviderProps> = ({ children
 
   // Initialize sync queue
   useSyncQueue(activeClient);
-
-  // Skip persisting heavy paginated/analytical/report queries to IndexedDB so
-  // JSON.stringify on every throttle tick does not freeze the main thread.
-  const NON_PERSISTED_PREFIXES = new Set([
-    'products_paginated',
-    'product_search',
-    'sales_analytics',
-    'purchases_analytics',
-    'audit_journals',
-    'ledger',
-    'trial_balance',
-    'balance_sheet',
-    'income_statement',
-    'vat_return_report',
-    'profit_loss',
-    'debt_report',
-    'stock_movements',
-    'dashboard_raw_data',
-    'parties',
-    'invoices',
-    'purchases',
-    'bonds',
-  ]);
 
   return (
     <PersistQueryClientProvider

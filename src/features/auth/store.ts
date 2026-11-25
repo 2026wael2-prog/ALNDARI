@@ -11,13 +11,15 @@ import { useBranchFilterStore } from '../branches/store';
 import { teardownAllRealtimeSync } from '../../lib/hooks/useRealtimeSync';
 import { syncStore } from '../../core/lib/sync-store';
 import { useWorkspaceTabStore } from '../../core/store/workspaceTabStore';
+import { partyCache } from '../parties/lib/party-cache';
 
 function clearSessionClientState(): void {
   teardownAllRealtimeSync();
+  partyCache.clearAll();
   queryClient.clear();
   useBranchFilterStore.getState().ensureCompany(null);
   useWorkspaceTabStore.getState().closeAllTabs();
-  // [AUDIT FIX 16] Clear persisted invoice/purchase/POS drafts so the next user/company on this device never sees stale drafts
+  // [AUDIT FIX 16] Clear persisted invoice/purchase/POS drafts & dead-letter queue so the next user/company on this device never sees stale PII
   try {
     const draftKeys = [
       'sales-invoice-storage',
@@ -26,8 +28,10 @@ function clearSessionClientState(): void {
       'purchases_drafts_v1',
       'pos-storage',
       'pos_cart_v1',
+      'al-zahra-pos-cache',
       'alzahra_sales_draft',
       'alzahra_purchase_draft',
+      'alnadary_sync_dead_letter_v1',
     ];
     for (const key of draftKeys) {
       localStorage.removeItem(key);

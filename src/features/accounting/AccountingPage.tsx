@@ -144,7 +144,7 @@ const AccountingPage: React.FC = () => {
     ];
 
     return (
-      <div className="animate-in slide-in-from-top-1 no-scrollbar flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto rounded-[var(--radius)] border border-blue-100 bg-blue-50 px-1.5 py-1 duration-300 dark:border-blue-900/20 dark:bg-blue-900/10 md:w-fit md:flex-wrap md:gap-2 md:px-2 md:py-1.5">
+      <div className="animate-in slide-in-from-top-1 no-scrollbar mx-1 flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto rounded-[var(--radius)] border border-blue-100 bg-blue-50 px-2 py-1 duration-300 dark:border-blue-900/20 dark:bg-blue-900/10 md:mx-2 md:w-fit md:flex-wrap md:gap-2 md:px-2.5 md:py-1.5">
         <div className="hidden shrink-0 rounded-md bg-blue-600 p-1.5 text-white sm:block">
           <Calendar size={13} />
         </div>

@@ -44,9 +44,9 @@ export const POSCart: React.FC<POSCartProps> = ({
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {validItems.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-slate-200 dark:text-slate-800 max-md:gap-3 max-md:p-3">
-            <ShoppingCart size={48} strokeWidth={1} />
-            <p className="text-center text-[10px] font-bold uppercase tracking-[0.15em] text-slate-300 dark:text-slate-700">
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-slate-400 dark:text-slate-500 max-md:gap-3 max-md:p-3">
+            <ShoppingCart size={44} strokeWidth={1.5} />
+            <p className="text-center text-xs font-bold tracking-wide text-slate-600 dark:text-slate-300">
               {t('waiting_for_items')}
             </p>
           </div>

@@ -77,13 +77,13 @@ async function fetchAllParties(
   typeFilter: string[],
   branchId?: string | null
 ): Promise<{ data: Array<Record<string, unknown>>; error: PostgrestError | null }> {
-  const allRows: Array<Record<string, unknown>> = [];
-  let from = 0;
-
-  while (true) {
+  const buildPageQuery = (from: number, includeCount = false) => {
     let query = supabase
       .from('parties')
-      .select('*, party_categories(id, name)')
+      .select(
+        '*, party_categories(id, name)',
+        includeCount ? { count: 'exact' } : undefined
+      )
       .eq('company_id', companyId)
       .in('type', typeFilter)
       .is('deleted_at', null)
@@ -96,10 +96,39 @@ async function fetchAllParties(
       // حتى لا يختفي أي عميل أُنشئ بدون فرع من قوائم البحث والكشوفات والمبيعات.
       query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);
     }
+    return query;
+  };
 
-    const { data, error } = await query;
+  // الصفحة الأولى مع count لتحديد عدد الصفحات المتبقية وجلبها بالتوازي بدل الانتظار المتسلسل
+  const firstRes = await buildPageQuery(0, true);
+  if (firstRes.error !== null) return { data: [], error: firstRes.error };
+  const firstBatch = (firstRes.data || []) as Array<Record<string, unknown>>;
+  if (firstBatch.length < PARTIES_PAGE_SIZE) {
+    return { data: firstBatch, error: null };
+  }
+
+  const totalCount = firstRes.count ?? 0;
+  if (totalCount > PARTIES_PAGE_SIZE) {
+    const offsets: number[] = [];
+    for (let off = PARTIES_PAGE_SIZE; off < totalCount; off += PARTIES_PAGE_SIZE) {
+      offsets.push(off);
+    }
+    const restResults = await Promise.all(offsets.map(off => buildPageQuery(off, false)));
+    const allRows = [...firstBatch];
+    for (const res of restResults) {
+      if (res.error !== null) return { data: [], error: res.error };
+      if (Array.isArray(res.data)) allRows.push(...(res.data as Array<Record<string, unknown>>));
+    }
+    return { data: allRows, error: null };
+  }
+
+  // Fallback إذا لم يرجع count
+  const allRows = [...firstBatch];
+  let from = PARTIES_PAGE_SIZE;
+  while (true) {
+    const { data, error } = await buildPageQuery(from, false);
     if (error !== null) return { data: [], error };
-    const batch = data || [];
+    const batch = (data || []) as Array<Record<string, unknown>>;
     allRows.push(...batch);
     if (batch.length < PARTIES_PAGE_SIZE) break;
     from += PARTIES_PAGE_SIZE;
@@ -107,6 +136,8 @@ async function fetchAllParties(
 
   return { data: allRows, error: null };
 }
+
+let partyBalancesJsonRpcUnavailable = false;
 
 export const partiesApi = {
   getParties: async (companyId: string, type: PartyType, branchId?: string | null) => {
@@ -118,12 +149,29 @@ export const partiesApi = {
           ? ['employee']
           : [type, 'both'];
 
-    // جلب متزامن للأطراف (بجميع الصفحات دون اقتطاع حد الـ 1000) والأرصدة والعملات
+    // جلب متزامن للأطراف والأرصدة والعملات — استخدام دالة JSONB بطلب واحد بدل 3 مسوحات متتالية
     const fetchBalances = async (): Promise<{
       data: Array<Record<string, unknown>> | null;
       error: unknown;
     }> => {
       try {
+        if (!partyBalancesJsonRpcUnavailable) {
+          type JsonRpcFn = (
+            fn: string,
+            args: Record<string, unknown>
+          ) => PromiseLike<{ data: unknown; error: PostgrestError | null }>;
+          const { data: jsonData, error: jsonError } = await (
+            supabase.rpc as unknown as JsonRpcFn
+          )('get_party_balances_by_company_json', { p_company_id: companyId });
+
+          if (!jsonError && Array.isArray(jsonData)) {
+            return { data: jsonData as Array<Record<string, unknown>>, error: null };
+          }
+          if (jsonError?.code === 'PGRST202' || jsonError?.code === '42883') {
+            partyBalancesJsonRpcUnavailable = true;
+          }
+        }
+
         return await fetchAllRpcPages(
           supabase,
           'get_party_balances_by_company',

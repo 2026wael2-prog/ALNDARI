@@ -80,6 +80,8 @@ export const CommitStatus: React.FC<{ view: ReconciliationPageController['view']
 /** زر الاعتماد أو شارة اليومية المقفلة */
 export const CommitAction: React.FC<{ page: ReconciliationPageController }> = ({ page }) => {
   const { view } = page;
+  const hasHardBlocker =
+    view.isLocked || view.netIsNegative || view.missingRateCurrencies.length > 0;
 
   if (!view.isAlreadyClosed) {
     return (
@@ -88,8 +90,13 @@ export const CommitAction: React.FC<{ page: ReconciliationPageController }> = ({
         variant="success"
         onClick={page.handleCommit}
         isLoading={page.isCommitting}
-        disabled={view.isLocked}
-        className="h-10 gap-1.5 px-5 text-xs font-bold"
+        disabled={hasHardBlocker}
+        title={
+          view.netIsNegative
+            ? 'لا يمكن الاعتماد عندما يكون الصافي المسلم سالباً — خفّض فكة الغد أو أدخل الكاش الفعلي'
+            : undefined
+        }
+        className="h-10 gap-1.5 px-5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50"
       >
         اعتماد وإقفال يومية المحل
       </Button>
@@ -106,7 +113,7 @@ export const CommitAction: React.FC<{ page: ReconciliationPageController }> = ({
           type="button"
           variant="secondary"
           onClick={page.handleCommit}
-          disabled={page.isCommitting}
+          disabled={page.isCommitting || view.netIsNegative || view.missingRateCurrencies.length > 0}
           className="text-xs font-bold"
         >
           {page.isCommitting ? 'جاري التحديث...' : 'تحديث الاعتماد (المالك)'}

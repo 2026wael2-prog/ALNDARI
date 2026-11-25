@@ -38,8 +38,8 @@ const cardDescription = (configured: boolean, subscribed: boolean): string => {
 const PushAlertsCard: React.FC = () => {
   const { supported, configured, subscribed, busy, enable, disable } = usePushSubscription();
 
-  // متصفح بلا دعم: لا نُشغل مساحة بلا فائدة (شريط صلاحيات سطح المكتب يغطي البديل).
-  if (!supported) return null;
+  // متصفح بلا دعم أو مفتاح VAPID غير مضبوط على الخادم: لا نعرض بطاقة معطّلة مكررة فوق شريط الإشعارات.
+  if (!supported || !configured) return null;
 
   const handleToggle = (): void => {
     if (subscribed) {

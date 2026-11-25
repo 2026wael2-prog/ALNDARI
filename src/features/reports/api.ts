@@ -220,14 +220,31 @@ export const reportsApi = {
       return { data: rows, error: null };
     };
 
-    const [{ data: parties }, { data: balances }] = await Promise.all([
-      fetchAllPartiesRows(),
-      fetchAllRpcPages<{ party_id: string; balance: number }>(
+    const fetchBalancesFast = async (): Promise<{
+      data: Array<{ party_id: string; balance: number }> | null;
+    }> => {
+      const { data: jsonData, error: jsonErr } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => PromiseLike<{ data: unknown; error: { code?: string } | null }>
+      )('get_party_balances_by_company_json', { p_company_id: companyId });
+
+      if (!jsonErr && Array.isArray(jsonData)) {
+        return { data: jsonData as Array<{ party_id: string; balance: number }> };
+      }
+
+      return await fetchAllRpcPages<{ party_id: string; balance: number }>(
         supabase,
         'get_party_balances_by_company',
         { p_company_id: companyId },
         ['party_id']
-      ),
+      );
+    };
+
+    const [{ data: parties }, { data: balances }] = await Promise.all([
+      fetchAllPartiesRows(),
+      fetchBalancesFast(),
     ]);
 
     if (!parties) return { data: null, error: { message: 'Failed to fetch parties' } };

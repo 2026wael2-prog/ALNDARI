@@ -97,9 +97,16 @@ const StatsGrid: React.FC<StatsGridProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Calculate trend percentage
-  const getTrend = (trend?: number) => {
-    if (trend === undefined || trend === null) return null;
+  // Calculate trend percentage (hide meaningless 0% or contradictory -100% badges on active figures)
+  const getTrend = (trend?: number, currentRaw?: number | string) => {
+    if (trend === undefined || trend === null || !Number.isFinite(trend) || Math.abs(trend) < 0.1) {
+      return null;
+    }
+    const numericCurrent =
+      typeof currentRaw === 'number'
+        ? currentRaw
+        : parseFloat(String(currentRaw ?? '0').replace(/[^0-9.-]/g, '')) || 0;
+    if (numericCurrent > 0 && trend <= -99.9) return null;
     return {
       value: Math.abs(trend),
       isPositive: trend >= 0,
@@ -194,7 +201,10 @@ const StatsGrid: React.FC<StatsGridProps> = ({
                   ? 'profitTrend'
                   : 'debtsTrend';
 
-        const trend = getTrend(stats[trendKey as keyof typeof stats] as number);
+        const trend = getTrend(
+          stats[trendKey as keyof typeof stats] as number,
+          item.value
+        );
 
         // Parse numeric value for counter
         // const _numericVal = parseFloat(item.value.replace(/[^0-9.-]/g, '')) || 0;
@@ -256,8 +266,9 @@ const StatsGrid: React.FC<StatsGridProps> = ({
                 <div className="flex items-end justify-between gap-0.5 sm:mt-0.5 sm:gap-1 md:mt-1">
                   <h3
                     dir="ltr"
+                    title={String(item.value)}
                     className={cn(
-                      'min-w-0 flex-1 truncate text-right font-mono text-[11px] font-black leading-tight tabular-nums tracking-tight sm:text-base sm:font-bold sm:leading-none md:text-xl',
+                      'min-w-0 flex-1 break-words text-right font-mono text-[11px] font-black leading-tight tabular-nums tracking-tight sm:text-sm sm:font-bold md:text-base lg:text-lg',
                       item.title === (t('net_loss') || 'صافي الخسارة')
                         ? 'text-rose-600 dark:text-rose-400'
                         : 'text-[var(--app-text)]'

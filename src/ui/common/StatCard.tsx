@@ -85,11 +85,12 @@ const StatCard: React.FC<StatCardProps> = ({
           </span>
           <h3
             dir="ltr"
+            title={String(value)}
             className={cn(
-              'truncate text-right font-mono font-black leading-tight tabular-nums tracking-tight sm:font-bold sm:leading-none',
+              'break-words text-right font-mono font-black leading-tight tabular-nums tracking-tight sm:font-bold',
               isCompact
-                ? 'text-[11px] sm:text-sm lg:text-lg'
-                : 'text-[11px] sm:text-base md:text-xl lg:text-2xl',
+                ? 'text-[11px] sm:text-xs lg:text-sm'
+                : 'text-[11px] sm:text-sm md:text-base lg:text-lg',
               colorClass
             )}
           >

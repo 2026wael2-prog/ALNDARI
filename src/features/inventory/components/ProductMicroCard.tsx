@@ -18,8 +18,16 @@ const ProductMicroCard: React.FC<Props> = ({ product, onClick }) => {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => {
         onClick(product);
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(product);
+        }
       }}
       className={cn(
         'group relative flex min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-lg border bg-[var(--app-surface)] shadow-xs transition-all duration-200 hover:shadow-md active:scale-[0.98] sm:rounded-xl',
@@ -116,7 +124,8 @@ const ProductMicroCard: React.FC<Props> = ({ product, onClick }) => {
       <div className="flex items-center justify-between gap-1 border-t border-slate-100 bg-slate-50/80 px-1.5 py-1 dark:border-slate-800/80 dark:bg-slate-900/50 sm:px-2 sm:py-1.5">
         <span
           dir="ltr"
-          className="min-w-0 truncate font-mono text-[11px] font-black leading-none text-blue-600 dark:text-blue-400 sm:text-xs"
+          title={formatCurrency(price)}
+          className="min-w-0 break-words font-mono text-[10.5px] font-black leading-tight text-blue-600 dark:text-blue-400 sm:text-xs"
         >
           {formatCurrency(price)}
         </span>

@@ -22,8 +22,8 @@ export function useProductFilter({
     if (inStockOnly) {
       result = result.filter(p => (p.stock_quantity ?? 0) > 0);
     }
-    if (selectedWarehouseId != null) {
-      result = result.filter(p => {
+    if (selectedWarehouseId != null && selectedWarehouseId !== '') {
+      const warehouseMatches = result.filter(p => {
         const dist = Array.isArray(p.warehouse_distribution) ? p.warehouse_distribution : [];
         const whStock = dist.find(w => w.warehouse_id === selectedWarehouseId);
         // The warehouse filter scopes the grid to products present at the
@@ -33,6 +33,11 @@ export function useProductFilter({
         if (inStockOnly) return whStock != null && whStock.quantity > 0;
         return whStock != null;
       });
+      // إذا لم تحتوي الصفحة الأولية (500 صنف) على أي تطابق للمستودع المختار تلقائياً
+      // ولم يفعل المستخدم «متوفر فقط»، اعرض أصناف الكتالوج بدل شاشة فارغة «لا توجد منتجات».
+      if (warehouseMatches.length > 0 || inStockOnly) {
+        result = warehouseMatches;
+      }
     }
     return result;
   }, [products, selectedCategory, inStockOnly, selectedWarehouseId]);

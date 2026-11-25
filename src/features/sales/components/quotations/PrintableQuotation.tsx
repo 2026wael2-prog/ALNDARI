@@ -251,7 +251,7 @@ const PrintableQuotation: FC<PrintableQuotationProps> = ({
               className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 sm:gap-1.5 sm:px-3.5 sm:py-1.5 sm:text-xs"
             >
               <Printer size={13} />
-              <span>طباعة</span>
+              <span>طباعة عرض السعر</span>
             </button>
           </div>
         </div>

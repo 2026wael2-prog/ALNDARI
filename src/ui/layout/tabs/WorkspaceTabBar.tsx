@@ -214,7 +214,7 @@ export const WorkspaceTabBar: React.FC = () => {
               }}
               title={`${tab.title} (${tab.isClosable ? 'انقر بالزر الأوسط للإغلاق' : 'الرئيسية'})`}
               className={cn(
-                'group relative flex h-8 min-w-[96px] max-w-[180px] cursor-pointer items-center gap-1.5 rounded-t-lg border border-b-0 px-2.5 text-xs font-bold transition-all duration-150',
+                'group relative flex h-8 min-w-[112px] max-w-[190px] shrink-0 cursor-pointer items-center gap-1.5 rounded-t-lg border border-b-0 px-2.5 text-xs font-bold transition-all duration-150',
                 isActive
                   ? 'z-10 -mb-[1px] border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--accent)] shadow-xs ring-1 ring-blue-500/20'
                   : 'border-transparent bg-transparent text-[var(--app-text)] hover:bg-[var(--app-surface-hover)] hover:text-[var(--accent)]'

@@ -14,6 +14,14 @@ export async function exportStudyElementToPdf(
   });
 }
 
+const escapeHtmlText = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 export function printStudyElement(element: HTMLElement, title = 'دراسة ذكاء المخزون والمشتريات'): void {
   const win = window.open('', '_blank', 'width=1024,height=768');
   if (!win) {
@@ -25,12 +33,14 @@ export function printStudyElement(element: HTMLElement, title = 'دراسة ذك
     .map(node => node.outerHTML)
     .join('\n');
 
+  const safeTitle = escapeHtmlText(title);
+
   win.document.open();
   win.document.write(`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>${title}</title>
+  <title>${safeTitle}</title>
   ${styles}
   <style>
     @page { size: A4 portrait; margin: 10mm; }
@@ -41,12 +51,24 @@ export function printStudyElement(element: HTMLElement, title = 'دراسة ذك
 </head>
 <body>
   ${element.outerHTML}
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 300);
-    };
-  </script>
 </body>
 </html>`);
   win.document.close();
+
+  // Trigger print from parent window (no inline <script> so strict CSP script-src 'self' is never violated)
+  let printed = false;
+  const triggerPrint = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      win.focus();
+      win.print();
+    } catch {
+      // Ignore if popup was closed before print
+    }
+  };
+  win.addEventListener('load', () => {
+    setTimeout(triggerPrint, 250);
+  });
+  setTimeout(triggerPrint, 500);
 }

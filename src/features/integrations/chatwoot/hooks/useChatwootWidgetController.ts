@@ -134,9 +134,13 @@ export function useChatwootWidgetController(): ChatwootWidgetController {
     if (hasNonEmptyString(data?.party.phone)) {
       const cleanDigits = data.party.phone.replace(/[^0-9]/g, '');
       const text = encodeURIComponent(getSummaryText());
-      window.open(`https://web.whatsapp.com/send?phone=${cleanDigits}&text=${text}`, '_blank');
+      window.open(
+        `https://web.whatsapp.com/send?phone=${cleanDigits}&text=${text}`,
+        '_blank',
+        'noopener,noreferrer'
+      );
     } else {
-      window.open('https://web.whatsapp.com', '_blank');
+      window.open('https://web.whatsapp.com', '_blank', 'noopener,noreferrer');
     }
   };
 

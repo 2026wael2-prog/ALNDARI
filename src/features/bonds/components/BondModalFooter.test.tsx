@@ -32,9 +32,9 @@ describe('BondModalFooter', () => {
   });
 
   it.each([
-    ['receipt', 'bg-emerald-600'],
-    ['payment', 'bg-rose-600'],
-    ['transfer', 'bg-blue-600'],
+    ['receipt', 'bg-[#059669]'],
+    ['payment', 'bg-[#e11d48]'],
+    ['transfer', 'bg-[var(--brand-600,#4f46e5)]'],
   ] as const)('preserves the save color for %s', (type, color) => {
     render(<BondModalFooter type={type} loading={false} onSave={vi.fn()} onCancel={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'اعتماد السند وحفظه' })).toHaveClass(color);

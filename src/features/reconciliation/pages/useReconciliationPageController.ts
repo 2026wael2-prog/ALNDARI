@@ -9,7 +9,7 @@ import {
   useDailyDrawerSummary,
   useReconciliationHistory,
 } from '../hooks/useDailyReconciliation';
-import { defaultFloatFor, resolveSummaryCurrency } from '../services/reconciliationService';
+import { resolveSummaryCurrency } from '../services/reconciliationService';
 import type { CashCountsByCurrency, DailyDrawerSummary, ExistingReconciliationRecord } from '../types';
 import type {
   CountMode,
@@ -136,7 +136,8 @@ const useReconciliationFormState = (
   const [actualCard, setActualCardRaw] = useState<number>(0);
   const [cardEntered, setCardEntered] = useState<boolean>(false);
   const [cardTerminalRef, setCardTerminalRef] = useState<string>('');
-  const [floatRetained, setFloatRetained] = useState<number>(() => defaultFloatFor(baseCurrency));
+  // فكة الغد تبدأ بصفر ليوم جديد بدل تعبئة 300 افتراضياً التي تُنتج صافياً سالباً (-300) قبل الجرد
+  const [floatRetained, setFloatRetained] = useState<number>(0);
   const [varianceReason, setVarianceReason] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
@@ -170,7 +171,7 @@ const useReconciliationFormState = (
     setActualCardRaw(0);
     setCardEntered(false);
     setCardTerminalRef('');
-    setFloatRetained(defaultFloatFor(baseCurrency));
+    setFloatRetained(0);
     setVarianceReason('');
     setNotes('');
     // baseCurrency غير مضافة عمداً: تغييرها يخص مزامنة اليومية لا تغيير التاريخ

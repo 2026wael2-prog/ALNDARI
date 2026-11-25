@@ -193,8 +193,8 @@ export const bondsApi = {
   getBondsStats: async (companyId: string, branchId?: string | null, period?: string) => {
     return await supabase.rpc('get_bonds_stats', {
       p_company_id: companyId,
-      ...(branchId ? { p_branch_id: branchId } : {}),
-      ...(period ? { p_period: period } : {}),
-    });
+      p_branch_id: branchId ?? null,
+      p_period: period ?? null,
+    } as any);
   },
 };

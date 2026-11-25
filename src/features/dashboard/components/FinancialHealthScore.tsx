@@ -71,8 +71,11 @@ const FinancialHealthScore: React.FC<FinancialHealthProps> = ({
     const cashHealthRaw = totalFlow > 0 ? ((cashFlow?.inflow || 0) / totalFlow) * 100 : 0;
     const cashScore = Math.min(25, cashHealthRaw * 0.25);
 
+    // عند عرض فترة قصيرة (مثل "اليوم") تكون الديون التراكمية أكبر بعدة أضعاف من مبيعات اليوم الواحد؛
+    // نعطي درجة محايدة متزنة (10/20) بدل تصفير المؤشر وإظهار "ضعيف 20" رغم تحقيق الهدف اليومي.
+    const isShortPeriodCumulativeSkew = sales > 0 && debts > sales * 10;
     const debtRatio = sales > 0 ? Math.max(0, 100 - (debts / sales) * 100) : 0;
-    const debtScore = Math.min(20, debtRatio * 0.2);
+    const debtScore = isShortPeriodCumulativeSkew ? 10 : Math.min(20, debtRatio * 0.2);
 
     const totalComponentsScore = profitScore + collectionScore + cashScore + debtScore;
     let healthScore = Math.min(100, Math.round(totalComponentsScore));

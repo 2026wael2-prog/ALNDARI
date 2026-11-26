@@ -251,7 +251,7 @@ export function ExcelTableBody<T>({
             )}
             <td
               className={cn(
-                'bg-[var(--app-bg)]/50 select-none border-r border-[var(--app-border)] p-2 text-center font-mono text-[11px] text-[var(--app-text-secondary)]',
+                'bg-[var(--app-bg)]/50 select-none border-r border-[var(--app-border)] p-2 text-center font-mono text-xs font-bold text-black dark:text-slate-300',
                 focusedCell?.row === rowIdx ? currentTheme.glow : ''
               )}
             >
@@ -296,7 +296,7 @@ export function ExcelTableBody<T>({
                     if (col.isEditable) startEditing(rowIdx, colIdx);
                   }}
                   className={cn(
-                    'relative cursor-cell border-r border-gray-300 p-0 text-[12px] font-medium transition-all dark:border-slate-700/50',
+                    'relative cursor-cell border-r border-gray-300 p-0 text-[13px] font-bold text-black transition-all dark:border-slate-700/50 dark:text-slate-100',
                     isFocused && !isEditing
                       ? cn(
                           'z-10 outline outline-2 -outline-offset-2 outline-blue-600 dark:outline-blue-400',

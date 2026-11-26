@@ -209,14 +209,14 @@ interface ExcelGridSubRowProps {
 
 const ExcelGridSubRow: React.FC<ExcelGridSubRowProps> = ({ spec, rowLabel, toneCls, gridBorder }) => {
   const b = gridBorder;
-  const muted = 'whitespace-nowrap px-2 py-1 text-center text-[11px] font-bold text-black/75 dark:text-slate-300';
-  const valCls = 'whitespace-nowrap px-2 py-1 text-center text-[11px] font-bold text-black dark:text-slate-200';
-  const numCls = 'whitespace-nowrap px-2.5 py-1 font-mono text-xs font-extrabold tabular-nums';
-  const dashCls = 'text-center text-black/35 dark:text-slate-600';
+  const muted = 'whitespace-nowrap px-2 py-1 text-center text-xs font-bold text-black dark:text-slate-200';
+  const valCls = 'whitespace-nowrap px-2 py-1 text-center text-xs font-extrabold text-black dark:text-slate-100';
+  const numCls = 'whitespace-nowrap px-2.5 py-1 font-mono text-[13px] font-extrabold tabular-nums';
+  const dashCls = 'text-center text-black/45 dark:text-slate-500';
   return (
     <tr className={cn('print:hidden text-xs transition-colors', toneCls.rowBg)}>
       <td className={cn('no-print py-1 text-center', b)} />
-      <td className={cn('select-none py-1 text-center font-mono text-[11px] font-bold text-black/80 dark:text-slate-300', toneCls.numBg, b)}>
+      <td className={cn('select-none py-1 text-center font-mono text-xs font-extrabold text-black dark:text-slate-200', toneCls.numBg, b)}>
         {rowLabel}
       </td>
       <td className={cn(muted, b)}>{spec.tag}</td>
@@ -226,11 +226,11 @@ const ExcelGridSubRow: React.FC<ExcelGridSubRowProps> = ({ spec, rowLabel, toneC
       <td dir={spec.colCMono === true ? 'ltr' : undefined} className={cn(valCls, spec.colCMono === true && 'font-mono', b)}>
         {spec.colC}
       </td>
-      <td className={cn('whitespace-nowrap px-2 py-1 text-center font-mono text-[11px] font-bold text-black/80 dark:text-slate-300', b)}>
+      <td className={cn('whitespace-nowrap px-2 py-1 text-center font-mono text-xs font-extrabold text-black dark:text-slate-200', b)}>
         {spec.currency}
       </td>
-      <td className={cn('px-2.5 py-1 text-right text-xs font-bold text-black dark:text-slate-100', b)}>
-        <span className="ml-1.5 text-black/50 dark:text-slate-400">↳</span>
+      <td className={cn('px-2.5 py-1 text-right text-[13px] font-extrabold text-black dark:text-slate-100', b)}>
+        <span className="ml-1.5 text-black dark:text-slate-400">↳</span>
         <span>{spec.description}</span>
       </td>
       <td className={cn(muted, b)}>{spec.statusText}</td>
@@ -290,14 +290,14 @@ interface StandardGridSubRowProps {
 
 const StandardGridSubRow: React.FC<StandardGridSubRowProps> = ({ spec, subIdx, rowBg }) => {
   const b = 'border-l border-[var(--app-border)]';
-  const muted = 'whitespace-nowrap px-2 py-1.5 text-center text-[11px] font-bold text-black/75 dark:text-slate-300';
-  const valCls = 'whitespace-nowrap px-2 py-1.5 text-center text-[11px] font-bold text-black dark:text-slate-200';
-  const numCls = 'whitespace-nowrap px-2 py-1.5 text-center font-mono text-xs font-black tabular-nums';
-  const dashCls = 'text-black/35 dark:text-slate-600';
+  const muted = 'whitespace-nowrap px-2 py-1.5 text-center text-xs font-bold text-black dark:text-slate-200';
+  const valCls = 'whitespace-nowrap px-2 py-1.5 text-center text-xs font-extrabold text-black dark:text-slate-100';
+  const numCls = 'whitespace-nowrap px-2 py-1.5 text-center font-mono text-[13px] font-black tabular-nums';
+  const dashCls = 'text-black/45 dark:text-slate-500';
   return (
     <tr className={cn('print:hidden text-xs transition-colors', rowBg)}>
       <td className={cn('no-print py-1.5', b)} />
-      <td className={cn('no-print py-1.5 text-center font-mono text-[10px] font-bold text-black/60', b)}>
+      <td className={cn('no-print py-1.5 text-center font-mono text-xs font-extrabold text-black dark:text-slate-200', b)}>
         {subIdx + 1}
       </td>
       <td className={cn(muted, b)}>{spec.tag}</td>
@@ -307,8 +307,8 @@ const StandardGridSubRow: React.FC<StandardGridSubRowProps> = ({ spec, subIdx, r
       <td dir={spec.colCMono === true ? 'ltr' : undefined} className={cn(valCls, spec.colCMono === true && 'font-mono', b)}>
         {spec.colC}
       </td>
-      <td className={cn('px-3 py-1.5 text-right text-xs font-bold text-black dark:text-slate-100', b)}>
-        <span className="ml-1.5 text-black/50 dark:text-slate-400">↳</span>
+      <td className={cn('px-3 py-1.5 text-right text-[13px] font-extrabold text-black dark:text-slate-100', b)}>
+        <span className="ml-1.5 text-black dark:text-slate-400">↳</span>
         <span>{spec.description}</span>
       </td>
       <td className={cn(muted, b)}>{spec.statusText}</td>

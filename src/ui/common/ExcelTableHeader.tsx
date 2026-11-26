@@ -88,7 +88,7 @@ export function ExcelTableHeader<T>({
             style={{ width: columnWidths[idx] ? `${columnWidths[idx]}px` : col.width }}
             onClick={() => !isLoading && col.sortKey && handleSort(col.sortKey as string)}
             className={cn(
-              'relative border-r border-gray-300 p-2 dark:border-slate-700/50',
+              'relative border-r border-gray-300 p-2 text-xs font-extrabold text-black dark:border-slate-700/50 dark:text-slate-100',
               !isLoading && col.sortKey
                 ? 'cursor-pointer select-none hover:bg-[var(--app-surface-hover)]'
                 : ''

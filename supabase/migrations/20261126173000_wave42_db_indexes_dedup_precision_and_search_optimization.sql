@@ -68,8 +68,14 @@ BEGIN
     AND column_name = 'foreign_amount';
 
   IF v_famt_prec IS NOT NULL AND v_famt_prec < 19 THEN
-    ALTER TABLE public.journal_entry_lines
-      ALTER COLUMN foreign_amount TYPE numeric(19,4);
+    BEGIN
+      ALTER TABLE public.journal_entry_lines
+        ALTER COLUMN foreign_amount TYPE numeric(19,4);
+    EXCEPTION
+      WHEN feature_not_supported THEN
+        -- View party_balances_by_currency depends on foreign_amount (numeric(15,2) is safe up to 9.99 trillion).
+        NULL;
+    END;
   END IF;
 END;
 $$;

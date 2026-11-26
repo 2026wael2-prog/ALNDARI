@@ -124,7 +124,11 @@ const InteractiveInvoiceTable: React.FC = () => {
         if (prev.isOpen) {
           return { ...prev, isOpen: false };
         }
-        const targetRow = items.length > 0 ? items.length - 1 : 0;
+        // استهداف أول صف فارغ (الصف الأول عند فتح فاتورة جديدة) بدلاً من آخر صف (الصف الخامس)
+        const firstEmptyIdx = items.findIndex(
+          item => !item.productId && item.name.trim().length === 0
+        );
+        const targetRow = firstEmptyIdx !== -1 ? firstEmptyIdx : items.length;
         return { isOpen: true, rowIndex: targetRow, query: '' };
       });
     };
@@ -145,7 +149,7 @@ const InteractiveInvoiceTable: React.FC = () => {
     return () => {
       window.removeEventListener('alzhra-open-product-selection', handleTriggerExplorer);
     };
-  }, [searchParams, setSearchParams, items.length]);
+  }, [searchParams, setSearchParams, items]);
 
   const handleProductSelect = (product: Product) => {
     setProductForRow(modalState.rowIndex, product);

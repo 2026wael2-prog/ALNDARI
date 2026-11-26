@@ -15,6 +15,7 @@ import { useInvoiceCurrencySync } from '../../hooks';
 import { usePartyMutations } from '../../../parties/hooks';
 import type { Party, PartyFormData } from '../../../parties/types';
 import CustomerSelector from './CustomerSelector';
+import CustomerPreviousBalanceBadge from './CustomerPreviousBalanceBadge';
 import { InvoiceTreasurySelector } from './InvoiceTreasurySelector';
 import { cn } from '../../../../core/utils';
 import { formatLocalDate } from '../../../../core/utils/dateUtils';
@@ -27,6 +28,7 @@ interface Props {
 
 const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
   const {
+    selectedCustomer,
     invoiceType,
     currency,
     exchangeRate,
@@ -45,6 +47,7 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
   } = useInvoiceCurrencySync();
 
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [newCustomerPrefillName, setNewCustomerPrefillName] = useState<string>('');
   const { saveParty, isSaving: isSavingCustomer } = usePartyMutations('customer');
 
   const handleAddCustomerSubmit = (formData: PartyFormData) => {
@@ -89,21 +92,32 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
               : 'border-slate-200/80 dark:border-slate-750'
           )}
         >
-          <div className="mb-1 flex items-center justify-between">
-            <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
+            <div className="flex shrink-0 items-center gap-1 text-blue-600 dark:text-blue-400">
               <User size={13} />
               <span className="text-[11px] font-black uppercase tracking-wider">بيانات العميل</span>
             </div>
-            <span className="text-[10px] font-bold text-slate-400">اختيار أو إضافة عميل</span>
+            <CustomerPreviousBalanceBadge
+              customerId={selectedCustomer?.id}
+              invoiceCurrency={currency || 'SAR'}
+              exchangeRate={exchangeRate}
+              exchangeOperator={exchangeOperator}
+            />
           </div>
 
           <div className="flex w-full items-center gap-1.5">
             <div className="min-w-0 flex-1">
-              <CustomerSelector />
+              <CustomerSelector
+                onAddNewCustomer={initialName => {
+                  setNewCustomerPrefillName(initialName ?? '');
+                  setIsAddCustomerOpen(true);
+                }}
+              />
             </div>
             <button
               type="button"
               onClick={() => {
+                setNewCustomerPrefillName('');
                 setIsAddCustomerOpen(true);
               }}
               className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-blue-700 shadow-2xs transition-all hover:border-blue-400 hover:bg-blue-600 hover:text-white active:scale-95 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white"
@@ -289,9 +303,11 @@ const InvoiceMeta: React.FC<Props> = ({ invoiceNumber }) => {
             isOpen={isAddCustomerOpen}
             onClose={() => {
               setIsAddCustomerOpen(false);
+              setNewCustomerPrefillName('');
             }}
             onSubmit={handleAddCustomerSubmit}
             isSubmitting={isSavingCustomer}
+            prefillData={newCustomerPrefillName ? { name: newCustomerPrefillName } : null}
             partyType="customer"
           />
         </Suspense>

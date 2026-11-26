@@ -29,7 +29,7 @@ interface OpenInvoicesState {
   activeDraftId: string;
 
   // Actions
-  createDraft: (customTitle?: string) => string;
+  createDraft: (customTitle?: string, currentSnapshot?: Partial<OpenInvoiceDraft>) => string;
   switchDraft: (draftId: string, currentSnapshot?: Partial<OpenInvoiceDraft>) => OpenInvoiceDraft | null;
   closeDraft: (draftId: string) => OpenInvoiceDraft | null;
   renameDraft: (draftId: string, newTitle: string) => void;
@@ -69,20 +69,31 @@ const createDefaultDraft = (number = 1, customTitle?: string): OpenInvoiceDraft 
 };
 
 const STORAGE_KEY = 'alzhra_multi_open_invoices_v1';
+const INITIAL_DRAFT = createDefaultDraft(1);
 
 export const useOpenInvoicesStore = create<OpenInvoicesState>()(
   persist(
     (set, get) => ({
-      drafts: [createDefaultDraft(1)],
-      activeDraftId: '',
+      drafts: [INITIAL_DRAFT],
+      activeDraftId: INITIAL_DRAFT.id,
 
-      createDraft: (customTitle?: string): string => {
+      createDraft: (customTitle?: string, currentSnapshot?: Partial<OpenInvoiceDraft>): string => {
         const state = get();
-        const nextNum = state.drafts.length + 1;
+        // احفظ محتوى الفاتورة المفتوحة الحالية قبل فتح الفاتورة الجديدة في نفس العملية الذرية
+        const savedDrafts =
+          currentSnapshot && state.activeDraftId
+            ? state.drafts.map(draft =>
+                draft.id === state.activeDraftId
+                  ? { ...draft, ...currentSnapshot, updatedAt: new Date().toISOString() }
+                  : draft
+              )
+            : state.drafts;
+
+        const nextNum = savedDrafts.length + 1;
         const newDraft = createDefaultDraft(nextNum, customTitle);
 
         set({
-          drafts: [...state.drafts, newDraft],
+          drafts: [...savedDrafts, newDraft],
           activeDraftId: newDraft.id,
         });
 

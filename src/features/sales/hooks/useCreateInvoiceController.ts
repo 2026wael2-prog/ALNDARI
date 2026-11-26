@@ -92,25 +92,29 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
   const [isSavingQuotation, setIsSavingQuotation] = useState(false);
 
   const navigation = useInvoiceNavigation();
-  const { closeDraft, activeDraftId, syncCurrentDraft } = useOpenInvoicesStore();
+  const { activeDraftId, syncCurrentDraft } = useOpenInvoicesStore();
+  const lastSyncedDraftIdRef = useRef<string>(activeDraftId);
 
-  // مزامنة حالة السلة الحالية مع المتجر المفتوح عند تغيير الحقول
+  // مزامنة حالة السلة الحالية مع المتجر المفتوح فقط عند بقاء نفس التبويب النشط (تمنع الكتابة فوق مسودة أخرى عند التبديل أو الحفظ)
   useEffect(() => {
-    if (!navigation.currentViewingInvoice && Boolean(activeDraftId)) {
-      syncCurrentDraft({
-        items,
-        selectedCustomer,
-        summary,
-        invoiceType,
-        currency,
-        exchangeRate,
-        exchangeOperator,
-        warehouseId,
-        cashboxId,
-        paidAmount,
-        notes,
-      });
+    if (navigation.currentViewingInvoice || !activeDraftId) return;
+    if (lastSyncedDraftIdRef.current !== activeDraftId) {
+      lastSyncedDraftIdRef.current = activeDraftId;
+      return;
     }
+    syncCurrentDraft({
+      items,
+      selectedCustomer,
+      summary,
+      invoiceType,
+      currency,
+      exchangeRate,
+      exchangeOperator,
+      warehouseId,
+      cashboxId,
+      paidAmount,
+      notes,
+    });
   }, [
     items,
     selectedCustomer,
@@ -391,12 +395,38 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
       {
         onSuccess: () => {
           setShowConfirmModal(false);
-          resetCart();
-          if (activeDraftId) {
-            closeDraft(activeDraftId);
-          }
-          onSuccess();
+          const openStore = useOpenInvoicesStore.getState();
+          const savedDraftId = openStore.activeDraftId;
+          const hadOtherOpenDrafts = openStore.drafts.length > 1;
+          const nextDraft = savedDraftId ? openStore.closeDraft(savedDraftId) : null;
+
+          // تحديث المرجع قبل تحميل السلة التالية حتى لا يقوم useEffect بالكتابة فوق المسودة الأخرى!
+          lastSyncedDraftIdRef.current = nextDraft?.id ?? '';
           invoiceIdempotencyKeyRef.current = createIdempotencyKey('sale');
+
+          if (hadOtherOpenDrafts && nextDraft) {
+            useSalesStore.getState().loadCartState({
+              items: nextDraft.items,
+              selectedCustomer: nextDraft.selectedCustomer,
+              invoiceType: nextDraft.invoiceType,
+              currency: nextDraft.currency,
+              exchangeRate: nextDraft.exchangeRate,
+              exchangeOperator: nextDraft.exchangeOperator,
+              warehouseId: nextDraft.warehouseId,
+              cashboxId: nextDraft.cashboxId,
+              paidAmount: nextDraft.paidAmount,
+              showDiscount: nextDraft.showDiscount,
+              notes: nextDraft.notes,
+            });
+            showToast(
+              `تم حفظ الفاتورة بنجاح والانتقال إلى الفاتورة المفتوحة (${nextDraft.tabTitle})`,
+              'success'
+            );
+            return;
+          }
+
+          resetCart();
+          onSuccess();
         },
       }
     );

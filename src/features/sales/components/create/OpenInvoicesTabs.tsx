@@ -26,7 +26,6 @@ export const OpenInvoicesTabs: React.FC<OpenInvoicesTabsProps> = ({ disabled = f
     switchDraft,
     closeDraft,
     renameDraft,
-    syncCurrentDraft,
   } = useOpenInvoicesStore();
 
   const salesStore = useSalesStore();
@@ -80,12 +79,9 @@ export const OpenInvoicesTabs: React.FC<OpenInvoicesTabsProps> = ({ disabled = f
   const handleCreateNewTab = (): void => {
     if (disabled) return;
 
-    // حفظ السلة الحالية أولاً
+    // حفظ السلة الحالية وفتح تبويب مسودة جديدة ذرياً في خطوة واحدة
     const currentSnapshot = captureCurrentCartSnapshot();
-    syncCurrentDraft(currentSnapshot);
-
-    // إنشاء تبويب مسودة جديدة
-    createDraft();
+    createDraft(undefined, currentSnapshot);
 
     // إعادة ضبط سلة المبيعات للفاتورة الجديدة البيضاء
     salesStore.resetCart();

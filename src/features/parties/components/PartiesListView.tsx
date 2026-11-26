@@ -186,7 +186,7 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in space-y-3 duration-500">
+    <div className="animate-in fade-in space-y-1.5 duration-500">
       <PartiesStats
         stats={effectiveStats}
         type={partyType}
@@ -196,12 +196,13 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
         onCurrencyFilterChange={setCurrencyFilter}
         isFiltered={isFiltered}
         onResetFilters={handleResetAll}
+        showFilterControls={false}
       />
 
       {/* Dedicated Strict Per-Currency Tabs Strip */}
       <div
         data-testid="parties-currency-filter-bar"
-        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-1.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 md:p-2"
+        className="flex flex-wrap items-center justify-between gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2 py-1 shadow-2xs dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto sm:w-auto sm:flex-wrap">
           <div className="flex shrink-0 items-center gap-1 px-1 text-[11px] font-black text-slate-600 dark:text-slate-300">
@@ -250,7 +251,7 @@ export const PartiesListView: React.FC<PartiesListViewProps> = ({
       </div>
 
       {/* Status & Category Filter Chips Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white p-1.5 dark:border-slate-800 dark:bg-slate-900 md:p-2">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2 py-1 dark:border-slate-800 dark:bg-slate-900">
         <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap">
           {chips.map(chip => {
             const isSelected = activeFilter === chip.id;

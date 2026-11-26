@@ -330,7 +330,7 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
               'custom-scrollbar flex-1',
               activeView === 'statements'
                 ? 'flex min-h-0 flex-col overflow-hidden p-1 md:p-1.5'
-                : 'overflow-y-auto px-2 pb-20 pt-2 md:px-4 md:pb-24 md:pt-5'
+                : 'overflow-y-auto px-2 pb-16 pt-1.5 md:px-3 md:pb-20 md:pt-2'
             )}
           >
             {renderContent()}

@@ -130,8 +130,10 @@ export const useSalesStore = create<SalesState>()(
           if (failed) return state;
 
           const newItems = [...state.items];
-          if (newItems[index]) {
+          if (index >= 0 && index < newItems.length) {
             newItems[index] = buildCartItemFromProduct(product, convertedPrice, newItems[index]);
+          } else {
+            newItems.push(buildCartItemFromProduct(product, convertedPrice));
           }
           return { items: newItems };
         });
@@ -166,7 +168,21 @@ export const useSalesStore = create<SalesState>()(
           );
           if (failed) return state;
 
-          return { items: [buildCartItemFromProduct(product, convertedPrice), ...state.items] };
+          // إدراج المنتج في أول صف فارغ (الصف الأول بدلاً من تكديس صفوف جديدة فوق الصفوف الفارغة)
+          const firstEmptyIdx = state.items.findIndex(
+            i => !i.productId && i.name.trim().length === 0
+          );
+          if (firstEmptyIdx !== -1) {
+            const nextItems = [...state.items];
+            nextItems[firstEmptyIdx] = buildCartItemFromProduct(
+              product,
+              convertedPrice,
+              nextItems[firstEmptyIdx]
+            );
+            return { items: nextItems };
+          }
+
+          return { items: [...state.items, buildCartItemFromProduct(product, convertedPrice)] };
         });
         get().calculateTotals();
       },

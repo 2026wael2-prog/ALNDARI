@@ -88,7 +88,7 @@ export const useSystemInitialization = () => {
 
     const bootTimer = setTimeout(() => {
       void runHealthCheck();
-    }, 10000);
+    }, 30000);
 
     // Run interval checks every 10 minutes
     const interval = setInterval(

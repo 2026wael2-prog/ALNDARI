@@ -6,6 +6,7 @@ import { useTranslation } from '../lib/hooks/useTranslation';
 import { AuthGuard } from '../features/auth/components/AuthGuard';
 import { GuestGuard } from '../features/auth/components/GuestGuard';
 import { FeatureBoundary } from '../core/components/FeatureBoundary';
+import { DeferredRouteGate } from '../core/components/DeferredRouteGate';
 
 // Auth Pages (Lazy-loaded so authenticated users do not download landing assets on startup)
 const LandingPage = lazy(() => import('../features/auth/LandingPage'));
@@ -199,7 +200,9 @@ export const AppRoutes: React.FC = () => {
         element={
           <SuperAdminGuard>
             <FeatureBoundary name="super-admin">
-              <AdminHubPage />
+              <DeferredRouteGate variant="dashboard">
+                <AdminHubPage />
+              </DeferredRouteGate>
             </FeatureBoundary>
           </SuperAdminGuard>
         }
@@ -221,10 +224,17 @@ export const AppRoutes: React.FC = () => {
           </MaintenanceGuard>
         }
       >
-        {/* Dashboard — eager, no boundary needed */}
-        <Route index element={<DashboardPage />} />
+        {/* Dashboard — مؤجّل جلب البيانات لإعطاء الأولوية القصوى للشاشات التشغيلية الأساسية */}
+        <Route
+          index
+          element={
+            <DeferredRouteGate delayMs={500} variant="dashboard">
+              <DashboardPage />
+            </DeferredRouteGate>
+          }
+        />
 
-        {/* Inventory cluster */}
+        {/* Inventory cluster — المنتجات (أولوية قصوى: جلب فوري) */}
         <Route
           path={ROUTES.DASHBOARD.INVENTORY}
           element={
@@ -240,7 +250,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="inventory:read" label="ذكاء المخزون">
               <FeatureBoundary name="inventory-intelligence">
-                <InventoryIntelligencePage />
+                <DeferredRouteGate variant="table">
+                  <InventoryIntelligencePage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -250,7 +262,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="inventory:update" label="جلسة الجرد">
               <FeatureBoundary name="audit-session">
-                <AuditSessionPage />
+                <DeferredRouteGate variant="table">
+                  <AuditSessionPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -260,13 +274,15 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="inventory:update" label="الجرد السريع">
               <FeatureBoundary name="quick-audit">
-                <QuickAuditPage />
+                <DeferredRouteGate variant="table">
+                  <QuickAuditPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
         />
 
-        {/* Transactional */}
+        {/* Transactional — المبيعات (أولوية قصوى: جلب فوري) */}
         <Route
           path={ROUTES.DASHBOARD.SALES}
           element={
@@ -282,7 +298,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="sales:create" label="نقطة البيع">
               <FeatureBoundary name="pos">
-                <POSPage />
+                <DeferredRouteGate variant="grid">
+                  <POSPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -292,7 +310,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="accounting:read" label="المطابقة اليومية">
               <FeatureBoundary name="daily-reconciliation">
-                <DailyReconciliationPage />
+                <DeferredRouteGate variant="table">
+                  <DailyReconciliationPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -302,11 +322,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <FeatureBoundary name="vin-intelligence">
               <FeatureFlagGate flag="vin_intelligence" label="ذكاء الشاصي (VIN)">
-                <VINPage />
+                <DeferredRouteGate variant="form">
+                  <VINPage />
+                </DeferredRouteGate>
               </FeatureFlagGate>
             </FeatureBoundary>
           }
         />
+        {/* المشتريات (أولوية قصوى: جلب فوري) */}
         <Route
           path={ROUTES.DASHBOARD.PURCHASES}
           element={
@@ -322,11 +345,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="expenses:read" label="المصروفات">
               <FeatureBoundary name="expenses">
-                <ExpensesPage />
+                <DeferredRouteGate variant="table">
+                  <ExpensesPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
         />
+        {/* السندات المالية (أولوية قصوى: جلب فوري) */}
         <Route
           path={ROUTES.DASHBOARD.BONDS}
           element={
@@ -338,13 +364,15 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Finance */}
+        {/* Finance — مؤجلة جلب البيانات */}
         <Route
           path={ROUTES.DASHBOARD.ACCOUNTING}
           element={
             <PermissionGuard permission="accounting:read" label="المحاسبة">
               <FeatureBoundary name="accounting">
-                <AccountingPage />
+                <DeferredRouteGate variant="table">
+                  <AccountingPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -354,7 +382,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="reports:read" label="التقارير">
               <FeatureBoundary name="reports">
-                <ReportsPage />
+                <DeferredRouteGate variant="dashboard">
+                  <ReportsPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -364,7 +394,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="incentive:manage_plans" label="العمولات">
               <FeatureBoundary name="commissions">
-                <CommissionDashboardPage />
+                <DeferredRouteGate variant="dashboard">
+                  <CommissionDashboardPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -374,7 +406,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="incentive:manage_plans" label="إعدادات العمولات">
               <FeatureBoundary name="commissions-config">
-                <CommissionConfigurationPage />
+                <DeferredRouteGate variant="form">
+                  <CommissionConfigurationPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -384,7 +418,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="incentive:manage_plans" label="تعيينات العمولات">
               <FeatureBoundary name="commissions-assignments">
-                <CommissionAssignmentsPage />
+                <DeferredRouteGate variant="table">
+                  <CommissionAssignmentsPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -394,7 +430,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="incentive:manage_plans" label="فترات العمولات">
               <FeatureBoundary name="commissions-periods">
-                <CommissionPeriodsPage />
+                <DeferredRouteGate variant="table">
+                  <CommissionPeriodsPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -404,13 +442,15 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="reports:read" label="تقارير العمولات">
               <FeatureBoundary name="commissions-reports">
-                <CommissionReportsPage />
+                <DeferredRouteGate variant="table">
+                  <CommissionReportsPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
         />
 
-        {/* Parties */}
+        {/* Parties — العملاء والموردون وكشف الحسابات (أولوية قصوى: جلب فوري) */}
         <Route
           path={ROUTES.DASHBOARD.SUPPLIERS}
           element={
@@ -436,7 +476,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <PermissionGuard permission="customers:read" label="الموظفون">
               <FeatureBoundary name="employees">
-                <PartiesPage partyType="employee" title="الموظفون" />
+                <DeferredRouteGate variant="table">
+                  <PartiesPage partyType="employee" title="الموظفون" />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -455,13 +497,15 @@ export const AppRoutes: React.FC = () => {
           element={<Navigate to={ROUTES.DASHBOARD.SUPPLIERS} replace />}
         />
 
-        {/* Settings & Appearance */}
+        {/* Settings & Appearance — مؤجلة جلب البيانات */}
         <Route
           path={ROUTES.DASHBOARD.SETTINGS}
           element={
             <PermissionGuard permission="settings:manage" label="الإعدادات">
               <FeatureBoundary name="settings">
-                <SettingsPage />
+                <DeferredRouteGate variant="form">
+                  <SettingsPage />
+                </DeferredRouteGate>
               </FeatureBoundary>
             </PermissionGuard>
           }
@@ -470,12 +514,14 @@ export const AppRoutes: React.FC = () => {
           path={ROUTES.DASHBOARD.APPEARANCE}
           element={
             <FeatureBoundary name="appearance">
-              <AppearancePage />
+              <DeferredRouteGate variant="form">
+                <AppearancePage />
+              </DeferredRouteGate>
             </FeatureBoundary>
           }
         />
 
-        {/* Debts & Collection module — each main service is its own tab/route */}
+        {/* Debts & Collection module — كشف الحسابات فوري، والباقي مؤجّل */}
         <Route
           path={ROUTES.DASHBOARD.DEBTS}
           element={
@@ -486,14 +532,14 @@ export const AppRoutes: React.FC = () => {
             </PermissionGuard>
           }
         >
-          <Route index element={<DebtOverviewPage />} />
-          <Route path="agent" element={<DebtAgentPage />} />
-          <Route path="followup" element={<DebtFollowUpPage />} />
-          <Route path="tasks" element={<DebtTasksPage />} />
-          <Route path="promises" element={<DebtPromisesPage />} />
-          <Route path="outbox" element={<DebtOutboxPage />} />
+          <Route index element={<DeferredRouteGate variant="dashboard"><DebtOverviewPage /></DeferredRouteGate>} />
+          <Route path="agent" element={<DeferredRouteGate variant="table"><DebtAgentPage /></DeferredRouteGate>} />
+          <Route path="followup" element={<DeferredRouteGate variant="table"><DebtFollowUpPage /></DeferredRouteGate>} />
+          <Route path="tasks" element={<DeferredRouteGate variant="table"><DebtTasksPage /></DeferredRouteGate>} />
+          <Route path="promises" element={<DeferredRouteGate variant="table"><DebtPromisesPage /></DeferredRouteGate>} />
+          <Route path="outbox" element={<DeferredRouteGate variant="table"><DebtOutboxPage /></DeferredRouteGate>} />
           <Route path="statements" element={<DebtStatementsPage />} />
-          <Route path="settings" element={<DebtSettingsPage />} />
+          <Route path="settings" element={<DeferredRouteGate variant="form"><DebtSettingsPage /></DeferredRouteGate>} />
         </Route>
 
         {/* Supplier Portal & Smart Procurement */}
@@ -502,7 +548,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <FeatureBoundary name="supplier-portal">
               <FeatureFlagGate flag="supplier_portal" label="بوابة الموردين">
-                <SupplierPortalPage />
+                <DeferredRouteGate variant="table">
+                  <SupplierPortalPage />
+                </DeferredRouteGate>
               </FeatureFlagGate>
             </FeatureBoundary>
           }
@@ -514,7 +562,9 @@ export const AppRoutes: React.FC = () => {
           element={
             <FeatureBoundary name="chat">
               <FeatureFlagGate flag="internal_chat" label="المحادثات والتواصل">
-                <ChatHubPage />
+                <DeferredRouteGate variant="default">
+                  <ChatHubPage />
+                </DeferredRouteGate>
               </FeatureFlagGate>
             </FeatureBoundary>
           }
@@ -525,7 +575,9 @@ export const AppRoutes: React.FC = () => {
           path={ROUTES.DASHBOARD.CUSTOMER_SERVICE}
           element={
             <FeatureBoundary name="customer-service">
-              <ChatwootWidgetPage />
+              <DeferredRouteGate variant="default">
+                <ChatwootWidgetPage />
+              </DeferredRouteGate>
             </FeatureBoundary>
           }
         />

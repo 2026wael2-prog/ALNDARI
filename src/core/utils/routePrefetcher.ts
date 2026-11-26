@@ -98,14 +98,13 @@ export function prefetchCriticalRoutes(): void {
 
   // Only prefetch when browser is completely idle to preserve typing & rendering performance
   const startPrefetch = () => {
+    // الجلب المسبق للشاشات الأساسية والضرورية فقط (المبيعات، المشتريات، المنتجات، السندات، العملاء وكشف الحسابات)
     const criticalRoutes = [
       '/sales',
-      '/inventory',
-      '/pos',
-      '/clients',
       '/purchases',
+      '/inventory',
       '/bonds',
-      '/accounting',
+      '/clients',
     ];
     criticalRoutes.forEach((path, index) => {
       setTimeout(

@@ -66,7 +66,7 @@ const MainLayout: React.FC = () => {
     const t = setTimeout(() => {
       setMountSecondaryOverlays(true);
       prefetchCriticalRoutes();
-    }, 2000);
+    }, 8000);
     return () => clearTimeout(t);
   }, []);
   const { isOnline } = useNetworkStatus();

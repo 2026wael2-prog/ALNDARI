@@ -20,12 +20,27 @@ const App: React.FC = () => {
   useSystemInitialization();
   const [mountBackgroundRunners, setMountBackgroundRunners] = React.useState(false);
 
-  // تأجيل تشغيل محركات التنبيه الخلفية حتى يستقر الإقلاع الأولي والرسم الرئيسي
+  // تأجيل تشغيل محركات التنبيه الخلفية (الديون والمناقلات) حتى تستقر الشاشات الأساسية بالكامل
   React.useEffect(() => {
+    let idleId: number | undefined;
     const timer = setTimeout(() => {
-      setMountBackgroundRunners(true);
-    }, 3000);
-    return () => clearTimeout(timer);
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(
+          () => {
+            setMountBackgroundRunners(true);
+          },
+          { timeout: 5000 }
+        );
+      } else {
+        setMountBackgroundRunners(true);
+      }
+    }, 15000);
+    return () => {
+      clearTimeout(timer);
+      if (idleId !== undefined && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+    };
   }, []);
 
   // جسر تنقّل من Service Worker: عند النقر على تنبيه دفع والتطبيق مفتوح،

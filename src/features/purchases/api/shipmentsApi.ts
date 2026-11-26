@@ -279,7 +279,8 @@ export const shipmentsApi = {
         .from('purchase_quotation_shipments')
         .select('*, quotation:quotations(quotation_number, branch_id, party:parties(name))')
         .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (filterStage !== undefined && filterStage !== ('all' as unknown)) {
         query = query.eq('tracking_status', filterStage);

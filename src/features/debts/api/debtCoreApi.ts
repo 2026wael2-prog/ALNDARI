@@ -149,7 +149,8 @@ export const debtApi = {
       .from('debt_payment_promises')
       .select('*, parties!inner(name, phone, branch_id)')
       .eq('company_id', companyId)
-      .order('promise_date', { ascending: true });
+      .order('promise_date', { ascending: true })
+      .limit(500);
     if (filters?.partyId != null) query = query.eq('party_id', filters.partyId);
     if (filters?.status != null) query = query.eq('status', filters.status);
     if (filters?.branchId) query = query.eq('parties.branch_id', filters.branchId);

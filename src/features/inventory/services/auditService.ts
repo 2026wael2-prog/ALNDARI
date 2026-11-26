@@ -180,7 +180,8 @@ export const auditService = {
       .select('*, warehouses(name_ar, branch_id)')
       .eq('company_id', companyId)
       .neq('status', 'cancelled')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(200);
     if (error) throw error;
     let rows = (data || []).map((s: Record<string, unknown>) => ({
       ...s,
@@ -210,9 +211,10 @@ export const auditService = {
 
     const { data: items, error: iError } = await supabase
       .from('audit_items')
-      .select('*, products(*, product_categories(name))')
+      .select('*, products(id, name_ar, sku, part_number, brand, size, cost_price, purchase_price, product_categories(name))')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(5000);
     if (iError) throw iError;
 
     return {

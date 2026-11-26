@@ -15,9 +15,10 @@ export const expensesApi = {
   getExpenseCategories: async (companyId: string) => {
     const { data, error } = await supabase
       .from('expense_categories')
-      .select('*')
+      .select('id, company_id, name, description, color, account_id, is_system, created_at, updated_at, deleted_at')
       .eq('company_id', companyId)
-      .is('deleted_at', null);
+      .is('deleted_at', null)
+      .limit(500);
     if (error) throw parseError(error);
     return { data: data || [], error: null };
   },

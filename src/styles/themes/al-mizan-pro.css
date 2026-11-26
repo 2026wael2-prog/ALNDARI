@@ -1,0 +1,444 @@
+/* ============================================================
+   ثيم «الميزان برو (محلات النظاري)» — مطابقة تامة لواجهة ويندوز الكلاسيكية
+   ============================================================ */
+
+/* ── أ) الوضع النهاري: قشرة سطح المكتب الكلاسيكية، ترويسة أيرو الزرقاء، شبكة إكسل بصفوف خضراء ── */
+html[data-preset='al-mizan-pro']:not(.dark) {
+  /* خط ويندوز الكلاسيكي الأصلي ونصوص سوداء حادة */
+  font-family: Tahoma, 'Segoe UI', Arial, sans-serif !important;
+  color: #000000 !important;
+
+  & * {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* نصوص واضحة وقوية تمنع البهتان */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-neutral-400,
+  & .text-neutral-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #445566 !important;
+    font-weight: 600 !important;
+  }
+
+  & p, & span, & label {
+    font-weight: 500;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  /* 1. ترويسة البرنامج وشريط العنوان (Aero Titlebar Gradient) */
+  & .classic-titlebar,
+  & header {
+    background: linear-gradient(180deg, #a9cbea, #c6dcf2 45%, #d9eafa) !important;
+    border-bottom: 1px solid #8aa9c9 !important;
+    box-shadow: none !important;
+  }
+
+  & .classic-titlebar span,
+  & .classic-titlebar div,
+  & header span,
+  & header button,
+  & header div {
+    color: #0a2b4a !important;
+    font-weight: 700 !important;
+  }
+
+  /* أيقونة شارة البرنامج (Golden Icon Badge) */
+  & .classic-brand-mark {
+    background: linear-gradient(180deg, #f5c46a, #d98523) !important;
+    border: 1px solid #8a5a12 !important;
+    color: #7a4a08 !important;
+  }
+
+  /* 2. شريط القوائم والريبون (Ribbon & Menubar) */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #b9b9b9 !important;
+  }
+
+  & .classic-menu-btn {
+    color: #000000 !important;
+    font-weight: 600 !important;
+  }
+
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #eaf3fc !important;
+    border-color: #b7d4ee !important;
+    color: #000000 !important;
+  }
+
+  & .classic-ribbon-item {
+    color: #000000 !important;
+    font-weight: 600 !important;
+  }
+
+  & .classic-ribbon-item:hover {
+    background-color: #eaf3fc !important;
+    border-color: #b7d4ee !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #ffffff !important;
+    border-color: #cfcfcf !important;
+    box-shadow: inset 0 2px 0 0 #2472c8 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #eaf3fc !important;
+    color: #2472c8 !important;
+  }
+
+  /* 3. الجداول المحاسبية والشبكة (Data Grid) */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background: linear-gradient(180deg, #fafafa, #e6e6e6) !important;
+    border-bottom: 1px solid #c9c9c9 !important;
+    border-left: 1px solid #e2e2e2 !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+  }
+
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  & table tbody tr {
+    background-color: #ffffff !important;
+    border-color: #e2e2e2 !important;
+    color: #000000 !important;
+  }
+
+  /* صفوف التموج الخضراء الكلاسيكية (Classic Pale Green Zebra) */
+  & table tbody tr:nth-child(even) {
+    background-color: #98fb98 !important;
+  }
+
+  /* عمود التسلسل / رأس الصف الرمادي */
+  & table tbody tr td:first-child,
+  & table tbody tr td.num {
+    background-color: #ececec !important;
+    color: #444444 !important;
+    text-align: center !important;
+  }
+
+  /* تحويم الصف وتحديده */
+  & table tbody tr:hover td:not(:first-child) {
+    outline: 1px solid #7aa7d6 !important;
+  }
+
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #cce0f7 !important;
+  }
+
+  & table td,
+  & table th {
+    border-color: #e2e2e2 !important;
+    color: #000000 !important;
+  }
+
+  /* الخلية النشطة (Active Cell Border) */
+  & table td:focus,
+  & table td.active {
+    outline: 2px solid #2472c8 !important;
+    outline-offset: -2px !important;
+    background-color: #ffffff !important;
+  }
+
+  /* 4. حقول الإدخال والاختيار (Windows Classic Input Fields) */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #ffffff !important;
+    border: 1px solid #abadb3 !important;
+    border-radius: 2px !important;
+    color: #000000 !important;
+  }
+
+  & input[readonly],
+  & textarea[readonly] {
+    background-color: #f6f6f6 !important;
+    color: #333333 !important;
+  }
+
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #2472c8 !important;
+    box-shadow: 0 0 0 1px #b8d6f5 !important;
+    outline: none !important;
+  }
+
+  /* 5. مجموعات الحقول والبطاقات (Classic Group Boxes) */
+  & fieldset,
+  & .grp,
+  & .border-slate-200,
+  & .border-gray-200 {
+    border-color: #cdcdcd !important;
+  }
+
+  /* 6. الأزرار الكلاسيكية والأزرار الرئيسية */
+  & button:not(.classic-menu-btn):not(.classic-ribbon-item) {
+    border-radius: 2px !important;
+  }
+
+  & .bg-blue-600,
+  & button.bg-blue-600 {
+    background: linear-gradient(180deg, #4d9df2, #2272c7) !important;
+    border: 1px solid #164e8a !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  & .hover\:bg-blue-700:hover,
+  & button.bg-blue-600:hover {
+    background: linear-gradient(180deg, #61abf7, #287cd9) !important;
+    border-color: #164e8a !important;
+  }
+
+  & .text-blue-600 {
+    color: #2472c8 !important;
+    font-weight: 700 !important;
+  }
+
+  /* 7. شريط الحالة السفلي (Status Bar) */
+  & .classic-statusbar,
+  & footer {
+    background: linear-gradient(180deg, #c9d5e9, #eaebef) !important;
+    border-top: 1px solid #b6c3d6 !important;
+    color: #000000 !important;
+  }
+}
+
+/* ── ب) الوضع الليلي: تصميم داكن متناسق مع النمط المكتبي الكلاسيكي وأزرق ناعم ── */
+html[data-preset='al-mizan-pro'].dark {
+  --slate-50: 240 246 252;
+  --slate-100: 225 235 245;
+  --slate-200: 200 215 230;
+  --slate-300: 170 190 210;
+  --slate-400: 139 156 181;
+  --slate-500: 90 110 135;
+  --slate-600: 61 86 120;
+  --slate-700: 38 55 77;
+  --slate-750: 30 44 63;
+  --slate-800: 22 33 48;
+  --slate-850: 18 26 38;
+  --slate-900: 14 22 34;
+  --slate-950: 10 15 24;
+
+  font-family: Tahoma, 'Segoe UI', Arial, sans-serif !important;
+  background-color: #0e1622 !important;
+  color: #f0f6fc !important;
+
+  &,
+  & body,
+  & div[data-theme-scope='app'],
+  & main {
+    background-color: #0e1622 !important;
+  }
+
+  /* وضوح النصوص ليلاً */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #8b9cb5 !important;
+    font-weight: 500 !important;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #f0f6fc !important;
+    font-weight: 700 !important;
+  }
+
+  /* 1. ترويسة البرنامج وشريط العنوان ليلاً */
+  & .classic-titlebar,
+  & header {
+    background: linear-gradient(180deg, #1b2a3d, #142030) !important;
+    border-bottom: 1px solid #2b3e57 !important;
+    box-shadow: none !important;
+  }
+
+  & .classic-titlebar span,
+  & .classic-titlebar div,
+  & header span,
+  & header button,
+  & header div {
+    color: #f0f6fc !important;
+    font-weight: 700 !important;
+  }
+
+  & .classic-brand-mark {
+    background: linear-gradient(180deg, #388bfd, #1f6feb) !important;
+    border: 1px solid #58a6ff !important;
+    color: #ffffff !important;
+  }
+
+  /* 2. شريط القوائم والريبون ليلاً */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #162130 !important;
+    border-bottom: 1px solid #26374d !important;
+  }
+
+  & .classic-menu-btn {
+    color: #f0f6fc !important;
+  }
+
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #1f3552 !important;
+    border-color: #388bfd !important;
+    color: #58a6ff !important;
+  }
+
+  & .classic-ribbon-item {
+    color: #8b9cb5 !important;
+  }
+
+  & .classic-ribbon-item:hover {
+    background-color: #1f3552 !important;
+    border-color: #388bfd !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #1a2c44 !important;
+    border-color: #388bfd !important;
+    box-shadow: inset 0 2px 0 0 #58a6ff !important;
+    color: #58a6ff !important;
+    font-weight: 700 !important;
+  }
+
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #24426b !important;
+    color: #58a6ff !important;
+  }
+
+  /* 3. الجداول المحاسبية ليلاً */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background: linear-gradient(180deg, #1c2b3d, #142030) !important;
+    color: #c9d5e9 !important;
+    border-color: #26374d !important;
+    font-weight: 700 !important;
+  }
+
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #c9d5e9 !important;
+  }
+
+  & table tbody tr {
+    background-color: #162130 !important;
+    border-color: #223145 !important;
+    color: #f0f6fc !important;
+  }
+
+  & table tbody tr:nth-child(even) {
+    background-color: #142820 !important;
+  }
+
+  & table tbody tr td:first-child,
+  & table tbody tr td.num {
+    background-color: #141e2c !important;
+    color: #8b9cb5 !important;
+    text-align: center !important;
+  }
+
+  & table tbody tr:hover td:not(:first-child) {
+    outline: 1px solid #388bfd !important;
+  }
+
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #1a3b63 !important;
+  }
+
+  & table td,
+  & table th {
+    border-color: #223145 !important;
+    color: #f0f6fc !important;
+  }
+
+  /* 4. حقول الإدخال ليلاً */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #0d141e !important;
+    border: 1px solid #3d5678 !important;
+    border-radius: 2px !important;
+    color: #f0f6fc !important;
+  }
+
+  & input[readonly],
+  & textarea[readonly] {
+    background-color: #111a26 !important;
+    color: #8b9cb5 !important;
+  }
+
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #58a6ff !important;
+    box-shadow: 0 0 0 1px #388bfd !important;
+    outline: none !important;
+  }
+
+  /* 5. البطاقات والحاويات ليلاً */
+  & aside,
+  & .bg-white,
+  & .bg-\[var\(--app-surface\)\] {
+    background-color: #162130 !important;
+    color: #f0f6fc !important;
+    border-color: #26374d !important;
+  }
+
+  /* 6. الأزرار التفاعلية ليلاً */
+  & .bg-blue-600,
+  & button.bg-blue-600 {
+    background: linear-gradient(180deg, #1f6feb, #1158c7) !important;
+    border: 1px solid #388bfd !important;
+    color: #ffffff !important;
+  }
+
+  & .hover\:bg-blue-700:hover,
+  & button.bg-blue-600:hover {
+    background: linear-gradient(180deg, #388bfd, #1f6feb) !important;
+    border-color: #58a6ff !important;
+  }
+
+  & .text-blue-600,
+  & .text-blue-400,
+  & .dark\:text-blue-400 {
+    color: #58a6ff !important;
+  }
+
+  /* 7. شريط الحالة السفلي ليلاً */
+  & .classic-statusbar,
+  & footer {
+    background: linear-gradient(180deg, #162436, #0e1622) !important;
+    border-top: 1px solid #26374d !important;
+    color: #8b9cb5 !important;
+  }
+}

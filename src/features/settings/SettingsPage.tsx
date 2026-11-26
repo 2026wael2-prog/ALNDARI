@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Settings,
@@ -18,29 +18,39 @@ import {
   Bell,
   LayoutTemplate,
 } from 'lucide-react';
-import { DocumentHeaderStudio } from './components/header-studio/DocumentHeaderStudio';
-import CompanyProfile from './components/CompanyProfile';
-import BranchManager from './components/branches/BranchManager';
-import PersonalProfile from './components/PersonalProfile';
-import FinancialSettings from './components/financial/FinancialSettings';
-import SecuritySettings from './components/security/SecuritySettings';
-import PermissionsManager from './components/security/PermissionsManager';
-import TeamManager from './components/security/TeamManager';
-import NotificationSettings from './components/notifications/NotificationSettings';
-import AppearancePage from '../appearance/AppearancePage';
-import BackupPage from './components/backup/BackupPage';
-import InvoiceSettings from './components/invoice/InvoiceSettings';
-import POSSettings from './components/pos/POSSettings';
-import InventorySettings from './components/inventory/InventorySettings';
-import PrintSettings from './components/print';
-import IntegrationsSettings from './components/integrations/IntegrationsSettings';
-import LocalizationSettings from './components/localization/LocalizationSettings';
-import DhikrSettings from './components/dhikr/DhikrSettings';
-import { AccompanyingInfoSettingCard } from '../accompanying-info';
 import type { SettingsSection } from './types';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import { cn } from '../../core/utils';
 import { useBreakpoint } from '../../lib/hooks/useBreakpoint';
+import PageLoader from '../../ui/base/PageLoader';
+
+const DocumentHeaderStudio = lazy(() =>
+  import('./components/header-studio/DocumentHeaderStudio').then(m => ({
+    default: m.DocumentHeaderStudio,
+  }))
+);
+const CompanyProfile = lazy(() => import('./components/CompanyProfile'));
+const BranchManager = lazy(() => import('./components/branches/BranchManager'));
+const PersonalProfile = lazy(() => import('./components/PersonalProfile'));
+const FinancialSettings = lazy(() => import('./components/financial/FinancialSettings'));
+const SecuritySettings = lazy(() => import('./components/security/SecuritySettings'));
+const PermissionsManager = lazy(() => import('./components/security/PermissionsManager'));
+const TeamManager = lazy(() => import('./components/security/TeamManager'));
+const NotificationSettings = lazy(() => import('./components/notifications/NotificationSettings'));
+const AppearancePage = lazy(() => import('../appearance/AppearancePage'));
+const BackupPage = lazy(() => import('./components/backup/BackupPage'));
+const InvoiceSettings = lazy(() => import('./components/invoice/InvoiceSettings'));
+const POSSettings = lazy(() => import('./components/pos/POSSettings'));
+const InventorySettings = lazy(() => import('./components/inventory/InventorySettings'));
+const PrintSettings = lazy(() => import('./components/print'));
+const IntegrationsSettings = lazy(() => import('./components/integrations/IntegrationsSettings'));
+const LocalizationSettings = lazy(() => import('./components/localization/LocalizationSettings'));
+const DhikrSettings = lazy(() => import('./components/dhikr/DhikrSettings'));
+const AccompanyingInfoSettingCard = lazy(() =>
+  import('../accompanying-info').then(m => ({
+    default: m.AccompanyingInfoSettingCard,
+  }))
+);
 
 interface MenuGroup {
   title: string;
@@ -314,7 +324,9 @@ const SettingsPage: React.FC = () => {
         </div>
 
         <div className="custom-scrollbar flex-1 overflow-y-auto pb-20">
-          <div className="animate-in fade-in duration-500">{renderActiveSection()}</div>
+          <div className="animate-in fade-in duration-500">
+            <Suspense fallback={<PageLoader variant="form" />}>{renderActiveSection()}</Suspense>
+          </div>
         </div>
       </div>
     );
@@ -479,7 +491,7 @@ const SettingsPage: React.FC = () => {
         {/* Content Area */}
         <div className="custom-scrollbar h-full flex-1 overflow-y-auto bg-white/20 dark:bg-slate-950/20">
           <div className="animate-in fade-in flex h-full flex-col duration-300">
-            {renderActiveSection()}
+            <Suspense fallback={<PageLoader variant="form" />}>{renderActiveSection()}</Suspense>
           </div>
         </div>
       </div>

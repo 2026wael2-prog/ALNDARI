@@ -1,0 +1,439 @@
+/* ============================================================
+   ثيم «الميزان الذهبي ERP» — تطبيق صارم وحرفي للألوان المعتمدة
+   ============================================================ */
+
+/* ── أ) الوضع النهاري: نصوص حادة وقوية وتباين عالي مع هوية الميزان الذهبي ── */
+html[data-preset='classic-golden-erp']:not(.dark) {
+  /* وضوح وقوة الخطوط في كامل التطبيق (منع البهتان) */
+  color: #111111 !important;
+
+  & * {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* تقوية النصوص الثانوية والمسميات لضمان القراءة السريعة */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-neutral-400,
+  & .text-neutral-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #383838 !important;
+    font-weight: 600 !important;
+  }
+
+  & p, & span, & label {
+    font-weight: 500;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #0a0a0a !important;
+    font-weight: 800 !important;
+  }
+
+  /* 1. الترويسات والعناصر الرئيسية: البرتقالي الذهبي والبرتقالي الداكن */
+  & .classic-titlebar {
+    background: linear-gradient(to bottom, #E99A00, #D99000) !important;
+    border-bottom: 1px solid #B87B00 !important;
+    box-shadow: none !important;
+  }
+  & .classic-titlebar span,
+  & .classic-titlebar div {
+    color: #111111 !important;
+    font-weight: 800 !important;
+  }
+  & header {
+    background: linear-gradient(to bottom, #E99A00, #D99000) !important;
+    border-bottom: 1px solid #B87B00 !important;
+  }
+  & header span,
+  & header button,
+  & header div {
+    color: #111111 !important;
+    font-weight: 700 !important;
+  }
+  & .classic-brand-mark {
+    background-color: #111111 !important;
+    color: #E99A00 !important;
+  }
+
+  /* 2. قشرة الشريط والقوائم: الرمادي الفاتح مع تمييز نشط ذهبي وبرتقالي */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #F4F4F4 !important;
+    border-bottom: 1px solid #C8C8C8 !important;
+  }
+  & .classic-menu-btn {
+    color: #111111 !important;
+    font-weight: 700 !important;
+  }
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #F5C04A33 !important;
+    border-color: #D99000 !important;
+    color: #000000 !important;
+  }
+  & .classic-ribbon-item {
+    color: #111111 !important;
+    font-weight: 700 !important;
+  }
+  & .classic-ribbon-item:hover {
+    background-color: #F5C04A26 !important;
+    border-color: #F2B52B !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #F5C04A33 !important;
+    border-color: #D99000 !important;
+    box-shadow: inset 0 -3px 0 0 #D99000 !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #E99A00 !important;
+    color: #111111 !important;
+  }
+
+  /* 3. الجداول المحاسبية: ترويسات خضراء واضحة، صفوف بديلة، ونصوص قوية */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background-color: #80C77B !important;
+    color: #111111 !important;
+    border-color: #C8C8C8 !important;
+    font-weight: 800 !important;
+    font-size: 12px !important;
+  }
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #111111 !important;
+    font-weight: 800 !important;
+  }
+  & table tbody tr {
+    background-color: #F4F4F4 !important;
+    border-color: #C8C8C8 !important;
+    color: #111111 !important;
+  }
+  & table tbody tr:nth-child(even) {
+    background-color: #EAEAEA !important;
+  }
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #A0D995 !important;
+  }
+  & table td,
+  & table th {
+    border-color: #C8C8C8 !important;
+    color: #111111 !important;
+    font-weight: 600 !important;
+  }
+
+  /* 4. حقول الإدخال: بيضاء نقية مع خطوط واضحة */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #FFFFFF !important;
+    border-color: #C8C8C8 !important;
+    color: #111111 !important;
+    font-weight: 600 !important;
+  }
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #164F85 !important;
+    outline-color: #164F85 !important;
+  }
+
+  /* 5. العناصر التفاعلية والأزرار */
+  & .bg-blue-600 {
+    background-color: #164F85 !important;
+    border-color: #164F85 !important;
+  }
+  & .hover\:bg-blue-700:hover {
+    background-color: #0f365c !important;
+    border-color: #0f365c !important;
+  }
+  & .text-blue-600 {
+    color: #164F85 !important;
+    font-weight: 700 !important;
+  }
+
+  /* 6. توافق صفحة الهبوط نهاراً مع هوية الميزان الذهبي */
+  & .landing-page .bg-blue-600,
+  & [data-theme-scope='landing'] .bg-blue-600 {
+    background-color: #E99A00 !important;
+    border-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+  & .landing-page .hover\:bg-blue-700:hover,
+  & [data-theme-scope='landing'] .hover\:bg-blue-700:hover {
+    background-color: #D99000 !important;
+    border-color: #D99000 !important;
+  }
+  & .landing-page .text-blue-600,
+  & [data-theme-scope='landing'] .text-blue-600 {
+    color: #E99A00 !important;
+  }
+  & .landing-page h1 span,
+  & [data-theme-scope='landing'] h1 span {
+    color: #E99A00 !important;
+  }
+  & .landing-page nav button:hover,
+  & [data-theme-scope='landing'] nav button:hover {
+    color: #E99A00 !important;
+  }
+  & .landing-page nav span.bg-blue-600,
+  & [data-theme-scope='landing'] nav span.bg-blue-600 {
+    background-color: #E99A00 !important;
+  }
+  & .landing-page .border-blue-200,
+  & [data-theme-scope='landing'] .border-blue-200 {
+    border-color: rgba(233, 154, 0, 0.4) !important;
+    background-color: rgba(233, 154, 0, 0.1) !important;
+    color: #D99000 !important;
+  }
+}
+
+/* ── ب) الوضع الليلي: ليل الميزان الذهبي المريح والفخم (غرافيت دافئ متناسق خالي من السواد القاتم والباهت، وبلمسات ذهبية مشرقة) ── */
+html[data-preset='classic-golden-erp'].dark {
+  /* جسر لوحة slate: درجات غرافيت دافئة متناسقة ومريحة جداً للعين (غير باهتة وغير قاتمة سواداً) */
+  --slate-50: 255 255 255;
+  --slate-100: 249 250 251;
+  --slate-200: 243 244 246;
+  --slate-300: 229 231 235;
+  --slate-400: 209 213 219;
+  --slate-500: 148 153 167;
+  --slate-600: 75 80 94;
+  --slate-700: 53 56 68;
+  --slate-750: 42 46 55;
+  --slate-800: 34 37 44;
+  --slate-850: 29 32 38;
+  --slate-900: 25 27 32;
+  --slate-950: 20 22 27;
+
+  background-color: #191b20 !important;
+  color: #ffffff !important;
+
+  /* خلفيات مساحة العمل والحاويات الرئيسية */
+  &,
+  & body,
+  & div[data-theme-scope='app'],
+  & div[data-theme-scope='landing'],
+  & .landing-page,
+  & main {
+    background-color: #191b20 !important;
+  }
+
+  /* وضوح وقوة خطوط الليل: نصوص نقية قوية عالية التباين خالية تماماً من البهتان */
+  & .text-slate-400,
+  & .text-slate-500,
+  & .text-gray-400,
+  & .text-gray-500,
+  & .text-\[var\(--app-text-secondary\)\] {
+    color: #d1d5db !important;
+    font-weight: 500 !important;
+  }
+
+  & strong, & b, & h1, & h2, & h3, & h4, & h5, & h6 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  /* استبدال تام للأزرق الأصلي للنظام بالألوان الذهبية المشرقة لهوية الميزان */
+  & .bg-blue-600,
+  & .bg-blue-500,
+  & button.bg-blue-600,
+  & button.bg-blue-500,
+  & a.bg-blue-600 {
+    background-color: #E99A00 !important;
+    border-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+  & .bg-blue-600:hover,
+  & .hover\:bg-blue-700:hover,
+  & button.bg-blue-600:hover,
+  & button.bg-blue-500:hover {
+    background-color: #D99000 !important;
+    border-color: #D99000 !important;
+  }
+  & .text-blue-600,
+  & .text-blue-500,
+  & .text-blue-400,
+  & .dark\:text-blue-400,
+  & .dark\:text-blue-300 {
+    color: #F5C04A !important;
+    font-weight: 700 !important;
+  }
+  & .border-blue-600,
+  & .border-blue-500,
+  & .border-blue-400,
+  & .dark\:border-blue-800\/50,
+  & .dark\:border-blue-500 {
+    border-color: #E99A00 !important;
+  }
+  & .bg-blue-50,
+  & .bg-blue-100,
+  & .bg-blue-950\/40,
+  & .dark\:bg-blue-950\/40,
+  & .bg-blue-500\/10,
+  & .dark\:bg-blue-500\/20 {
+    background-color: rgba(233, 154, 0, 0.18) !important;
+    border-color: rgba(233, 154, 0, 0.45) !important;
+    color: #F5C04A !important;
+  }
+  & ::selection {
+    background-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+
+  /* 1. الترويسات وشريط العنوان في الوضع الليلي: غرافيت دافئ فاخر مع خط ذهبي برتقالي بارز */
+  & .classic-titlebar,
+  & header {
+    background: #22252c !important;
+    border-bottom: 2px solid #E99A00 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  }
+  & .classic-titlebar span,
+  & .classic-titlebar div,
+  & header span,
+  & header button,
+  & header div {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+  & .classic-brand-mark {
+    background-color: #E99A00 !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
+  }
+
+  /* 2. شريط الأوامر والقوائم ليلاً: أسطح متناسقة مع تبويب نشط ذهبي */
+  & .classic-menubar,
+  & .classic-ribbon {
+    background-color: #1d2026 !important;
+    border-bottom: 1px solid #353844 !important;
+  }
+  & .classic-menu-btn {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+  }
+  & .classic-menu-btn:hover,
+  & .classic-menu-btn[aria-expanded='true'] {
+    background-color: #E99A002e !important;
+    border-color: #E99A00 !important;
+    color: #F5C04A !important;
+  }
+  & .classic-ribbon-item {
+    color: #d1d5db !important;
+  }
+  & .classic-ribbon-item:hover {
+    background-color: #E99A0022 !important;
+    border-color: #B87B00 !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] {
+    background-color: #E99A0033 !important;
+    border-color: #E99A00 !important;
+    box-shadow: inset 0 -3px 0 0 #E99A00 !important;
+    color: #F5C04A !important;
+    font-weight: 700 !important;
+  }
+  & .classic-ribbon-item[aria-current='page'] .classic-ribbon-icon {
+    background-color: #E99A00 !important;
+    color: #ffffff !important;
+  }
+
+  /* 3. الجداول المحاسبية ليلاً: ترويسة خضراء محاسبية أنيقة مع تباين عالي */
+  & table thead,
+  & thead.sticky,
+  & table thead tr th,
+  & thead.sticky tr th {
+    background-color: #193f24 !important;
+    color: #A0D995 !important;
+    border-color: #353844 !important;
+    font-weight: 800 !important;
+  }
+  & table thead tr th *,
+  & thead.sticky tr th * {
+    color: #A0D995 !important;
+  }
+  & table tbody tr {
+    background-color: #22252c !important;
+    border-color: #353844 !important;
+    color: #ffffff !important;
+  }
+  & table tbody tr:nth-child(even) {
+    background-color: #272a33 !important;
+  }
+  & table tbody tr:hover {
+    background-color: rgba(233, 154, 0, 0.15) !important;
+  }
+  & table tbody tr:has(input[type="checkbox"]:checked),
+  & table tbody tr.bg-blue-50\/80,
+  & table tbody tr[aria-selected='true'] {
+    background-color: #1e4d2b !important;
+  }
+  & table td,
+  & table th {
+    border-color: #353844 !important;
+    color: #ffffff !important;
+  }
+
+  /* 4. حقول الإدخال ليلاً: أسطح مريحة وحدود دقيقة وخطوط بيضاء واضحة */
+  & input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='submit']):not([type='button']),
+  & select,
+  & textarea {
+    background-color: #1a1c22 !important;
+    border-color: #3d414f !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+  }
+  & input:focus,
+  & select:focus,
+  & textarea:focus {
+    border-color: #E99A00 !important;
+    outline: 1px solid #E99A00 !important;
+    box-shadow: 0 0 0 2px rgba(233, 154, 0, 0.25) !important;
+  }
+
+  /* 5. البطاقات والحاويات والقوائم الجانبية ليلاً */
+  & aside,
+  & .bg-white,
+  & .bg-\[var\(--app-surface\)\] {
+    background-color: #22252c !important;
+    color: #ffffff !important;
+    border-color: #353844 !important;
+  }
+
+  /* 6. توافق صفحة الهبوط الكامل في الوضع الليلي */
+  & .landing-page,
+  & [data-theme-scope='landing'] {
+    background-color: #191b20 !important;
+  }
+  & .landing-page [class*="bg-[linear-gradient(180deg,#08111f"],
+  & [data-theme-scope='landing'] [class*="bg-[linear-gradient(180deg,#08111f"] {
+    background: linear-gradient(180deg, #1d2026 0%, #191b20 100%) !important;
+  }
+  & .landing-glass {
+    background: rgba(34, 37, 44, 0.92) !important;
+    border: 1px solid rgba(233, 154, 0, 0.3) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35) !important;
+  }
+  & .landing-page .bg-slate-950,
+  & [data-theme-scope='landing'] .bg-slate-950 {
+    background-color: #14161b !important;
+    border-top: 1px solid #353844 !important;
+  }
+  & .landing-page button[aria-label*="الوضع"],
+  & [data-theme-scope='landing'] button[aria-label*="الوضع"] {
+    background-color: #22252c !important;
+    border-color: #353844 !important;
+    color: #F5C04A !important;
+  }
+  & .landing-page .border-y.border-slate-200\/70,
+  & [data-theme-scope='landing'] .border-y {
+    border-color: #353844 !important;
+    color: #d1d5db !important;
+  }
+}

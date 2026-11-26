@@ -60,7 +60,7 @@ export default defineConfig({
     modulePreload: {
       polyfill: true,
       resolveDependencies: (_filename, deps) =>
-        deps.filter(dep => !/vendor-(export|xlsx|charts|qr)-/.test(dep)),
+        deps.filter(dep => !/vendor-(export|xlsx|charts|qr|motion)-/.test(dep)),
     },
     // ⚡ No source maps in production = faster build + smaller output
     sourcemap: false,
@@ -133,8 +133,11 @@ export default defineConfig({
           if (id.includes('node_modules/clsx') || id.includes('node_modules/tailwind-merge')) {
             return 'vendor-ui';
           }
-          if (id.includes('node_modules/react-is') || id.includes('node_modules/framer-motion')) {
+          if (id.includes('node_modules/react-is')) {
             return 'vendor-ui';
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'vendor-motion';
           }
           if (id.includes('node_modules/qrcode')) {
             return 'vendor-qr';

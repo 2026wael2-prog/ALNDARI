@@ -99,6 +99,33 @@ const applyGlassOpacity = (opacity: number) =>
 let themeMediaQueryCleanup: (() => void) | null = null;
 
 /**
+ * تحميل ملف CSS الخاص بالثيمات الثقيلة غير الافتراضية عند الطلب فقط (Lazy Theme Stylesheets)
+ * لتقليل حجم CSS الأولي وتقصير وقت Parse/Recalc Style عند الإقلاع.
+ * الثيم الافتراضي (espresso-cream-blue) يبقى مضمّناً في index.css لمنع أي وميض (FOUC).
+ */
+const loadedThemeStylesheets = new Set<string>();
+const LAZY_THEME_LOADERS: Record<string, () => Promise<unknown>> = {
+  'classic-golden-erp': () => import('../styles/themes/classic-golden-erp.css'),
+  'al-mizan-pro': () => import('../styles/themes/al-mizan-pro.css'),
+  'solar-noir': () => import('../styles/themes/solar-noir.css'),
+  'obsidian-pro': () => import('../styles/themes/obsidian.css'),
+  'obsidian-sun': () => import('../styles/themes/obsidian.css'),
+  'optiparts-or': () => import('../styles/themes/optiparts.css'),
+};
+
+const ensureThemeStylesheetLoaded = (presetId: string): void => {
+  if (typeof document === 'undefined' || loadedThemeStylesheets.has(presetId)) return;
+  const loader = Object.prototype.hasOwnProperty.call(LAZY_THEME_LOADERS, presetId)
+    ? LAZY_THEME_LOADERS[presetId]
+    : undefined;
+  if (!loader) return;
+  loadedThemeStylesheets.add(presetId);
+  void loader().catch(() => {
+    loadedThemeStylesheets.delete(presetId);
+  });
+};
+
+/**
  * Generates a tailored dark theme palette for single-mode light presets
  * so each theme has a distinct, beautiful dark mode background and surface
  * corresponding to its visual identity instead of falling back to blue.
@@ -227,6 +254,7 @@ const applyPresetCSSVars = (presetId: string, currentTheme: 'light' | 'dark') =>
   // شكل الزوايا (كلاسيكي = شبه مربعة) يُدار عبر [data-corners] في index.css
   root.dataset.corners = preset.corners ?? 'rounded';
   root.dataset.preset = preset.id;
+  ensureThemeStylesheetLoaded(preset.id);
 
   if (preset.light && preset.dark) {
     // اختيار المتغيرات بناءً على الوضع الحالي للباقات التي تدعم كلا الوضعين

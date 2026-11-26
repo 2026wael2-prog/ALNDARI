@@ -1,0 +1,334 @@
+/* ============================================================
+   الهوية المحاسبية الرسمية — OptiParts OR
+   شريط جانبي داكن (#0f172a) بنصوص واضحة في النهار والليل
+   + هيدر رئيسي برتقالي (#ea580c) + هيدر ثانوي احترافي + ترويسات جداول كحلية داكنة
+   ============================================================ */
+html[data-preset='optiparts-or'] .font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ── 1. الشريط الجانبي (Sidebar) — تباين عالٍ ومقروء 100% في الوضع النهاري والليلي ── */
+html[data-preset='optiparts-or'] aside {
+  background-color: #161b26 !important;
+  border-color: #252c3a !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark[data-preset='optiparts-or'] aside {
+  background-color: #161920 !important;
+  border-color: #262b35 !important;
+}
+
+/* منطقة الشعار واسم التطبيق في أعلى الشريط الجانبي — خلفية داكنة متناسقة ونص أبيض ناصع */
+html[data-preset='optiparts-or'] aside [data-sidebar-logo='true'] {
+  background-color: #111622 !important;
+  border-bottom-color: #252c3a !important;
+}
+
+html.dark[data-preset='optiparts-or'] aside [data-sidebar-logo='true'] {
+  background-color: #12151c !important;
+  border-bottom-color: #262b35 !important;
+}
+
+html[data-preset='optiparts-or'] aside [data-sidebar-logo='true'] h1 {
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+html[data-preset='optiparts-or'] aside [data-sidebar-logo='true'] span {
+  color: #fb923c !important;
+}
+
+/* عناوين الأقسام في القائمة الجانبية */
+html[data-preset='optiparts-or'] aside nav > div > div:first-child {
+  color: #94a3b8 !important;
+}
+
+/* نصوص أسماء الصفحات وجميع العناوين داخل القائمة الجانبية */
+html[data-preset='optiparts-or'] aside :is(h1, h2, h3, p, span, a) {
+  color: #e2e8f0 !important;
+}
+
+html[data-preset='optiparts-or'] aside nav button {
+  color: #e2e8f0 !important;
+  transition: transform 0.18s ease-out,
+              background-color 0.15s ease,
+              border-color 0.15s ease,
+              box-shadow 0.18s ease !important;
+}
+
+html[data-preset='optiparts-or'] aside nav button:not([aria-current='page']):hover {
+  background-color: rgba(234, 88, 12, 0.16) !important;
+  border-color: rgba(251, 146, 60, 0.45) !important;
+  transform: translateX(-5px) scale(1.035) !important;
+  box-shadow: 0 6px 16px -4px rgba(234, 88, 12, 0.35), 0 0 0 1px rgba(251, 146, 60, 0.3) !important;
+  z-index: 5;
+}
+
+html[dir='ltr'][data-preset='optiparts-or'] aside nav button:not([aria-current='page']):hover {
+  transform: translateX(5px) scale(1.035) !important;
+}
+
+html[data-preset='optiparts-or'] aside nav button:not([aria-current='page']):hover span {
+  color: #ffffff !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+html[data-preset='optiparts-or'] aside nav button:not([aria-current='page']):hover > div {
+  transform: scale(1.12) rotate(-5deg) !important;
+  background-color: rgba(234, 88, 12, 0.28) !important;
+  border-color: rgba(251, 146, 60, 0.6) !important;
+}
+
+/* العنصر النشط في القائمة الجانبية */
+html[data-preset='optiparts-or'] aside nav button[aria-current='page'] {
+  background-color: rgba(234, 88, 12, 0.24) !important;
+  border-color: rgba(249, 115, 22, 0.6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px -3px rgba(234, 88, 12, 0.32) !important;
+}
+
+html[data-preset='optiparts-or'] aside nav button[aria-current='page']:hover {
+  transform: translateX(-3px) scale(1.02) !important;
+}
+
+html[data-preset='optiparts-or'] aside nav button[aria-current='page'] span {
+  color: #ffffff !important;
+}
+
+/* شارات الأيقونات داخل القائمة الجانبية */
+html[data-preset='optiparts-or'] aside nav button:not([aria-current='page']) > div {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+/* زر طي/توسيع القائمة الجانبية والفواصل */
+html[data-preset='optiparts-or'] aside > button[title] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html[data-preset='optiparts-or'] aside > button[title]:hover {
+  background-color: #ea580c !important;
+  border-color: #f97316 !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] aside .border-t,
+html[data-preset='optiparts-or'] aside .border-b {
+  border-color: #1e293b !important;
+}
+
+/* ── 2. الهيدر الرئيسي في جميع الصفحات — برتقالي عميق احترافي مع أبيض ناصع ── */
+html[data-preset='optiparts-or'] header[data-main-header='true'] {
+  background: linear-gradient(90deg, #c2410c 0%, #ea580c 55%, #c2410c 100%) !important;
+  border-bottom: 1px solid #9a3412 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px -2px rgba(194, 65, 12, 0.32) !important;
+}
+
+html.dark[data-preset='optiparts-or'] header[data-main-header='true'] {
+  background: linear-gradient(90deg, #9a3412 0%, #c2410c 55%, #9a3412 100%) !important;
+  border-bottom: 1px solid #7c2d12 !important;
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* عنوان الصفحة والأيقونات المباشرة في الهيدر البرتقالي */
+html[data-preset='optiparts-or'] header[data-main-header='true'] h1 {
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(124, 45, 18, 0.25);
+}
+
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:first-child span {
+  color: #ffedd5 !important;
+}
+
+/* أزرار الإجراءات والأيقونات داخل الهيدر البرتقالي (دون التأثير على القوائم المنسدلة) */
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:first-child > button,
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:last-child > div > button,
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:last-child > div > div > button {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:first-child > button:hover,
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:last-child > div > button:hover,
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:last-child > div > div > button:hover {
+  background-color: rgba(255, 255, 255, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:last-child > div > button svg,
+html[data-preset='optiparts-or'] header[data-main-header='true'] > div:last-child > div > div > button svg {
+  color: #ffffff !important;
+}
+
+/* حقل البحث داخل الهيدر البرتقالي */
+html[data-preset='optiparts-or'] header[data-main-header='true'] input[type='text'] {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  color: #0f172a !important;
+}
+
+html[data-preset='optiparts-or'] header[data-main-header='true'] input[type='text']::placeholder {
+  color: #64748b !important;
+}
+
+html.dark[data-preset='optiparts-or'] header[data-main-header='true'] input[type='text'] {
+  background-color: rgba(15, 23, 42, 0.82) !important;
+  border-color: rgba(251, 146, 60, 0.4) !important;
+  color: #f8fafc !important;
+}
+
+html.dark[data-preset='optiparts-or'] header[data-main-header='true'] input[type='text']::placeholder {
+  color: #cbd5e1 !important;
+}
+
+/* ── 3. الهيدر الثانوي للصفحات (MicroHeader) — برتقالي عميق بدرجة أفتح من الهيدر الرئيسي ── */
+html[data-preset='optiparts-or'] [data-micro-header='true'] {
+  background: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%) !important;
+  border-bottom: 1px solid #c2410c !important;
+  color: #ffffff !important;
+}
+
+html.dark[data-preset='optiparts-or'] [data-micro-header='true'] {
+  background: linear-gradient(90deg, #b84210 0%, #d95918 55%, #c24b12 100%) !important;
+  border-bottom: 1px solid #9a3412 !important;
+  color: #ffffff !important;
+}
+
+/* شارة العنوان والأيقونة وزر الرجوع داخل الهيدر الثانوي البرتقالي */
+html[data-preset='optiparts-or'] [data-micro-header='true'] h1 {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'] {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back'] svg {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child button[aria-label='Go back']:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child .rounded-full {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+}
+
+html[data-preset='optiparts-or'] [data-micro-header='true'] > div > div:first-child .rounded-full svg {
+  color: #ffffff !important;
+}
+
+/* شريط التبويبات أسفل الهيدر الثانوي */
+html[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
+  background-color: #fff7ed !important;
+  border-top-color: #fed7aa !important;
+  color: #0f172a !important;
+}
+
+html.dark[data-preset='optiparts-or'] [data-micro-header-tabs='true'] {
+  background-color: #1a1d24 !important;
+  border-top-color: #2b303b !important;
+  color: #f3f4f6 !important;
+}
+
+/* ── 3B. هيدرات النوافذ المنبثقة والاستعلام (Modal & Inspector Headers) ── */
+html[data-preset='optiparts-or'] [data-modal-header='true'] {
+  background: linear-gradient(90deg, #c2410c 0%, #ea580c 55%, #c2410c 100%) !important;
+  border-bottom: 1px solid #9a3412 !important;
+  color: #ffffff !important;
+}
+
+html.dark[data-preset='optiparts-or'] [data-modal-header='true'] {
+  background: linear-gradient(90deg, #9a3412 0%, #c2410c 55%, #9a3412 100%) !important;
+  border-bottom: 1px solid #7c2d12 !important;
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] h2 {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] p {
+  color: #ffedd5 !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] > div:first-child > div:first-child {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] > div:last-child button {
+  color: #ffffff !important;
+}
+
+html[data-preset='optiparts-or'] [data-modal-header='true'] > div:last-child button:hover {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+/* الهيدرات الثانوية داخل نافذة الاستعلام الشامل — برتقالي ناعم أفتح بوضوح من الهيدر الرئيسي */
+html[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
+  background: linear-gradient(90deg, #fed7aa 0%, #ffedd5 65%, #fff7ed 100%) !important;
+  border-bottom: 1px solid #fdba74 !important;
+  color: #7c2d12 !important;
+}
+
+html.dark[data-preset='optiparts-or'] [data-inspector-subheader='true'] {
+  background: linear-gradient(90deg, #3a2416 0%, #2e1d13 65%, #261810 100%) !important;
+  border-bottom: 1px solid #6b3a1d !important;
+  color: #ffedd5 !important;
+}
+
+/* ── 4. ترويسات الجداول الاحترافية (Table Headers) — برتقالي خفيف بدرجة أفتح من الهيدر الثانوي ── */
+@media screen {
+  html[data-preset='optiparts-or'] table thead,
+  html[data-preset='optiparts-or'] table thead tr,
+  html[data-preset='optiparts-or'] table thead tr th {
+    background-color: #ffedd5 !important;
+    color: #7c2d12 !important;
+    border-color: #fdba74 !important;
+  }
+
+  html[data-preset='optiparts-or'] table thead tr {
+    border-bottom: 2px solid #f97316 !important;
+  }
+
+  html[data-preset='optiparts-or'] table thead tr th:hover {
+    background-color: #fed7aa !important;
+  }
+
+  html[data-preset='optiparts-or'] table thead tr th svg {
+    color: #9a3412;
+  }
+
+  html.dark[data-preset='optiparts-or'] table thead,
+  html.dark[data-preset='optiparts-or'] table thead tr,
+  html.dark[data-preset='optiparts-or'] table thead tr th {
+    background-color: #2c1d14 !important;
+    color: #ffedd5 !important;
+    border-color: #5c3317 !important;
+  }
+
+  html.dark[data-preset='optiparts-or'] table thead tr {
+    border-bottom: 2px solid #ea580c !important;
+  }
+
+  html.dark[data-preset='optiparts-or'] table thead tr th:hover {
+    background-color: #3a2619 !important;
+  }
+
+  html.dark[data-preset='optiparts-or'] table thead tr th svg {
+    color: #fdba74;
+  }
+}

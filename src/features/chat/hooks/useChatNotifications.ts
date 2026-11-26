@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function, complexity, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-unnecessary-condition */
 import { useCallback, useRef } from 'react';
-import { useSoundStore, useNotificationStore } from '../../notifications/store';
+import { useSoundStore, useNotificationStore, canStartWebAudio } from '../../notifications/store';
 import { showDesktopNotification } from '../../notifications/desktopNotificationService';
 import { useFeedbackStore } from '../../feedback/store';
 import { useAuthStore } from '../../auth/store';
@@ -25,6 +25,7 @@ export const useChatNotifications = () => {
    */
   const playIncomingBeep = useCallback(async () => {
     if (!isSoundEnabled) return;
+    if (!canStartWebAudio() || !useSoundStore.getState().hasUserInteracted) return;
     try {
       const AudioCtx =
         window.AudioContext ||

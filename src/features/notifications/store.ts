@@ -114,8 +114,24 @@ const getAudioContextCtor = (): AudioContextCtor | null => {
   return w.AudioContext ?? w.webkitAudioContext ?? null;
 };
 
+/**
+ * Check whether the browser allows starting/resuming Web Audio without triggering
+ * the Chrome autoplay console warning ("The AudioContext was not allowed to start").
+ */
+export const canStartWebAudio = (): boolean => {
+  if (typeof navigator !== 'undefined' && 'userActivation' in navigator) {
+    const nav = navigator as unknown as UserActivationShim;
+    if (nav.userActivation && !nav.userActivation.hasBeenActive) {
+      return false;
+    }
+  }
+  return true;
+};
+
 /** Create (or reuse) the shared context and resume it if suspended. */
 const ensureAudioContext = async (): Promise<AudioContext | null> => {
+  if (!canStartWebAudio()) return null;
+
   const Ctor = getAudioContextCtor();
   if (!Ctor) return null;
 
@@ -340,17 +356,15 @@ export const useSoundStore = create<SoundState>()(
         }
         lastSoundPlayedAt = nowMs;
 
-        // Auto-mark user interaction when explicit sound test is called
+        // Modern browsers strictly forbid creating/resuming AudioContext before a user gesture
+        // regardless of `force` (which only bypasses throttling, not browser autoplay policy).
+        if (!canStartWebAudio()) return;
+
+        // Auto-mark user interaction when explicit sound test is called after browser activation
         if (force && !state.hasUserInteracted) {
           set({ hasUserInteracted: true });
         } else if (!state.hasUserInteracted) {
           return;
-        }
-
-        // Modern browsers explicit gesture check
-        if (typeof navigator !== 'undefined' && 'userActivation' in navigator) {
-          const nav = navigator as unknown as UserActivationShim;
-          if (!nav.userActivation?.hasBeenActive && !force) return;
         }
 
         try {
@@ -425,6 +439,12 @@ export const useSoundStore = create<SoundState>()(
         }
       },
     }),
-    { name: 'al-zahra-sound-settings' }
+    {
+      name: 'al-zahra-sound-settings',
+      partialize: state => ({
+        isSoundEnabled: state.isSoundEnabled,
+        volume: state.volume,
+      }),
+    }
   )
 );

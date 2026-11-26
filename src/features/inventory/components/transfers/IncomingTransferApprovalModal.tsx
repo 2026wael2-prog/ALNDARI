@@ -15,7 +15,10 @@ import {
 } from 'lucide-react';
 import { allocateModalZIndex } from '@/ui/base/Modal';
 import type { StockTransferRequest } from '../../hooks/useStockTransferRequests';
-import { useRespondToTransferBatch } from '../../hooks/useStockTransferRequests';
+import {
+  useRespondToTransferBatch,
+  useSourceBranchProductStock,
+} from '../../hooks/useStockTransferRequests';
 
 interface IncomingTransferApprovalModalProps {
   requests: StockTransferRequest[] | null;
@@ -31,10 +34,17 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
   const [approvedQuantities, setApprovedQuantities] = useState<Record<string, number>>({});
   const [reviewNotes, setReviewNotes] = useState<string>('');
   const [isRejecting, setIsRejecting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [modalZIndex, setModalZIndex] = useState<number>(10060);
   const { mutate: respondBatch, isPending } = useRespondToTransferBatch();
 
   const activeRequests = requests ?? [];
+  const sourceBranchId = activeRequests[0]?.source_branch_id ?? null;
+  const productIds = activeRequests.map(r => r.product_id);
+  const { data: sourceStockMap } = useSourceBranchProductStock(
+    isOpen ? sourceBranchId : null,
+    isOpen ? productIds : []
+  );
 
   // ضبط الكميات المعتمدة الأولية لتطابق الكميات المطلوبة
   useEffect(() => {
@@ -49,6 +59,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
       setApprovedQuantities(initial);
       setReviewNotes('');
       setIsRejecting(false);
+      setSubmitError(null);
     }
   }, [requests, isOpen]);
 
@@ -73,13 +84,22 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
   const requestIds = activeRequests.map(r => r.id);
 
   const handleUpdateApprovedQty = (reqId: string, val: number) => {
+    setSubmitError(null);
     setApprovedQuantities(prev => ({
       ...prev,
       [reqId]: Math.max(1, isNaN(val) ? 1 : val),
     }));
   };
 
+  const hasInsufficientStock = activeRequests.some(req => {
+    const avail = sourceStockMap?.[req.product_id];
+    if (avail === undefined) return false;
+    const approved = approvedQuantities[req.id] ?? req.requested_quantity;
+    return approved > avail;
+  });
+
   const handleApproveAndDispatch = (): void => {
+    setSubmitError(null);
     const itemsApproved = activeRequests.map(req => ({
       requestId: req.id,
       approvedQuantity: approvedQuantities[req.id] ?? req.requested_quantity,
@@ -96,13 +116,18 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
       },
       {
         onSuccess: () => {
+          setSubmitError(null);
           onClose();
+        },
+        onError: err => {
+          setSubmitError(err.message || 'تعذر اعتماد طلب المناقلة');
         },
       }
     );
   };
 
   const handleReject = (): void => {
+    setSubmitError(null);
     respondBatch(
       {
         batchId,
@@ -115,7 +140,11 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
       },
       {
         onSuccess: () => {
+          setSubmitError(null);
           onClose();
+        },
+        onError: err => {
+          setSubmitError(err.message || 'تعذر رفض طلب المناقلة');
         },
       }
     );
@@ -216,6 +245,8 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
               {activeRequests.map((req, idx) => {
                 const currentApproved = approvedQuantities[req.id] ?? req.requested_quantity;
                 const isDifferent = currentApproved !== req.requested_quantity;
+                const availableQty = sourceStockMap?.[req.product_id];
+                const isShort = availableQty !== undefined && currentApproved > availableQty;
 
                 return (
                   <div key={req.id} className="p-3.5 transition hover:bg-slate-50/60 dark:hover:bg-slate-900/40">
@@ -250,8 +281,23 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
                         </div>
                       </div>
 
-                      {/* الكمية المطلوبة والمعتمدة */}
+                      {/* الكمية المتوفرة والمطلوبة والمعتمدة */}
                       <div className="flex items-center gap-3">
+                        {availableQty !== undefined && (
+                          <div className="text-left">
+                            <span className="text-[10px] text-slate-400 block">المتوفر لديك:</span>
+                            <span
+                              className={`font-mono text-xs font-black ${
+                                isShort
+                                  ? 'text-rose-600 dark:text-rose-400'
+                                  : 'text-emerald-600 dark:text-emerald-400'
+                              }`}
+                            >
+                              {availableQty} حبة
+                            </span>
+                          </div>
+                        )}
+
                         <div className="text-left">
                           <span className="text-[10px] text-slate-400 block">المطلوب:</span>
                           <span className="font-mono text-xs font-black text-blue-700 dark:text-blue-300">
@@ -266,12 +312,17 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
                               <input
                                 type="number"
                                 min="1"
+                                max={availableQty !== undefined && availableQty > 0 ? availableQty : undefined}
                                 value={currentApproved}
                                 onChange={e => {
                                   const val = parseInt(e.target.value, 10);
                                   handleUpdateApprovedQty(req.id, val);
                                 }}
-                                className="h-8 w-16 rounded-lg border border-slate-300 bg-white text-center font-mono text-xs font-black text-slate-900 shadow-inner focus:border-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                                className={`h-8 w-16 rounded-lg border bg-white text-center font-mono text-xs font-black text-slate-900 shadow-inner focus:outline-none dark:bg-slate-900 dark:text-white ${
+                                  isShort
+                                    ? 'border-rose-500 focus:border-rose-600 dark:border-rose-500'
+                                    : 'border-slate-300 focus:border-emerald-500 dark:border-slate-700'
+                                }`}
                               />
                               <span className="text-[10px] font-bold text-slate-500">حبة</span>
                             </div>
@@ -280,8 +331,31 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
                       </div>
                     </div>
 
+                    {/* تنبيه نقص الرصيد المتوفر مع زر ضبط سريع */}
+                    {isShort && !isRejecting && (
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-bold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle size={12} />
+                          {availableQty > 0
+                            ? `المتوفر في فرعك ${String(availableQty)} حبة فقط (أقل من الكمية المعتمدة ${String(currentApproved)})`
+                            : 'لا يوجد رصيد متوفر لهذا الصنف في مستودعات فرعك حالياً — يمكنك رفض الطلب'}
+                        </span>
+                        {availableQty > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleUpdateApprovedQty(req.id, availableQty);
+                            }}
+                            className="rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white transition hover:bg-rose-700"
+                          >
+                            ضبط للمتوفر ({availableQty})
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {/* تنبيه تعديل الكمية */}
-                    {isDifferent && !isRejecting && (
+                    {isDifferent && !isShort && !isRejecting && (
                       <div className="mt-2 flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
                         <AlertTriangle size={11} />
                         <span>تم تعديل الكمية المعتمدة لهذا الصنف عن الكمية المطلوبة</span>
@@ -333,6 +407,13 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
               />
             </div>
           )}
+          {/* رسالة خطأ واضحة داخل النافذة عند فشل التنفيذ */}
+          {submitError && (
+            <div className="flex items-start gap-2 rounded-xl border border-rose-300 bg-rose-50 px-3.5 py-2.5 text-xs font-bold text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+              <span>{submitError}</span>
+            </div>
+          )}
         </div>
 
         {/* أزرار الإجراءات في أسفل النافذة */}
@@ -342,6 +423,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
               <button
                 type="button"
                 onClick={() => {
+                  setSubmitError(null);
                   setIsRejecting(true);
                 }}
                 disabled={isPending}
@@ -363,7 +445,7 @@ export const IncomingTransferApprovalModal: React.FC<IncomingTransferApprovalMod
                 <button
                   type="button"
                   onClick={handleApproveAndDispatch}
-                  disabled={isPending || totalApproved <= 0}
+                  disabled={isPending || totalApproved <= 0 || hasInsufficientStock}
                   className="flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
                 >
                   {isPending ? (

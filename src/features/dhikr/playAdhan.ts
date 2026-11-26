@@ -87,6 +87,13 @@ export function subscribeAdhanState(callback: (playing: boolean) => void): () =>
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (
+    typeof navigator !== 'undefined' &&
+    'userActivation' in navigator &&
+    !navigator.userActivation.hasBeenActive
+  ) {
+    return null;
+  }
   const Ctor =
     window.AudioContext ||
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;

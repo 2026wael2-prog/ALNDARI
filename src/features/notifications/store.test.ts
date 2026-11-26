@@ -92,3 +92,38 @@ describe('useNotificationStore.addNotification — إشعار سطح المكت�
     expect(showDesktopNotification).not.toHaveBeenCalled();
   });
 });
+
+describe('useSoundStore.playNotificationSound — حماية سياسة التشغيل التلقائي للصوت', () => {
+  it('لا ينشئ AudioContext قبل تفاعل المستخدم حتى عند تمرير force=true', async () => {
+    const audioCtorSpy = vi.fn();
+    const originalAudioCtx = (window as unknown as Record<string, unknown>).AudioContext;
+    const originalUserActivation = Object.getOwnPropertyDescriptor(navigator, 'userActivation');
+
+    Object.defineProperty(window, 'AudioContext', {
+      configurable: true,
+      writable: true,
+      value: audioCtorSpy,
+    });
+    Object.defineProperty(navigator, 'userActivation', {
+      configurable: true,
+      value: { hasBeenActive: false },
+    });
+
+    try {
+      useSoundStore.setState({ isSoundEnabled: true, hasUserInteracted: false });
+      await useSoundStore.getState().playNotificationSound('urgent', true);
+      expect(audioCtorSpy).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, 'AudioContext', {
+        configurable: true,
+        writable: true,
+        value: originalAudioCtx,
+      });
+      if (originalUserActivation) {
+        Object.defineProperty(navigator, 'userActivation', originalUserActivation);
+      } else {
+        delete (navigator as unknown as Record<string, unknown>).userActivation;
+      }
+    }
+  });
+});

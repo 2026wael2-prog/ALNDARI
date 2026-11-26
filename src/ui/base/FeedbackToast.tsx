@@ -23,7 +23,7 @@ const FeedbackToast: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="fixed bottom-20 left-1/2 z-[100] flex w-full max-w-sm -translate-x-1/2 flex-col gap-3 px-4 md:bottom-6">
+    <div className="fixed bottom-20 left-1/2 z-[11000] flex w-full max-w-sm -translate-x-1/2 flex-col gap-3 px-4 md:bottom-6">
       {toasts.map(toast => {
         const isExpanded = expandedId === toast.id;
 

@@ -196,6 +196,58 @@ export function useStockTransferRequests(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Hook: جلب الرصيد المتوفر لكل صنف عبر جميع مستودعات فرع المصدر النشطة
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useSourceBranchProductStock(
+  sourceBranchId?: string | null,
+  productIds: string[] = []
+) {
+  const { user } = useAuthStore();
+  const companyId = user?.company_id;
+  const uniqueIds = Array.from(new Set(productIds.filter(Boolean))).sort();
+
+  return useQuery<Record<string, number>>({
+    queryKey: ['source_branch_product_stock', companyId, sourceBranchId, uniqueIds] as const,
+    enabled: !!companyId && !!sourceBranchId && uniqueIds.length > 0,
+    staleTime: 10_000,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data: warehouses, error: whErr } = await db
+        .from('warehouses')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('branch_id', sourceBranchId)
+        .is('deleted_at', null);
+
+      if (whErr) throw whErr;
+      const whIds = ((warehouses || []) as Array<{ id: string }>).map(w => w.id);
+      const totalsMap = new Map<string, number>();
+      for (const pid of uniqueIds) totalsMap.set(pid, 0);
+
+      if (whIds.length === 0) return Object.fromEntries(totalsMap);
+
+      const { data: stockRows, error: stockErr } = await db
+        .from('product_stock')
+        .select('product_id, quantity')
+        .eq('company_id', companyId)
+        .in('warehouse_id', whIds)
+        .in('product_id', uniqueIds);
+
+      if (stockErr) throw stockErr;
+
+      for (const row of (stockRows || []) as Array<{ product_id: string; quantity: number | null }>) {
+        const qty = row.quantity ?? 0;
+        if (qty > 0) {
+          totalsMap.set(row.product_id, (totalsMap.get(row.product_id) ?? 0) + qty);
+        }
+      }
+
+      return Object.fromEntries(totalsMap);
+    },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Mutation: إنشاء طلب نقل مخزون
 // ─────────────────────────────────────────────────────────────────────────────
 

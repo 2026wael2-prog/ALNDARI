@@ -91,6 +91,7 @@ const PartyModal: React.FC<PartyModalProps> = ({
     : t('add_entity', { entity: entityType });
 
   const currentStatus = watch('status');
+  const currentType = watch('type');
 
   const handleSaveCategory = (data: { name: string }) => {
     saveCategory(
@@ -181,6 +182,43 @@ const PartyModal: React.FC<PartyModalProps> = ({
                 autoFocus
                 className="bg-gray-50/50"
               />
+
+              {partyType !== 'employee' && (
+                <div className="space-y-1.5">
+                  <span className="block px-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    تصنيف الحساب (عميل / مورد)
+                  </span>
+                  <div
+                    role="group"
+                    aria-label="تصنيف الحساب (عميل / مورد)"
+                    className="grid grid-cols-3 gap-1.5 rounded-xl border border-gray-200/70 bg-gray-100/80 p-1 dark:border-slate-700 dark:bg-slate-800/80"
+                  >
+                    {(
+                      [
+                        { value: 'customer', label: 'عميل', activeCls: 'bg-white text-emerald-600 shadow-sm dark:bg-slate-700 dark:text-emerald-400' },
+                        { value: 'supplier', label: 'مورد', activeCls: 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-400' },
+                        { value: 'both', label: 'عميل ومورد', activeCls: 'bg-white text-violet-600 shadow-sm dark:bg-slate-700 dark:text-violet-400' },
+                      ] as const
+                    ).map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setValue('type', opt.value, { shouldDirty: true });
+                        }}
+                        className={cn(
+                          'rounded-lg py-2 text-xs font-bold transition-all',
+                          currentType === opt.value
+                            ? opt.activeCls
+                            : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1.5">

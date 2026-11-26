@@ -121,6 +121,7 @@ export const usePartyMutations = (type: PartyType) => {
       // Read the *current* user instead of the render-closure value: if the user
       // logged out/in between render and callback, invalidate the right key.
       const currentUser = useAuthStore.getState().user;
+      partyCache.clearAll();
       queryClient.invalidateQueries({ queryKey: ['parties', currentUser?.company_id] });
       invalidateByPreset(queryClient, 'party');
       showToast('تم حفظ البيانات بنجاح', 'success');
@@ -161,7 +162,8 @@ export const usePartyMutations = (type: PartyType) => {
     },
     onSuccess: () => {
       const currentUser = useAuthStore.getState().user;
-      queryClient.invalidateQueries({ queryKey: ['parties', currentUser?.company_id, type] });
+      partyCache.clearAll();
+      queryClient.invalidateQueries({ queryKey: ['parties', currentUser?.company_id] });
       invalidateByPreset(queryClient, 'party');
       showToast('تم حذف السجل نهائياً', 'success');
     },

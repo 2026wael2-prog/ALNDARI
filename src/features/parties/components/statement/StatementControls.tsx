@@ -51,7 +51,7 @@ const SCOPE_OPTIONS: ReadonlyArray<{
 }> = [
   {
     id: 'all',
-    label: 'الكل (عملاء وموردون)',
+    label: 'الكل',
     icon: Layers,
     activeClass: 'bg-slate-900 text-white shadow-sm dark:bg-blue-600',
   },
@@ -212,11 +212,11 @@ export const StatementControls: React.FC<StatementControlsProps> = ({
   const hasDateFilter = Boolean(startDate || endDate);
 
   return (
-    <div className="no-print rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2.5 shadow-sm transition-all md:p-3">
-      <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
+    <div className="no-print shrink-0 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1.5 shadow-2xs">
+      <div className="flex flex-wrap items-center gap-1.5">
         {/* 1. Unified Party Scope Switcher (All / Customers / Suppliers) */}
         {partyType !== 'employee' && onPartyScopeChange && (
-          <div className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-100/80 p-1 dark:border-slate-700/80 dark:bg-slate-900/70">
+          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200/80 bg-slate-100/80 p-0.5 dark:border-slate-700/80 dark:bg-slate-900/70">
             {SCOPE_OPTIONS.map(opt => {
               const Icon = opt.icon;
               const active = partyScope === opt.id;
@@ -226,13 +226,13 @@ export const StatementControls: React.FC<StatementControlsProps> = ({
                   type="button"
                   onClick={() => onPartyScopeChange(opt.id)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-all',
+                    'inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-bold transition-all',
                     active
                       ? opt.activeClass
-                      : 'text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                      : 'text-slate-700 hover:bg-white/70 hover:text-black dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
                   )}
                 >
-                  <Icon size={13} />
+                  <Icon size={12} />
                   <span>{opt.label}</span>
                 </button>
               );
@@ -241,57 +241,57 @@ export const StatementControls: React.FC<StatementControlsProps> = ({
         )}
 
         {/* 2. Unified Smart Search Box for Customers & Suppliers */}
-        <div className="min-w-[240px] flex-1 max-md:w-full">
+        <div className="min-w-[200px] flex-1 max-md:w-full">
           <SmartPartySelect
             partyType={selectPartyType}
             selectedPartyId={selectedPartyId}
             onSelectPartyId={onSelectPartyId}
             placeholder={
               selectPartyType === 'all'
-                ? 'ابحث عن عميل أو مورد بالاسم أو رقم الهاتف...'
+                ? 'ابحث عن عميل أو مورد بالاسم أو الهاتف...'
                 : selectPartyType === 'supplier'
-                  ? 'ابحث عن مورد بالاسم أو رقم الهاتف...'
-                  : 'ابحث عن عميل بالاسم أو رقم الهاتف...'
+                  ? 'ابحث عن مورد بالاسم أو الهاتف...'
+                  : 'ابحث عن عميل بالاسم أو الهاتف...'
             }
             {...(parties ? { parties } : {})}
           />
         </div>
 
-        {/* 3. Modern Date Range Group + Quick Presets */}
-        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/80 px-2 py-1 dark:border-slate-700/80 dark:bg-slate-900/60 max-md:w-full">
-          <Calendar size={13} className="hidden text-slate-400 sm:block" />
+        {/* 3. Ultra-Compact Date Range Group */}
+        <div className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50/80 px-1.5 py-0.5 dark:border-slate-700/80 dark:bg-slate-900/60 max-md:w-full">
+          <Calendar size={12} className="hidden text-slate-500 sm:block" />
           <div className="flex items-center gap-1">
-            <span className="text-[10px] font-bold text-slate-400">من</span>
+            <span className="text-[10px] font-bold text-slate-600">من</span>
             <input
               type="date"
               aria-label="من تاريخ"
               value={startDate}
               onChange={e => onStartDateChange(e.target.value)}
-              className="w-[122px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              className="w-[114px] rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-bold text-black outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-[10px] font-bold text-slate-400">إلى</span>
+            <span className="text-[10px] font-bold text-slate-600">إلى</span>
             <input
               type="date"
               aria-label="إلى تاريخ"
               value={endDate}
               onChange={e => onEndDateChange(e.target.value)}
-              className="w-[122px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              className="w-[114px] rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-bold text-black outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </div>
-          <div className="hidden items-center gap-1 border-r border-slate-200 pr-1.5 dark:border-slate-700 xl:flex">
+          <div className="hidden items-center gap-0.5 border-r border-slate-200 pr-1 dark:border-slate-700 xl:flex">
             <button
               type="button"
               onClick={() => applyQuickRange('this_month')}
-              className="rounded-md px-2 py-1 text-[10px] font-bold text-slate-500 transition-colors hover:bg-white hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+              className="rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-700 hover:bg-white hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               الشهر
             </button>
             <button
               type="button"
               onClick={() => applyQuickRange('this_year')}
-              className="rounded-md px-2 py-1 text-[10px] font-bold text-slate-500 transition-colors hover:bg-white hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
+              className="rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-700 hover:bg-white hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               السنة
             </button>
@@ -299,18 +299,18 @@ export const StatementControls: React.FC<StatementControlsProps> = ({
               <button
                 type="button"
                 onClick={() => applyQuickRange('all')}
-                className="inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-1 text-[10px] font-bold text-rose-600 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400"
+                className="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1 py-0.5 text-[10px] font-bold text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400"
                 title="مسح فلتر التاريخ"
               >
-                <X size={11} />
+                <X size={10} />
                 الكل
               </button>
             )}
           </div>
         </div>
 
-        {/* 4. Action Buttons (WhatsApp, Share, Excel, Print, Fullscreen) */}
-        <div className="flex flex-wrap items-center gap-1.5 max-md:w-full max-md:justify-end">
+        {/* 4. Compact Action Buttons */}
+        <div className="flex flex-wrap items-center gap-1 max-md:w-full max-md:justify-end">
           {selectedPartyId && selectedParty && (
             <>
               <Button

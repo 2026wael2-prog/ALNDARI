@@ -73,7 +73,7 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
   partyType = 'customer',
   isAllSelected,
   isNewestFirst = false,
-  isFullscreen = false,
+  isFullscreen: _isFullscreen = false,
   showInlineDetails = true,
   onToggleShowInlineDetails,
   batchDetailsMap,
@@ -159,23 +159,23 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
   const gridBorder = 'border border-slate-300/90 dark:border-slate-700';
 
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-emerald-700/35 bg-white shadow-md dark:border-slate-700 dark:bg-slate-900">
-      {/* Authentic Excel Green Ribbon Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-emerald-800/30 bg-[#1d6f42] px-4 py-2.5 text-white dark:bg-emerald-950">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15">
-            <FileSpreadsheet size={18} />
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border border-emerald-700/35 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      {/* Slim Authentic Excel Green Ribbon Header */}
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-emerald-800/30 bg-[#1d6f42] px-3 py-1.5 text-white dark:bg-emerald-950">
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white/15">
+            <FileSpreadsheet size={14} />
           </div>
-          <div>
-            <h3 className="text-sm font-black tracking-tight">كشف حساب إكسل: {partyName}</h3>
-            <p className="text-xs font-medium text-emerald-100">
-              جدول Excel Grid احترافي — {filteredMovements.length} حركة
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-xs font-black tracking-tight">كشف حساب إكسل: {partyName}</h3>
+            <span className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-50">
+              {filteredMovements.length} حركة
               {selectedRowIds.size > 0 ? ` • محدد: ${selectedRowIds.size}` : ''}
-            </p>
+            </span>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {/* Toggle Automatic Inline Details */}
           {onToggleShowInlineDetails && (
             <button
@@ -185,96 +185,93 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
                 onToggleShowInlineDetails();
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-colors',
+                'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-black transition-colors',
                 showInlineDetails
                   ? 'bg-white text-emerald-950 shadow-xs'
                   : 'bg-black/20 text-white hover:bg-black/30'
               )}
-              title="إظهار أو إخفاء تفاصيل الأصناف والسندات أسفل كل معاملة تلقائياً"
+              title="إظهار أو إخفاء تفاصيل الأصناف والسندات داخل الجدول"
             >
-              <ListTree size={14} />
-              <span>{showInlineDetails ? 'التفاصيل ظاهرة أسفل المعاملات' : 'إظهار التفاصيل أسفل المعاملات'}</span>
+              <ListTree size={13} />
+              <span>{showInlineDetails ? 'البنود ظاهرة' : 'إظهار البنود'}</span>
             </button>
           )}
 
           {/* Readable Text Size / Density Selector */}
-          <div className="flex items-center gap-1 rounded-lg bg-black/15 p-1">
-          <span className="inline-flex items-center gap-1 px-1.5 text-[11px] font-bold text-emerald-100">
-            <Type size={13} />
-            حجم الخط:
-          </span>
-          {(
-            [
-              { id: 'compact', label: 'مضغوط' },
-              { id: 'comfortable', label: 'واضح' },
-              { id: 'large', label: 'كبير' },
-            ] as const
-          ).map(opt => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setDensityMode(opt.id)}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-bold transition-colors',
-                densityMode === opt.id
-                  ? 'bg-white text-emerald-900 shadow-xs'
-                  : 'text-emerald-50 hover:bg-white/15'
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+          <div className="flex items-center gap-0.5 rounded-md bg-black/15 p-0.5">
+            <span className="inline-flex items-center gap-1 px-1 text-[10px] font-bold text-emerald-100">
+              <Type size={11} />
+              الخط:
+            </span>
+            {(
+              [
+                { id: 'compact', label: 'مضغوط' },
+                { id: 'comfortable', label: 'واضح' },
+                { id: 'large', label: 'كبير' },
+              ] as const
+            ).map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setDensityMode(opt.id)}
+                className={cn(
+                  'rounded px-2 py-0.5 text-[11px] font-bold transition-colors',
+                  densityMode === opt.id
+                    ? 'bg-white text-emerald-900 shadow-xs'
+                    : 'text-emerald-50 hover:bg-white/15'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Excel Formula / Active Cell Preview Bar */}
-      <div className="no-print flex items-center gap-2 border-b border-slate-300 bg-slate-50 px-3 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900/90">
-        <div
-          dir="ltr"
-          className="flex min-w-[54px] items-center justify-center rounded border border-slate-300 bg-white px-2 py-0.5 font-mono text-xs font-black text-emerald-800 dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-300"
-        >
-          {activeCellInfo ? activeCellInfo.refLabel : 'A1'}
-        </div>
-        <span className="select-none font-serif text-sm font-bold italic text-slate-400">fx</span>
-        <div className="min-w-0 flex-1 truncate rounded border border-slate-200 bg-white px-2.5 py-1 text-[13px] font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
-          {activeCellInfo ? (
-            <>
-              <span className="ml-2 text-xs font-bold text-slate-400">
-                [{activeCellInfo.colTitle}]
-              </span>
-              <span>{activeCellInfo.value}</span>
-            </>
-          ) : (
-            <span className="text-xs font-medium text-slate-400">
-              انقر على أي خلية في الجدول لعرض محتواها الكامل أو نسخه بسرعة
+      {/* Excel Formula / Active Cell Preview Bar — Shown only when a cell is clicked */}
+      {activeCellInfo && (
+        <div className="no-print shrink-0 flex items-center gap-2 border-b border-slate-300 bg-slate-50 px-3 py-1 text-xs dark:border-slate-700 dark:bg-slate-900/90">
+          <div
+            dir="ltr"
+            className="flex min-w-[48px] items-center justify-center rounded border border-slate-300 bg-white px-1.5 py-0.5 font-mono text-[11px] font-black text-emerald-800 dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-300"
+          >
+            {activeCellInfo.refLabel}
+          </div>
+          <span className="select-none font-serif text-xs font-bold italic text-slate-400">fx</span>
+          <div className="min-w-0 flex-1 truncate rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-black dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+            <span className="ml-2 text-[11px] font-bold text-slate-500">
+              [{activeCellInfo.colTitle}]
             </span>
+            <span>{activeCellInfo.value}</span>
+          </div>
+          {activeCellInfo.value && (
+            <button
+              type="button"
+              onClick={handleCopyActiveCell}
+              className="inline-flex shrink-0 items-center gap-1 rounded border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-bold text-black transition-colors hover:bg-emerald-50 hover:text-emerald-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              title="نسخ قيمة الخلية النشطة"
+            >
+              {copiedFormula ? (
+                <Check size={12} className="text-emerald-600" />
+              ) : (
+                <Copy size={12} />
+              )}
+              <span>{copiedFormula ? 'تم النسخ' : 'نسخ'}</span>
+            </button>
           )}
-        </div>
-        {activeCellInfo?.value && (
           <button
             type="button"
-            onClick={handleCopyActiveCell}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 transition-colors hover:bg-emerald-50 hover:text-emerald-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            title="نسخ قيمة الخلية النشطة"
+            onClick={() => setActiveCell(null)}
+            className="rounded px-1.5 py-0.5 text-xs font-black text-slate-500 hover:bg-slate-200 hover:text-black dark:hover:bg-slate-800"
+            title="إغلاق شريط الخلية"
           >
-            {copiedFormula ? (
-              <Check size={13} className="text-emerald-600" />
-            ) : (
-              <Copy size={13} />
-            )}
-            <span>{copiedFormula ? 'تم النسخ' : 'نسخ'}</span>
+            ×
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Spreadsheet Grid Viewport — Full-screen responsive height */}
-      <div
-        className={cn(
-          'custom-scrollbar overflow-auto bg-white dark:bg-slate-950',
-          isFullscreen ? 'max-h-[calc(100vh-150px)] min-h-[68vh]' : 'max-h-[calc(100vh-215px)] min-h-[52vh]'
-        )}
-      >
+      {/* Spreadsheet Grid Viewport — Only this area scrolls while page & filters remain fixed */}
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-auto bg-white dark:bg-slate-950">
         <table
           role="grid"
           aria-label={`كشف حساب إكسل: ${partyName}`}
@@ -282,14 +279,14 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
         >
           <thead className="sticky top-0 z-20 select-none shadow-xs">
             {/* Row 0: Authentic Excel Column Letters (A..J) */}
-            <tr className="bg-slate-200 font-mono text-[11px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-              <th className={cn('w-10 py-1 text-center', gridBorder)}></th>
-              <th className={cn('w-11 py-1 text-center', gridBorder)}>#</th>
+            <tr className="bg-slate-200 font-mono text-[10px] font-black text-black/75 dark:bg-slate-800 dark:text-slate-400">
+              <th className={cn('w-10 py-0.5 text-center', gridBorder)}></th>
+              <th className={cn('w-11 py-0.5 text-center', gridBorder)}>#</th>
               {EXCEL_COL_LETTERS.map((letter, colIdx) => (
                 <th
                   key={letter}
                   className={cn(
-                    'py-1 text-center',
+                    'py-0.5 text-center',
                     activeCell?.col === colIdx &&
                       'bg-emerald-200/80 text-emerald-950 dark:bg-emerald-900/50 dark:text-emerald-200',
                     gridBorder
@@ -307,38 +304,38 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
                 density.headerText
               )}
             >
-              <th className={cn('no-print w-10 p-2.5 text-center', gridBorder)}>
+              <th className={cn('no-print w-10 p-1.5 text-center', gridBorder)}>
                 <button
                   type="button"
                   onClick={onToggleSelectAll}
                   className="inline-flex items-center justify-center text-emerald-800 hover:text-emerald-950 dark:text-emerald-300"
                   title="تحديد / إلغاء تحديد الكل"
                 >
-                  {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                  {allSelected ? <CheckSquare size={15} /> : <Square size={15} />}
                 </button>
               </th>
-              <th className={cn('w-11 p-2.5 text-center font-mono', gridBorder)}>م</th>
-              <th className={cn('w-28 p-2.5 text-center', gridBorder)}>التاريخ</th>
-              <th className={cn('w-40 p-2.5 text-center', gridBorder)}>المرجع</th>
-              <th className={cn('w-32 p-2.5 text-center', gridBorder)}>نوع العملية</th>
-              <th className={cn('w-20 p-2.5 text-center', gridBorder)}>العملة</th>
-              <th className={cn('min-w-[260px] p-2.5 text-right', gridBorder)}>البيان والتفاصيل</th>
-              <th className={cn('w-28 p-2.5 text-center', gridBorder)}>حالة السداد</th>
-              <th className={cn('w-32 p-2.5 text-center text-rose-900 dark:text-rose-200', gridBorder)}>
+              <th className={cn('w-11 p-1.5 text-center font-mono', gridBorder)}>م</th>
+              <th className={cn('w-28 p-1.5 text-center', gridBorder)}>التاريخ</th>
+              <th className={cn('w-40 p-1.5 text-center', gridBorder)}>المرجع</th>
+              <th className={cn('w-32 p-1.5 text-center', gridBorder)}>نوع العملية</th>
+              <th className={cn('w-20 p-1.5 text-center', gridBorder)}>العملة</th>
+              <th className={cn('min-w-[260px] p-1.5 text-right', gridBorder)}>البيان والتفاصيل</th>
+              <th className={cn('w-28 p-1.5 text-center', gridBorder)}>حالة السداد</th>
+              <th className={cn('w-32 p-1.5 text-center text-rose-900 dark:text-rose-200', gridBorder)}>
                 مدين (عليه +)
               </th>
-              <th className={cn('w-32 p-2.5 text-center text-emerald-900 dark:text-emerald-200', gridBorder)}>
+              <th className={cn('w-32 p-1.5 text-center text-emerald-900 dark:text-emerald-200', gridBorder)}>
                 دائن (له -)
               </th>
               <th
                 className={cn(
-                  'w-36 p-2.5 text-center text-emerald-950 dark:text-emerald-200',
+                  'w-36 p-1.5 text-center text-emerald-950 dark:text-emerald-200',
                   gridBorder
                 )}
               >
                 الرصيد المتراكم
               </th>
-              <th className={cn('no-print w-32 p-2.5 text-center', gridBorder)}>إجراءات</th>
+              <th className={cn('no-print w-32 p-1.5 text-center', gridBorder)}>إجراءات</th>
             </tr>
           </thead>
 

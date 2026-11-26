@@ -127,19 +127,19 @@ const StatementView: React.FC<StatementViewProps> = ({
   } = useStatementController({ partyType, initialPartyId, initialCurrency });
 
   const { detailsMap: batchDetailsMap, isLoading: isBatchDetailsLoading } =
-    useStatementBatchDetails(filteredMovements, Boolean(selectedPartyId) && showInlineDetails);
+    useStatementBatchDetails(filteredMovements, Boolean(selectedPartyId));
 
   return (
     <FullscreenContainer
       isMaximized={isFullscreen}
       onToggleMaximize={() => setIsFullscreen(false)}
-      className="flex min-h-full flex-col"
+      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
     >
       <div
         data-clear-black-text="true"
         className={cn(
-          'print-area flex w-full flex-1 flex-col gap-2.5 font-sans',
-          isFullscreen && 'h-full overflow-y-auto bg-[var(--app-bg)] p-2 md:p-3'
+          'print-area flex h-full min-h-0 w-full flex-1 flex-col gap-1 overflow-hidden font-sans',
+          isFullscreen && 'bg-[var(--app-bg)] p-1.5 md:p-2'
         )}
       >
         <StatementControls
@@ -225,7 +225,7 @@ const StatementView: React.FC<StatementViewProps> = ({
                     }
                   />
 
-                  <div className="no-print flex flex-1 flex-col gap-2.5">
+                  <div className="no-print flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
                     <StatementToolbar
                       partyType={effectivePartyType}
                       selectedCurrency={selectedCurrency}
@@ -267,36 +267,37 @@ const StatementView: React.FC<StatementViewProps> = ({
                         onOpenBondModal={handleOpenBondModal}
                       />
                     ) : (
-                      <StatementMovementsTable
-                        filteredMovements={filteredMovements}
-                        selectedRowIds={selectedRowIds}
-                        expandedRowIds={expandedRowIds}
-                        rowColors={rowColors}
-                        activeColorPickerRowId={activeColorPickerRowId}
-                        isPrintingSelectedOnly={isPrintingSelectedOnly}
-                        partyName={selectedParty?.name || ''}
-                        partyType={effectivePartyType}
-                        isAllSelected={isAllSelected}
-                        showInlineDetails={showInlineDetails}
-                        batchDetailsMap={batchDetailsMap}
-                        isBatchDetailsLoading={isBatchDetailsLoading}
-                        onToggleSelectAll={handleToggleSelectAll}
-                        onToggleRowSelection={handleToggleRowSelection}
-                        onToggleRowExpand={handleToggleRowExpand}
-                        onOpenColorPicker={setActiveColorPickerRowId}
-                        onApplyColorToSingleRow={handleApplyColorToSingleRow}
-                        onPrintSingleTransaction={handlePrintSingleTransaction}
-                        onOpenInvoiceModal={setActiveInvoiceId}
-                        onOpenBondModal={handleOpenBondModal}
-                      />
+                      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                        <StatementMovementsTable
+                          filteredMovements={filteredMovements}
+                          selectedRowIds={selectedRowIds}
+                          expandedRowIds={expandedRowIds}
+                          rowColors={rowColors}
+                          activeColorPickerRowId={activeColorPickerRowId}
+                          isPrintingSelectedOnly={isPrintingSelectedOnly}
+                          partyName={selectedParty?.name || ''}
+                          partyType={effectivePartyType}
+                          isAllSelected={isAllSelected}
+                          showInlineDetails={showInlineDetails}
+                          batchDetailsMap={batchDetailsMap}
+                          isBatchDetailsLoading={isBatchDetailsLoading}
+                          onToggleSelectAll={handleToggleSelectAll}
+                          onToggleRowSelection={handleToggleRowSelection}
+                          onToggleRowExpand={handleToggleRowExpand}
+                          onOpenColorPicker={setActiveColorPickerRowId}
+                          onApplyColorToSingleRow={handleApplyColorToSingleRow}
+                          onPrintSingleTransaction={handlePrintSingleTransaction}
+                          onOpenInvoiceModal={setActiveInvoiceId}
+                          onOpenBondModal={handleOpenBondModal}
+                        />
+                        <StatementSummaryCards
+                          movements={filteredMovements}
+                          partyType={effectivePartyType}
+                          activeCurrency={selectedCurrency}
+                          isNewestFirst
+                        />
+                      </div>
                     )}
-
-                    <StatementSummaryCards
-                      movements={filteredMovements}
-                      partyType={effectivePartyType}
-                      activeCurrency={selectedCurrency}
-                      isNewestFirst
-                    />
                   </div>
                 </>
               )}

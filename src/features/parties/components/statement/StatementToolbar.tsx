@@ -128,23 +128,22 @@ export const StatementToolbar: React.FC<StatementToolbarProps> = ({
   ];
 
   return (
-    <div className="no-print space-y-2">
-      <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-sm md:p-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* Currency Pills */}
-          <div className="no-scrollbar flex max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto">
-            <span className="hidden text-[11px] font-bold text-slate-400 sm:inline">العملة:</span>
+    <div className="no-print shrink-0">
+      <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          {/* Currency Pills + Compact Settlement Filter Chips in one ultra-compact top bar */}
+          <div className="no-scrollbar flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto">
             <button
               type="button"
               onClick={() => setSelectedCurrency('ALL')}
               className={cn(
-                'shrink-0 whitespace-nowrap rounded-xl px-2.5 py-1 text-[11px] font-bold transition-all',
+                'shrink-0 whitespace-nowrap rounded-lg px-2 py-1 text-[11px] font-bold transition-all',
                 selectedCurrency === 'ALL'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'border border-slate-200/80 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300'
+                  ? 'bg-blue-600 text-white shadow-2xs'
+                  : 'border border-slate-200/80 bg-slate-50 text-black hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200'
               )}
             >
-              جميع العملات
+              العملات
             </button>
             {availableCurrencies.map(curr => {
               const bal = balanceMap.get(curr.toUpperCase());
@@ -158,12 +157,12 @@ export const StatementToolbar: React.FC<StatementToolbarProps> = ({
                   type="button"
                   onClick={() => setSelectedCurrency(curr)}
                   className={cn(
-                    'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1 text-[11px] font-bold transition-all',
+                    'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[11px] font-bold transition-all',
                     isActive
                       ? curr === 'YER'
-                        ? 'bg-amber-600 text-white shadow-sm'
-                        : 'bg-emerald-600 text-white shadow-sm'
-                      : 'border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200'
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'bg-emerald-600 text-white shadow-2xs'
+                      : 'border border-slate-200/80 bg-slate-50 text-black hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200'
                   )}
                 >
                   <span className="font-mono font-black">{curr}</span>
@@ -171,10 +170,10 @@ export const StatementToolbar: React.FC<StatementToolbarProps> = ({
                     <span
                       dir="ltr"
                       className={cn(
-                        'rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold',
+                        'rounded px-1 py-0.5 font-mono text-[10px] font-bold leading-none',
                         isActive
                           ? 'bg-white/20 text-white'
-                          : 'bg-white text-slate-700 shadow-2xs dark:bg-slate-700 dark:text-slate-100'
+                          : 'bg-white text-black shadow-2xs dark:bg-slate-700 dark:text-slate-100'
                       )}
                     >
                       {formatCurrency(Math.abs(bal), curr)} {balanceDirLabel}
@@ -183,118 +182,114 @@ export const StatementToolbar: React.FC<StatementToolbarProps> = ({
                 </button>
               );
             })}
+
+            <span className="mx-0.5 h-4 w-px shrink-0 bg-slate-200 dark:bg-slate-700" />
+
+            <Filter size={11} className="hidden shrink-0 text-slate-500 xl:block" />
+
+            {filterChips.map(chip => {
+              const Icon = chip.icon;
+              const active = settlementFilter === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => setSettlementFilter(chip.id)}
+                  title={chip.title}
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[11px] font-bold transition-all',
+                    active
+                      ? chip.activeClass
+                      : 'border border-slate-200/70 bg-slate-50/80 text-black hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700/70 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:bg-slate-800'
+                  )}
+                >
+                  <Icon size={11} />
+                  <span>{chip.label}</span>
+                  <span
+                    className={cn(
+                      'rounded px-1 py-0.5 font-mono text-[10px] leading-none',
+                      active
+                        ? 'bg-black/20 text-white dark:bg-black/25'
+                        : 'bg-slate-200/90 text-black dark:bg-slate-700 dark:text-slate-100'
+                    )}
+                  >
+                    {chip.count}
+                  </span>
+                </button>
+              );
+            })}
+
+            {settlementFilter === 'unsettled' && settlementStats.fullySettledCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setSettlementFilter('all')}
+                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-900 transition-colors hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
+              >
+                <Eye size={11} />
+                <span>+{settlementStats.fullySettledCount} مسددة</span>
+              </button>
+            )}
           </div>
 
-          {/* Right cluster: Quick Table Search + Display Mode Switcher */}
-          <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-initial">
-            <div className="relative min-w-[180px] flex-1 sm:w-56 sm:flex-initial">
+          {/* Right cluster: Compact Table Search + Display Mode Switcher */}
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5 sm:flex-initial">
+            <div className="relative min-w-[155px] flex-1 sm:w-48 sm:flex-initial">
               <Search
-                size={13}
-                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                size={12}
+                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500"
               />
               <input
                 type="text"
-                placeholder="بحث برقم الفاتورة أو البيان..."
+                placeholder="بحث برقم أو بيان..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-1.5 pl-7 pr-8 text-xs font-medium text-slate-800 transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/90 py-1 pl-6 pr-7 text-[11px] font-bold text-black transition-all focus:border-blue-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-rose-500"
+                  className="absolute left-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-500 hover:text-rose-600"
                   title="مسح البحث"
                 >
-                  <X size={12} />
+                  <X size={11} />
                 </button>
               )}
             </div>
 
             {displayMode && onDisplayModeChange && (
-              <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-100/80 p-0.5 dark:border-slate-700 dark:bg-slate-900/70">
+              <div className="inline-flex items-center gap-0.5 rounded-lg border border-slate-200/80 bg-slate-100/80 p-0.5 dark:border-slate-700 dark:bg-slate-900/70">
                 <button
                   type="button"
                   onClick={() => onDisplayModeChange('excel')}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all',
+                    'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold transition-all',
                     displayMode === 'excel'
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'text-black hover:bg-white/70 dark:text-slate-300 dark:hover:text-white'
                   )}
-                  title="عرض كشف الحساب كجدول إكسل Grid متطور"
+                  title="عرض كشف الحساب كجدول إكسل Grid"
                 >
-                  <FileSpreadsheet size={12} />
-                  <span>إكسل Grid</span>
+                  <FileSpreadsheet size={11} />
+                  <span>إكسل</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onDisplayModeChange('standard')}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all',
+                    'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold transition-all',
                     displayMode === 'standard'
-                      ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-800 dark:text-blue-300'
-                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      ? 'bg-white text-blue-700 shadow-2xs dark:bg-slate-800 dark:text-blue-300'
+                      : 'text-black hover:bg-white/70 dark:text-slate-300 dark:hover:text-white'
                   )}
                   title="العرض الكلاسيكي لكشف الحساب"
                 >
-                  <ListFilter size={12} />
+                  <ListFilter size={11} />
                   <span>كلاسيكي</span>
                 </button>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Modern Segmented Settlement & Payment Filters */}
-        <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pt-2 dark:border-slate-800/80">
-          <div className="hidden shrink-0 items-center gap-1 px-1 text-[11px] font-bold text-slate-400 sm:flex">
-            <Filter size={12} />
-            <span>التصفية:</span>
-          </div>
-
-          {filterChips.map(chip => {
-            const Icon = chip.icon;
-            const active = settlementFilter === chip.id;
-            return (
-              <button
-                key={chip.id}
-                type="button"
-                onClick={() => setSettlementFilter(chip.id)}
-                title={chip.title}
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1 text-[11px] font-bold transition-all',
-                  active
-                    ? chip.activeClass
-                    : 'border border-slate-200/70 bg-slate-50/80 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700/70 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800'
-                )}
-              >
-                <Icon size={12} />
-                <span>{chip.label}</span>
-                <span
-                  className={cn(
-                    'rounded-md px-1.5 py-0.5 font-mono text-[10px] leading-none',
-                    active
-                      ? 'bg-black/20 text-white dark:bg-black/25'
-                      : 'bg-slate-200/80 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                  )}
-                >
-                  {chip.count}
-                </span>
-              </button>
-            );
-          })}
-
-          {settlementFilter === 'unsettled' && settlementStats.fullySettledCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setSettlementFilter('all')}
-              className="mr-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-[11px] font-bold text-emerald-800 transition-colors hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
-            >
-              <Eye size={12} />
-              <span>إظهار {settlementStats.fullySettledCount} فاتورة مسددة</span>
-            </button>
-          )}
         </div>
       </div>
     </div>

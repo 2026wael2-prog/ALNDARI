@@ -15,7 +15,7 @@ import type { StatementMovement, StatementTransactionDetails } from '../../../se
 import type { PartyType } from '../../../types';
 import { cn, formatCurrency } from '@/core/utils';
 import { EntityInfoDot } from '../../../../entity-inspector';
-import { StatementTransactionDetailRow } from '../StatementTransactionDetailRow';
+import { StatementExcelSubRows } from './StatementExcelSubRows';
 import {
   COLOR_MAP,
   classifyStatementMovement,
@@ -58,7 +58,7 @@ const COLOR_OPTIONS: Array<{ key: string; title: string; className: string }> = 
 export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
   row,
   idx,
-  partyName,
+  partyName: _partyName,
   partyType = 'customer',
   density,
   gridBorder,
@@ -88,8 +88,8 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
 
   const semanticRowBg =
     semanticTone === 'emerald'
-      ? 'bg-emerald-50/85 border-r-4 border-r-emerald-600 dark:bg-emerald-950/30 dark:border-r-emerald-500'
-      : 'bg-rose-50/85 border-r-4 border-r-rose-600 dark:bg-rose-950/30 dark:border-r-rose-500';
+      ? 'bg-emerald-100/80 border-r-4 border-r-emerald-600 dark:bg-emerald-950/40 dark:border-r-emerald-500'
+      : 'bg-rose-100/80 border-r-4 border-r-rose-600 dark:bg-rose-950/40 dark:border-r-rose-500';
 
   const rowBg = colorStyle
     ? cn(colorStyle.bg, colorStyle.border)
@@ -487,27 +487,14 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
       </tr>
 
       {isExpanded && (
-        <tr
-          className={cn(
-            'print:hidden',
-            semanticTone === 'emerald'
-              ? 'bg-emerald-50/35 border-r-4 border-r-emerald-500 dark:bg-emerald-950/15'
-              : 'bg-rose-50/35 border-r-4 border-r-rose-500 dark:bg-rose-950/15'
-          )}
-        >
-          <td colSpan={12} className={cn('px-3 py-2 pr-8', gridBorder)}>
-            <StatementTransactionDetailRow
-              movement={row}
-              partyName={partyName}
-              preloadedDetails={preloadedDetails}
-              isBatchLoading={isBatchDetailsLoading}
-              compact
-              accentTone={semanticTone}
-              onOpenInvoiceModal={onOpenInvoiceModal}
-              onOpenBondModal={onOpenBondModal}
-            />
-          </td>
-        </tr>
+        <StatementExcelSubRows
+          row={row}
+          parentIdx={idx}
+          details={preloadedDetails}
+          isLoading={isBatchDetailsLoading}
+          tone={semanticTone}
+          gridBorder={gridBorder}
+        />
       )}
     </>
   );

@@ -15,7 +15,7 @@ import {
 import { cn, formatCurrency } from '../../../../core/utils';
 import type { StatementMovement, StatementTransactionDetails } from '../../service';
 import type { PartyType } from '../../types';
-import { StatementTransactionDetailRow } from './StatementTransactionDetailRow';
+import { StatementStandardSubRows } from './excel/StatementExcelSubRows';
 import { EntityInfoDot } from '../../../entity-inspector';
 import { getStatementRowSemanticTone } from './excel/statementExcelHelpers';
 
@@ -51,31 +51,31 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
   customColor,
   activeColorPickerRowId,
   isPrintingSelectedOnly,
-  partyName,
+  partyName: _partyName,
   onToggleSelect,
   onToggleExpand,
   onOpenColorPicker,
   onApplyColor,
   onPrintSingleTransaction,
   onOpenInvoiceModal,
-  onOpenBondModal,
+  onOpenBondModal: _onOpenBondModal,
 }) => {
   const semanticTone = getStatementRowSemanticTone(row, partyType);
   // Highlighting styling (automatic Red & Green with manual override support)
   const highlightClass =
     customColor === 'emerald'
-      ? 'bg-emerald-50/85 dark:bg-emerald-950/30 border-r-4 border-r-emerald-600 row-colored-emerald'
+      ? 'bg-emerald-100/80 dark:bg-emerald-950/35 border-r-4 border-r-emerald-600 row-colored-emerald'
       : customColor === 'rose'
-        ? 'bg-rose-50/85 dark:bg-rose-950/30 border-r-4 border-r-rose-600 row-colored-rose'
+        ? 'bg-rose-100/80 dark:bg-rose-950/35 border-r-4 border-r-rose-600 row-colored-rose'
         : customColor === 'amber'
-          ? 'bg-amber-50/85 dark:bg-amber-950/30 border-r-4 border-r-amber-500 row-colored-amber'
+          ? 'bg-amber-100/80 dark:bg-amber-950/35 border-r-4 border-r-amber-500 row-colored-amber'
           : customColor === 'blue'
-            ? 'bg-blue-50/85 dark:bg-blue-950/30 border-r-4 border-r-blue-600 row-colored-blue'
+            ? 'bg-blue-100/80 dark:bg-blue-950/35 border-r-4 border-r-blue-600 row-colored-blue'
             : isSelected
-              ? 'bg-blue-50/60 dark:bg-blue-950/25 border-r-4 border-r-blue-500'
+              ? 'bg-blue-50/70 dark:bg-blue-950/30 border-r-4 border-r-blue-500'
               : semanticTone === 'emerald'
-                ? 'bg-emerald-50/80 dark:bg-emerald-950/25 border-r-4 border-r-emerald-600'
-                : 'bg-rose-50/80 dark:bg-rose-950/25 border-r-4 border-r-rose-600';
+                ? 'bg-emerald-100/75 dark:bg-emerald-950/35 border-r-4 border-r-emerald-600'
+                : 'bg-rose-100/75 dark:bg-rose-950/35 border-r-4 border-r-rose-600';
 
   // Payment Status Meta
   const statusBadge =
@@ -372,29 +372,14 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
         </td>
       </tr>
 
-      {/* Inline Line Items Details Directly Underneath Transaction */}
+      {/* Seamless Flat Colored Sub-Rows Directly Inside the Table (No Nested Boxes) */}
       {isExpanded && !isRowHiddenInPrint && (
-        <tr
-          className={cn(
-            'print:hidden',
-            semanticTone === 'emerald'
-              ? 'bg-emerald-50/35 border-r-4 border-r-emerald-500 dark:bg-emerald-950/15'
-              : 'bg-rose-50/35 border-r-4 border-r-rose-500 dark:bg-rose-950/15'
-          )}
-        >
-          <td colSpan={11} className="px-3 py-2 pr-8">
-            <StatementTransactionDetailRow
-              movement={row}
-              partyName={partyName}
-              preloadedDetails={preloadedDetails}
-              isBatchLoading={isBatchDetailsLoading}
-              compact
-              accentTone={semanticTone}
-              onOpenInvoiceModal={onOpenInvoiceModal}
-              onOpenBondModal={onOpenBondModal}
-            />
-          </td>
-        </tr>
+        <StatementStandardSubRows
+          row={row}
+          details={preloadedDetails}
+          isLoading={isBatchDetailsLoading}
+          tone={semanticTone}
+        />
       )}
     </React.Fragment>
   );

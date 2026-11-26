@@ -22,13 +22,13 @@ export const StatementExcelFooter: React.FC<StatementExcelFooterProps> = ({
           <td
             colSpan={5}
             className={cn(
-              'px-3.5 py-2.5 text-right font-black text-emerald-950 dark:text-emerald-100',
+              'px-3 py-1.5 text-right font-black text-emerald-950 dark:text-emerald-100',
               gridBorder
             )}
           >
             إجمالي حركات عملة ({ct.currency}) — {ct.count} حركة
           </td>
-          <td className={cn('px-2.5 py-2.5 text-center font-mono text-xs font-black', gridBorder)}>
+          <td className={cn('px-2 py-1.5 text-center font-mono text-xs font-black', gridBorder)}>
             <span
               className={cn(
                 'rounded-md px-2 py-0.5',
@@ -43,7 +43,7 @@ export const StatementExcelFooter: React.FC<StatementExcelFooterProps> = ({
           <td
             colSpan={2}
             className={cn(
-              'px-2.5 py-2.5 text-center text-xs font-bold text-slate-600 dark:text-slate-300',
+              'px-2 py-1.5 text-center text-xs font-bold text-black/75 dark:text-slate-300',
               gridBorder
             )}
           >
@@ -52,7 +52,7 @@ export const StatementExcelFooter: React.FC<StatementExcelFooterProps> = ({
           <td
             dir="ltr"
             className={cn(
-              'whitespace-nowrap px-3 py-2.5 text-left font-mono font-black tabular-nums text-blue-900 dark:text-blue-200',
+              'whitespace-nowrap px-2.5 py-1.5 text-left font-mono font-black tabular-nums text-rose-900 dark:text-rose-200',
               gridBorder
             )}
           >
@@ -61,7 +61,7 @@ export const StatementExcelFooter: React.FC<StatementExcelFooterProps> = ({
           <td
             dir="ltr"
             className={cn(
-              'whitespace-nowrap px-3 py-2.5 text-left font-mono font-black tabular-nums text-rose-900 dark:text-rose-200',
+              'whitespace-nowrap px-2.5 py-1.5 text-left font-mono font-black tabular-nums text-emerald-900 dark:text-emerald-200',
               gridBorder
             )}
           >
@@ -70,7 +70,7 @@ export const StatementExcelFooter: React.FC<StatementExcelFooterProps> = ({
           <td
             dir="ltr"
             className={cn(
-              'whitespace-nowrap bg-emerald-100/70 px-3 py-2.5 text-left font-mono font-black tabular-nums dark:bg-slate-900/70',
+              'whitespace-nowrap bg-emerald-100/70 px-2.5 py-1.5 text-left font-mono font-black tabular-nums dark:bg-slate-900/70',
               ct.closingBalance >= 0
                 ? 'text-emerald-900 dark:text-emerald-300'
                 : 'text-rose-900 dark:text-rose-300',
@@ -81,7 +81,7 @@ export const StatementExcelFooter: React.FC<StatementExcelFooterProps> = ({
           </td>
           <td
             className={cn(
-              'no-print px-2.5 py-2.5 text-center text-xs font-black text-emerald-900 dark:text-emerald-200',
+              'no-print px-2 py-1.5 text-center text-xs font-black text-emerald-900 dark:text-emerald-200',
               gridBorder
             )}
           >

@@ -16,7 +16,7 @@ import {
 import { cn, formatCurrency } from '../../../../core/utils';
 import type { StatementMovement } from '../../service';
 import { StatementTransactionDetailRow } from './StatementTransactionDetailRow';
-import { EntityInfoDot, EntityHoverCard } from '../../../entity-inspector';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface StatementMovementRowProps {
   row: StatementMovement;
@@ -168,11 +168,9 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
 
               return entType ? (
                 <>
-                  <EntityHoverCard type={entType} id={row.reference_id} label={row.ref} subType={refType}>
-                    <span className="cursor-pointer hover:underline text-blue-600 dark:text-blue-400">
-                      {row.ref}
-                    </span>
-                  </EntityHoverCard>
+                  <span className="text-blue-600 dark:text-blue-400">
+                    {row.ref}
+                  </span>
                   <EntityInfoDot
                     type={entType}
                     id={row.reference_id}

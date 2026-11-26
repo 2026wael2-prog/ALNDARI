@@ -3,7 +3,7 @@ import type { Product } from '../../types';
 import { formatCurrency, formatNumberDisplay, cn } from '../../../../core/utils';
 import type { Column } from '../../../../ui/common/ExcelTable';
 import { BranchStockAvailabilityCell } from './BranchStockAvailabilityCell';
-import { EntityInfoDot, EntityHoverCard } from '../../../entity-inspector';
+import { EntityInfoDot } from '../../../entity-inspector';
 
 interface GetProductColumnsProps {
   onEdit?: ((p: Product) => void) | undefined;
@@ -67,14 +67,12 @@ export const getProductColumns = ({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <EntityHoverCard type="product" id={p.id} label={p.name_ar || p.name}>
-                <span
-                  className="block truncate text-sm font-bold text-slate-900 hover:text-amber-600 dark:text-white dark:hover:text-amber-300 cursor-pointer"
-                  title={p.name_ar || p.name || undefined}
-                >
-                  {p.name_ar || p.name}
-                </span>
-              </EntityHoverCard>
+              <span
+                className="block truncate text-sm font-bold text-slate-900 dark:text-white"
+                title={p.name_ar || p.name || undefined}
+              >
+                {p.name_ar || p.name}
+              </span>
               <EntityInfoDot type="product" id={p.id} label={p.name_ar || p.name} />
             </div>
             {p.brand && (

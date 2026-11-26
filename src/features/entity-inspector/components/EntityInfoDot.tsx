@@ -2,7 +2,6 @@ import React from 'react';
 import { cn } from '../../../core/utils';
 import { useEntityInspectorStore } from '../store';
 import type { InspectableEntityType } from '../types';
-import { EntityHoverCard } from './EntityHoverCard';
 
 export interface EntityInfoDotProps {
   type: InspectableEntityType;
@@ -11,8 +10,6 @@ export interface EntityInfoDotProps {
   subType?: string | null | undefined;
   /** True when rendered inside the inspector modal itself so clicks push to the drill-down stack. */
   inInspector?: boolean;
-  /** Disable hover preview card if needed. */
-  disableHover?: boolean;
   /** Optional custom tooltip text. */
   title?: string;
   className?: string;
@@ -20,16 +17,15 @@ export interface EntityInfoDotProps {
 }
 
 const DEFAULT_TITLES: Record<InspectableEntityType, string> = {
-  product: 'استعلام فوري ومعاينة عند التمرير',
-  party: 'استعلام فوري ومعاينة عند التمرير',
-  invoice: 'استعلام فوري ومعاينة عند التمرير',
-  bond: 'استعلام فوري ومعاينة عند التمرير',
-  account: 'استعلام فوري ومعاينة عند التمرير',
+  product: 'استعلام فوري عند النقر',
+  party: 'استعلام فوري عند النقر',
+  invoice: 'استعلام فوري عند النقر',
+  bond: 'استعلام فوري عند النقر',
+  account: 'استعلام فوري عند النقر',
 };
 
 /**
- * نقطة استعلام فورية خفيفة جداً، تدعم المعاينة السريعة عند التمرير (Hover Card)
- * وتفتح نافذة الاستعلام الشامل فور النقر عليها.
+ * نقطة استعلام فورية خفيفة جداً تفتح نافذة الاستعلام الشامل فور النقر عليها.
  */
 export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
   ({
@@ -38,7 +34,6 @@ export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
     label,
     subType,
     inInspector = false,
-    disableHover = false,
     title,
     className,
     size = 'sm',
@@ -64,7 +59,7 @@ export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
 
     const resolvedTitle = title || DEFAULT_TITLES[type];
 
-    const dotButton = (
+    return (
       <button
         type="button"
         onClick={handleClick}
@@ -86,16 +81,6 @@ export const EntityInfoDot: React.FC<EntityInfoDotProps> = React.memo(
       >
         i
       </button>
-    );
-
-    if (inInspector || disableHover) {
-      return dotButton;
-    }
-
-    return (
-      <EntityHoverCard type={type} id={id} label={label} subType={subType}>
-        {dotButton}
-      </EntityHoverCard>
     );
   }
 );

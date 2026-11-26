@@ -134,7 +134,7 @@ export const generateQuotationPDF = async (options: PDFQuotationOptions): Promis
 
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;" data-pdf-break>
         <div style="flex:1;font-size:11.5px;">
-          ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR" style="width:88px;height:88px;border:1px solid #cbd5e1;padding:3px;border-radius:4px;" />` : ''}
+          ${qrDataUrl && /^data:image\/(png|jpeg|webp|svg\+xml);base64,/i.test(qrDataUrl) ? `<img src="${qrDataUrl}" alt="QR" style="width:88px;height:88px;border:1px solid #cbd5e1;padding:3px;border-radius:4px;" />` : ''}
           ${
             options.terms || options.notes
               ? `<div style="margin-top:8px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;padding:8px;">

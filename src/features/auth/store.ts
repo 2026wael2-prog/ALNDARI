@@ -54,9 +54,43 @@ interface AuthState {
   initialize: () => Promise<void>;
 }
 
-//_TIMEOUT for session check
-const SESSION_CHECK_TIMEOUT = 45000;
-const PROFILE_FETCH_TIMEOUT = 45000;
+// Timeout for session & profile checks (tightened from 45s to 15s for fast fail-closed recovery)
+const SESSION_CHECK_TIMEOUT = 15000;
+const PROFILE_FETCH_TIMEOUT = 20000;
+
+/**
+ * Checks whether a persisted Supabase auth token exists locally and has either
+ * a non-expired access token or a valid refresh token, preventing stale
+ * localStorage user profiles from optimistically appearing logged in on shared devices.
+ */
+function hasValidLocalSupabaseSession(): boolean {
+  if (typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as {
+        access_token?: string;
+        refresh_token?: string;
+        expires_at?: number;
+      };
+      if (typeof parsed.access_token === 'string' && parsed.access_token.length > 0) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (typeof parsed.expires_at === 'number' && parsed.expires_at > nowSec) {
+          return true;
+        }
+        if (typeof parsed.refresh_token === 'string' && parsed.refresh_token.length > 0) {
+          return true;
+        }
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
 
 // Module-level state (not persisted — runtime-only)
 let isInitializingGlobal = false;
@@ -112,13 +146,14 @@ export const useAuthStore = create<AuthState>()(
         // so we rely on `persistedUser` existence (which IS persisted) to decide
         // whether to show the app optimistically during background validation.
         const persistedUser = get().user;
+        const hasLocalToken = hasValidLocalSupabaseSession();
 
-        if (persistedUser) {
+        if (persistedUser && hasLocalToken) {
           set({ isAuthenticated: true, isLoading: false, isReady: true });
         }
 
         try {
-          if (!persistedUser) {
+          if (!persistedUser || !hasLocalToken) {
             set({ isLoading: true });
           }
 
@@ -139,11 +174,14 @@ export const useAuthStore = create<AuthState>()(
           const result = await Promise.race([sessionPromise, timeoutPromise]);
 
           if (result && 'timeout' in result) {
-            // Only log warning if we DON'T have a persisted session to fall back on
-            if (!persistedUser) {
-              logger.warn('Auth', 'Session check timed out on fresh load');
+            if (!persistedUser || !hasLocalToken) {
+              logger.warn('Auth', 'Session check timed out without valid local token');
+              clearSessionClientState();
+              set({ user: null, isAuthenticated: false, isLoading: false, isReady: true });
+              isInitializingGlobal = false;
+              return;
             } else {
-              logger.debug('Auth', 'Session check timed out, using persisted session');
+              logger.debug('Auth', 'Session check timed out, using verified local token session');
               isInitializingGlobal = false;
               return;
             }

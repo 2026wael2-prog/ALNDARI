@@ -29,6 +29,7 @@
 // (c) we can rate-limit the validation step independently.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -104,13 +105,12 @@ const BUCKET_MAX_SIZE: Record<string, number> = {
   "chat-attachments": 10 * 1024 * 1024,
 };
 
-const corsHeaders = (origin: string | null) => ({
-  "Access-Control-Allow-Origin": origin ?? "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Max-Age": "86400",
-  "Vary": "Origin",
-});
+const corsHeaders = (origin: string | null) =>
+  buildCorsHeaders(origin, {
+    methods: "POST, OPTIONS",
+    headers: "authorization, x-client-info, apikey, content-type",
+    maxAgeSeconds: 86400,
+  });
 
 function jsonResponse(body: unknown, status: number, origin: string | null): Response {
   return new Response(JSON.stringify(body), {

@@ -59,9 +59,10 @@ const InvoiceListView: React.FC<InvoiceListViewProps> = ({
   }, [searchTerm]);
 
   useEffect(() => {
+    const delay = internalSearch.trim().length > 0 ? 400 : 120;
     const timer = setTimeout(() => {
       setDebouncedSearch(internalSearch);
-    }, 200);
+    }, delay);
     return () => {
       clearTimeout(timer);
     };

@@ -118,7 +118,7 @@ const customFetch = async (
   const isSafeTransientRetry =
     method === 'GET' ||
     method === 'HEAD' ||
-    (method === 'POST' && /\/rest\/v1\/rpc\/(get_|report_|search_|list_|calculate_)/i.test(urlStr));
+    (method === 'POST' && /\/rest\/v1\/rpc\/(get_|report_|list_|calculate_)/i.test(urlStr));
 
   for (let i = 0; i <= MAX_RETRIES; i++) {
     const timeoutController = new AbortController();

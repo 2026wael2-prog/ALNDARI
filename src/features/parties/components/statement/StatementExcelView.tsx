@@ -4,10 +4,12 @@ import {
   CheckSquare,
   Copy,
   FileSpreadsheet,
+  ListTree,
   Square,
   Type,
 } from 'lucide-react';
-import type { StatementMovement } from '../../service';
+import type { StatementMovement, StatementTransactionDetails } from '../../service';
+import type { PartyType } from '../../types';
 import { cn, formatCurrency } from '@/core/utils';
 import EditInvoiceModal from '@/features/sales/components/edit/EditInvoiceModal';
 import {
@@ -40,11 +42,17 @@ interface StatementExcelViewProps {
   rowColors: Map<string, string>;
   activeColorPickerRowId: string | null;
   partyName: string;
+  partyType?: PartyType;
   isAllSelected?: boolean;
   /** When true, filteredMovements are ordered newest-first so footer closingBalance reads the first row per currency. */
   isNewestFirst?: boolean;
   /** Expands spreadsheet viewport height when statement fullscreen mode is active. */
   isFullscreen?: boolean;
+  /** Automatically display transaction details directly underneath each movement row. */
+  showInlineDetails?: boolean;
+  onToggleShowInlineDetails?: () => void;
+  batchDetailsMap?: Map<string, StatementTransactionDetails>;
+  isBatchDetailsLoading?: boolean;
   onToggleSelectAll: () => void;
   onToggleRowSelection: (id: string, e?: React.MouseEvent) => void;
   onToggleRowExpand?: (id: string, e?: React.MouseEvent) => void;
@@ -62,9 +70,14 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
   rowColors,
   activeColorPickerRowId,
   partyName,
+  partyType = 'customer',
   isAllSelected,
   isNewestFirst = false,
   isFullscreen = false,
+  showInlineDetails = true,
+  onToggleShowInlineDetails,
+  batchDetailsMap,
+  isBatchDetailsLoading = false,
   onToggleSelectAll,
   onToggleRowSelection,
   onToggleRowExpand,
@@ -76,6 +89,7 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
 }) => {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [localExpandedIds, setLocalExpandedIds] = useState<Set<string>>(new Set());
+  const [collapsedRowIds, setCollapsedRowIds] = useState<Set<string>>(new Set());
   const [densityMode, setDensityModeState] = useState<ExcelDensityMode>(readSavedDensity);
   const [activeCell, setActiveCell] = useState<{ row: number; col: number } | null>(null);
   const [copiedFormula, setCopiedFormula] = useState(false);
@@ -93,11 +107,20 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
 
   const effectiveExpandedIds = expandedRowIds ?? localExpandedIds;
   const handleToggleExpand = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (showInlineDetails) {
+      setCollapsedRowIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
     if (onToggleRowExpand) {
       onToggleRowExpand(id, e);
       return;
     }
-    e?.stopPropagation();
     setLocalExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -152,8 +175,30 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
           </div>
         </div>
 
-        {/* Readable Text Size / Density Selector */}
-        <div className="flex items-center gap-1 rounded-lg bg-black/15 p-1">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Toggle Automatic Inline Details */}
+          {onToggleShowInlineDetails && (
+            <button
+              type="button"
+              onClick={() => {
+                setCollapsedRowIds(new Set());
+                onToggleShowInlineDetails();
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-colors',
+                showInlineDetails
+                  ? 'bg-white text-emerald-950 shadow-xs'
+                  : 'bg-black/20 text-white hover:bg-black/30'
+              )}
+              title="إظهار أو إخفاء تفاصيل الأصناف والسندات أسفل كل معاملة تلقائياً"
+            >
+              <ListTree size={14} />
+              <span>{showInlineDetails ? 'التفاصيل ظاهرة أسفل المعاملات' : 'إظهار التفاصيل أسفل المعاملات'}</span>
+            </button>
+          )}
+
+          {/* Readable Text Size / Density Selector */}
+          <div className="flex items-center gap-1 rounded-lg bg-black/15 p-1">
           <span className="inline-flex items-center gap-1 px-1.5 text-[11px] font-bold text-emerald-100">
             <Type size={13} />
             حجم الخط:
@@ -179,6 +224,7 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
               {opt.label}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
@@ -278,10 +324,10 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
               <th className={cn('w-20 p-2.5 text-center', gridBorder)}>العملة</th>
               <th className={cn('min-w-[260px] p-2.5 text-right', gridBorder)}>البيان والتفاصيل</th>
               <th className={cn('w-28 p-2.5 text-center', gridBorder)}>حالة السداد</th>
-              <th className={cn('w-32 p-2.5 text-center text-blue-900 dark:text-blue-200', gridBorder)}>
+              <th className={cn('w-32 p-2.5 text-center text-rose-900 dark:text-rose-200', gridBorder)}>
                 مدين (عليه +)
               </th>
-              <th className={cn('w-32 p-2.5 text-center text-rose-900 dark:text-rose-200', gridBorder)}>
+              <th className={cn('w-32 p-2.5 text-center text-emerald-900 dark:text-emerald-200', gridBorder)}>
                 دائن (له -)
               </th>
               <th
@@ -313,16 +359,25 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
                   (row.reference_id ? rowColors.get(row.reference_id) : undefined) ||
                   (row.ref ? rowColors.get(row.ref) : undefined);
 
+                const isRowExpanded = showInlineDetails
+                  ? Boolean(row.reference_id) && !collapsedRowIds.has(row.id)
+                  : effectiveExpandedIds.has(row.id);
+
                 return (
                   <StatementExcelRow
                     key={row.id}
                     row={row}
                     idx={idx}
                     partyName={partyName}
+                    partyType={partyType}
                     density={density}
                     gridBorder={gridBorder}
                     isSelected={selectedRowIds.has(row.id)}
-                    isExpanded={effectiveExpandedIds.has(row.id)}
+                    isExpanded={isRowExpanded}
+                    preloadedDetails={
+                      row.reference_id ? (batchDetailsMap?.get(row.reference_id) ?? null) : null
+                    }
+                    isBatchDetailsLoading={isBatchDetailsLoading}
                     colorKey={colorKey}
                     isColorPickerOpen={activeColorPickerRowId === row.id}
                     activeCellCol={activeCell?.row === idx ? activeCell.col : null}

@@ -7,18 +7,19 @@ import {
   ChevronLeft,
   Clock,
   Edit,
-  Eye,
   Palette,
   Printer,
   Square,
 } from 'lucide-react';
-import type { StatementMovement } from '../../../service';
+import type { StatementMovement, StatementTransactionDetails } from '../../../service';
+import type { PartyType } from '../../../types';
 import { cn, formatCurrency } from '@/core/utils';
 import { EntityInfoDot } from '../../../../entity-inspector';
 import { StatementTransactionDetailRow } from '../StatementTransactionDetailRow';
 import {
   COLOR_MAP,
   classifyStatementMovement,
+  getStatementRowSemanticTone,
   type ExcelDensityStyles,
 } from './statementExcelHelpers';
 
@@ -26,10 +27,13 @@ interface StatementExcelRowProps {
   row: StatementMovement;
   idx: number;
   partyName: string;
+  partyType?: PartyType;
   density: ExcelDensityStyles;
   gridBorder: string;
   isSelected: boolean;
   isExpanded: boolean;
+  preloadedDetails?: StatementTransactionDetails | null;
+  isBatchDetailsLoading?: boolean;
   colorKey: string | undefined;
   isColorPickerOpen: boolean;
   activeCellCol: number | null;
@@ -55,10 +59,13 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
   row,
   idx,
   partyName,
+  partyType = 'customer',
   density,
   gridBorder,
   isSelected,
   isExpanded,
+  preloadedDetails,
+  isBatchDetailsLoading = false,
   colorKey,
   isColorPickerOpen,
   activeCellCol,
@@ -73,18 +80,22 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
   onEditInvoice,
 }) => {
   const colorStyle = colorKey ? COLOR_MAP.get(colorKey) : undefined;
+  const semanticTone = getStatementRowSemanticTone(row, partyType);
   const currency = (row.currency || 'SAR').toUpperCase();
   const bal = Number(row.balance) || 0;
   const { refType, isInv, isEditableSalesInvoice, isBond, isPartialStatus } =
     classifyStatementMovement(row);
 
+  const semanticRowBg =
+    semanticTone === 'emerald'
+      ? 'bg-emerald-50/85 border-r-4 border-r-emerald-600 dark:bg-emerald-950/30 dark:border-r-emerald-500'
+      : 'bg-rose-50/85 border-r-4 border-r-rose-600 dark:bg-rose-950/30 dark:border-r-rose-500';
+
   const rowBg = colorStyle
     ? cn(colorStyle.bg, colorStyle.border)
     : isSelected
-      ? 'bg-blue-50/90 dark:bg-blue-950/35'
-      : idx % 2 === 0
-        ? 'bg-white dark:bg-slate-950'
-        : 'bg-slate-50/80 dark:bg-slate-900/55';
+      ? 'bg-blue-50/90 border-r-4 border-r-blue-600 dark:bg-blue-950/35'
+      : semanticRowBg;
 
   const cellRing = (colIdx: number) =>
     activeCellCol === colIdx
@@ -122,13 +133,25 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
         {/* Row Number */}
         <td
           className={cn(
-            'select-none bg-slate-100 text-center align-middle font-mono text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-400',
+            'select-none text-center align-middle font-mono text-xs font-black text-black dark:text-white',
+            semanticTone === 'emerald'
+              ? 'bg-emerald-100/80 dark:bg-emerald-950/50'
+              : 'bg-rose-100/80 dark:bg-rose-950/50',
             cellPad,
             gridBorder
           )}
         >
           <div className="flex items-center justify-center gap-1">
-            {colorStyle && <span className={cn('h-2.5 w-2.5 rounded-full', colorStyle.badge)} />}
+            <span
+              className={cn(
+                'h-2.5 w-2.5 rounded-full',
+                colorStyle
+                  ? colorStyle.badge
+                  : semanticTone === 'emerald'
+                    ? 'bg-emerald-600'
+                    : 'bg-rose-600'
+              )}
+            />
             <span>{idx + 1}</span>
           </div>
         </td>
@@ -137,7 +160,7 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
         <td
           onClick={() => onSelectCell(0)}
           className={cn(
-            'cursor-cell whitespace-nowrap text-center align-middle font-mono font-semibold text-slate-800 dark:text-slate-200',
+            'cursor-cell whitespace-nowrap text-center align-middle font-mono font-bold text-black dark:text-white',
             density.monoText,
             cellPad,
             gridBorder,
@@ -213,15 +236,11 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
         >
           <span
             className={cn(
-              'inline-flex items-center rounded-md px-2 py-0.5 font-bold',
+              'inline-flex items-center rounded-md border px-2 py-0.5 font-black',
               density.badgeText,
-              isInv
-                ? 'bg-blue-100/90 text-blue-900 dark:bg-blue-900/45 dark:text-blue-200'
-                : row.credit > 0 && isBond
-                  ? 'bg-emerald-100/90 text-emerald-900 dark:bg-emerald-900/45 dark:text-emerald-200'
-                  : isBond
-                    ? 'bg-rose-100/90 text-rose-900 dark:bg-rose-900/45 dark:text-rose-200'
-                    : 'bg-slate-200/80 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+              semanticTone === 'emerald'
+                ? 'border-emerald-400 bg-emerald-100 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200'
+                : 'border-rose-400 bg-rose-100 text-rose-950 dark:border-rose-700 dark:bg-rose-900/50 dark:text-rose-200'
             )}
           >
             {row.operation_type || row.type || 'قيد محاسبي'}
@@ -334,10 +353,10 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
         <td
           onClick={() => onSelectCell(6)}
           className={cn(
-            'cursor-cell whitespace-nowrap bg-blue-50/35 text-left align-middle font-mono font-bold tabular-nums dark:bg-blue-950/15',
+            'cursor-cell whitespace-nowrap bg-rose-50/55 text-left align-middle font-mono font-black tabular-nums dark:bg-rose-950/20',
             row.debit > 0
-              ? 'text-blue-800 dark:text-blue-300'
-              : 'text-center text-slate-300 dark:text-slate-600',
+              ? 'text-rose-800 dark:text-rose-300'
+              : 'text-center text-slate-400 dark:text-slate-600',
             density.monoText,
             cellPad,
             gridBorder,
@@ -352,10 +371,10 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
         <td
           onClick={() => onSelectCell(7)}
           className={cn(
-            'cursor-cell whitespace-nowrap bg-rose-50/35 text-left align-middle font-mono font-bold tabular-nums dark:bg-rose-950/15',
+            'cursor-cell whitespace-nowrap bg-emerald-50/55 text-left align-middle font-mono font-black tabular-nums dark:bg-emerald-950/20',
             row.credit > 0
-              ? 'text-rose-800 dark:text-rose-300'
-              : 'text-center text-slate-300 dark:text-slate-600',
+              ? 'text-emerald-800 dark:text-emerald-300'
+              : 'text-center text-slate-400 dark:text-slate-600',
             density.monoText,
             cellPad,
             gridBorder,
@@ -444,20 +463,6 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
               )}
             </div>
 
-            {row.reference_id && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (isInv) onOpenInvoiceModal(row.reference_id!);
-                  else onOpenBondModal(row.reference_id!, row);
-                }}
-                title="عرض المستند الأصلي"
-                className="rounded-md p-1.5 text-slate-600 hover:bg-blue-100/80 hover:text-blue-700 dark:text-slate-400 dark:hover:bg-blue-950/40"
-              >
-                <Eye size={15} />
-              </button>
-            )}
-
             {isEditableSalesInvoice && (
               <button
                 type="button"
@@ -473,7 +478,7 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
               type="button"
               onClick={() => onPrintSingleTransaction(row)}
               title="طباعة هذه المعاملة بمفردها"
-              className="rounded-md p-1.5 text-slate-600 hover:bg-emerald-100/80 hover:text-emerald-800 dark:text-slate-400 dark:hover:bg-emerald-950/40"
+              className="rounded-md p-1.5 text-black hover:bg-emerald-100/80 hover:text-emerald-800 dark:text-slate-200 dark:hover:bg-emerald-950/40"
             >
               <Printer size={15} />
             </button>
@@ -482,11 +487,22 @@ export const StatementExcelRow: React.FC<StatementExcelRowProps> = ({
       </tr>
 
       {isExpanded && (
-        <tr className="bg-slate-50/95 dark:bg-slate-900/75 print:hidden">
-          <td colSpan={12} className={cn('p-3.5 pr-10', gridBorder)}>
+        <tr
+          className={cn(
+            'print:hidden',
+            semanticTone === 'emerald'
+              ? 'bg-emerald-50/35 border-r-4 border-r-emerald-500 dark:bg-emerald-950/15'
+              : 'bg-rose-50/35 border-r-4 border-r-rose-500 dark:bg-rose-950/15'
+          )}
+        >
+          <td colSpan={12} className={cn('px-3 py-2 pr-8', gridBorder)}>
             <StatementTransactionDetailRow
               movement={row}
               partyName={partyName}
+              preloadedDetails={preloadedDetails}
+              isBatchLoading={isBatchDetailsLoading}
+              compact
+              accentTone={semanticTone}
               onOpenInvoiceModal={onOpenInvoiceModal}
               onOpenBondModal={onOpenBondModal}
             />

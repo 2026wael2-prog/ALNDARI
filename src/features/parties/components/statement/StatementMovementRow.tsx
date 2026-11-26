@@ -7,22 +7,26 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  Eye,
   Edit,
   Palette,
   Printer,
   Square,
 } from 'lucide-react';
 import { cn, formatCurrency } from '../../../../core/utils';
-import type { StatementMovement } from '../../service';
+import type { StatementMovement, StatementTransactionDetails } from '../../service';
+import type { PartyType } from '../../types';
 import { StatementTransactionDetailRow } from './StatementTransactionDetailRow';
 import { EntityInfoDot } from '../../../entity-inspector';
+import { getStatementRowSemanticTone } from './excel/statementExcelHelpers';
 
 interface StatementMovementRowProps {
   row: StatementMovement;
   idx: number;
+  partyType?: PartyType;
   isSelected: boolean;
   isExpanded: boolean;
+  preloadedDetails?: StatementTransactionDetails | null;
+  isBatchDetailsLoading?: boolean;
   customColor: string | undefined;
   activeColorPickerRowId: string | null;
   isPrintingSelectedOnly: boolean;
@@ -38,9 +42,12 @@ interface StatementMovementRowProps {
 
 export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
   row,
-  idx,
+  idx: _idx,
+  partyType = 'customer',
   isSelected,
   isExpanded,
+  preloadedDetails,
+  isBatchDetailsLoading = false,
   customColor,
   activeColorPickerRowId,
   isPrintingSelectedOnly,
@@ -53,21 +60,22 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
   onOpenInvoiceModal,
   onOpenBondModal,
 }) => {
-  // Highlighting styling
+  const semanticTone = getStatementRowSemanticTone(row, partyType);
+  // Highlighting styling (automatic Red & Green with manual override support)
   const highlightClass =
     customColor === 'emerald'
-      ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-r-4 border-r-emerald-500 row-colored-emerald'
+      ? 'bg-emerald-50/85 dark:bg-emerald-950/30 border-r-4 border-r-emerald-600 row-colored-emerald'
       : customColor === 'rose'
-        ? 'bg-rose-50/70 dark:bg-rose-950/30 border-r-4 border-r-rose-500 row-colored-rose'
+        ? 'bg-rose-50/85 dark:bg-rose-950/30 border-r-4 border-r-rose-600 row-colored-rose'
         : customColor === 'amber'
-          ? 'bg-amber-50/70 dark:bg-amber-950/30 border-r-4 border-r-amber-500 row-colored-amber'
+          ? 'bg-amber-50/85 dark:bg-amber-950/30 border-r-4 border-r-amber-500 row-colored-amber'
           : customColor === 'blue'
-            ? 'bg-blue-50/70 dark:bg-blue-950/30 border-r-4 border-r-blue-500 row-colored-blue'
+            ? 'bg-blue-50/85 dark:bg-blue-950/30 border-r-4 border-r-blue-600 row-colored-blue'
             : isSelected
-              ? 'bg-blue-50/40 dark:bg-blue-950/20'
-              : idx % 2 === 0
-                ? 'bg-transparent'
-                : 'bg-slate-50/40 dark:bg-slate-900/30';
+              ? 'bg-blue-50/60 dark:bg-blue-950/25 border-r-4 border-r-blue-500'
+              : semanticTone === 'emerald'
+                ? 'bg-emerald-50/80 dark:bg-emerald-950/25 border-r-4 border-r-emerald-600'
+                : 'bg-rose-50/80 dark:bg-rose-950/25 border-r-4 border-r-rose-600';
 
   // Payment Status Meta
   const statusBadge =
@@ -223,7 +231,7 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
 
         {/* Debit */}
         <td
-          className="whitespace-nowrap border-l border-[var(--app-border)] p-3 text-center font-mono font-bold text-emerald-600"
+          className="whitespace-nowrap border-l border-[var(--app-border)] p-3 text-center font-mono font-black text-rose-700 dark:text-rose-300"
           dir="ltr"
         >
           {row.debit > 0 ? formatCurrency(row.debit, row.currency) : '-'}
@@ -231,7 +239,7 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
 
         {/* Credit */}
         <td
-          className="whitespace-nowrap border-l border-[var(--app-border)] p-3 text-center font-mono font-bold text-rose-600"
+          className="whitespace-nowrap border-l border-[var(--app-border)] p-3 text-center font-mono font-black text-emerald-700 dark:text-emerald-300"
           dir="ltr"
         >
           {row.credit > 0 ? formatCurrency(row.credit, row.currency) : '-'}
@@ -360,25 +368,28 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
                 </button>
               );
             })()}
-            <button
-              type="button"
-              onClick={e => onToggleExpand(row.id, e)}
-              title="عرض تفاصيل البنود"
-              className="rounded p-1 text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40"
-            >
-              <Eye size={13} />
-            </button>
           </div>
         </td>
       </tr>
 
-      {/* Expandable Line Items Details */}
+      {/* Inline Line Items Details Directly Underneath Transaction */}
       {isExpanded && !isRowHiddenInPrint && (
-        <tr className="bg-slate-50/80 dark:bg-slate-900/60 print:hidden">
-          <td colSpan={11} className="p-3 pr-10">
+        <tr
+          className={cn(
+            'print:hidden',
+            semanticTone === 'emerald'
+              ? 'bg-emerald-50/35 border-r-4 border-r-emerald-500 dark:bg-emerald-950/15'
+              : 'bg-rose-50/35 border-r-4 border-r-rose-500 dark:bg-rose-950/15'
+          )}
+        >
+          <td colSpan={11} className="px-3 py-2 pr-8">
             <StatementTransactionDetailRow
               movement={row}
               partyName={partyName}
+              preloadedDetails={preloadedDetails}
+              isBatchLoading={isBatchDetailsLoading}
+              compact
+              accentTone={semanticTone}
               onOpenInvoiceModal={onOpenInvoiceModal}
               onOpenBondModal={onOpenBondModal}
             />

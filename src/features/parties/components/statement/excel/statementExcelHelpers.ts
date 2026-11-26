@@ -1,10 +1,43 @@
 import type { StatementMovement } from '../../../service';
+import type { PartyType } from '../../../types';
 
 export interface RowColorStyle {
   bg: string;
   border: string;
   text: string;
   badge: string;
+}
+
+export type StatementRowSemanticTone = 'rose' | 'emerald';
+
+/**
+ * Resolves the automatic Red/Green visual tone for a statement transaction:
+ * - Green ('emerald'): payments, receipts, returns, or fully paid transactions reducing/settling debt.
+ * - Red ('rose'): unpaid/partial invoices or charges increasing the party balance.
+ */
+export function getStatementRowSemanticTone(
+  row: Pick<StatementMovement, 'debit' | 'credit' | 'payment_status' | 'type' | 'reference_type' | 'operation_type'>,
+  partyType: PartyType = 'customer'
+): StatementRowSemanticTone {
+  const debit = Number(row.debit) || 0;
+  const credit = Number(row.credit) || 0;
+  const isSupplier = partyType === 'supplier';
+
+  if (row.payment_status === 'paid') {
+    return 'emerald';
+  }
+
+  if (isSupplier) {
+    // Supplier: Debit reduces what we owe (payment/return -> green); Credit increases liability (purchase -> red)
+    if (debit > 0 && credit === 0) return 'emerald';
+    if (credit > 0) return 'rose';
+    return 'emerald';
+  }
+
+  // Customer: Credit reduces receivable (receipt/return -> green); Debit increases debt (sale -> red)
+  if (credit > 0 && debit === 0) return 'emerald';
+  if (debit > 0) return 'rose';
+  return 'emerald';
 }
 
 export const COLOR_MAP = new Map<string, RowColorStyle>([

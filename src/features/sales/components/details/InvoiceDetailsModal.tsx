@@ -164,7 +164,7 @@ const InvoiceDetailsModal: React.FC<Props> = ({ invoiceId, onClose, onReturn }) 
             <span className="text-xs font-bold text-slate-400">جاري تحميل بيانات الفاتورة...</span>
           </div>
         ) : invoice ? (
-          <div className="space-y-3 p-1 sm:p-2">
+          <div data-clear-black-text="true" className="space-y-3 p-1 sm:p-2">
             {/* Top Compact Tab Switcher */}
             <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs font-bold dark:bg-slate-800/80">
               <button

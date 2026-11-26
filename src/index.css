@@ -2685,3 +2685,52 @@ a,
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   الخط الأسود الواضح لجميع الجداول والفواتير والسندات (الوضع الفاتح والطباعة)
+   يضمن وضوح جميع النصوص والأرقام باللون الأسود الصريح (#000000)
+   مع الحفاظ على الوضع الليلي (.dark) وألوان الدلالات (الأخضر/الأحمر/الأزرق/الأبيض)
+   ============================================================ */
+html:not(.dark) table,
+html:not(.dark) table thead th,
+html:not(.dark) table tbody td,
+html:not(.dark) table tfoot td,
+html:not(.dark) .printable-invoice-container,
+html:not(.dark) [data-clear-black-text='true'] {
+  color: #000000;
+}
+
+html:not(.dark) :is(table, .printable-invoice-container, [data-clear-black-text='true'])
+  :is(
+    .text-slate-300,
+    .text-slate-400,
+    .text-slate-500,
+    .text-slate-600,
+    .text-slate-700,
+    .text-slate-800,
+    .text-slate-900,
+    .text-gray-300,
+    .text-gray-400,
+    .text-gray-500,
+    .text-gray-600,
+    .text-gray-700,
+    .text-gray-800,
+    .text-gray-900,
+    .text-zinc-400,
+    .text-zinc-500,
+    .text-zinc-600,
+    .text-zinc-700,
+    .text-neutral-400,
+    .text-neutral-500,
+    .text-neutral-600,
+    .text-neutral-700,
+    .text-\[var\(--app-text\)\],
+    .text-\[var\(--app-text-secondary\)\]
+  ):not(.text-white) {
+  color: #000000 !important;
+}
+
+html:not(.dark) :is(table, .printable-invoice-container, [data-clear-black-text='true'])
+  :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+  color: #000000;
+}

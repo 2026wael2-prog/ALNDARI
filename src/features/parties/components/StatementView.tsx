@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, LayoutList } from 'lucide-react';
 import { useStatementController } from '../hooks/useStatementController';
+import { useStatementBatchDetails } from '../hooks/useStatementBatchDetails';
 import type { PartyType } from '../types';
 import FullscreenContainer from '../../../ui/base/FullscreenContainer';
 import { cn } from '../../../core/utils';
@@ -21,6 +22,7 @@ interface StatementViewProps {
 }
 
 const DISPLAY_MODE_STORAGE_KEY = 'erp_statement_display_mode';
+const INLINE_DETAILS_STORAGE_KEY = 'erp_statement_inline_details_v1';
 
 const readSavedDisplayMode = (): 'standard' | 'excel' => {
   try {
@@ -32,15 +34,34 @@ const readSavedDisplayMode = (): 'standard' | 'excel' => {
   return 'excel';
 };
 
+const readSavedInlineDetails = (): boolean => {
+  try {
+    const saved = localStorage.getItem(INLINE_DETAILS_STORAGE_KEY);
+    if (saved === 'false') return false;
+  } catch {
+    // ignore storage errors
+  }
+  return true;
+};
+
 const StatementView: React.FC<StatementViewProps> = ({
   partyType,
   initialPartyId,
   initialCurrency,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showInlineDetails, setShowInlineDetailsState] = useState<boolean>(readSavedInlineDetails);
   const [statementDisplayMode, setStatementDisplayModeState] = useState<'standard' | 'excel'>(
     readSavedDisplayMode
   );
+  const setShowInlineDetails = (next: boolean) => {
+    setShowInlineDetailsState(next);
+    try {
+      localStorage.setItem(INLINE_DETAILS_STORAGE_KEY, String(next));
+    } catch {
+      // ignore storage errors
+    }
+  };
   const setStatementDisplayMode = (mode: 'standard' | 'excel') => {
     setStatementDisplayModeState(mode);
     try {
@@ -105,6 +126,9 @@ const StatementView: React.FC<StatementViewProps> = ({
     handleCloseBondModal,
   } = useStatementController({ partyType, initialPartyId, initialCurrency });
 
+  const { detailsMap: batchDetailsMap, isLoading: isBatchDetailsLoading } =
+    useStatementBatchDetails(filteredMovements, Boolean(selectedPartyId) && showInlineDetails);
+
   return (
     <FullscreenContainer
       isMaximized={isFullscreen}
@@ -112,6 +136,7 @@ const StatementView: React.FC<StatementViewProps> = ({
       className="flex min-h-full flex-col"
     >
       <div
+        data-clear-black-text="true"
         className={cn(
           'print-area flex w-full flex-1 flex-col gap-2.5 font-sans',
           isFullscreen && 'h-full overflow-y-auto bg-[var(--app-bg)] p-2 md:p-3'
@@ -224,9 +249,14 @@ const StatementView: React.FC<StatementViewProps> = ({
                         rowColors={rowColors}
                         activeColorPickerRowId={activeColorPickerRowId}
                         partyName={selectedParty?.name || ''}
+                        partyType={effectivePartyType}
                         isAllSelected={isAllSelected}
                         isNewestFirst
                         isFullscreen={isFullscreen}
+                        showInlineDetails={showInlineDetails}
+                        onToggleShowInlineDetails={() => setShowInlineDetails(!showInlineDetails)}
+                        batchDetailsMap={batchDetailsMap}
+                        isBatchDetailsLoading={isBatchDetailsLoading}
                         onToggleSelectAll={handleToggleSelectAll}
                         onToggleRowSelection={handleToggleRowSelection}
                         onToggleRowExpand={handleToggleRowExpand}
@@ -245,7 +275,11 @@ const StatementView: React.FC<StatementViewProps> = ({
                         activeColorPickerRowId={activeColorPickerRowId}
                         isPrintingSelectedOnly={isPrintingSelectedOnly}
                         partyName={selectedParty?.name || ''}
+                        partyType={effectivePartyType}
                         isAllSelected={isAllSelected}
+                        showInlineDetails={showInlineDetails}
+                        batchDetailsMap={batchDetailsMap}
+                        isBatchDetailsLoading={isBatchDetailsLoading}
                         onToggleSelectAll={handleToggleSelectAll}
                         onToggleRowSelection={handleToggleRowSelection}
                         onToggleRowExpand={handleToggleRowExpand}

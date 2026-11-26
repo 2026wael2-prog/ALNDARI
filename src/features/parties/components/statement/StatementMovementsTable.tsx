@@ -1,8 +1,9 @@
 /* eslint-disable max-lines-per-function, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/prefer-nullish-coalescing */
-import React from 'react';
+import React, { useState } from 'react';
 import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
 import { CheckSquare, Square } from 'lucide-react';
-import type { StatementMovement } from '../../service';
+import type { StatementMovement, StatementTransactionDetails } from '../../service';
+import type { PartyType } from '../../types';
 import { StatementMovementRow } from './StatementMovementRow';
 
 interface StatementMovementsTableProps {
@@ -13,7 +14,11 @@ interface StatementMovementsTableProps {
   activeColorPickerRowId: string | null;
   isPrintingSelectedOnly: boolean;
   partyName: string;
+  partyType?: PartyType;
   isAllSelected: boolean;
+  showInlineDetails?: boolean;
+  batchDetailsMap?: Map<string, StatementTransactionDetails>;
+  isBatchDetailsLoading?: boolean;
   onToggleSelectAll: () => void;
   onToggleRowSelection: (id: string, e?: React.MouseEvent) => void;
   onToggleRowExpand: (id: string, e?: React.MouseEvent) => void;
@@ -32,7 +37,11 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
   activeColorPickerRowId,
   isPrintingSelectedOnly,
   partyName,
+  partyType = 'customer',
   isAllSelected,
+  showInlineDetails = true,
+  batchDetailsMap,
+  isBatchDetailsLoading = false,
   onToggleSelectAll,
   onToggleRowSelection,
   onToggleRowExpand,
@@ -42,6 +51,22 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
   onOpenInvoiceModal,
   onOpenBondModal,
 }) => {
+  const [collapsedRowIds, setCollapsedRowIds] = useState<Set<string>>(new Set());
+
+  const handleToggleExpand = (id: string, e?: React.MouseEvent) => {
+    if (showInlineDetails) {
+      e?.stopPropagation();
+      setCollapsedRowIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
+    onToggleRowExpand(id, e);
+  };
+
   return (
     <CustomizableTableWrapper tableId="parties.statement_movements" tableTitle="جدول كشف الحساب">
     <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-md">
@@ -96,7 +121,9 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
               </tr>
             ) : (
               filteredMovements.map((row, idx) => {
-                const isExpanded = expandedRowIds.has(row.id);
+                const isExpanded = showInlineDetails
+                  ? Boolean(row.reference_id) && !collapsedRowIds.has(row.id)
+                  : expandedRowIds.has(row.id);
                 const isSelected = selectedRowIds.has(row.id);
                 const customColor =
                   rowColors.get(row.id) ||
@@ -108,14 +135,19 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
                     key={row.id}
                     row={row}
                     idx={idx}
+                    partyType={partyType}
                     isSelected={isSelected}
                     isExpanded={isExpanded}
+                    preloadedDetails={
+                      row.reference_id ? (batchDetailsMap?.get(row.reference_id) ?? null) : null
+                    }
+                    isBatchDetailsLoading={isBatchDetailsLoading}
                     customColor={customColor}
                     activeColorPickerRowId={activeColorPickerRowId}
                     isPrintingSelectedOnly={isPrintingSelectedOnly}
                     partyName={partyName}
                     onToggleSelect={onToggleRowSelection}
-                    onToggleExpand={onToggleRowExpand}
+                    onToggleExpand={handleToggleExpand}
                     onOpenColorPicker={onOpenColorPicker}
                     onApplyColor={onApplyColorToSingleRow}
                     onPrintSingleTransaction={onPrintSingleTransaction}

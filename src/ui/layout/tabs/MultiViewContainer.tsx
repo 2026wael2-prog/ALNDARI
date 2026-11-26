@@ -44,7 +44,7 @@ function pruneViewCache(
   let changed = false;
 
   for (const id of Array.from(cache.keys())) {
-    if (!openIds.has(id)) {
+    if (!openIds.has(id) && id !== activeTabId) {
       cache.delete(id);
       changed = true;
     }
@@ -159,7 +159,13 @@ export const MultiViewContainer: React.FC = () => {
   const tabsKey = useWorkspaceTabStore(s => s.tabs.map(t => t.id).join('|'));
 
   const viewsCacheRef = useViewsCache(activeTabId, outlet, tabs, tabsKey);
-  const tabIds = useMemo(() => tabsKey.split('|').filter(Boolean), [tabsKey]);
+  const tabIds = useMemo(() => {
+    const ids = tabsKey.split('|').filter(Boolean);
+    if (activeTabId !== '' && !ids.includes(activeTabId)) {
+      ids.push(activeTabId);
+    }
+    return ids;
+  }, [tabsKey, activeTabId]);
 
   if (!isDesktop || !isEnabled) {
     return (

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SYSTEM_SHORTCUTS, matchesKeyboardShortcut } from './shortcutsRegistry';
 import { RegisteredShortcut } from './types';
@@ -12,6 +12,8 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions = {}) {
   const { enabled = true } = options;
   const navigate = useNavigate();
   const location = useLocation();
+  const locationRef = useRef(location);
+  locationRef.current = location;
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const openHelp = useCallback(() => setIsHelpOpen(true), []);
@@ -37,7 +39,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions = {}) {
 
         case 'new_product':
           action = () => {
-            if (location.pathname === ROUTES.DASHBOARD.INVENTORY) {
+            if (locationRef.current.pathname === ROUTES.DASHBOARD.INVENTORY) {
               window.dispatchEvent(new CustomEvent('alzhra-open-add-product'));
             } else {
               navigate(`${ROUTES.DASHBOARD.INVENTORY}?action=new`);
@@ -47,9 +49,10 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions = {}) {
 
         case 'product_explorer':
           action = () => {
+            const loc = locationRef.current;
             const isSalesCreate =
-              location.pathname === ROUTES.DASHBOARD.SALES &&
-              new URLSearchParams(location.search).get('tab') === 'create';
+              loc.pathname === ROUTES.DASHBOARD.SALES &&
+              new URLSearchParams(loc.search).get('tab') === 'create';
 
             if (isSalesCreate) {
               window.dispatchEvent(new CustomEvent('alzhra-open-product-selection'));
@@ -61,7 +64,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions = {}) {
 
         case 'receipt_bond':
           action = () => {
-            if (location.pathname === ROUTES.DASHBOARD.BONDS) {
+            if (locationRef.current.pathname === ROUTES.DASHBOARD.BONDS) {
               window.dispatchEvent(
                 new CustomEvent('alzhra-open-bond-modal', { detail: { type: 'receipt' } })
               );
@@ -73,7 +76,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions = {}) {
 
         case 'payment_bond':
           action = () => {
-            if (location.pathname === ROUTES.DASHBOARD.BONDS) {
+            if (locationRef.current.pathname === ROUTES.DASHBOARD.BONDS) {
               window.dispatchEvent(
                 new CustomEvent('alzhra-open-bond-modal', { detail: { type: 'payment' } })
               );
@@ -96,7 +99,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions = {}) {
         action,
       };
     });
-  }, [navigate, location.pathname, location.search, toggleHelp]);
+  }, [navigate, toggleHelp]);
 
   useEffect(() => {
     const handleToggle = () => toggleHelp();

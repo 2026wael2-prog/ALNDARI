@@ -20,9 +20,10 @@ const PRAYER_WINDOW_MIN = 30;
 export function useDhikrTicker(prayerTimes: PrayerTimesResult | null): TickerItem {
   const [index, setIndex] = useState(0);
 
-  // Rotate adhkar every 10 seconds.
+  // Rotate adhkar every 10 seconds (skip when tab is hidden).
   useEffect(() => {
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
       setIndex(i => (i + 1) % DHIKR_LIST.length);
     }, 10_000);
     return () => {

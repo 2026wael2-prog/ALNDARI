@@ -4194,8 +4194,8 @@ html.dark[data-preset='espresso-cream-blue'] aside [data-sidebar-logo='true'] {
 }
 
 /* أولوية عالية تتغلب على قواعد الوضع النهاري والليلي لضمان وضوح 100% لجميع أسماء الصفحات */
-html[data-preset='espresso-cream-blue']:not(.dark) aside :is(h1, h2, h3, p, span, a, div, button, [class*='text-']),
-html.dark[data-preset='espresso-cream-blue'] aside :is(h1, h2, h3, p, span, a, div, button, [class*='text-']) {
+html[data-preset='espresso-cream-blue']:not(.dark) aside :is(h1, h2, h3, p, span, a, div, button),
+html.dark[data-preset='espresso-cream-blue'] aside :is(h1, h2, h3, p, span, a, div, button) {
   color: #ffffff !important;
 }
 
@@ -4764,28 +4764,25 @@ html.dark[data-preset='espresso-cream-blue'] [data-inspector-subheader='true'] {
 }
 
 /* ============================================================
-   Snappy Native-Desktop Responsiveness for Buttons, Icons & Tabs
-   تسريع استجابة الأزرار والأيقونات والقوائم في كامل التطبيق
-   استبعاد خصائص التخطيط (width/height/padding) لمنع Layout Thrashing
+   Snappy Native-Desktop Responsiveness & Dhikr Marquee Keyframes
+   إزالة فرض الانتقالات (transition-duration) على آلاف الأزرار والأيقونات
+   لتفادي استهلاك محرك المتصفح أثناء التمرير والتنقل
    ============================================================ */
+@keyframes dhikr-ticker-ltr {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes dhikr-ticker-rtl {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
+
 button,
 a,
 [role='button'],
 [role='tab'],
 [role='menuitem'] {
   touch-action: manipulation;
-  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
-  transition-duration: 75ms !important;
-  transition-timing-function: ease-out !important;
-}
-
-button svg,
-a svg,
-[role='button'] svg,
-[role='tab'] svg {
-  transition-property: transform, opacity, color;
-  transition-duration: 75ms !important;
-  transition-timing-function: ease-out !important;
 }
 
 /* تسريع فتح النوافذ المنبثقة والقوائم وتفادي إعادة حساب كامل الصفحة */

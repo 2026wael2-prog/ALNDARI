@@ -6,8 +6,7 @@
  * - Interactive GPS and Adhan sound controls.
  * - Direct launcher for the full Islamic Oasis & Prayer modal.
  */
-import React, { useState } from 'react';
-import { useReducedMotion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Clock, Volume2, VolumeX, MapPin, BookOpen, X } from 'lucide-react';
 import { cn } from '../../core/utils';
 import { useI18nStore } from '../../lib/i18nStore';
@@ -17,15 +16,26 @@ import { useDhikrTicker } from './useDhikrTicker';
 import { playAdhanSound } from './playAdhan';
 import PrayerTimesModal from './PrayerTimesModal';
 
-const MARQUEE_KEYFRAMES = `
-@keyframes dhikr-ticker-ltr { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@keyframes dhikr-ticker-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
-`;
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return reduced;
+}
 
 const DhikrTickerActive: React.FC = () => {
   const { setEnabled, soundEnabled, setSoundEnabled, city, detectGpsLocation } = useDhikrStore();
 
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = usePrefersReducedMotion();
   const { dir } = useI18nStore();
   const { prayerTimes } = usePrayerTimes();
   const item = useDhikrTicker(prayerTimes);
@@ -52,8 +62,6 @@ const DhikrTickerActive: React.FC = () => {
             : 'border-emerald-500/25 bg-gradient-to-r from-emerald-900/10 via-emerald-600/10 to-teal-900/10 text-slate-800 dark:from-emerald-950/60 dark:via-slate-900/60 dark:to-teal-950/60 dark:text-slate-100'
         )}
       >
-        <style>{MARQUEE_KEYFRAMES}</style>
-
         {/* Left side: Next prayer pill & Modal button */}
         <div className="z-10 flex shrink-0 items-center gap-1.5">
           {prayerTimes?.next && (
@@ -102,7 +110,6 @@ const DhikrTickerActive: React.FC = () => {
               style={{
                 animation: `${animationName} 35s linear infinite`,
                 animationPlayState: paused ? 'paused' : 'running',
-                willChange: 'transform',
               }}
             >
               <span className="inline-flex items-center gap-2 px-8">

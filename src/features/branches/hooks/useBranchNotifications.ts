@@ -366,17 +366,22 @@ export const useBranchNotifications = (): void => {
     ]
   );
 
+  const handleActivityRef = useRef(handleActivity);
+  handleActivityRef.current = handleActivity;
+
   useEffect(() => {
     if (!user?.company_id) return;
 
     const unsubscribe = subscribeToCrossBranchActivity(
       user.company_id,
       user.id,
-      handleActivity
+      activity => {
+        handleActivityRef.current(activity);
+      }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [user?.company_id, user?.id, handleActivity]);
+  }, [user?.company_id, user?.id]);
 };

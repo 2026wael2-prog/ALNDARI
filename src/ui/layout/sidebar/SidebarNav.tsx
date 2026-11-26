@@ -189,4 +189,4 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
   );
 };
 
-export default SidebarNav;
+export default React.memo(SidebarNav);

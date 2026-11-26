@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -12,8 +12,16 @@ export function useBranchTransferSubscription(
   branchId: string | undefined | null,
   onUpdate: () => void
 ): void {
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
   useEffect(() => {
-    if (typeof companyId !== 'string' || companyId.length === 0 || typeof branchId !== 'string' || branchId.length === 0) {
+    if (
+      typeof companyId !== 'string' ||
+      companyId.length === 0 ||
+      typeof branchId !== 'string' ||
+      branchId.length === 0
+    ) {
       return;
     }
 
@@ -29,7 +37,7 @@ export function useBranchTransferSubscription(
           filter: `company_id=eq.${companyId}`,
         },
         () => {
-          onUpdate();
+          onUpdateRef.current();
         }
       )
       .subscribe();
@@ -37,6 +45,6 @@ export function useBranchTransferSubscription(
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [companyId, branchId, onUpdate]);
+  }, [companyId, branchId]);
 }
 

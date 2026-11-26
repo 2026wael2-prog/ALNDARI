@@ -77,16 +77,13 @@ interface TabPanelContentProps {
  * Frozen from parent visibility toggles so that hiding an inactive tab
  * (style.display = 'none') does NOT reconcile or re-render child components.
  */
-const TabPanelContent = React.memo(
-  function TabPanelContent({ children }: TabPanelContentProps) {
-    return (
-      <ErrorBoundary>
-        <React.Suspense fallback={<PageLoader />}>{children}</React.Suspense>
-      </ErrorBoundary>
-    );
-  },
-  (prev, next) => prev.tabKey === next.tabKey
-);
+const TabPanelContent = React.memo(function TabPanelContent({ children }: TabPanelContentProps) {
+  return (
+    <ErrorBoundary>
+      <React.Suspense fallback={<PageLoader />}>{children}</React.Suspense>
+    </ErrorBoundary>
+  );
+});
 
 interface TabPanelProps {
   tabId: string;
@@ -132,16 +129,9 @@ function useViewsCache(
 ): React.RefObject<Map<string, CacheEntry>> {
   const viewsCacheRef = useRef<Map<string, CacheEntry>>(new Map());
 
-  // Synchronous cache update during render so the active view is immediately available.
-  // Keep the existing `view` reference when the tab is already cached so TabPanel's
-  // shallow children check stays true across parent re-renders.
+  // Always keep the active tab's cached view synchronized with the live outlet
   if (activeTabId !== '' && outlet !== null && outlet !== undefined) {
-    const existing = viewsCacheRef.current.get(activeTabId);
-    if (existing) {
-      existing.lastUsed = Date.now();
-    } else {
-      viewsCacheRef.current.set(activeTabId, { view: outlet, lastUsed: Date.now() });
-    }
+    viewsCacheRef.current.set(activeTabId, { view: outlet, lastUsed: Date.now() });
   }
 
   // Prune directly during render without an extra post-render useEffect + forceUpdate cycle
@@ -184,7 +174,8 @@ export const MultiViewContainer: React.FC = () => {
       {tabIds.map(tabId => {
         const isActive = tabId === activeTabId;
         const cached = viewsCacheRef.current.get(tabId);
-        const viewContent = cached === undefined ? (isActive ? outlet : null) : cached.view;
+        // Active tab ALWAYS renders the live outlet so navigation is instant and reactive
+        const viewContent = isActive ? outlet : cached?.view;
 
         // إذا لم يتم فتح هذه الشاشة بعد وليست نشطة، لا نحجز لها عناصر في الـ DOM
         if (viewContent === null || viewContent === undefined) return null;

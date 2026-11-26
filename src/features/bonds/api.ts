@@ -101,7 +101,7 @@ export const bondsApi = {
       (data as BondFormData & { idempotency_key?: string }).idempotency_key ||
       crypto.randomUUID();
 
-    const { data: resultData, error } = await (supabase.rpc as Function)('create_financial_bond', {
+    const { data: resultData, error } = await supabase.rpc('create_financial_bond', {
       p_bond_type: paymentType,
       p_company_id: companyId,
       p_user_id: userId,
@@ -167,7 +167,7 @@ export const bondsApi = {
     const { data, error } = await query;
     if (error) throw error;
     return (data || []).filter(
-      (inv: any) => Number(inv.total_amount) > Number(inv.paid_amount || 0)
+      inv => Number(inv.total_amount) > Number(inv.paid_amount || 0)
     );
   },
 

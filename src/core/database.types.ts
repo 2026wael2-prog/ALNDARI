@@ -13870,6 +13870,8 @@ export type Database = {
           p_bond_type: string
           p_branch_id?: string
           p_cash_account_id?: string
+          p_commission_account_id?: string
+          p_commission_amount?: number
           p_company_id: string
           p_counterparty_id?: string
           p_counterparty_type?: string
@@ -13878,6 +13880,7 @@ export type Database = {
           p_description?: string
           p_exchange_rate?: number
           p_foreign_amount?: number
+          p_idempotency_key?: string
           p_invoice_id?: string
           p_payment_method?: string
           p_user_id?: string
@@ -15418,6 +15421,7 @@ export type Database = {
           p_date: string
           p_description: string
           p_exchange_rate?: number
+          p_idempotency_key?: string
           p_lines: Json
           p_reference_type?: string
           p_user_id: string
@@ -15912,6 +15916,7 @@ export type Database = {
           reference_invoice_id: string
           status: string
           total_amount: number
+          total_document_amount: number
           total_matching_count: number
           type: string
         }[]

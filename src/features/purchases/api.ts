@@ -334,7 +334,10 @@ export const purchasesApi = {
       .is('deleted_at', null);
     if (hasText(branchId)) query = query.eq('branch_id', branchId);
     if (hasText(supplierId)) query = query.eq('party_id', supplierId);
-    return query.order('issue_date', { ascending: false }).limit(80);
+    return query
+      .order('issue_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(80);
   },
 
   deletePurchase: async (id: string) => {

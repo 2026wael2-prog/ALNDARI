@@ -9,6 +9,12 @@ import { useInvoiceSettings } from '../../settings/settingsStore';
 import { useParties, useStatement } from '../hooks';
 import type { StatementMovement } from '../service';
 import type { PartyType } from '../types';
+import {
+  orderStatementNewestFirst,
+  resolveEffectivePartyType,
+} from '../utils/statementOrdering';
+
+export type StatementPartyScope = 'all' | 'customer' | 'supplier';
 
 export type StatementSettlementFilter =
   | 'unsettled'
@@ -141,6 +147,9 @@ export const useStatementController = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initial mount hydration only
   }, []);
 
+  const [partyScope, setPartyScopeState] = useState<StatementPartyScope>(() =>
+    partyType === 'supplier' ? 'supplier' : partyType === 'customer' ? 'customer' : 'all'
+  );
   const [selectedPartyId, setSelectedPartyId] = useState<string>(initialHydrated.partyId);
   const [activeTab, setActiveTab] = useState<'statement' | 'rent'>('statement');
   const [startDate, setStartDate] = useState(initialHydrated.startDate);
@@ -150,6 +159,16 @@ export const useStatementController = ({
   const [searchQuery, setSearchQuery] = useState('');
   const prevInitialPartyRef = useRef<string | undefined>(initialPartyId);
   const prevInitialCurrencyRef = useRef<string | undefined>(initialCurrency);
+
+  useEffect(() => {
+    if (partyType === 'supplier' || partyType === 'customer' || partyType === 'all') {
+      setPartyScopeState(partyType);
+    }
+  }, [partyType]);
+
+  const setPartyScope = (nextScope: StatementPartyScope) => {
+    setPartyScopeState(nextScope);
+  };
 
   // Re-hydrate from localStorage if companyId resolves after mount and no party is selected yet
   useEffect(() => {
@@ -218,8 +237,27 @@ export const useStatementController = ({
   const [activeBond, setActiveBond] = useState<Bond | null>(null);
   const [isBondModalOpen, setIsBondModalOpen] = useState(false);
 
-  const { data: parties } = useParties(partyType);
-  const { data: statement, isLoading } = useStatement(selectedPartyId, partyType, {
+  const queryPartyType: PartyType = partyType === 'employee' ? 'employee' : partyScope;
+  const { data: rawParties } = useParties(queryPartyType);
+  const parties = useMemo(() => {
+    const list = rawParties || [];
+    if (queryPartyType === 'all') {
+      return list.filter(p => p.type !== 'employee');
+    }
+    return list;
+  }, [rawParties, queryPartyType]);
+
+  const selectedParty = useMemo(
+    () => parties.find(p => p.id === selectedPartyId),
+    [parties, selectedPartyId]
+  );
+
+  const effectivePartyType: 'customer' | 'supplier' = useMemo(
+    () => resolveEffectivePartyType(queryPartyType, selectedParty?.type),
+    [queryPartyType, selectedParty?.type]
+  );
+
+  const { data: statement, isLoading } = useStatement(selectedPartyId, effectivePartyType, {
     startDate,
     endDate,
     currencyCode: selectedCurrency,
@@ -255,7 +293,6 @@ export const useStatementController = ({
     return () => window.removeEventListener('click', handleClickOutside);
   }, [activeColorPickerRowId]);
 
-  const selectedParty = parties?.find(p => p.id === selectedPartyId);
   const movements = useMemo(() => statement || [], [statement]);
 
   const isRentParty = useMemo(() => {
@@ -329,7 +366,7 @@ export const useStatementController = ({
     };
   }, [movements]);
 
-  const filteredMovements = useMemo(() => {
+  const chronologicalFilteredMovements = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     return movements.filter(m => {
       // 1. Currency filter
@@ -386,6 +423,17 @@ export const useStatementController = ({
       );
     });
   }, [movements, selectedCurrency, settlementFilter, searchQuery]);
+
+  // عرض الأحدث أولاً (آخر فاتورة/سند في الصف الأول) مع الحفاظ على دقة الرصيد التراكمي لكل صف
+  const filteredMovements = useMemo(
+    () => orderStatementNewestFirst(chronologicalFilteredMovements),
+    [chronologicalFilteredMovements]
+  );
+
+  const chronologicalSelectedMovements = useMemo(
+    () => chronologicalFilteredMovements.filter(m => selectedRowIds.has(m.id)),
+    [chronologicalFilteredMovements, selectedRowIds]
+  );
 
   const selectedMovements = useMemo(
     () => filteredMovements.filter(m => selectedRowIds.has(m.id)),
@@ -511,7 +559,7 @@ export const useStatementController = ({
       tax_number: company.taxNumber,
     };
 
-    const entries = selectedMovements.map(r => ({
+    const entries = chronologicalSelectedMovements.map(r => ({
       date: r.date,
       operation_type: r.operation_type ?? '',
       reference_no: r.ref,
@@ -525,13 +573,16 @@ export const useStatementController = ({
 
     await exportStatementToExcel(companyObj, selectedParty.name, entries, {
       ...(selectedCurrency !== 'ALL' ? { currencyCode: selectedCurrency } : {}),
-      partyType: partyType === 'supplier' ? 'supplier' : 'customer',
+      partyType: effectivePartyType,
       dateFrom: startDate,
       dateTo: endDate,
     });
   };
 
   return {
+    partyScope,
+    setPartyScope,
+    effectivePartyType,
     parties,
     selectedParty,
     selectedPartyId,
@@ -552,7 +603,9 @@ export const useStatementController = ({
     searchQuery,
     setSearchQuery,
     movements,
+    chronologicalFilteredMovements,
     filteredMovements,
+    chronologicalSelectedMovements,
     selectedMovements,
     isLoading,
     selectedRowIds,

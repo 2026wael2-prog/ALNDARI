@@ -17,6 +17,7 @@ import {
 } from './statementWhatsAppUtils';
 import { useStatementMediaHandlers } from './useStatementMediaHandlers';
 import { useStatementDirectSendHandlers } from './useStatementDirectSendHandlers';
+import { orderStatementNewestFirst } from '../../../utils/statementOrdering';
 
 export { formatToPhone, summarizeByCurrency, toAmount, type CurrencySummary };
 
@@ -80,11 +81,17 @@ export const useStatementWhatsApp = ({
 
   const currencySummaries = useMemo(() => summarizeByCurrency(movements), [movements]);
   const sarMovements = useMemo(
-    () => movements.filter(m => (m.currency || 'SAR').trim().toUpperCase() === 'SAR'),
+    () =>
+      orderStatementNewestFirst(
+        movements.filter(m => (m.currency || 'SAR').trim().toUpperCase() === 'SAR')
+      ),
     [movements]
   );
   const yerMovements = useMemo(
-    () => movements.filter(m => (m.currency || 'SAR').trim().toUpperCase() === 'YER'),
+    () =>
+      orderStatementNewestFirst(
+        movements.filter(m => (m.currency || 'SAR').trim().toUpperCase() === 'YER')
+      ),
     [movements]
   );
   const sarSummary = useMemo(

@@ -12,6 +12,7 @@ interface RawPaymentRow {
   id: string;
   payment_number: string | null;
   payment_date: string;
+  created_at?: string | null;
   amount: number;
   currency_code: string;
   exchange_rate: number;
@@ -44,8 +45,8 @@ export const bondsService = {
 
     const items = ((data as unknown as RawPaymentRow[]) || []).map((p: RawPaymentRow) => {
       // payments.amount in DB stores the user-entered transaction amount in p.currency_code.
-      const rawAmount = Number(p.amount) || 0;
-      const safeRate = Number(p.exchange_rate) > 0 ? Number(p.exchange_rate) : 1;
+      const rawAmount = p.amount || 0;
+      const safeRate = p.exchange_rate > 0 ? p.exchange_rate : 1;
       let baseAmount = rawAmount;
       try {
         baseAmount = toBaseCurrency({
@@ -77,6 +78,7 @@ export const bondsService = {
         account_name: p.account?.name_ar ?? p.account?.code ?? '',
         status: p.status as Bond['status'],
         payment_method: p.payment_method,
+        created_at: p.created_at ?? null,
       };
     });
 

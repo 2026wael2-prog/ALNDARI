@@ -185,7 +185,7 @@ export const StatementWhatsAppModal: React.FC<StatementWhatsAppModalProps> = ({
         <div className="grid grid-cols-1 gap-3 border-b border-[var(--app-border)] bg-slate-50/80 p-4 dark:bg-slate-900/60 md:grid-cols-3">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              العميل / الطرف:
+              {partyType === 'supplier' ? 'المورد:' : 'العميل:'}
             </span>
             <div className="mt-0.5 truncate text-sm font-bold text-slate-800 dark:text-slate-100">
               {party.name}

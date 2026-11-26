@@ -9,12 +9,16 @@ import {
   CreditCard,
   Banknote,
   Eye,
+  FileSpreadsheet,
+  ListFilter,
+  X,
 } from 'lucide-react';
 import { cn, formatCurrency } from '../../../../core/utils';
-import type { PartyCurrencyBalance } from '../../types';
+import type { PartyCurrencyBalance, PartyType } from '../../types';
 import type { StatementSettlementFilter } from '../../hooks/useStatementController';
 
 interface StatementToolbarProps {
+  partyType?: PartyType;
   selectedCurrency: string;
   setSelectedCurrency: (curr: string) => void;
   availableCurrencies: string[];
@@ -31,9 +35,18 @@ interface StatementToolbarProps {
     creditCount: number;
     cashCount: number;
   };
+  displayMode?: 'standard' | 'excel';
+  onDisplayModeChange?: (mode: 'standard' | 'excel') => void;
 }
 
+const resolveBalanceDirLabel = (isSupplier: boolean, balance: number | undefined): string => {
+  const isPositive = balance !== undefined && balance > 0;
+  if (isSupplier) return isPositive ? 'له' : 'عليه';
+  return isPositive ? 'عليه' : 'له';
+};
+
 export const StatementToolbar: React.FC<StatementToolbarProps> = ({
+  partyType = 'customer',
   selectedCurrency,
   setSelectedCurrency,
   availableCurrencies,
@@ -43,229 +56,247 @@ export const StatementToolbar: React.FC<StatementToolbarProps> = ({
   settlementFilter,
   setSettlementFilter,
   settlementStats,
+  displayMode,
+  onDisplayModeChange,
 }) => {
+  const isSupplier = partyType === 'supplier';
   const balanceMap = React.useMemo(() => {
     const map = new Map<string, number>();
     (currencyBalances ?? []).forEach(b => {
       const code = (b.currency || 'SAR').toUpperCase();
-      map.set(code, (map.get(code) ?? 0) + (Number(b.balance) || 0));
+      map.set(code, (map.get(code) ?? 0) + b.balance);
     });
     return map;
   }, [currencyBalances]);
 
+  const filterChips: ReadonlyArray<{
+    id: StatementSettlementFilter;
+    label: string;
+    count: number;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    activeClass: string;
+    title: string;
+  }> = [
+    {
+      id: 'unsettled',
+      label: 'المتبقي وغير المسدد',
+      count: settlementStats.unsettledCount,
+      icon: Clock,
+      activeClass: 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400/70',
+      title: 'عرض المعاملات النشطة وغير المسددة فقط مع إخفاء الفواتير المسددة بالكامل',
+    },
+    {
+      id: 'all',
+      label: 'الكل',
+      count: settlementStats.totalCount,
+      icon: Layers,
+      activeClass: 'bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900',
+      title: 'عرض جميع الحركات بلا استثناء للتدقيق والمراجعة التاريخية الكاملة',
+    },
+    {
+      id: 'partially_settled',
+      label: 'جزئي',
+      count: settlementStats.partiallySettledCount,
+      icon: Clock,
+      activeClass: 'bg-amber-600 text-white shadow-sm ring-1 ring-amber-400/70',
+      title: 'عرض الفواتير المسددة جزئياً والتي لا يزال عليها جزء متبقي',
+    },
+    {
+      id: 'fully_settled',
+      label: 'مسدد كلياً',
+      count: settlementStats.fullySettledCount,
+      icon: CheckCircle2,
+      activeClass: 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/70',
+      title: 'عرض الفواتير المسددة كلياً بالكامل (خالصة)',
+    },
+    {
+      id: 'credit',
+      label: 'آجل',
+      count: settlementStats.creditCount,
+      icon: CreditCard,
+      activeClass: 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-400/70',
+      title: 'عرض معاملات وفواتير الآجل فقط',
+    },
+    {
+      id: 'cash',
+      label: 'نقدي',
+      count: settlementStats.cashCount,
+      icon: Banknote,
+      activeClass: 'bg-teal-600 text-white shadow-sm ring-1 ring-teal-400/70',
+      title: 'عرض المعاملات والفواتير النقدية فقط',
+    },
+  ];
+
   return (
     <div className="no-print space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-sm md:gap-3 md:rounded-2xl md:p-3">
-        {/* Currency Tabs */}
-        <div className="no-scrollbar flex w-full flex-nowrap items-center gap-1.5 overflow-x-auto sm:w-auto sm:flex-wrap md:gap-2">
-          <span className="hidden text-xs font-bold text-slate-500 dark:text-slate-400 sm:inline">
-            العملة:
-          </span>
-          <button
-            type="button"
-            onClick={() => setSelectedCurrency('ALL')}
-            className={cn(
-              'shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:rounded-xl md:px-3 md:py-1.5 md:text-xs',
-              selectedCurrency === 'ALL'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+      <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-2 shadow-sm md:p-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Currency Pills */}
+          <div className="no-scrollbar flex max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto">
+            <span className="hidden text-[11px] font-bold text-slate-400 sm:inline">العملة:</span>
+            <button
+              type="button"
+              onClick={() => setSelectedCurrency('ALL')}
+              className={cn(
+                'shrink-0 whitespace-nowrap rounded-xl px-2.5 py-1 text-[11px] font-bold transition-all',
+                selectedCurrency === 'ALL'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'border border-slate-200/80 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300'
+              )}
+            >
+              جميع العملات
+            </button>
+            {availableCurrencies.map(curr => {
+              const bal = balanceMap.get(curr.toUpperCase());
+              const hasBal = typeof bal === 'number' && Math.abs(bal) > 0.01;
+              const isActive = selectedCurrency === curr;
+              const balanceDirLabel = resolveBalanceDirLabel(isSupplier, bal);
+
+              return (
+                <button
+                  key={curr}
+                  type="button"
+                  onClick={() => setSelectedCurrency(curr)}
+                  className={cn(
+                    'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1 text-[11px] font-bold transition-all',
+                    isActive
+                      ? curr === 'YER'
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'bg-emerald-600 text-white shadow-sm'
+                      : 'border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200'
+                  )}
+                >
+                  <span className="font-mono font-black">{curr}</span>
+                  {hasBal && (
+                    <span
+                      dir="ltr"
+                      className={cn(
+                        'rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold',
+                        isActive
+                          ? 'bg-white/20 text-white'
+                          : 'bg-white text-slate-700 shadow-2xs dark:bg-slate-700 dark:text-slate-100'
+                      )}
+                    >
+                      {formatCurrency(Math.abs(bal), curr)} {balanceDirLabel}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right cluster: Quick Table Search + Display Mode Switcher */}
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-initial">
+            <div className="relative min-w-[180px] flex-1 sm:w-56 sm:flex-initial">
+              <Search
+                size={13}
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
+                placeholder="بحث برقم الفاتورة أو البيان..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-1.5 pl-7 pr-8 text-xs font-medium text-slate-800 transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:text-rose-500"
+                  title="مسح البحث"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {displayMode && onDisplayModeChange && (
+              <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-100/80 p-0.5 dark:border-slate-700 dark:bg-slate-900/70">
+                <button
+                  type="button"
+                  onClick={() => onDisplayModeChange('excel')}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all',
+                    displayMode === 'excel'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  )}
+                  title="عرض كشف الحساب كجدول إكسل Grid متطور"
+                >
+                  <FileSpreadsheet size={12} />
+                  <span>إكسل Grid</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDisplayModeChange('standard')}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all',
+                    displayMode === 'standard'
+                      ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-800 dark:text-blue-300'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  )}
+                  title="العرض الكلاسيكي لكشف الحساب"
+                >
+                  <ListFilter size={12} />
+                  <span>كلاسيكي</span>
+                </button>
+              </div>
             )}
-          >
-            جميع العملات
-          </button>
-          {availableCurrencies.map(curr => {
-            const bal = balanceMap.get(curr.toUpperCase());
-            const hasBal = typeof bal === 'number' && Math.abs(bal) > 0.01;
-            const isActive = selectedCurrency === curr;
+          </div>
+        </div>
+
+        {/* Modern Segmented Settlement & Payment Filters */}
+        <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pt-2 dark:border-slate-800/80">
+          <div className="hidden shrink-0 items-center gap-1 px-1 text-[11px] font-bold text-slate-400 sm:flex">
+            <Filter size={12} />
+            <span>التصفية:</span>
+          </div>
+
+          {filterChips.map(chip => {
+            const Icon = chip.icon;
+            const active = settlementFilter === chip.id;
             return (
               <button
-                key={curr}
+                key={chip.id}
                 type="button"
-                onClick={() => setSelectedCurrency(curr)}
+                onClick={() => setSettlementFilter(chip.id)}
+                title={chip.title}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:rounded-xl md:px-3 md:py-1.5 md:text-xs',
-                  isActive
-                    ? curr === 'YER'
-                      ? 'bg-amber-600 text-white shadow-sm'
-                      : 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                  'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-1 text-[11px] font-bold transition-all',
+                  active
+                    ? chip.activeClass
+                    : 'border border-slate-200/70 bg-slate-50/80 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700/70 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800'
                 )}
               >
-                <span className="font-mono font-black">{curr}</span>
-                {hasBal && (
-                  <span
-                    dir="ltr"
-                    className={cn(
-                      'rounded-md px-1.5 py-0.2 font-mono text-[10px]',
-                      isActive
-                        ? 'bg-white/20 text-white'
-                        : 'bg-white/80 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                    )}
-                  >
-                    {formatCurrency(Math.abs(bal), curr)} {bal > 0 ? 'عليه' : 'له'}
-                  </span>
-                )}
+                <Icon size={12} />
+                <span>{chip.label}</span>
+                <span
+                  className={cn(
+                    'rounded-md px-1.5 py-0.5 font-mono text-[10px] leading-none',
+                    active
+                      ? 'bg-black/20 text-white dark:bg-black/25'
+                      : 'bg-slate-200/80 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  )}
+                >
+                  {chip.count}
+                </span>
               </button>
             );
           })}
-        </div>
 
-        {/* Quick Search inside Table */}
-        <div className="relative w-full min-w-0 sm:w-56">
-          <Search size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="بحث برقم المرجع أو البيان..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-1 pl-2.5 pr-8 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-slate-800 dark:bg-slate-900 md:rounded-xl md:py-1.5"
-          />
+          {settlementFilter === 'unsettled' && settlementStats.fullySettledCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSettlementFilter('all')}
+              className="mr-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-[11px] font-bold text-emerald-800 transition-colors hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300"
+            >
+              <Eye size={12} />
+              <span>إظهار {settlementStats.fullySettledCount} فاتورة مسددة</span>
+            </button>
+          )}
         </div>
       </div>
-
-      {/* Advanced Settlement & Payment Filters */}
-      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-sm md:rounded-2xl md:p-2">
-        <div className="hidden items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 sm:flex px-2">
-          <Filter size={12} className="text-slate-400" />
-          <span>تصفية العمليات:</span>
-        </div>
-
-        {/* 1. Unsettled (Default - Hide fully paid) */}
-        <button
-          type="button"
-          onClick={() => setSettlementFilter('unsettled')}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:px-3 md:py-1',
-            settlementFilter === 'unsettled'
-              ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-          )}
-          title="عرض المعاملات النشطة وغير المسددة فقط مع إخفاء الفواتير المسددة بالكامل"
-        >
-          <Clock size={12} />
-          <span>المتبقي وغير المسدد</span>
-          <span className="rounded-md bg-black/15 px-1 font-mono text-[10px] dark:bg-white/20">
-            {settlementStats.unsettledCount}
-          </span>
-        </button>
-
-        {/* 2. All Transactions (Full Audit) */}
-        <button
-          type="button"
-          onClick={() => setSettlementFilter('all')}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:px-3 md:py-1',
-            settlementFilter === 'all'
-              ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-600 dark:bg-slate-200 dark:text-slate-900'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-          )}
-          title="عرض جميع الحركات بلا استثناء للتدقيق والمراجعة التاريخية الكاملة"
-        >
-          <Layers size={12} />
-          <span>عرض الكل (سجل المراجعة)</span>
-          <span className="rounded-md bg-black/15 px-1 font-mono text-[10px] dark:bg-white/20">
-            {settlementStats.totalCount}
-          </span>
-        </button>
-
-        {/* 3. Partially Settled */}
-        <button
-          type="button"
-          onClick={() => setSettlementFilter('partially_settled')}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:px-3 md:py-1',
-            settlementFilter === 'partially_settled'
-              ? 'bg-amber-600 text-white shadow-sm ring-1 ring-amber-400'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-          )}
-          title="عرض الفواتير المسددة جزئياً والتي لا يزال عليها جزء متبقي"
-        >
-          <Clock size={12} className="text-amber-300" />
-          <span>مسدد جزئياً</span>
-          <span className="rounded-md bg-black/15 px-1 font-mono text-[10px] dark:bg-white/20">
-            {settlementStats.partiallySettledCount}
-          </span>
-        </button>
-
-        {/* 4. Fully Settled */}
-        <button
-          type="button"
-          onClick={() => setSettlementFilter('fully_settled')}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:px-3 md:py-1',
-            settlementFilter === 'fully_settled'
-              ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-          )}
-          title="عرض الفواتير المسددة كلياً بالكامل (خالصة)"
-        >
-          <CheckCircle2 size={12} className="text-emerald-300" />
-          <span>مسدد كلياً</span>
-          <span className="rounded-md bg-black/15 px-1 font-mono text-[10px] dark:bg-white/20">
-            {settlementStats.fullySettledCount}
-          </span>
-        </button>
-
-        {/* 5. Credit (آجل) */}
-        <button
-          type="button"
-          onClick={() => setSettlementFilter('credit')}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:px-3 md:py-1',
-            settlementFilter === 'credit'
-              ? 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-400'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-          )}
-          title="عرض معاملات وفواتير الآجل فقط"
-        >
-          <CreditCard size={12} />
-          <span>آجل</span>
-          <span className="rounded-md bg-black/15 px-1 font-mono text-[10px] dark:bg-white/20">
-            {settlementStats.creditCount}
-          </span>
-        </button>
-
-        {/* 6. Cash (نقدي) */}
-        <button
-          type="button"
-          onClick={() => setSettlementFilter('cash')}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all md:px-3 md:py-1',
-            settlementFilter === 'cash'
-              ? 'bg-teal-600 text-white shadow-sm ring-1 ring-teal-400'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-          )}
-          title="عرض المعاملات والفواتير النقدية فقط"
-        >
-          <Banknote size={12} />
-          <span>نقدي</span>
-          <span className="rounded-md bg-black/15 px-1 font-mono text-[10px] dark:bg-white/20">
-            {settlementStats.cashCount}
-          </span>
-        </button>
-      </div>
-
-      {/* Helpful notification banner when fully paid invoices are hidden */}
-      {settlementFilter === 'unsettled' && settlementStats.fullySettledCount > 0 && (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1.5 text-xs text-emerald-900 shadow-sm dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
-            <span>
-              تم إخفاء{' '}
-              <strong className="font-bold">{settlementStats.fullySettledCount}</strong> فاتورة
-              مسددة كلياً تلقائياً لتبسيط متابعة المديونية المتبقية.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSettlementFilter('all')}
-            className="inline-flex items-center gap-1 font-bold text-blue-700 hover:underline dark:text-blue-400"
-          >
-            <Eye size={12} />
-            <span>عرض الكل للمراجعة</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 };

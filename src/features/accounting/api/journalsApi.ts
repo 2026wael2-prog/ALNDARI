@@ -115,7 +115,8 @@ export const journalsApi = {
       .eq('company_id', companyId)
       .is('deleted_at', null)
       .order('entry_date', { ascending })
-      .order('entry_number', { ascending });
+      .order('entry_number', { ascending })
+      .order('created_at', { ascending });
 
     if (branchId) {
       query = query.eq('branch_id', branchId);

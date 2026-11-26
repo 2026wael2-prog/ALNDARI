@@ -41,6 +41,10 @@ interface StatementExcelViewProps {
   activeColorPickerRowId: string | null;
   partyName: string;
   isAllSelected?: boolean;
+  /** When true, filteredMovements are ordered newest-first so footer closingBalance reads the first row per currency. */
+  isNewestFirst?: boolean;
+  /** Expands spreadsheet viewport height when statement fullscreen mode is active. */
+  isFullscreen?: boolean;
   onToggleSelectAll: () => void;
   onToggleRowSelection: (id: string, e?: React.MouseEvent) => void;
   onToggleRowExpand?: (id: string, e?: React.MouseEvent) => void;
@@ -59,6 +63,8 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
   activeColorPickerRowId,
   partyName,
   isAllSelected,
+  isNewestFirst = false,
+  isFullscreen = false,
   onToggleSelectAll,
   onToggleRowSelection,
   onToggleRowExpand,
@@ -105,8 +111,8 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
     (filteredMovements.length > 0 && selectedRowIds.size === filteredMovements.length);
 
   const footerTotalsByCurrency = useMemo(
-    () => computeFooterTotalsByCurrency(filteredMovements),
-    [filteredMovements]
+    () => computeFooterTotalsByCurrency(filteredMovements, isNewestFirst),
+    [filteredMovements, isNewestFirst]
   );
 
   const activeCellInfo = useMemo(() => {
@@ -216,8 +222,13 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
         )}
       </div>
 
-      {/* Spreadsheet Grid Viewport */}
-      <div className="custom-scrollbar max-h-[70vh] overflow-auto bg-white dark:bg-slate-950">
+      {/* Spreadsheet Grid Viewport — Full-screen responsive height */}
+      <div
+        className={cn(
+          'custom-scrollbar overflow-auto bg-white dark:bg-slate-950',
+          isFullscreen ? 'max-h-[calc(100vh-150px)] min-h-[68vh]' : 'max-h-[calc(100vh-215px)] min-h-[52vh]'
+        )}
+      >
         <table
           role="grid"
           aria-label={`كشف حساب إكسل: ${partyName}`}

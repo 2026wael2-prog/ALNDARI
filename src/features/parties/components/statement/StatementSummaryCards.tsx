@@ -4,18 +4,14 @@ import { tafqeet } from '../../../../core/utils/tafqeet';
 import { Wallet, TrendingUp, TrendingDown, Coins } from 'lucide-react';
 import type { StatementMovement } from '../../service';
 import type { PartyType } from '../../types';
+import { summarizeStatementByCurrency } from '../../utils/statementOrdering';
 
 interface StatementSummaryCardsProps {
   movements: StatementMovement[];
   partyType?: PartyType | undefined;
   activeCurrency?: string;
-}
-
-interface CurrencySummary {
-  currency: string;
-  finalBalance: number;
-  totalDebit: number;
-  totalCredit: number;
+  /** When true, `movements` are ordered newest-first so finalBalance comes from the first row per currency. */
+  isNewestFirst?: boolean | undefined;
 }
 
 /** اسم العملة كما يُطبع في التفقيط — خارج المكوّن كي لا يرفع تعقيده. */
@@ -29,37 +25,24 @@ export const StatementSummaryCards: React.FC<StatementSummaryCardsProps> = ({
   movements,
   partyType = 'customer',
   activeCurrency = 'ALL',
+  isNewestFirst = false,
 }) => {
   if (!movements || movements.length === 0) return null;
 
-  // Group latest balance per currency
+  // Group latest balance per currency accurately regardless of display order
   const currencySummaries = React.useMemo(() => {
-    const map = new Map<string, CurrencySummary>();
-
-    movements.forEach(m => {
-      const curr = m.currency || 'SAR';
-      if (!map.has(curr)) {
-        map.set(curr, {
-          currency: curr,
-          finalBalance: 0,
-          totalDebit: 0,
-          totalCredit: 0,
-        });
-      }
-      const existing = map.get(curr)!;
-      existing.totalDebit += Number(m.debit) || 0;
-      existing.totalCredit += Number(m.credit) || 0;
-      // Last entry visited for this currency will be its final running balance
-      existing.finalBalance = Number(m.balance) || 0;
-    });
+    const all = summarizeStatementByCurrency(
+      movements,
+      isNewestFirst ? 'newest_first' : 'chronological'
+    );
 
     if (activeCurrency !== 'ALL') {
-      const single = map.get(activeCurrency);
-      return single ? [single] : Array.from(map.values());
+      const single = all.find(item => item.currency === activeCurrency.toUpperCase());
+      return single ? [single] : all;
     }
 
-    return Array.from(map.values());
-  }, [movements, activeCurrency]);
+    return all;
+  }, [movements, activeCurrency, isNewestFirst]);
 
   const isSupplier = partyType === 'supplier';
 

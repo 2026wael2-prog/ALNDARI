@@ -82,13 +82,28 @@ export const buildCurrencyStatementSheet = async (
   let totalCredit = 0;
   let runningBalance = 0;
 
-  entries.forEach((entry, idx) => {
+  // Compute running balance strictly chronologically (oldest -> newest) first,
+  // then render rows newest-first so the latest invoice/bond appears at Row #1
+  // while every row preserves its mathematically exact running balance.
+  const computedEntries = entries.map(entry => {
     const debit = Number(entry.debit) || 0;
     const credit = Number(entry.credit) || 0;
     totalDebit += debit;
     totalCredit += credit;
     runningBalance += isSupplier ? credit - debit : debit - credit;
+    return {
+      entry,
+      debit,
+      credit,
+      runningBalance,
+    };
+  });
 
+  const finalBalance = runningBalance;
+  const newestFirstComputed = [...computedEntries].reverse();
+
+  newestFirstComputed.forEach((item, idx) => {
+    const { entry, debit, credit, runningBalance: rowBalance } = item;
     rows.push([
       idx + 1,
       entry.date || '',
@@ -98,11 +113,9 @@ export const buildCurrencyStatementSheet = async (
       translatePaymentStatusAr(entry.payment_status),
       debit,
       credit,
-      runningBalance,
+      rowBalance,
     ]);
   });
-
-  const finalBalance = runningBalance;
   const summaryStatusText = isSupplier
     ? finalBalance >= 0
       ? 'مستحق للمورد (له)'

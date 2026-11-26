@@ -29,6 +29,63 @@ const magnitude = (value: number): number => (value < 0 ? -value : value);
 /** هل يختلف المبلغ الأجنبي عن مبلغ العملة الأساسية بأكثر من قرش، في أي اتجاه؟ */
 const differsByMoreThanCent = (a: number, b: number): boolean => a - b > 0.01 || b - a > 0.01;
 
+interface AccountNode {
+  id: string;
+  parent_id?: string | null | undefined;
+  balance: number;
+  foreign_balance?: number | null | undefined;
+}
+
+const collectAccountSubtree = (accounts: AccountNode[], rootId: string): AccountNode[] => {
+  const byId = new Map(accounts.map(a => [a.id, a]));
+  const childrenMap = new Map<string, AccountNode[]>();
+  for (const acc of accounts) {
+    if (acc.parent_id !== null && acc.parent_id !== undefined && acc.parent_id !== '') {
+      const list = childrenMap.get(acc.parent_id) ?? [];
+      list.push(acc);
+      childrenMap.set(acc.parent_id, list);
+    }
+  }
+  const walk = (id: string): AccountNode[] => {
+    const node = byId.get(id);
+    const children = childrenMap.get(id) ?? [];
+    return [...(node ? [node] : []), ...children.flatMap(c => walk(c.id))];
+  };
+  return walk(rootId);
+};
+
+const computeSubtreeBalance = (
+  accounts: AccountNode[] | undefined,
+  effectiveAccountId: string
+): { balance: number; foreignBalance: number } => {
+  if (!accounts || effectiveAccountId === '') return { balance: 0, foreignBalance: 0 };
+  let balance = 0;
+  let foreignBalance = 0;
+  for (const node of collectAccountSubtree(accounts, effectiveAccountId)) {
+    balance += node.balance || 0;
+    foreignBalance += (node.foreign_balance ?? node.balance) || 0;
+  }
+  return { balance, foreignBalance };
+};
+
+const orderLedgerRowsNewestFirst = (
+  rows: LedgerEntry[]
+): { ordered: LedgerEntry[]; closingEntry: LedgerEntry | undefined } => {
+  const closingEntry = rows.length > 0 ? rows[rows.length - 1] : undefined;
+  const openingRows: LedgerEntry[] = [];
+  const regularRows: LedgerEntry[] = [];
+  for (const row of rows) {
+    const isOpening =
+      row.entry_number === 0 && row.journal_entry_id === '' && row.description === 'رصيد افتتاحي';
+    if (isOpening) {
+      openingRows.push(row);
+    } else {
+      regularRows.push(row);
+    }
+  }
+  return { ordered: [...regularRows.reverse(), ...openingRows], closingEntry };
+};
+
 const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector = true }) => {
   const [searchParams] = useSearchParams();
   const urlAccountId = searchParams.get('accountId') ?? '';
@@ -59,34 +116,12 @@ const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector
   const selectedAccountCode = selectedAccount?.code ?? '';
   const selectedAccountCurrency = selectedAccount?.currency_code ?? '';
 
-  const effectiveAccountBalance = React.useMemo(() => {
-    if (!accounts || !effectiveAccountId) return { balance: 0, foreignBalance: 0 };
-    const byId = new Map(accounts.map(a => [a.id, a]));
-    const childrenMap = new Map<string, typeof accounts>();
-    for (const acc of accounts) {
-      if (acc.parent_id) {
-        const list = childrenMap.get(acc.parent_id) || [];
-        list.push(acc);
-        childrenMap.set(acc.parent_id, list);
-      }
-    }
-    const collectSubtree = (id: string): typeof accounts => {
-      const node = byId.get(id);
-      const children = childrenMap.get(id) || [];
-      if (children.length === 0) return node ? [node] : [];
-      return [...(node ? [node] : []), ...children.flatMap(c => collectSubtree(c.id))];
-    };
-    const subtree = collectSubtree(effectiveAccountId);
-    let balance = 0;
-    let foreignBalance = 0;
-    for (const node of subtree) {
-      balance += Number(node.balance) || 0;
-      foreignBalance += Number(node.foreign_balance ?? node.balance) || 0;
-    }
-    return { balance, foreignBalance };
-  }, [accounts, effectiveAccountId]);
+  const effectiveAccountBalance = React.useMemo(
+    () => computeSubtreeBalance(accounts, effectiveAccountId),
+    [accounts, effectiveAccountId]
+  );
 
-  const tableData: LedgerEntry[] = React.useMemo(() => {
+  const { tableData, lastLedgerEntry } = React.useMemo(() => {
     const rows = ledger ?? [];
     if (
       rows.length === 0 &&
@@ -94,28 +129,26 @@ const LedgerView: React.FC<Props> = ({ dateRange, accountId, showAccountSelector
       (Math.abs(effectiveAccountBalance.balance) > 0.001 ||
         Math.abs(effectiveAccountBalance.foreignBalance) > 0.001)
     ) {
-      return [
-        {
-          date: dateRange.from,
-          journal_id: '',
-          journal_entry_id: '',
-          entry_number: 0,
-          description: 'رصيد الحساب الحالي (مرحل)',
-          debit_amount: 0,
-          credit_amount: 0,
-          balance: effectiveAccountBalance.balance,
-          foreign_balance: effectiveAccountBalance.foreignBalance,
-          accountType: selectedAccount.type,
-          currency_code: selectedAccount.currency_code || 'SAR',
-          exchange_rate: 1,
-          foreign_amount: 0,
-        },
-      ];
+      const synthetic: LedgerEntry = {
+        date: dateRange.from,
+        journal_entry_id: '',
+        entry_number: 0,
+        description: 'رصيد الحساب الحالي (مرحل)',
+        debit_amount: 0,
+        credit_amount: 0,
+        balance: effectiveAccountBalance.balance,
+        foreign_balance: effectiveAccountBalance.foreignBalance,
+        accountType: selectedAccount.type,
+        currency_code: selectedAccount.currency_code || 'SAR',
+        exchange_rate: 1,
+        foreign_amount: 0,
+      };
+      return { tableData: [synthetic], lastLedgerEntry: synthetic };
     }
-    return rows;
-  }, [ledger, selectedAccount, effectiveAccountBalance, dateRange.from]);
 
-  const lastLedgerEntry = tableData[tableData.length - 1];
+    const { ordered, closingEntry } = orderLedgerRowsNewestFirst(rows);
+    return { tableData: ordered, lastLedgerEntry: closingEntry };
+  }, [ledger, selectedAccount, effectiveAccountBalance, dateRange.from]);
 
   const columns = [
     {

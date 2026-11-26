@@ -157,23 +157,29 @@ export interface CurrencyFooterTotal {
 }
 
 export function computeFooterTotalsByCurrency(
-  movements: StatementMovement[]
+  movements: StatementMovement[],
+  isNewestFirst = false
 ): CurrencyFooterTotal[] {
   const map = new Map<string, CurrencyFooterTotal>();
   for (const m of movements) {
     const code = (m.currency || 'SAR').toUpperCase();
-    const entry = map.get(code) ?? {
-      currency: code,
-      count: 0,
-      debit: 0,
-      credit: 0,
-      closingBalance: 0,
-    };
-    entry.count += 1;
-    entry.debit = Math.round((entry.debit + (Number(m.debit) || 0)) * 100) / 100;
-    entry.credit = Math.round((entry.credit + (Number(m.credit) || 0)) * 100) / 100;
-    entry.closingBalance = Math.round((Number(m.balance) || 0) * 100) / 100;
-    map.set(code, entry);
+    const existing = map.get(code);
+    if (!existing) {
+      map.set(code, {
+        currency: code,
+        count: 1,
+        debit: Math.round((Number(m.debit) || 0) * 100) / 100,
+        credit: Math.round((Number(m.credit) || 0) * 100) / 100,
+        closingBalance: Math.round((Number(m.balance) || 0) * 100) / 100,
+      });
+    } else {
+      existing.count += 1;
+      existing.debit = Math.round((existing.debit + (Number(m.debit) || 0)) * 100) / 100;
+      existing.credit = Math.round((existing.credit + (Number(m.credit) || 0)) * 100) / 100;
+      if (!isNewestFirst) {
+        existing.closingBalance = Math.round((Number(m.balance) || 0) * 100) / 100;
+      }
+    }
   }
   return Array.from(map.values()).sort((a, b) =>
     a.currency === 'SAR' ? -1 : b.currency === 'SAR' ? 1 : a.currency.localeCompare(b.currency)

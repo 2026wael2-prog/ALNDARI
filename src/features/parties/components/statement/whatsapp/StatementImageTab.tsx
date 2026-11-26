@@ -57,10 +57,10 @@ export const StatementImageTab: React.FC<StatementImageTabProps> = ({
             onClick={onSendGridImageDirect}
             disabled={isCapturingImage || isSendingDirect || !isValidPhone}
             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
-            title="إرسال صورة الجريد الملون مباشرة لواتساب العميل من رقم المنشأة"
+            title="إرسال صورة الجريد الملون مباشرة لواتساب الجهة من رقم المنشأة"
           >
             <Send size={13} className={isSendingDirect ? 'animate-spin' : ''} />
-            {isSendingDirect ? 'جاري الإرسال...' : 'إرسال الصورة للعميل'}
+            {isSendingDirect ? 'جاري الإرسال...' : 'إرسال الصورة عبر واتساب'}
           </button>
           <button
             type="button"

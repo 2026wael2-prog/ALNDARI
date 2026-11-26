@@ -108,6 +108,19 @@ export const usePartyInvoicesFilter = (partyId: string, partyType: 'customer' | 
       let comparison = 0;
       if (sortField === 'issue_date') {
         comparison = new Date(a.issue_date || 0).getTime() - new Date(b.issue_date || 0).getTime();
+        if (comparison === 0) {
+          const createdA = new Date(a.created_at || 0).getTime() || 0;
+          const createdB = new Date(b.created_at || 0).getTime() || 0;
+          if (createdA !== createdB) {
+            comparison = createdA - createdB;
+          } else {
+            comparison = String(a.invoice_number || '').localeCompare(
+              String(b.invoice_number || ''),
+              undefined,
+              { numeric: true }
+            );
+          }
+        }
       } else if (sortField === 'total_amount') {
         comparison = a._total - b._total;
       } else if (sortField === 'remaining_amount') {

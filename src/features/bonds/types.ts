@@ -40,4 +40,5 @@ export interface Bond {
   exchange_rate?: number;
   base_amount?: number;
   payment_method?: string;
+  created_at?: string | null;
 }

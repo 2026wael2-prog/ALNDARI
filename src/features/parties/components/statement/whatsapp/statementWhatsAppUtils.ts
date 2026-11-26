@@ -15,22 +15,30 @@ export const toAmount = (value: unknown): number => {
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-export const summarizeByCurrency = (movements: StatementMovement[]): CurrencySummary[] => {
+export const summarizeByCurrency = (
+  movements: StatementMovement[],
+  isNewestFirst = false
+): CurrencySummary[] => {
   const summaries = new Map<string, CurrencySummary>();
   movements.forEach(m => {
     const curr = (m.currency || 'SAR').trim().toUpperCase();
-    const existing = summaries.get(curr) ?? {
-      currency: curr,
-      totalDebit: 0,
-      totalCredit: 0,
-      finalBalance: 0,
-      count: 0,
-    };
-    existing.totalDebit += toAmount(m.debit);
-    existing.totalCredit += toAmount(m.credit);
-    existing.finalBalance = toAmount(m.balance);
-    existing.count += 1;
-    summaries.set(curr, existing);
+    const existing = summaries.get(curr);
+    if (!existing) {
+      summaries.set(curr, {
+        currency: curr,
+        totalDebit: toAmount(m.debit),
+        totalCredit: toAmount(m.credit),
+        finalBalance: toAmount(m.balance),
+        count: 1,
+      });
+    } else {
+      existing.totalDebit += toAmount(m.debit);
+      existing.totalCredit += toAmount(m.credit);
+      if (!isNewestFirst) {
+        existing.finalBalance = toAmount(m.balance);
+      }
+      existing.count += 1;
+    }
   });
   return Array.from(summaries.values());
 };

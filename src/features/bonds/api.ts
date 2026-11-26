@@ -22,6 +22,7 @@ export const bondsApi = {
         id,
         payment_number,
         payment_date,
+        created_at,
         amount,
         currency_code,
         exchange_rate,
@@ -66,6 +67,7 @@ export const bondsApi = {
         id,
         payment_number,
         payment_date,
+        created_at,
         amount,
         currency_code,
         exchange_rate,
@@ -158,7 +160,8 @@ export const bondsApi = {
       .neq('payment_method', 'cash')
       .in('status', ['posted', 'partially_paid'])
       .is('deleted_at', null)
-      .order('issue_date', { ascending: false });
+      .order('issue_date', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (branchId) {
       query = query.eq('branch_id', branchId);

@@ -70,7 +70,8 @@ export const expensesApi = {
       )
       .eq('company_id', companyId)
       .is('deleted_at', null)
-      .order('expense_date', { ascending: false });
+      .order('expense_date', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (branchId) {
       fallbackQuery = fallbackQuery.or(`branch_id.eq.${branchId},branch_id.is.null`);

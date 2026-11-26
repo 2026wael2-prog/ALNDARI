@@ -53,7 +53,9 @@ export function useBondsFilter(bonds: Bond[] | undefined): UseBondsFilterReturn 
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
     }, 200);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [searchTerm]);
 
   const displayedBonds = useMemo(() => {
@@ -105,21 +107,31 @@ export function useBondsFilter(bonds: Bond[] | undefined): UseBondsFilterReturn 
         const dateA = new Date(a.date).getTime() || 0;
         const dateB = new Date(b.date).getTime() || 0;
         cmp = dateA - dateB;
+        if (cmp === 0) {
+          const createdA = new Date(a.created_at ?? 0).getTime() || 0;
+          const createdB = new Date(b.created_at ?? 0).getTime() || 0;
+          if (createdA !== createdB) {
+            cmp = createdA - createdB;
+          } else {
+            cmp = (a.payment_number || '').localeCompare(b.payment_number || '', undefined, {
+              numeric: true,
+            });
+          }
+        }
       }
       return sortOrder === 'desc' ? -cmp : cmp;
     });
 
     return result;
-  }, [bonds, searchTerm, paymentMethodFilter, currencyFilter, dateFrom, dateTo, sortBy, sortOrder]);
+  }, [bonds, debouncedSearch, paymentMethodFilter, currencyFilter, dateFrom, dateTo, sortBy, sortOrder]);
 
-  const hasActiveFilters = Boolean(
+  const hasActiveFilters =
     (searchTerm && searchTerm.trim() !== '') ||
     paymentMethodFilter !== 'all' ||
     currencyFilter !== 'all' ||
     datePreset !== 'this_year' ||
     sortBy !== 'date' ||
-    sortOrder !== 'desc'
-  );
+    sortOrder !== 'desc';
 
   const handleResetFilters = () => {
     const currentRange = getDateRangeForPreset('this_year');

@@ -5,6 +5,7 @@ import type { StatementMovement } from '../../services/statementTypes';
 import { formatLocalDate } from '@/core/utils/dateUtils';
 import { tafqeet } from '@/core/utils/tafqeet';
 import { AlNadaryPrintShell } from '@/ui/print/AlNadaryPrintShell';
+import { orderStatementNewestFirst } from '../../utils/statementOrdering';
 
 interface CompanyInfo {
   nameAr: string;
@@ -28,6 +29,8 @@ interface StatementPrintSheetProps {
   printSubtitle?: string | undefined;
   /** When true (e.g. inside PdfCaptureHost), renders only the full A4 layout visibly without `hidden print:block`. */
   forPdf?: boolean | undefined;
+  /** Keep screen header hidden by default — print/PDF/file export/WhatsApp always include the official header. */
+  showScreenHeader?: boolean | undefined;
 }
 
 const formatNum = (val: number): string => {
@@ -105,6 +108,7 @@ const buildCurrencySection = (
   });
 
   const finalBalance = rows.length > 0 ? rows[rows.length - 1].computedBalance : openingBalance;
+  const displayRowsNewestFirst = orderStatementNewestFirst(rows);
 
   let statusLabel = 'متزن (خالص)';
   if (Math.abs(finalBalance) >= 0.01) {
@@ -120,7 +124,7 @@ const buildCurrencySection = (
   return {
     currency: currCode,
     currencyUnit: currencyUnitOf(currCode),
-    rows,
+    rows: displayRowsNewestFirst,
     openingBalance,
     totalDebit,
     totalCredit,
@@ -143,6 +147,7 @@ export const StatementPrintSheet: React.FC<StatementPrintSheetProps> = ({
   movements = [],
   printSubtitle,
   forPdf = false,
+  showScreenHeader = false,
 }) => {
   const currentDate = formatLocalDate();
   const isCustomer = partyType === 'customer';
@@ -374,14 +379,16 @@ export const StatementPrintSheet: React.FC<StatementPrintSheetProps> = ({
 
   return (
     <>
-      {/* عرض الشاشة: هيدر موحد بكامل عرض الشاشة مدمج أعلى كشف الحساب بدون تذييل منفصل */}
-      <div className="no-print mb-3 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-        <AlNadaryPrintShell {...commonHeaderProps} hideFooter>
-          <></>
-        </AlNadaryPrintShell>
-      </div>
+      {/* الهيدر مخفي افتراضياً في الواجهة الأمامية ويظهر فقط في الطباعة وتصدير PDF/الملفات وواتساب */}
+      {showScreenHeader && (
+        <div className="no-print mb-3 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+          <AlNadaryPrintShell {...commonHeaderProps} hideFooter>
+            <></>
+          </AlNadaryPrintShell>
+        </div>
+      )}
 
-      {/* عرض الطباعة: كشف الحساب الرسمي الكامل في مستند A4 واحد متصل */}
+      {/* عرض الطباعة: كشف الحساب الرسمي الكامل مع الهيدر في مستند A4 واحد متصل */}
       <div className="hidden w-full bg-white print:block">{printBody}</div>
     </>
   );

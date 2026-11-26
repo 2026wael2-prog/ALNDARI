@@ -88,6 +88,51 @@ describe('statementExcelExporter Multi-Currency', () => {
     expect(wb.SheetNames.length).toBe(1);
     expect(wb.SheetNames[0]).toBe('كشف حساب - ريال سعودي');
   });
+
+  it('orders exported Excel statement rows newest-first while preserving exact chronological running balances for suppliers', async () => {
+    const supplierEntries: StatementEntry[] = [
+      {
+        date: '2026-10-01',
+        operation_type: 'فاتورة مشتريات',
+        reference_no: 'PUR-101',
+        desc: 'توريد قطع غيار',
+        debit: 0,
+        credit: 2000,
+        balance: 2000,
+        currency: 'SAR',
+      },
+      {
+        date: '2026-10-12',
+        operation_type: 'سند صرف',
+        reference_no: 'PAY-301',
+        desc: 'دفعة للمورد',
+        debit: 750,
+        credit: 0,
+        balance: 1250,
+        currency: 'SAR',
+      },
+    ];
+
+    const wb = await generateStatementExcelWorkbook(
+      mockCompany,
+      'مورد قطع الغيار',
+      supplierEntries,
+      { currencyCode: 'SAR', partyType: 'supplier' }
+    );
+
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    expect(sheet).toBeDefined();
+    const cellVal = (cell: unknown): unknown =>
+      typeof cell === 'object' && cell !== null && 'v' in cell
+        ? (cell as Record<'v', unknown>).v
+        : undefined;
+    // Row 9 (header at row 8, first data row at row 9) should be latest (PAY-301) with balance 1250
+    expect(cellVal(sheet.D9)).toBe('PAY-301');
+    expect(cellVal(sheet.I9)).toBe(1250);
+    // Row 10 should be earlier purchase (PUR-101) with its chronological running balance 2000
+    expect(cellVal(sheet.D10)).toBe('PUR-101');
+    expect(cellVal(sheet.I10)).toBe(2000);
+  });
 });
 
 describe('debtAiService.generateWhatsAppStatementSummary', () => {

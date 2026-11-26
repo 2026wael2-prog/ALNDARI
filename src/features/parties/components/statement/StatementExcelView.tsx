@@ -372,7 +372,9 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
                     isSelected={selectedRowIds.has(row.id)}
                     isExpanded={isRowExpanded}
                     preloadedDetails={
-                      row.reference_id ? (batchDetailsMap?.get(row.reference_id) ?? null) : null
+                      row.reference_id && batchDetailsMap instanceof Map
+                        ? (batchDetailsMap.get(row.reference_id) ?? null)
+                        : null
                     }
                     isBatchDetailsLoading={isBatchDetailsLoading}
                     colorKey={colorKey}

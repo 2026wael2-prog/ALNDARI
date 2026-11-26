@@ -340,8 +340,8 @@ export function useStatementBatchDetails(
     [movements]
   );
 
-  const query = useQuery<Map<string, StatementTransactionDetails>>({
-    queryKey: ['statement_batch_details', companyId, cacheSignature],
+  const query = useQuery<Record<string, StatementTransactionDetails>>({
+    queryKey: ['statement_batch_details_v2', companyId, cacheSignature],
     enabled: enabled && companyId.length > 0 && (invoiceIds.length > 0 || bondIds.length > 0),
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -351,12 +351,26 @@ export function useStatementBatchDetails(
         fetchInvoiceDetailsBatch(companyId, invoiceIds, map),
         fetchBondDetailsBatch(companyId, bondIds, map),
       ]);
-      return map;
+      // Return a JSON-serializable plain object so React Query persistence never corrupts a Map into `{}`
+      return Object.fromEntries(map);
     },
   });
 
+  const detailsMap = useMemo(() => {
+    const raw: unknown = query.data;
+    if (raw instanceof Map) {
+      return raw as Map<string, StatementTransactionDetails>;
+    }
+    if (raw !== null && raw !== undefined && typeof raw === 'object') {
+      return new Map<string, StatementTransactionDetails>(
+        Object.entries(raw as Record<string, StatementTransactionDetails>)
+      );
+    }
+    return new Map<string, StatementTransactionDetails>();
+  }, [query.data]);
+
   return {
-    detailsMap: query.data ?? new Map<string, StatementTransactionDetails>(),
+    detailsMap,
     isLoading: query.isLoading,
   };
 }

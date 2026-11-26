@@ -139,7 +139,9 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
                     isSelected={isSelected}
                     isExpanded={isExpanded}
                     preloadedDetails={
-                      row.reference_id ? (batchDetailsMap?.get(row.reference_id) ?? null) : null
+                      row.reference_id && batchDetailsMap instanceof Map
+                        ? (batchDetailsMap.get(row.reference_id) ?? null)
+                        : null
                     }
                     isBatchDetailsLoading={isBatchDetailsLoading}
                     customColor={customColor}

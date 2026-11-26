@@ -240,8 +240,8 @@ const PartiesPage: React.FC<PartiesPageProps> = ({ partyType, title, icon, iconC
               partyType={partyType}
               parties={parties}
               isLoading={isLoading}
-              onViewStatement={party => {
-                openPartyStatement(party);
+              onViewStatement={(party, currencyCode) => {
+                openPartyStatement(party, currencyCode);
               }}
             />
           </Suspense>

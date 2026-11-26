@@ -19,6 +19,7 @@ import { useWarehouses } from '../../inventory/hooks/useInventoryManagement';
 import { useInvoiceNavigation } from './useInvoiceNavigation';
 import { useBranchFilter } from '@/features/branches/hooks/useBranchFilter';
 import { useOpenInvoicesStore } from '../store/openInvoicesStore';
+import type { CustomerCreditAlertData } from './useCustomerCreditAlert';
 
 interface PaymentAccountOption {
   id: string;
@@ -287,6 +288,46 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
       )
     ) {
       return;
+    }
+
+    // حوكمة الائتمان: التحقق من تجميد الائتمان أو تجاوز السقف الائتماني في الفواتير الآجلة
+    if (invoiceType === 'credit' && selectedCustomer.id && comp?.id) {
+      const creditData = queryClient.getQueryData<CustomerCreditAlertData | null>([
+        'customer_credit_alert',
+        comp.id,
+        selectedCustomer.id,
+      ]);
+      const isManager = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
+      if (creditData?.status === 'blocked') {
+        if (!isManager) {
+          showToast(
+            'حساب هذا العميل مجمّد ائتمانياً — البيع متاح نقداً فقط أو بموافقة المدير بعد فك التجميد.',
+            'error'
+          );
+          return;
+        }
+        const allowBlocked = window.confirm(
+          `تنبيه حوكمة الائتمان:\n\nحساب العميل (${selectedCustomer.name}) مجمّد ائتمانياً (Blocked).\nهل تريد المتابعة واعتماد البيع الآجل بصلاحية المدير؟`
+        );
+        if (!allowBlocked) return;
+      }
+
+      const creditLimit = creditData?.creditLimit ?? 0;
+      if (creditLimit > 0) {
+        const activeCurr = (currency || 'SAR').toUpperCase();
+        const currEntry = creditData?.balancesByCurrency.find(
+          b => b.currency_code.toUpperCase() === activeCurr
+        );
+        const currentBal = currEntry ? currEntry.balance : activeCurr === 'SAR' ? (creditData?.balance ?? 0) : 0;
+        const addedCredit = Math.max(0, summary.totalAmount - (paidAmount || 0));
+        const projectedBal = Math.round((currentBal + addedCredit) * 100) / 100;
+        if (projectedBal > creditLimit) {
+          const proceedOverLimit = window.confirm(
+            `تنبيه تجاوز السقف الائتماني:\n\nالعميل: ${selectedCustomer.name}\nالرصيد المتوقع بعد الفاتورة: ${String(projectedBal)} ${activeCurr}\nالسقف الائتماني المعتمد: ${String(creditLimit)} ${activeCurr}\n\nهل تريد المتابعة واعتماد الفاتورة الآجلة؟`
+          );
+          if (!proceedOverLimit) return;
+        }
+      }
     }
 
     setTargetStatus(status);

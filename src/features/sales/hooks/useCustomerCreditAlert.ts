@@ -5,6 +5,9 @@ export interface CustomerCreditAlertData {
   partyId: string;
   partyName: string;
   phone?: string | null;
+  status?: string | null;
+  creditLimit: number;
+  paymentTermsDays: number;
   balance: number; // Positive = customer owes us (debt), Negative = we owe customer (credit)
   balancesByCurrency: Array<{
     currency_code: string;
@@ -36,7 +39,7 @@ export const useCustomerCreditAlert = (
       const [partyRes, balancesRes, currencyBalancesRes, lastPaymentRes] = await Promise.all([
         supabase
           .from('parties')
-          .select('id, name, phone')
+          .select('id, name, phone, status, credit_limit, payment_terms_days')
           .eq('id', customerId)
           .eq('company_id', companyId)
           .maybeSingle(),
@@ -82,6 +85,9 @@ export const useCustomerCreditAlert = (
         partyId: partyData.id,
         partyName: partyData.name,
         phone: partyData.phone,
+        status: partyData.status ?? 'active',
+        creditLimit: Number(partyData.credit_limit ?? 0),
+        paymentTermsDays: Number(partyData.payment_terms_days ?? 30) || 30,
         balance: computedBalance,
         balancesByCurrency,
         lastPayment: lastPaymentRes.data

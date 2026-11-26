@@ -12,12 +12,13 @@ import {
 import type { Party, PartyType } from '../types';
 import { formatCurrency, cn } from '../../../core/utils';
 import { buildWhatsAppLink, hasValidWhatsAppPhone } from '../../debts/lib/whatsapp';
+import { CustomerCreditAnalyticsDashboard } from './analytics/CustomerCreditAnalyticsDashboard';
 
 interface PartyAnalyticsViewProps {
   partyType: PartyType;
   parties?: Party[];
   isLoading?: boolean;
-  onViewStatement: (party: Party) => void;
+  onViewStatement: (party: Party, currencyCode?: string) => void;
 }
 
 export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
@@ -110,6 +111,15 @@ export const PartyAnalyticsView: React.FC<PartyAnalyticsViewProps> = ({
       { label: 'أكثر من 20,000 (حرجة)', count: over20k, sum: over20kSum, color: 'bg-rose-500' },
     ];
   }, [parties, getEffectiveDebt]);
+
+  if (isCustomer) {
+    return (
+      <CustomerCreditAnalyticsDashboard
+        parties={parties}
+        onViewStatement={onViewStatement}
+      />
+    );
+  }
 
   if (isLoading) {
     return (

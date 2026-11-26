@@ -84,7 +84,7 @@ const ActiveTransferItemCard: React.FC<ActiveTransferItemRowProps> = ({
           )}
           <span className="truncate">{formatRequestDirection(req, activeBranchId)}</span>
         </span>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
           <Clock size={9} />
           {new Date(req.created_at).toLocaleTimeString('ar-SA', {
             hour: '2-digit',
@@ -280,7 +280,7 @@ export const BranchTransferHeaderBar: React.FC<BranchTransferHeaderBarProps> = (
                 onClick={() => {
                   handleOpenReview(topIncoming);
                 }}
-                className="rounded bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white transition-colors hover:bg-amber-400"
+                className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-black text-white transition-colors hover:bg-amber-400"
               >
                 اعتماد
               </button>

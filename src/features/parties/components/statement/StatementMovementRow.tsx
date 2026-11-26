@@ -214,7 +214,7 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
               (row.payment_status === 'partial' ||
                 row.payment_status === 'partially_paid' ||
                 row.payment_status === 'unpaid') && (
-                <span className="font-mono text-[9px] font-bold text-slate-500 dark:text-slate-400">
+                <span className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   متبقي: {formatCurrency(row.remaining_amount, row.currency)}
                 </span>
               )}

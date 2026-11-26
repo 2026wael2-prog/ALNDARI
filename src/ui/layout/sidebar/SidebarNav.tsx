@@ -161,7 +161,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ isCollapsed }) => {
               {t(item.labelKey)}
             </span>
             {SHORTCUT_HINTS[item.id] && (
-              <span className="ms-1 hidden shrink-0 rounded border border-white/20 bg-white/10 px-1 py-0.2 font-mono text-[9px] font-bold text-white/80 opacity-70 group-hover:inline-block group-hover:opacity-100">
+              <span className="ms-1 hidden shrink-0 rounded border border-white/20 bg-white/10 px-1 py-0.2 font-mono text-[10px] font-bold text-white/80 opacity-70 group-hover:inline-block group-hover:opacity-100">
                 {SHORTCUT_HINTS[item.id]}
               </span>
             )}

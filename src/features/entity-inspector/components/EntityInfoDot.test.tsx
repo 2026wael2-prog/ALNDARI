@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -29,7 +29,7 @@ describe('EntityInfoDot', () => {
       <EntityInfoDot type="party" id="party-456" label="عبد الرحيم السنح" subType="customer" />
     );
 
-    const button = screen.getByRole('button', { name: /استعلام فوري ومعاينة/i });
+    const button = screen.getByRole('button', { name: /استعلام فوري عند النقر/i });
     expect(button).toBeInTheDocument();
 
     fireEvent.click(button);
@@ -53,7 +53,7 @@ describe('EntityInfoDot', () => {
       <EntityInfoDot type="product" id="prod-99" inInspector={true} />
     );
 
-    const button = screen.getByRole('button', { name: /استعلام فوري ومعاينة/i });
+    const button = screen.getByRole('button', { name: /استعلام فوري عند النقر/i });
     fireEvent.click(button);
 
     const stack = useEntityInspectorStore.getState().stack;

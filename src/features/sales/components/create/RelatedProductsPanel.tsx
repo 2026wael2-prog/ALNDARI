@@ -55,7 +55,7 @@ const CompactCompanionPill: React.FC<CompactCompanionPillProps> = ({
           {price}
         </span>
         <span
-          className={`rounded px-1 font-mono text-[9px] font-black ${
+          className={`rounded px-1 font-mono text-[10px] font-black ${
             qty > 0
               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
               : 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300'
@@ -143,7 +143,7 @@ export const RelatedProductsPanel: React.FC<RelatedProductsPanelProps> = ({
           </span>
         )}
         {vehicleBadge !== '' && (
-          <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[9px] font-extrabold text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200">
+          <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-extrabold text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200">
             {vehicleBadge}
           </span>
         )}

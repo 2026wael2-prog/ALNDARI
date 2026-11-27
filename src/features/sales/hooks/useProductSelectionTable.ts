@@ -234,9 +234,47 @@ export function useProductSelectionTable({
     };
   }, [localQuery, isOpen]);
 
-  // Submit query on Enter
+  const handleQuickSelect = useCallback(
+    (product: Product) => {
+      if (mode === 'sale') {
+        const effectiveQty = product.stock_quantity ?? 0;
+        if (effectiveQty <= 0) {
+          showToast(`تنبيه: المنتج "${product.name}" رصيده 0 في هذا الفرع`, 'warning');
+        }
+      }
+      onSelect(product);
+    },
+    [mode, showToast, onSelect]
+  );
+
+  // Seamless keyboard navigation directly from the search input (ArrowDown/ArrowUp + Enter)
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (paginatedProducts.length === 0) return;
+      e.preventDefault();
+      focusSourceRef.current = 'keyboard';
+      setFocusedIndex(prev => {
+        const max = paginatedProducts.length - 1;
+        if (prev < 0) {
+          const idx = e.key === 'ArrowDown' ? 0 : max;
+          setSelectedPreviewProduct(paginatedProducts[idx] ?? null);
+          return idx;
+        }
+        const next = Math.max(0, Math.min(max, e.key === 'ArrowDown' ? prev + 1 : prev - 1));
+        setSelectedPreviewProduct(paginatedProducts[next] ?? null);
+        return next;
+      });
+      return;
+    }
     if (e.key === 'Enter') {
+      if (focusedIndex >= 0 && focusedIndex < paginatedProducts.length) {
+        e.preventDefault();
+        const selected = paginatedProducts[focusedIndex];
+        if (selected) {
+          handleQuickSelect(selected);
+          return;
+        }
+      }
       setSubmittedQuery(localQuery);
     }
   };
@@ -259,16 +297,7 @@ export function useProductSelectionTable({
     if (clickCountRef.current[id] >= 2) {
       clickCountRef.current[id] = 0;
       if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
-
-      // التحقق من توفر المخزون فقط في وضع البيع الفعلي (وليس عروض الأسعار أو المشتريات)
-      if (mode === 'sale') {
-        const effectiveQty = p.stock_quantity ?? 0;
-        if (effectiveQty <= 0) {
-          showToast(`تنبيه: المنتج "${p.name}" رصيده 0 في هذا الفرع`, 'warning');
-        }
-      }
-
-      onSelect(p);
+      handleQuickSelect(p);
     }
   };
 
@@ -300,17 +329,11 @@ export function useProductSelectionTable({
         e.preventDefault();
         const product = paginatedProducts[focusedIndex];
         if (product) {
-          if (mode === 'sale') {
-            const effectiveQty = product.stock_quantity ?? 0;
-            if (effectiveQty <= 0) {
-              showToast(`تنبيه: المنتج "${product.name}" رصيده 0 في هذا الفرع`, 'warning');
-            }
-          }
-          onSelect(product);
+          handleQuickSelect(product);
         }
       }
     },
-    [paginatedProducts, focusedIndex, mode, showToast, onSelect]
+    [paginatedProducts, focusedIndex, handleQuickSelect]
   );
 
   // Scroll focused row into view ONLY on keyboard navigation — NEVER on mouse hover (prevents scroll jitter!)
@@ -354,5 +377,6 @@ export function useProductSelectionTable({
     handleKeyDown,
     handleTableKeyDown,
     handleRowClick,
+    handleQuickSelect,
   };
 }

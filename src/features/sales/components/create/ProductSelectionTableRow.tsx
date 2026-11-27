@@ -52,7 +52,11 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
   const renderCellContent = (col: ColumnConfig) => {
     switch (col.id) {
       case 'index':
-        return <span className="font-mono opacity-50">{index + 1}</span>;
+        return (
+          <span className="font-mono text-xs font-extrabold text-black dark:text-slate-200">
+            {index + 1}
+          </span>
+        );
       case 'name':
         return (
           <div className="flex min-w-0 items-center gap-1.5">
@@ -62,13 +66,15 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
               label={product.name || product.name_ar}
               size="sm"
             />
-            <span className="block truncate text-sm font-bold">{product.name}</span>
+            <span className="block truncate text-[15px] font-extrabold text-black dark:text-white">
+              {product.name}
+            </span>
           </div>
         );
       case 'part_number':
         return (
           <span
-            className="block truncate font-mono text-sm font-bold text-gray-700 dark:text-gray-300"
+            className="block truncate font-mono text-[14px] font-extrabold text-black dark:text-slate-100"
             dir="ltr"
           >
             {product.part_number || product.alternative_numbers || '---'}
@@ -76,7 +82,9 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
         );
       case 'brand':
         return (
-          <span className="block truncate font-bold opacity-60">{product.brand || '---'}</span>
+          <span className="block truncate font-extrabold text-black dark:text-slate-100">
+            {product.brand || '---'}
+          </span>
         );
       case 'branch': {
         return (
@@ -92,22 +100,33 @@ export const ProductSelectionTableRow: React.FC<ProductSelectionTableRowProps> =
         const qty = product.stock_quantity;
         const isLow = qty <= product.min_stock_level;
         return (
-          <span className={`font-mono text-sm font-black ${isLow ? 'text-red-500' : ''}`}>
+          <span
+            className={`font-mono text-[14px] font-black ${
+              isLow ? 'text-rose-700 dark:text-rose-400' : 'text-black dark:text-white'
+            }`}
+          >
             {qty}
           </span>
         );
       }
       case 'price':
         return (
-          <span className="font-mono text-sm font-black text-emerald-700 dark:text-emerald-400">
+          <span className="font-mono text-[15px] font-black text-emerald-800 dark:text-emerald-400">
             {mode === 'purchase' ? product.cost_price : product.selling_price || product.sale_price}
           </span>
         );
       case 'size':
-        return <span className="block truncate opacity-70">{product.size || '---'}</span>;
+        return (
+          <span className="block truncate font-extrabold text-black dark:text-slate-100">
+            {product.size || '---'}
+          </span>
+        );
       case 'specs':
         return (
-          <span className="block truncate opacity-70" title={product.specifications || ''}>
+          <span
+            className="block truncate font-extrabold text-black dark:text-slate-100"
+            title={product.specifications || ''}
+          >
             {product.specifications || '---'}
           </span>
         );

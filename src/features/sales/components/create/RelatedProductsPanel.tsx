@@ -44,7 +44,7 @@ const CompactCompanionPill: React.FC<CompactCompanionPillProps> = ({
         onClick={() => {
           onAdd(prod);
         }}
-        className="inline-flex items-center gap-1.5 text-right font-bold text-slate-800 hover:text-emerald-700 dark:text-slate-100 dark:hover:text-emerald-300"
+        className="inline-flex items-center gap-1.5 text-right text-xs font-extrabold text-black hover:text-emerald-700 dark:text-slate-100 dark:hover:text-emerald-300"
         title={`إضافة فورية: ${displayName}${partSuffix}`}
       >
         <span className="flex h-4 w-4 items-center justify-center rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">

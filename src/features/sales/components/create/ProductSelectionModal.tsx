@@ -39,11 +39,11 @@ interface Props {
   warehouseId?: string | null;
 }
 
-const FONT_SIZE_CLASSES = { small: 'text-[10px]', medium: 'text-[11px]', large: 'text-[13px]' };
+const FONT_SIZE_CLASSES = { small: 'text-xs', medium: 'text-[14px]', large: 'text-[15.5px]' };
 const HEADER_FONT_SIZE_CLASSES = {
-  small: 'text-[10px]',
-  medium: 'text-[10px]',
-  large: 'text-[12px]',
+  small: 'text-xs',
+  medium: 'text-[13px]',
+  large: 'text-sm',
 };
 
 const ProductSelectionModal: React.FC<Props> = ({
@@ -93,6 +93,7 @@ const ProductSelectionModal: React.FC<Props> = ({
     handleKeyDown,
     handleTableKeyDown,
     handleRowClick,
+    handleQuickSelect,
   } = useProductSelectionTable({
     isOpen,
     initialQuery,
@@ -217,7 +218,10 @@ const ProductSelectionModal: React.FC<Props> = ({
         noPadding
         title="مستكشف الأصناف المتقدم"
       >
-        <div className="flex h-full w-full flex-col overflow-hidden bg-[var(--app-surface)]">
+        <div
+          data-clear-black-text="true"
+          className="flex h-full w-full flex-col overflow-hidden bg-[var(--app-surface)]"
+        >
           {/* Unified Fullscreen Top Header + Live Today-Only Pending Branch Transfers */}
           <BranchTransferHeaderBar
             activeBranchId={effectiveBranchId}
@@ -281,7 +285,7 @@ const ProductSelectionModal: React.FC<Props> = ({
                 <tr
                   className={`${
                     HEADER_FONT_SIZE_CLASSES[config.fontSize]
-                  } text-right font-extrabold uppercase tracking-tighter text-gray-600 dark:text-slate-300`}
+                  } text-right font-black uppercase tracking-tight text-black dark:text-slate-100`}
                 >
                   {visibleColumns.map(col => {
                     const isSortable = !['index', 'actions', 'branch', 'specs'].includes(col.id);
@@ -344,13 +348,13 @@ const ProductSelectionModal: React.FC<Props> = ({
                     <ProductSelectionTableRow
                       key={p.id}
                       product={p}
-                      index={idx}
+                      index={(safePage - 1) * pageSize + idx}
                       visibleColumns={visibleColumns}
                       effectiveBranchId={effectiveBranchId}
                       mode={mode}
                       fontSizeClass={FONT_SIZE_CLASSES[config.fontSize]}
                       isFocused={focusedIndex === idx}
-                      onSelect={onSelect}
+                      onSelect={handleQuickSelect}
                       onViewProduct={setViewProduct}
                       onRequestFromBranch={handleRequestFromBranch}
                       onRowClick={handleRowClick}

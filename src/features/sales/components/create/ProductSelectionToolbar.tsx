@@ -7,6 +7,7 @@ import {
   PackageCheck,
   Plus,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import { buildGoogleSearchUrl } from '../../../ai/automotiveCrossSell';
 
@@ -62,7 +63,7 @@ export const ProductSelectionToolbar: React.FC<ProductSelectionToolbarProps> = (
     </button>
 
     <div className="relative min-w-[200px] flex-1">
-      <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+      <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-black/70 dark:text-slate-400" size={16} />
       <input
         autoFocus
         type="text"
@@ -70,19 +71,29 @@ export const ProductSelectionToolbar: React.FC<ProductSelectionToolbarProps> = (
         onChange={e => onQueryChange(e.target.value)}
         onKeyDown={onSearchKeyDown}
         placeholder="ابحث بالاسم، رقم القطعة، الماركة..."
-        className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-24 pr-9 text-sm font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800"
+        className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-28 pr-9 text-[15px] font-extrabold text-black outline-none placeholder:font-bold placeholder:text-slate-500 focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-400"
       />
       {localQuery.trim().length > 0 && (
-        <a
-          href={buildGoogleSearchUrl({ query: localQuery })}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute left-1.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-700/60 dark:bg-sky-900/40 dark:text-sky-300"
-          title="البحث عن النص الحالي في جوجل"
-        >
-          <span>جوجل</span>
-          <ExternalLink size={10} />
-        </a>
+        <div className="absolute left-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onQueryChange('')}
+            className="rounded-md p-1 text-black/70 hover:bg-slate-200 hover:text-black dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+            title="مسح البحث"
+          >
+            <X size={13} />
+          </button>
+          <a
+            href={buildGoogleSearchUrl({ query: localQuery })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-700 transition-colors hover:bg-sky-100 dark:border-sky-700/60 dark:bg-sky-900/40 dark:text-sky-300"
+            title="البحث عن النص الحالي في جوجل"
+          >
+            <span>جوجل</span>
+            <ExternalLink size={10} />
+          </a>
+        </div>
       )}
     </div>
 

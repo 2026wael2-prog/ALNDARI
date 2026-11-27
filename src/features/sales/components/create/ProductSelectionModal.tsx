@@ -54,19 +54,23 @@ const ProductSelectionModal: React.FC<Props> = ({
   mode = 'sale',
   warehouseId,
 }) => {
-  const [localBranchId, setLocalBranchId] = useState<string | null>(null);
+  const [branchSelection, setBranchSelection] = useState<string | 'ALL' | null>(null);
   const [showBranchMenu, setShowBranchMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const branchMenuRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuthStore();
-  const isManager = user?.role === 'owner' || user?.role === 'admin';
+  const isManager = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'manager';
   const { branchId: activeBranchId } = useBranchFilter();
   const { data: branches } = useBranches();
   const activeBranches = Array.isArray(branches) ? branches.filter(b => b.status === 'active') : [];
 
-  const effectiveBranchId = localBranchId ?? activeBranchId;
+  const isExplicitBranchFilter = branchSelection !== null && branchSelection !== 'ALL';
+  const effectiveBranchId =
+    branchSelection === 'ALL' ? null : (branchSelection ?? activeBranchId);
+  const effectiveWarehouseId = branchSelection !== null ? undefined : warehouseId;
+  const canSwitchBranch = isManager || activeBranches.length > 1;
 
   const {
     localQuery,
@@ -98,7 +102,8 @@ const ProductSelectionModal: React.FC<Props> = ({
     isOpen,
     initialQuery,
     effectiveBranchId,
-    warehouseId,
+    filterBySelectedBranch: isExplicitBranchFilter,
+    warehouseId: effectiveWarehouseId,
     mode,
     onSelect,
   });
@@ -190,10 +195,10 @@ const ProductSelectionModal: React.FC<Props> = ({
   const visibleColumns = config.columns.filter(c => c.visible);
 
   const selectedBranchName =
-    localBranchId !== null
-      ? (activeBranches.find(b => b.id === localBranchId)?.name ?? 'فرع محدد')
-      : activeBranchId !== null
-        ? activeBranches.find(b => b.id === activeBranchId)?.name
+    branchSelection === 'ALL'
+      ? 'جميع الفروع'
+      : effectiveBranchId !== null
+        ? (activeBranches.find(b => b.id === effectiveBranchId)?.name ?? 'فرع محدد')
         : 'جميع الفروع';
 
   return (
@@ -245,15 +250,15 @@ const ProductSelectionModal: React.FC<Props> = ({
             onToggleInStockOnly={() => {
               setShowInStockOnly(prev => !prev);
             }}
-            isManager={isManager}
+            isManager={canSwitchBranch}
             branchMenuRef={branchMenuRef}
             showBranchMenu={showBranchMenu}
             onToggleBranchMenu={() => {
               setShowBranchMenu(prev => !prev);
             }}
-            localBranchId={localBranchId}
+            localBranchId={effectiveBranchId}
             onSelectBranch={branchId => {
-              setLocalBranchId(branchId);
+              setBranchSelection(branchId === null ? 'ALL' : branchId);
               setShowBranchMenu(false);
             }}
             selectedBranchName={selectedBranchName}
@@ -288,7 +293,7 @@ const ProductSelectionModal: React.FC<Props> = ({
                   } text-right font-black uppercase tracking-tight text-black dark:text-slate-100`}
                 >
                   {visibleColumns.map(col => {
-                    const isSortable = !['index', 'actions', 'branch', 'specs'].includes(col.id);
+                    const isSortable = !['index', 'actions', 'specs'].includes(col.id);
                     const isSorted = sortConfig?.key === col.id;
                     return (
                       <th

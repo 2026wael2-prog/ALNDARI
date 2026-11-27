@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { useAuthStore } from '../../auth/store';
 import { productService } from '../../inventory/service';
 import type { Product } from '../../inventory/types';
+import { summarizeProductBranchAvailability } from '../../inventory/utils/branchStockSummary';
 import { useFeedbackStore } from '../../feedback/store';
 import { logger } from '../../../core/utils/logger';
 
@@ -18,6 +19,7 @@ interface UseProductSelectionTableOptions {
   isOpen: boolean;
   initialQuery: string;
   effectiveBranchId: string | null;
+  filterBySelectedBranch?: boolean;
   warehouseId?: string | null | undefined;
   mode?: 'sale' | 'purchase' | 'quotation';
   onSelect: (product: Product) => void;
@@ -27,6 +29,7 @@ export function useProductSelectionTable({
   isOpen,
   initialQuery,
   effectiveBranchId,
+  filterBySelectedBranch = false,
   warehouseId,
   mode = 'sale',
   onSelect,
@@ -80,6 +83,7 @@ export function useProductSelectionTable({
       companyId,
       submittedQuery.trim(),
       effectiveBranchId,
+      warehouseId ?? 'none',
       sqlSortKey,
       sqlSortDir,
     ],
@@ -90,7 +94,7 @@ export function useProductSelectionTable({
         const { data, error } = await supabase.rpc('search_inventory_paginated', {
           p_company_id: companyId,
           p_term: submittedQuery.trim(),
-          p_limit: 80,
+          p_limit: filterBySelectedBranch ? 200 : 100,
           p_offset: 0,
           p_sort_key: sqlSortKey,
           p_sort_dir: sqlSortDir,
@@ -130,18 +134,44 @@ export function useProductSelectionTable({
     placeholderData: prev => prev,
   });
 
-  // In-stock filter
+  // In-stock & explicit branch filter
   const filteredProducts = useMemo(() => {
-    if (!showInStockOnly) return rawProducts;
-    return rawProducts.filter(p => (p.stock_quantity ?? 0) > 0);
-  }, [rawProducts, showInStockOnly]);
+    let list = rawProducts;
+    if (filterBySelectedBranch && effectiveBranchId !== null) {
+      list = list.filter(p => {
+        const avail = summarizeProductBranchAvailability(p, effectiveBranchId);
+        return avail.currentBranchQty > 0;
+      });
+    }
+    if (!showInStockOnly) return list;
+    return list.filter(p => (p.stock_quantity ?? 0) > 0);
+  }, [rawProducts, showInStockOnly, filterBySelectedBranch, effectiveBranchId]);
 
-  // Client-side Sort products for fields not handled directly by SQL RPC (e.g. stock, price, brand)
+  // Client-side Sort products for all sortable columns including branch, stock, price, brand
   const products = useMemo(() => {
     if (!sortConfig) return filteredProducts;
     const { key, direction } = sortConfig;
 
     return [...filteredProducts].sort((a, b) => {
+      if (key === 'branch') {
+        const avA = summarizeProductBranchAvailability(a, effectiveBranchId);
+        const avB = summarizeProductBranchAvailability(b, effectiveBranchId);
+        const primaryA = avA.stockedBranches[0] ?? avA.allBranches[0];
+        const primaryB = avB.stockedBranches[0] ?? avB.allBranches[0];
+        const hasStockA = avA.stockedBranches.length > 0 ? 0 : 1;
+        const hasStockB = avB.stockedBranches.length > 0 ? 0 : 1;
+        if (hasStockA !== hasStockB) return hasStockA - hasStockB;
+
+        const labelA = primaryA?.shortLabel ?? '';
+        const labelB = primaryB?.shortLabel ?? '';
+        const cmp = labelA.localeCompare(labelB, 'ar');
+        if (cmp !== 0) return direction === 'asc' ? cmp : -cmp;
+
+        const qtyA = primaryA?.quantity ?? 0;
+        const qtyB = primaryB?.quantity ?? 0;
+        return direction === 'asc' ? qtyB - qtyA : qtyA - qtyB;
+      }
+
       let aVal: string | number = '';
       let bVal: string | number = '';
 
@@ -183,11 +213,11 @@ export function useProductSelectionTable({
       if (strA > strB) return direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredProducts, sortConfig, mode]);
+  }, [filteredProducts, sortConfig, mode, effectiveBranchId]);
 
   // Handle column header click for sorting
   const handleSort = (colId: string) => {
-    if (colId === 'index' || colId === 'actions' || colId === 'branch' || colId === 'specs') return;
+    if (colId === 'index' || colId === 'actions' || colId === 'specs') return;
     setSortConfig(prev => {
       if (prev?.key === colId) {
         return prev.direction === 'asc' ? { key: colId, direction: 'desc' } : null;
@@ -203,7 +233,7 @@ export function useProductSelectionTable({
   // Reset to page 1 when filters/sort change
   useEffect(() => {
     setPage(1);
-  }, [submittedQuery, showInStockOnly, sortConfig, effectiveBranchId]);
+  }, [submittedQuery, showInStockOnly, filterBySelectedBranch, sortConfig, effectiveBranchId]);
 
   const paginatedProducts = useMemo(() => {
     const start = (safePage - 1) * pageSize;

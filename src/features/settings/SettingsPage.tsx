@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Settings,
@@ -57,20 +57,65 @@ interface MenuGroup {
   items: Array<{ id: SettingsSection; label: string; icon: any; desc: string; color: string }>;
 }
 
+const VALID_SETTINGS_SECTIONS = new Set<SettingsSection>([
+  'profile',
+  'company',
+  'branches',
+  'preferences',
+  'dhikr',
+  'notifications',
+  'financial',
+  'invoice',
+  'header_studio',
+  'pos',
+  'inventory',
+  'integrations',
+  'team',
+  'security',
+]);
+
+const normalizeSettingsTab = (raw: string | null): SettingsSection | null => {
+  if (!raw) return null;
+  if (raw === 'appearance' || raw === 'localization') return 'preferences';
+  if (raw === 'print') return 'invoice';
+  if (raw === 'backup') return 'security';
+  return VALID_SETTINGS_SECTIONS.has(raw as SettingsSection) ? (raw as SettingsSection) : null;
+};
+
 const SettingsPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab') as SettingsSection | null;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = normalizeSettingsTab(searchParams.get('tab'));
 
-  const [activeSection, setActiveSection] = useState<SettingsSection>(() => {
-    if (tabParam) return tabParam;
-    return 'profile';
-  });
+  const [activeSection, setActiveSectionState] = useState<SettingsSection>(
+    () => tabParam ?? 'profile'
+  );
 
+  const setActiveSection = useCallback(
+    (nextSection: SettingsSection) => {
+      setActiveSectionState(nextSection);
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (nextSection === 'profile') {
+            next.delete('tab');
+          } else {
+            next.set('tab', nextSection);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  // Sync only when the URL `tab` query param itself changes (never include activeSection
+  // in deps — otherwise clicking another tab snaps back to the old URL tab!).
   useEffect(() => {
-    if (tabParam && tabParam !== activeSection) {
-      setActiveSection(tabParam);
+    if (tabParam) {
+      setActiveSectionState(tabParam);
     }
-  }, [tabParam, activeSection]);
+  }, [tabParam]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -304,6 +349,7 @@ const SettingsPage: React.FC = () => {
             <div className="flex min-w-max gap-1.5 pb-1">
               {allItems.map(item => (
                 <button
+                  type="button"
                   key={item.id}
                   onClick={() => {
                     setActiveSection(item.id);
@@ -402,6 +448,7 @@ const SettingsPage: React.FC = () => {
               <div className="space-y-0.5">
                 {group.items.map(item => (
                   <button
+                    type="button"
                     key={item.id}
                     onClick={() => {
                       setActiveSection(item.id);
@@ -457,7 +504,7 @@ const SettingsPage: React.FC = () => {
           <div className="border-t border-gray-100 p-3 dark:border-slate-800">
             <div className="rounded-xl border border-blue-100 bg-gradient-to-l from-blue-50 to-indigo-50 p-2.5 dark:border-blue-900/30 dark:from-blue-950/30 dark:to-indigo-950/30">
               <p className="mb-0.5 text-[10px] font-bold uppercase text-blue-800 dark:text-blue-400">
-                الجعفري سمارت ERP
+                النظاري سمارت ERP
               </p>
               <p className="text-[10px] font-bold text-blue-600/60 dark:text-blue-400/50">
                 v2.0 — نظام إدارة متكامل

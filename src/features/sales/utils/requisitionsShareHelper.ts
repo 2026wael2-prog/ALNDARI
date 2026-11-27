@@ -104,10 +104,10 @@ export const openRequisitionsWhatsApp = (
 };
 
 /**
- * Open Telegram share with pre-filled text
+ * Open Telegram share with pre-filled text (never leaks internal app URL)
  */
 export const openRequisitionsTelegram = (payload: RequisitionSharePayload): void => {
   const text = buildRequisitionsMessageText(payload);
-  const link = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`;
+  const link = `https://t.me/share/url?url=%20&text=${encodeURIComponent(text)}`;
   window.open(link, '_blank', 'noopener,noreferrer');
 };

@@ -17,6 +17,7 @@ import type {
   RequisitionItem,
   RequisitionOrigin,
   RequisitionRecord,
+  RequisitionStatus,
   RequisitionSupplier,
 } from '../types/requisitions';
 import {
@@ -136,6 +137,10 @@ interface RequisitionsState {
    * save would silently degrade to local-only for ever (audit F5).
    */
   serverBackedId: string | null;
+  /** Server lifecycle status of the open requisition (null for unsaved/new). */
+  serverStatus: RequisitionStatus | null;
+  /** True when the grid was modified since last save / load / reset. */
+  hasUnsavedChanges: boolean;
   /** True when the browser refused to persist the draft (quota / private mode). */
   storageWarning: boolean;
 
@@ -147,10 +152,14 @@ interface RequisitionsState {
   moveItem: (id: string, direction: 'up' | 'down') => void;
   clearItems: () => void;
   ensureMinimumRows: (count?: number) => void;
+  appendCatalogItems: (
+    entries: Array<Omit<RequisitionItem, 'id'>>
+  ) => { added: number; duplicates: number };
 
   setSupplier: (supplier: RequisitionSupplier | null) => void;
   setNotes: (notes: string) => void;
   setTitle: (title: string) => void;
+  setServerStatus: (status: RequisitionStatus | null) => void;
 
   /** Load an existing record (history) back into the editable grid. */
   loadIntoGrid: (
@@ -160,6 +169,7 @@ interface RequisitionsState {
       recordId?: string | null;
       /** Whether that record already exists on the server (audit F5). */
       recordOrigin?: RequisitionOrigin;
+      status?: RequisitionStatus | null;
     }
   ) => void;
 
@@ -169,7 +179,11 @@ interface RequisitionsState {
    * audited. Falls back to a device-only local draft when the server refuses or
    * is unreachable and reports which of the two happened.
    */
-  saveRequisition: (options?: { idempotencyKey?: string }) => Promise<RequisitionSaveOutcome>;
+  saveRequisition: (options?: {
+    idempotencyKey?: string;
+    branchId?: string | null;
+    status?: RequisitionStatus;
+  }) => Promise<RequisitionSaveOutcome>;
   deleteLocalDraft: (id: string) => void;
   markServerSaved: (recordId: string, number: string) => void;
   dismissStorageWarning: () => void;
@@ -182,7 +196,15 @@ const buildDraftTitle = (): string => 'طلب مشتريات - ' + formatLocalDa
 
 type GridSlice = Pick<
   RequisitionsState,
-  'items' | 'supplier' | 'notes' | 'title' | 'serverNumber' | 'serverRecordId' | 'serverBackedId'
+  | 'items'
+  | 'supplier'
+  | 'notes'
+  | 'title'
+  | 'serverNumber'
+  | 'serverRecordId'
+  | 'serverBackedId'
+  | 'serverStatus'
+  | 'hasUnsavedChanges'
 >;
 
 const initialGrid = (): GridSlice => ({
@@ -193,6 +215,8 @@ const initialGrid = (): GridSlice => ({
   serverNumber: null,
   serverRecordId: null,
   serverBackedId: null,
+  serverStatus: null,
+  hasUnsavedChanges: false,
 });
 
 /** Splits one clipboard line into the five grid columns. */
@@ -233,19 +257,26 @@ export const useRequisitionsStore = create<RequisitionsState>()(
       storageWarning: false,
 
       addItem: initial => {
-        set(state => ({ items: [...state.items, { ...createEmptyRequisitionItem(), ...initial }] }));
+        set(state => ({
+          items: [...state.items, { ...createEmptyRequisitionItem(), ...initial }],
+          hasUnsavedChanges: true,
+        }));
       },
 
       updateItem: (id, updates) => {
         set(state => ({
           items: state.items.map(item => (item.id === id ? { ...item, ...updates } : item)),
+          hasUnsavedChanges: true,
         }));
       },
 
       removeItem: id => {
         set(state => {
           const next = state.items.filter(item => item.id !== id);
-          return { items: next.length > 0 ? next : createEmptyRequisitionRows(1) };
+          return {
+            items: next.length > 0 ? next : createEmptyRequisitionRows(1),
+            hasUnsavedChanges: true,
+          };
         });
       },
 
@@ -257,7 +288,7 @@ export const useRequisitionsStore = create<RequisitionsState>()(
           const clone: RequisitionItem = { ...source, id: crypto.randomUUID() };
           const next = [...state.items];
           next.splice(index + 1, 0, clone);
-          return { items: next };
+          return { items: next, hasUnsavedChanges: true };
         });
       },
 
@@ -271,7 +302,7 @@ export const useRequisitionsStore = create<RequisitionsState>()(
           // `index` was validated above, so splice always yields exactly the row.
           const [row] = next.splice(index, 1);
           next.splice(target, 0, row);
-          return { items: next };
+          return { items: next, hasUnsavedChanges: true };
         });
       },
 
@@ -288,14 +319,61 @@ export const useRequisitionsStore = create<RequisitionsState>()(
         });
       },
 
+      appendCatalogItems: entries => {
+        if (entries.length === 0) return { added: 0, duplicates: 0 };
+        const state = get();
+        const existingKeys = new Set(
+          filledRequisitionItems(state.items).map(requisitionItemKey)
+        );
+        const existingProductIds = new Set(
+          filledRequisitionItems(state.items)
+            .map(row => row.productId)
+            .filter((pid): pid is string => Boolean(pid))
+        );
+
+        const toAdd: RequisitionItem[] = [];
+        let duplicates = 0;
+
+        entries.forEach(entry => {
+          const candidate: RequisitionItem = { ...entry, id: crypto.randomUUID() };
+          const key = requisitionItemKey(candidate);
+          const isDupByProduct =
+            Boolean(candidate.productId) && existingProductIds.has(candidate.productId as string);
+          if (isDupByProduct || (key !== '|' && existingKeys.has(key))) {
+            duplicates += 1;
+            return;
+          }
+          if (candidate.productId) existingProductIds.add(candidate.productId);
+          if (key !== '|') existingKeys.add(key);
+          toAdd.push(candidate);
+        });
+
+        if (toAdd.length > 0) {
+          set(current => {
+            const filled = filledRequisitionItems(current.items);
+            const merged = [...filled, ...toAdd];
+            const minBlank = merged.length < DEFAULT_ROW_COUNT ? DEFAULT_ROW_COUNT - merged.length : 1;
+            return {
+              items: [...merged, ...createEmptyRequisitionRows(minBlank)],
+              hasUnsavedChanges: true,
+            };
+          });
+        }
+
+        return { added: toAdd.length, duplicates };
+      },
+
       setSupplier: supplier => {
-        set({ supplier });
+        set({ supplier, hasUnsavedChanges: true });
       },
       setNotes: notes => {
-        set({ notes });
+        set({ notes, hasUnsavedChanges: true });
       },
       setTitle: title => {
-        set({ title });
+        set({ title, hasUnsavedChanges: true });
+      },
+      setServerStatus: status => {
+        set({ serverStatus: status });
       },
 
       loadIntoGrid: (payload, origin) => {
@@ -308,6 +386,8 @@ export const useRequisitionsStore = create<RequisitionsState>()(
           serverNumber: origin?.number ?? null,
           serverRecordId: origin?.recordId ?? null,
           serverBackedId: origin?.recordOrigin === 'server' ? origin.recordId ?? null : null,
+          serverStatus: origin?.recordOrigin === 'server' ? (origin.status ?? 'draft') : null,
+          hasUnsavedChanges: false,
         });
       },
 
@@ -343,6 +423,7 @@ export const useRequisitionsStore = create<RequisitionsState>()(
         const userId = user?.id ?? '';
         const items = filledRequisitionItems(state.items);
         const title = state.title.trim() === '' ? buildDraftTitle() : state.title;
+        const previousRecordId = state.serverRecordId;
 
         if (items.length === 0) {
           return {
@@ -367,6 +448,8 @@ export const useRequisitionsStore = create<RequisitionsState>()(
             // Only a server id may be sent: a local draft id would look like a
             // foreign document and the save would degrade to local-only for ever.
             recordId: state.serverBackedId,
+            status: options?.status ?? state.serverStatus ?? 'draft',
+            branchId: options?.branchId ?? null,
             idempotencyKey: options?.idempotencyKey ?? crypto.randomUUID(),
             payload: { title, supplier: state.supplier, notes: state.notes, items },
           });
@@ -391,9 +474,13 @@ export const useRequisitionsStore = create<RequisitionsState>()(
             serverBackedId: result.recordId,
             serverRecordId: result.recordId,
             serverNumber: result.number,
-            // The server now owns this document, so drop the local mirror: the
-            // history must never list the same requisition twice.
-            localDrafts: current.localDrafts.filter(draft => draft.id !== result.recordId),
+            serverStatus: result.status,
+            hasUnsavedChanges: false,
+            // Drop BOTH the server id AND any prior local draft id so the
+            // history never lists the same requisition twice after upload.
+            localDrafts: current.localDrafts.filter(
+              draft => draft.id !== result.recordId && draft.id !== previousRecordId
+            ),
           }));
 
           return { uploaded: true, record, error: null };
@@ -412,13 +499,20 @@ export const useRequisitionsStore = create<RequisitionsState>()(
           const isCurrent = state.serverRecordId === id;
           return {
             localDrafts: state.localDrafts.filter(draft => draft.id !== id),
-            ...(isCurrent ? { serverRecordId: null, serverNumber: null } : {}),
+            ...(isCurrent
+              ? { serverRecordId: null, serverNumber: null, serverBackedId: null, serverStatus: null }
+              : {}),
           };
         });
       },
 
       markServerSaved: (recordId, number) => {
-        set({ serverRecordId: recordId, serverNumber: number });
+        set({
+          serverRecordId: recordId,
+          serverBackedId: recordId,
+          serverNumber: number,
+          hasUnsavedChanges: false,
+        });
       },
 
       dismissStorageWarning: () => {
@@ -455,10 +549,10 @@ export const useRequisitionsStore = create<RequisitionsState>()(
 
         result.imported = imported.length;
         if (imported.length > 0) {
+          // Keep current server binding consistent (P0-4): never desync serverNumber from serverBackedId.
           set(current => ({
             items: [...filledRequisitionItems(current.items), ...imported],
-            serverNumber: null,
-            serverRecordId: null,
+            hasUnsavedChanges: true,
           }));
         }
         return result;
@@ -466,7 +560,7 @@ export const useRequisitionsStore = create<RequisitionsState>()(
     }),
     {
       name: 'active',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => scopedStorage),
       partialize: state => ({
         items: state.items,
@@ -477,6 +571,8 @@ export const useRequisitionsStore = create<RequisitionsState>()(
         serverNumber: state.serverNumber,
         serverRecordId: state.serverRecordId,
         serverBackedId: state.serverBackedId,
+        serverStatus: state.serverStatus,
+        hasUnsavedChanges: state.hasUnsavedChanges,
       }),
     }
   )

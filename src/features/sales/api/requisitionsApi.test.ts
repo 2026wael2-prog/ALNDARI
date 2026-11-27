@@ -36,12 +36,13 @@ describe('requisition status mapping', () => {
     expect(fromServerStatus('in_review')).toBe('sent');
     expect(fromServerStatus('converted_to_rfq')).toBe('received');
     expect(fromServerStatus('converted_to_po')).toBe('received');
+    expect(fromServerStatus('closed')).toBe('received');
     expect(fromServerStatus('rejected')).toBe('cancelled');
     expect(fromServerStatus('unexpected')).toBe('draft');
   });
 
-  it('never writes a status outside the live chk_pr_status constraint', () => {
-    // 20260916000005_data_integrity_fixes.sql is the source of truth.
+  it('never writes a status outside the live prc_purchase_requests_status_check constraint', () => {
+    // Wave 46 aligned prc_purchase_requests_status_check with all workflow statuses.
     const allowed = new Set([
       'draft',
       'submitted',
@@ -50,12 +51,12 @@ describe('requisition status mapping', () => {
       'rejected',
       'converted_to_rfq',
       'converted_to_po',
+      'closed',
       'cancelled',
     ]);
     uiStatuses.map(toServerStatus).forEach(status => {
       expect(allowed.has(status)).toBe(true);
     });
-    expect(allowed.has('closed')).toBe(false);
   });
 });
 
@@ -75,6 +76,24 @@ describe('requisition line serialisation', () => {
       partNumber: 'A-123',
       brand: 'DENSO',
       notes: 'أصلي فقط',
+    });
+  });
+
+  it('round-trips cells containing the pipe delimiter without shifting columns', () => {
+    const item = {
+      id: 'row-pipe',
+      name: 'فحمات أمامي | خلفي',
+      partNumber: '04465-33470',
+      brand: 'تويوتا | لكزس',
+      quantity: 2,
+      notes: 'أصلي | وكالة',
+    };
+
+    expect(parseRequisitionItemDescription(serializeRequisitionItemDescription(item))).toEqual({
+      name: 'فحمات أمامي | خلفي',
+      partNumber: '04465-33470',
+      brand: 'تويوتا | لكزس',
+      notes: 'أصلي | وكالة',
     });
   });
 

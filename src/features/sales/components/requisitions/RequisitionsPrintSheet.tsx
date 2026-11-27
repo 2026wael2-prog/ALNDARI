@@ -127,28 +127,28 @@ export const RequisitionsPrintSheet: React.FC<RequisitionsPrintSheetProps> = ({
       </div>
 
       {/* Supplier & Order Meta Bar */}
-      <div className="mb-4 grid grid-cols-2 gap-3 rounded border border-slate-300 bg-slate-50 p-2.5 text-xs sm:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 rounded border border-slate-300 bg-slate-50 p-2.5 text-xs sm:grid-cols-5">
         <div>
-          <span className="font-bold text-slate-500">المورد المستهدف: </span>
-          <span className="font-bold text-slate-900">{supplier?.name || 'عام / غير محدد'}</span>
+          <span className="font-bold text-slate-600">المورد المستهدف: </span>
+          <span className="font-extrabold text-black">{supplier?.name || 'عام / غير محدد'}</span>
         </div>
         <div>
-          <span className="font-bold text-slate-500">رقم الهاتف: </span>
-          <span className="font-mono text-slate-900" dir="ltr">
+          <span className="font-bold text-slate-600">رقم الهاتف: </span>
+          <span className="font-mono font-bold text-black" dir="ltr">
             {supplier?.phone || '---'}
           </span>
         </div>
         <div>
-          <span className="font-bold text-slate-500">تاريخ الطلب: </span>
-          <span className="text-slate-900">{currentDate}</span>
+          <span className="font-bold text-slate-600">تاريخ الطلب: </span>
+          <span className="font-bold text-black">{currentDate}</span>
         </div>
         <div>
-          <span className="font-bold text-slate-500">عدد الأصناف: </span>
-          <span className="font-bold text-blue-700">{displayItems.length} صنف</span>
+          <span className="font-bold text-slate-600">عدد الأصناف: </span>
+          <span className="font-extrabold text-blue-800">{displayItems.length} صنف</span>
         </div>
         <div>
-          <span className="font-bold text-slate-500">رقم الطلب: </span>
-          <span className="font-mono font-bold text-slate-900" dir="ltr">
+          <span className="font-bold text-slate-600">رقم الطلب: </span>
+          <span className="font-mono font-extrabold text-black" dir="ltr">
             {number || 'لم يُرقّم بعد'}
           </span>
         </div>

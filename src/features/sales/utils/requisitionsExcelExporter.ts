@@ -30,6 +30,13 @@ export interface RequisitionExcelPayload {
   number?: string | null;
 }
 
+/** Prefix formula-triggering characters so Excel never executes user text as a formula. */
+const safeExcelText = (value: string): string => {
+  const trimmed = value.trim();
+  if (/^[=+\-@\t\r]/.test(trimmed)) return `'${trimmed}`;
+  return trimmed;
+};
+
 export const generateRequisitionsWorkbook = async (
   payload: RequisitionExcelPayload
 ): Promise<XlsxWorkbook> => {
@@ -38,21 +45,22 @@ export const generateRequisitionsWorkbook = async (
 
   const rows: unknown[][] = [];
   const reqDate = payload.date || formatLocalDate();
-  const supplierName = payload.supplier?.name.trim() || 'عام / غير محدد';
-  const supplierPhone = payload.supplier?.phone?.trim() || '---';
+  const supplierName = safeExcelText(payload.supplier?.name || '') || 'عام / غير محدد';
+  const supplierPhone = safeExcelText(payload.supplier?.phone || '') || '---';
   // Audit F17: placeholder rows never reach the sheet, and no quantity is
   // silently rewritten to 1.
   const items = filledRequisitionItems(payload.items);
   const totalQty = sumRequisitionQuantities(items);
 
   // 1. Company Header
-  rows.push([payload.companyName]);
-  rows.push([payload.companyAddress || '']);
-  rows.push([`الرقم الضريبي: ${payload.taxNumber || '---'}`]);
+  rows.push([safeExcelText(payload.companyName)]);
+  rows.push([safeExcelText(payload.companyAddress || '')]);
+  rows.push([`الرقم الضريبي: ${safeExcelText(payload.taxNumber || '') || '---'}`]);
   rows.push([]);
 
   // 2. Document Title
-  const documentTitle = payload.title || 'قائمة المنتجات والقطع المطلوبة (طلب شراء)';
+  const documentTitle =
+    safeExcelText(payload.title || '') || 'قائمة المنتجات والقطع المطلوبة (طلب شراء)';
   rows.push([payload.number ? documentTitle + ' — رقم ' + payload.number : documentTitle]);
   rows.push([]);
 
@@ -77,11 +85,11 @@ export const generateRequisitionsWorkbook = async (
   items.forEach((item, idx) => {
     rows.push([
       idx + 1,
-      item.name || '---',
-      item.partNumber || '---',
-      item.brand || '---',
+      safeExcelText(item.name || '') || '---',
+      safeExcelText(item.partNumber || '') || '---',
+      safeExcelText(item.brand || '') || '---',
       Number(item.quantity) || 0,
-      item.notes || '',
+      safeExcelText(item.notes || ''),
     ]);
   });
 
@@ -92,7 +100,7 @@ export const generateRequisitionsWorkbook = async (
 
   if (payload.notes?.trim()) {
     rows.push([]);
-    rows.push(['ملاحظات إضافية:', payload.notes.trim()]);
+    rows.push(['ملاحظات إضافية:', safeExcelText(payload.notes)]);
   }
 
   // Merges

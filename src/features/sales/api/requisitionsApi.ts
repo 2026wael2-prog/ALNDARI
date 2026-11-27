@@ -31,9 +31,8 @@ import type {
 
 /**
  * Status vocabulary accepted by `prc_purchase_requests.status`.
- * Source of truth: the live CHECK constraint `chk_pr_status` created by
- * `20260916000005_data_integrity_fixes.sql` — note it has `converted_to_rfq` /
- * `converted_to_po` and NO `closed`.
+ * Source of truth: live CHECK constraint `prc_purchase_requests_status_check`
+ * (aligned in Wave 46 migration).
  */
 export type ServerRequisitionStatus =
   | 'draft'
@@ -43,6 +42,7 @@ export type ServerRequisitionStatus =
   | 'rejected'
   | 'converted_to_rfq'
   | 'converted_to_po'
+  | 'closed'
   | 'cancelled';
 
 /** UI status -> server status. */
@@ -61,6 +61,7 @@ export const fromServerStatus = (status: string): RequisitionStatus => {
     case 'approved':
     case 'converted_to_rfq':
     case 'converted_to_po':
+    case 'closed':
       return 'received';
     case 'rejected':
     case 'cancelled':
@@ -72,11 +73,18 @@ export const fromServerStatus = (status: string): RequisitionStatus => {
 
 /** Separator between the grid columns stored in a line description. */
 export const REQUISITION_DESCRIPTION_SEPARATOR = ' | ';
+const ESCAPED_PIPE = '\u2223';
+
+const escapeCellValue = (value: string): string =>
+  value.trim().replace(/\|/g, ESCAPED_PIPE);
+
+const unescapeCellValue = (value: string): string =>
+  value.trim().replace(new RegExp(ESCAPED_PIPE, 'g'), '|');
 
 export const serializeRequisitionItemDescription = (item: RequisitionItem): string => {
   const columns = [item.name, item.partNumber, item.brand, item.notes ?? ''];
   while (columns.length > 1 && columns[columns.length - 1]?.trim() === '') columns.pop();
-  return columns.map(column => column.trim()).join(REQUISITION_DESCRIPTION_SEPARATOR);
+  return columns.map(escapeCellValue).join(REQUISITION_DESCRIPTION_SEPARATOR);
 };
 
 export const parseRequisitionItemDescription = (
@@ -84,17 +92,18 @@ export const parseRequisitionItemDescription = (
 ): Pick<RequisitionItem, 'name' | 'partNumber' | 'brand' | 'notes'> => {
   const [name = '', partNumber = '', brand = '', ...rest] = description
     .split(REQUISITION_DESCRIPTION_SEPARATOR)
-    .map(part => part.trim());
+    .map(unescapeCellValue);
   return { name, partNumber, brand, notes: rest.join(REQUISITION_DESCRIPTION_SEPARATOR) };
 }; /** Codes raised by the requisition RPCs, mapped to messages the user can act on. */
 const REQUISITION_ERROR_MESSAGES: ReadonlyArray<readonly [string, string]> = [
   ['invalid_items', 'لا يمكن حفظ مطلوبات بدون بنود — أضف صنفاً واحداً على الأقل'],
   ['invalid_quantity', 'يوجد بند بكمية غير صحيحة: يجب أن تكون الكمية أكبر من صفر'],
   ['invalid_status', 'حالة الطلب غير صحيحة'],
-  ['invalid_transition', 'لا يمكن إعادة فتح طلب مغلق أو ملغى'],
+  ['invalid_transition', 'لا يمكن تعديل أو إعادة فتح طلب مغلق أو ملغى'],
   ['requisition_not_found', 'لم يُعثر على الطلب في قاعدة البيانات — سيُحفظ كطلب جديد'],
   ['user_id_required', 'انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول'],
   ['company_id_required', 'تعذّر تحديد المنشأة الحالية'],
+  ['access_denied', 'عذراً، لا تمتلك صلاحية تنفيذ هذه العملية على طلبات الشراء'],
 ];
 
 /**
@@ -152,17 +161,33 @@ interface ServerRow {
   pr_number: string;
   title: string | null;
   justification: string | null;
+  notes: string | null;
   status: string;
   created_at: string;
   updated_at: string;
   supplier_party_id: string | null;
+  supplier_name?: string | null;
+  supplier_phone?: string | null;
 }
 
 interface ServerLineRow {
   pr_item_id: string;
   pr_id: string;
+  product_id: string | null;
   description: string;
   quantity: number;
+}
+
+export interface LowStockRequisitionItem {
+  id: string;
+  name_ar: string;
+  part_number: string;
+  sku: string;
+  brand: string;
+  current_qty: number;
+  min_stock_level: number;
+  sold_90d: number;
+  suggested_qty: number;
 }
 
 const toItemPayload = (item: RequisitionItem): Json => ({
@@ -181,9 +206,23 @@ const toRequisitionRecord = (
 ): RequisitionRecord => {
   const items: RequisitionItem[] = lines.map(line => ({
     id: line.pr_item_id,
+    productId: line.product_id ?? undefined,
     ...parseRequisitionItemDescription(line.description),
     quantity: line.quantity,
   }));
+
+  const resolvedSupplier = supplier
+    ? {
+        id: supplier.id,
+        name: supplier.name,
+        phone: row.supplier_phone ?? supplier.phone ?? undefined,
+      }
+    : row.supplier_name || row.supplier_phone
+      ? {
+          name: row.supplier_name || 'مورد عام',
+          phone: row.supplier_phone ?? undefined,
+        }
+      : null;
 
   return {
     id: row.pr_id,
@@ -191,10 +230,8 @@ const toRequisitionRecord = (
     number: row.pr_number,
     title: row.title !== null && row.title.trim() !== '' ? row.title : row.pr_number,
     status: fromServerStatus(row.status),
-    supplier: supplier
-      ? { id: supplier.id, name: supplier.name, phone: supplier.phone ?? undefined }
-      : null,
-    notes: row.justification ?? '',
+    supplier: resolvedSupplier,
+    notes: row.notes ?? row.justification ?? '',
     items,
     itemCount: items.length,
     totalQuantity: items.reduce(
@@ -209,10 +246,12 @@ const toRequisitionRecord = (
 const fetchServerLines = async (requestIds: readonly string[]): Promise<ServerLineRow[]> => {
   const { data, error } = await supabase
     .from('prc_purchase_request_items')
-    .select('pr_item_id, pr_id, description, quantity')
-    .in('pr_id', requestIds);
+    .select('pr_item_id, pr_id, product_id, description, quantity')
+    .in('pr_id', requestIds)
+    .order('created_at', { ascending: true })
+    .order('pr_item_id', { ascending: true });
   if (error) throw parseError(error);
-  return data ?? [];
+  return (data ?? []) as unknown as ServerLineRow[];
 };
 
 const fetchSupplierRows = async (supplierIds: readonly string[]): Promise<PartyRow[]> => {
@@ -245,6 +284,8 @@ export const requisitionsApi = {
         status: toServerStatus(input.status ?? 'draft'),
         branch_id: input.branchId ?? null,
         supplier_id: input.payload.supplier?.id ?? null,
+        supplier_name: input.payload.supplier?.name ?? null,
+        supplier_phone: input.payload.supplier?.phone ?? null,
         items: input.payload.items.map(toItemPayload),
       } as unknown as Json,
     });
@@ -255,17 +296,19 @@ export const requisitionsApi = {
       throw new Error(response.error ?? 'requisition_not_found');
     }
 
-    void broadcastCrossBranchActivity(input.companyId, {
-      id: response.id,
-      company_id: input.companyId,
-      branch_id: input.branchId ?? null,
-      type: 'requisition_created',
-      title: 'طلب منتجات مطلوبة جديد',
-      message: `تم تسجيل طلب توفير قطع ومنتجات مطلوبة ${response.pr_number ? `رقم ${response.pr_number}` : ''}`,
-      document_number: response.pr_number,
-      link: '/sales',
-      created_by: input.userId,
-    });
+    if (!input.recordId && response.is_duplicate !== true) {
+      void broadcastCrossBranchActivity(input.companyId, {
+        id: response.id,
+        company_id: input.companyId,
+        branch_id: input.branchId ?? null,
+        type: 'requisition_created',
+        title: 'طلب منتجات مطلوبة جديد',
+        message: `تم تسجيل طلب توفير قطع ومنتجات مطلوبة ${response.pr_number ? `رقم ${response.pr_number}` : ''}`,
+        document_number: response.pr_number,
+        link: '/sales?tab=requisitions',
+        created_by: input.userId,
+      });
+    }
 
     return {
       recordId: response.id,
@@ -298,7 +341,7 @@ export const requisitionsApi = {
     const { data, error } = await supabase
       .from('prc_purchase_requests')
       .select(
-        'pr_id, pr_number, title, justification, status, created_at, updated_at, supplier_party_id'
+        'pr_id, pr_number, title, justification, notes, status, created_at, updated_at, supplier_party_id, supplier_name, supplier_phone'
       )
       .eq('company_id', companyId)
       .eq('source', 'sales_requisitions')
@@ -339,6 +382,36 @@ export const requisitionsApi = {
         row.supplier_party_id === null ? null : (supplierById.get(row.supplier_party_id) ?? null)
       )
     );
+  },
+
+  /** Smart low-stock & fast-moving out-of-stock replenishment suggestions. */
+  listLowStockItems: async (
+    companyId: string,
+    branchId?: string | null,
+    limit = 25
+  ): Promise<LowStockRequisitionItem[]> => {
+    if (!companyId) return [];
+    const { data, error } = await (supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>)('get_requisition_low_stock_items', {
+      p_company_id: companyId,
+      p_branch_id: branchId ?? null,
+      p_limit: limit,
+    });
+    if (error) throw parseError(error);
+    const rows = (Array.isArray(data) ? data : []) as Array<Record<string, unknown>>;
+    return rows.map(row => ({
+      id: String(row.id ?? ''),
+      name_ar: String(row.name_ar ?? ''),
+      part_number: String(row.part_number ?? ''),
+      sku: String(row.sku ?? ''),
+      brand: String(row.brand ?? ''),
+      current_qty: Number(row.current_qty ?? 0),
+      min_stock_level: Number(row.min_stock_level ?? 0),
+      sold_90d: Number(row.sold_90d ?? 0),
+      suggested_qty: Math.max(1, Number(row.suggested_qty ?? 1)),
+    }));
   },
 
   /** The number the next requisition will take — display only, never authoritative. */

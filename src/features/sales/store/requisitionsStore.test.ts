@@ -224,3 +224,45 @@ describe('requisitionsStore — company/user scoped persistence (audit F1)', () 
     expect(filledNames()).toEqual(['طلب الشركة الأولى']);
   });
 });
+
+describe('requisitionsStore — Wave 46 hardening (explorer append, import binding, dirty state)', () => {
+  beforeEach(() => {
+    setAuthUser({ id: 'user-1', company_id: 'company-1' });
+    resetStore();
+  });
+
+  it('keeps serverNumber and serverBackedId in sync when pasting into an open server requisition', () => {
+    useRequisitionsStore.getState().loadIntoGrid(
+      {
+        title: 'طلب خادم',
+        supplier: null,
+        notes: '',
+        items: [{ id: '1', name: 'فلتر هواء', partNumber: 'AF-1', brand: 'تويوتا', quantity: 2 }],
+      },
+      { number: 'PR-202611-0001', recordId: 'srv-uuid-1', recordOrigin: 'server', status: 'draft' }
+    );
+    expect(useRequisitionsStore.getState().hasUnsavedChanges).toBe(false);
+
+    useRequisitionsStore.getState().importFromText('فلتر زيت\tOF-2\tدنسو\t5');
+    const state = useRequisitionsStore.getState();
+    expect(state.serverNumber).toBe('PR-202611-0001');
+    expect(state.serverBackedId).toBe('srv-uuid-1');
+    expect(state.hasUnsavedChanges).toBe(true);
+    expect(filledNames()).toEqual(['فلتر هواء', 'فلتر زيت']);
+  });
+
+  it('appends catalog items cleanly and skips duplicates by productId or key', () => {
+    const first = useRequisitionsStore.getState().appendCatalogItems([
+      { productId: 'p-1', name: 'سير مكينة', partNumber: 'BELT-1', brand: 'بوش', quantity: 3 },
+      { productId: 'p-2', name: 'طرمبة ماء', partNumber: 'WP-2', brand: 'ايسن', quantity: 1 },
+    ]);
+    expect(first).toEqual({ added: 2, duplicates: 0 });
+
+    const second = useRequisitionsStore.getState().appendCatalogItems([
+      { productId: 'p-1', name: 'سير مكينة معدل', partNumber: 'BELT-1', brand: 'بوش', quantity: 5 },
+      { productId: 'p-3', name: 'كوع ماء', partNumber: 'TH-3', brand: 'تويوتا', quantity: 4 },
+    ]);
+    expect(second).toEqual({ added: 1, duplicates: 1 });
+    expect(filledNames()).toEqual(['سير مكينة', 'طرمبة ماء', 'كوع ماء']);
+  });
+});

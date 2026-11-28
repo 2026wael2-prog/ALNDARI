@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { MessageSquare, Printer, Palette, X, FileSpreadsheet } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  Combine,
+  Edit,
+  FileSpreadsheet,
+  MessageSquare,
+  Palette,
+  Printer,
+  X,
+} from 'lucide-react';
 import type { StatementMovement } from '../../service';
 import type { Party, PartyType } from '../../types';
 import { formatCurrency } from '../../../../core/utils';
@@ -11,6 +20,10 @@ interface Props {
   selectedParty: Party | undefined;
   partyType: PartyType;
   companyName: string;
+  editableSalesInvoicesCount?: number;
+  onEditSingleInvoice?: () => void;
+  onOpenMergeModal?: () => void;
+  onOpenBulkCurrencyModal?: () => void;
   onClearSelection: () => void;
   onApplyColor: (color: string | null) => void;
   onPrintSingleTransaction: (movement: StatementMovement) => void;
@@ -23,6 +36,10 @@ export const StatementSelectedActionsBar: React.FC<Props> = ({
   selectedParty,
   partyType,
   companyName,
+  editableSalesInvoicesCount = 0,
+  onEditSingleInvoice,
+  onOpenMergeModal,
+  onOpenBulkCurrencyModal,
   onClearSelection,
   onApplyColor,
   onPrintSingleTransaction,
@@ -173,6 +190,43 @@ export const StatementSelectedActionsBar: React.FC<Props> = ({
           >
             <Printer size={14} />
             <span>طباعة المحدد</span>
+          </button>
+        )}
+
+        {/* Direct Invoice Edit / Merge / Currency Conversion */}
+        {!isSupplier && editableSalesInvoicesCount === 1 && onEditSingleInvoice && (
+          <button
+            type="button"
+            onClick={onEditSingleInvoice}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-700"
+            title="تعديل الفاتورة المحددة أو تحويل عملتها"
+          >
+            <Edit size={14} />
+            <span>تعديل الفاتورة</span>
+          </button>
+        )}
+
+        {!isSupplier && editableSalesInvoicesCount >= 2 && onOpenMergeModal && (
+          <button
+            type="button"
+            onClick={onOpenMergeModal}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-indigo-700"
+            title="دمج فواتير المبيعات المحددة في فاتورة واحدة"
+          >
+            <Combine size={14} />
+            <span>دمج الفواتير ({editableSalesInvoicesCount})</span>
+          </button>
+        )}
+
+        {!isSupplier && editableSalesInvoicesCount >= 1 && onOpenBulkCurrencyModal && (
+          <button
+            type="button"
+            onClick={onOpenBulkCurrencyModal}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-200 shadow-sm transition-all hover:bg-amber-500/30"
+            title="تحويل عملة الفواتير المحددة (ريال يمني ↔ سعودي)"
+          >
+            <ArrowRightLeft size={14} />
+            <span>تغيير العملة</span>
           </button>
         )}
 

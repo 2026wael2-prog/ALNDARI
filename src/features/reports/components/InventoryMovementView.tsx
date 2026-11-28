@@ -11,9 +11,16 @@ import {
   CheckCircle2,
   Zap,
   BarChart3,
+  FileText,
+  Edit,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { cn, formatLocalDate } from '@/core/utils';
+import { resolveMovementDocumentAction } from '../../inventory/components/audit/movements/movementDocumentUtils';
+import {
+  MovementDocumentModals,
+  type ActiveMovementDocument,
+} from '../../inventory/components/audit/movements/MovementDocumentModals';
 
 /** صف حركة مخزون كما يعيده `useItemMovement`. */
 interface MovementRow {
@@ -22,7 +29,10 @@ interface MovementRow {
   entry_date?: string;
   type?: string;
   transaction_type?: string;
+  original_type?: string | null;
   reference_type?: string;
+  reference_id?: string | null;
+  doc_type?: string | null;
   description?: string;
   quantity: number;
   raw_quantity?: number | null;
@@ -31,6 +41,7 @@ interface MovementRow {
   source_name?: string;
   source_user?: string;
   unit_cost?: number;
+  unit_price?: number;
 }
 
 const getRowDate = (m: MovementRow): string | undefined => m.date ?? m.entry_date;
@@ -53,9 +64,12 @@ const InventoryMovementView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Date Filtering State
+  // Date & Type Filtering State
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
+  const [movementFilter, setMovementFilter] = useState<'all' | 'in' | 'out'>('all');
+  const [activeDocument, setActiveDocument] = useState<ActiveMovementDocument | null>(null);
+  const [editingSalesInvoiceId, setEditingSalesInvoiceId] = useState<string | null>(null);
 
   const { data: allProducts } = useMinimalProducts();
   const { data: movement, isLoading } = useItemMovement(selectedProductId || null);
@@ -79,16 +93,18 @@ const InventoryMovementView: React.FC = () => {
 
   const filteredMovement = useMemo(() => {
     const movementArr = (movement as unknown as MovementRow[]) || [];
-    if (!fromDate && !toDate) return movementArr;
     return movementArr.filter(m => {
-      const rawDate = getRowDate(m);
-      const d = rawDate ? String(rawDate).slice(0, 10) : '';
-      if (!d) return false;
-      if (fromDate && d < fromDate) return false;
-      if (toDate && d > toDate) return false;
+      if (movementFilter !== 'all' && m.transaction_type !== movementFilter) return false;
+      if (fromDate || toDate) {
+        const rawDate = getRowDate(m);
+        const d = rawDate ? String(rawDate).slice(0, 10) : '';
+        if (!d) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+      }
       return true;
     });
-  }, [movement, fromDate, toDate]);
+  }, [movement, fromDate, toDate, movementFilter]);
 
   const analysis = useMemo(() => {
     const movementArr = filteredMovement;
@@ -192,14 +208,40 @@ const InventoryMovementView: React.FC = () => {
     },
     {
       header: 'تفاصيل المرجع',
-      accessor: (row: MovementRow) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-            {row.document_number || '—'}
-          </span>
-          <span className="text-[10px] text-slate-400">{row.source_name}</span>
-        </div>
-      ),
+      accessor: (row: MovementRow) => {
+        const docAction = resolveMovementDocumentAction({
+          reference_id: row.reference_id ?? null,
+          doc_type: row.doc_type ?? null,
+          reference_type: row.reference_type ?? null,
+          original_type: row.original_type ?? null,
+          document_number: row.document_number ?? null,
+        });
+        return (
+          <div className="flex flex-col gap-0.5">
+            {docAction.canOpenDocument ? (
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  setActiveDocument({
+                    kind: docAction.kind,
+                    referenceId: docAction.referenceId!,
+                  });
+                }}
+                className="w-fit text-right text-xs font-black text-blue-600 hover:underline dark:text-blue-400"
+                title="فتح أصل المستند"
+              >
+                {row.document_number || '—'}
+              </button>
+            ) : (
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                {row.document_number || '—'}
+              </span>
+            )}
+            <span className="text-[10px] text-slate-400">{row.source_name}</span>
+          </div>
+        );
+      },
     },
     {
       header: 'الكمية',
@@ -240,6 +282,51 @@ const InventoryMovementView: React.FC = () => {
         <span className="text-xs text-slate-500">{row.source_user || 'نظام'}</span>
       ),
       className: 'text-right',
+    },
+    {
+      header: 'إجراءات',
+      accessor: (row: MovementRow) => {
+        const docAction = resolveMovementDocumentAction({
+          reference_id: row.reference_id ?? null,
+          doc_type: row.doc_type ?? null,
+          reference_type: row.reference_type ?? null,
+          original_type: row.original_type ?? null,
+          document_number: row.document_number ?? null,
+        });
+        return (
+          <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
+            {docAction.canOpenDocument && (
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveDocument({
+                    kind: docAction.kind,
+                    referenceId: docAction.referenceId!,
+                  })
+                }
+                className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50/70 p-1.5 text-blue-600 transition-colors hover:bg-blue-600 hover:text-white dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
+                title="الوصول لأصل الحركة (عرض المستند)"
+              >
+                <FileText size={13} />
+              </button>
+            )}
+            {docAction.canEditInvoice && (
+              <button
+                type="button"
+                onClick={() => setEditingSalesInvoiceId(docAction.referenceId!)}
+                className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50/80 p-1.5 text-amber-700 transition-colors hover:bg-amber-600 hover:text-white dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+                title="تعديل الفاتورة"
+              >
+                <Edit size={13} />
+              </button>
+            )}
+            {!docAction.canOpenDocument && !docAction.canEditInvoice && (
+              <span className="text-[10px] text-slate-400">—</span>
+            )}
+          </div>
+        );
+      },
+      className: 'text-center',
     },
   ];
 
@@ -301,8 +388,35 @@ const InventoryMovementView: React.FC = () => {
           )}
         </div>
 
-        {/* Chronological Filters */}
-        <div className="flex w-full gap-3 lg:w-auto">
+        {/* Chronological & Direction Filters */}
+        <div className="flex w-full flex-wrap items-end gap-3 lg:w-auto">
+          <div className="flex items-center gap-1 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-1">
+            {(
+              [
+                { value: 'all', label: 'الكل' },
+                { value: 'in', label: '+ وارد' },
+                { value: 'out', label: '- صادر' },
+              ] as const
+            ).map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setMovementFilter(opt.value)}
+                className={cn(
+                  'rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors',
+                  movementFilter === opt.value
+                    ? opt.value === 'in'
+                      ? 'bg-emerald-600 text-white'
+                      : opt.value === 'out'
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-blue-600 text-white'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-300'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <div className="flex-1 lg:w-36">
             <label className="mb-1.5 block text-[10px] font-bold text-slate-400">من تاريخ</label>
             <input
@@ -445,6 +559,13 @@ const InventoryMovementView: React.FC = () => {
           </div>
         </div>
       )}
+
+      <MovementDocumentModals
+        activeDocument={activeDocument}
+        editingSalesInvoiceId={editingSalesInvoiceId}
+        onCloseDocument={() => setActiveDocument(null)}
+        onCloseEditInvoice={() => setEditingSalesInvoiceId(null)}
+      />
     </div>
   );
 };

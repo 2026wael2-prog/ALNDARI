@@ -1,15 +1,22 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  ArrowUpRight,
   ArrowDownLeft,
-  RefreshCw,
+  ArrowUpRight,
   ClipboardCheck,
-  User,
-  List,
+  Edit,
+  FileText,
   Info,
+  List,
+  RefreshCw,
+  User,
 } from 'lucide-react';
 import { useItemMovement } from '../../hooks/index';
-import { formatNumberDisplay, cn } from '../../../../core/utils';
+import { cn, formatNumberDisplay } from '../../../../core/utils';
+import { resolveMovementDocumentAction } from '../audit/movements/movementDocumentUtils';
+import {
+  MovementDocumentModals,
+  type ActiveMovementDocument,
+} from '../audit/movements/MovementDocumentModals';
 
 interface Props {
   productId: string;
@@ -17,16 +24,36 @@ interface Props {
 
 const HistorySection: React.FC<Props> = ({ productId }) => {
   const { data: movements, isLoading } = useItemMovement(productId);
+  const [activeDocument, setActiveDocument] = useState<ActiveMovementDocument | null>(null);
+  const [editingSalesInvoiceId, setEditingSalesInvoiceId] = useState<string | null>(null);
+
+  const summary = useMemo(() => {
+    let totalIn = 0;
+    let totalOut = 0;
+    for (const m of movements || []) {
+      if (m.transaction_type === 'in') totalIn += Math.abs(Number(m.quantity || 0));
+      else totalOut += Math.abs(Number(m.quantity || 0));
+    }
+    return { totalIn, totalOut };
+  }, [movements]);
 
   return (
     <div className="flex h-full flex-col border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
       {/* Toolbar Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-800/80">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-100/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-800/80">
         <h4 className="flex items-center gap-2 text-[10px] font-bold uppercase text-slate-500">
           <List size={12} className="text-blue-500" /> سجل الحركة (Movement Log)
         </h4>
-        <div className="border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-          آخر {movements?.length || 0} حركة
+        <div className="flex items-center gap-1.5">
+          <span className="border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
+            وارد: +{formatNumberDisplay(summary.totalIn)}
+          </span>
+          <span className="border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[10px] font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+            صادر: -{formatNumberDisplay(summary.totalOut)}
+          </span>
+          <div className="border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+            آخر {movements?.length || 0} حركة
+          </div>
         </div>
       </div>
 
@@ -50,12 +77,15 @@ const HistorySection: React.FC<Props> = ({ productId }) => {
               <th className="px-4 py-2 text-right text-[10px] font-bold uppercase tracking-tight text-slate-500">
                 الرصيد بعد
               </th>
+              <th className="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-tight text-slate-500">
+                إجراءات
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center">
+                <td colSpan={6} className="py-8 text-center">
                   <div className="flex flex-col items-center gap-2 opacity-40">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500/20 border-t-blue-500" />
                     <span className="text-[10px] font-bold uppercase tracking-widest">
@@ -66,7 +96,7 @@ const HistorySection: React.FC<Props> = ({ productId }) => {
               </tr>
             ) : !movements || movements.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-slate-300">
+                <td colSpan={6} className="py-12 text-center text-slate-300">
                   <Info size={24} className="mx-auto mb-2 opacity-20" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                     لا يوجد حركات مسجلة
@@ -74,101 +104,166 @@ const HistorySection: React.FC<Props> = ({ productId }) => {
                 </td>
               </tr>
             ) : (
-              movements.map((mov: any) => (
-                <tr
-                  key={mov.id}
-                  className="group transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                >
-                  {/* Operation */}
-                  <td className="whitespace-nowrap px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      {getTransactionIcon(mov.transaction_type, mov.reference_type)}
-                      <div>
-                        <div className="font-mono text-[11px] font-bold uppercase text-slate-900 dark:text-white">
-                          {mov.document_number}
-                        </div>
-                        <div className="text-[10px] font-bold uppercase text-slate-400">
-                          {mov.reference_type === 'stock_transfer'
-                            ? 'تحويل مخزني'
-                            : mov.reference_type === 'stock_audit'
-                              ? 'جرد سنوي'
-                              : mov.transaction_type === 'in'
-                                ? 'توريد / شراء'
-                                : 'صرف / بيع'}
+              movements.map(mov => {
+                const docAction = resolveMovementDocumentAction({
+                  reference_id: mov.reference_id,
+                  doc_type: mov.doc_type,
+                  reference_type: mov.reference_type,
+                  original_type: mov.original_type,
+                  document_number: mov.document_number,
+                });
+
+                return (
+                  <tr
+                    key={mov.id}
+                    className="group transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                  >
+                    {/* Operation */}
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        {getTransactionIcon(mov.transaction_type, mov.reference_type ?? '')}
+                        <div>
+                          {docAction.canOpenDocument ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveDocument({
+                                  kind: docAction.kind,
+                                  referenceId: docAction.referenceId!,
+                                })
+                              }
+                              className="font-mono text-[11px] font-bold text-blue-600 hover:underline dark:text-blue-400"
+                              title="فتح أصل المستند"
+                            >
+                              {mov.document_number}
+                            </button>
+                          ) : (
+                            <div className="font-mono text-[11px] font-bold uppercase text-slate-900 dark:text-white">
+                              {mov.document_number}
+                            </div>
+                          )}
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <span
+                              className={cn(
+                                'rounded border px-1.5 py-0.2 text-[10px] font-bold',
+                                docAction.badgeClass
+                              )}
+                            >
+                              {docAction.badgeLabel}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Source / User */}
-                  <td className="whitespace-nowrap px-4 py-2">
-                    <div className="text-[10px] font-bold capitalize text-slate-700 dark:text-slate-300">
-                      {mov.source_name || '---'}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                      <User size={8} /> {mov.source_user?.split('@')[0]}
-                    </div>
-                  </td>
+                    {/* Source / User */}
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <div className="text-[10px] font-bold capitalize text-slate-700 dark:text-slate-300">
+                        {mov.source_name || '---'}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                        <User size={8} /> {mov.source_user?.split('@')[0]}
+                      </div>
+                    </td>
 
-                  {/* Date / Time */}
-                  <td className="whitespace-nowrap px-4 py-2">
-                    <div className="font-mono text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                      {new Date(mov.date).toLocaleDateString('ar-SA-u-nu-latn', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                      })}
-                    </div>
-                    <div className="font-mono text-[10px] text-slate-400">
-                      {new Date(mov.date).toLocaleTimeString('ar-SA-u-nu-latn', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  </td>
+                    {/* Date / Time */}
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <div className="font-mono text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                        {new Date(mov.date).toLocaleDateString('ar-SA-u-nu-latn', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })}
+                      </div>
+                      <div className="font-mono text-[10px] text-slate-400">
+                        {new Date(mov.date).toLocaleTimeString('ar-SA-u-nu-latn', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </td>
 
-                  {/* Quantity */}
-                  <td className="whitespace-nowrap px-4 py-2">
-                    <span
-                      className={cn(
-                        'font-mono text-xs font-black',
-                        mov.transaction_type === 'in' ? 'text-emerald-500' : 'text-rose-500'
-                      )}
-                    >
-                      {mov.transaction_type === 'in' ? '+' : '-'}
-                      {formatNumberDisplay(mov.quantity)}
-                    </span>
-                  </td>
+                    {/* Quantity */}
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <span
+                        className={cn(
+                          'font-mono text-xs font-black',
+                          mov.transaction_type === 'in' ? 'text-emerald-500' : 'text-rose-500'
+                        )}
+                      >
+                        {mov.transaction_type === 'in' ? '+' : '-'}
+                        {formatNumberDisplay(mov.quantity)}
+                      </span>
+                    </td>
 
-                  {/* Balance After */}
-                  <td className="whitespace-nowrap px-4 py-2">
-                    <div className="font-mono text-xs font-black text-slate-900 dark:text-slate-100">
-                      {formatNumberDisplay(mov.balance_after)}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    {/* Balance After */}
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <div className="font-mono text-xs font-black text-slate-900 dark:text-slate-100">
+                        {formatNumberDisplay(mov.balance_after ?? 0)}
+                      </div>
+                    </td>
+
+                    {/* Source & Edit Actions */}
+                    <td className="whitespace-nowrap px-3 py-2 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {docAction.canOpenDocument && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveDocument({
+                                kind: docAction.kind,
+                                referenceId: docAction.referenceId!,
+                              })
+                            }
+                            className="inline-flex items-center justify-center rounded border border-blue-200 bg-blue-50 p-1 text-blue-600 hover:bg-blue-600 hover:text-white dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
+                            title="الوصول لأصل الحركة (عرض المستند)"
+                          >
+                            <FileText size={12} />
+                          </button>
+                        )}
+                        {docAction.canEditInvoice && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingSalesInvoiceId(docAction.referenceId!)}
+                            className="inline-flex items-center justify-center rounded border border-amber-200 bg-amber-50 p-1 text-amber-700 hover:bg-amber-600 hover:text-white dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+                            title="تعديل الفاتورة"
+                          >
+                            <Edit size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
       {/* Optional Small Notes Footer if movement has notes */}
-      {movements?.some((m: any) => m.notes) && (
+      {movements?.some(m => m.notes) && (
         <div className="shrink-0 border-t border-slate-200 bg-slate-50 px-4 py-1.5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-[10px] italic text-slate-400">
-            ملاحظة: تظهر الملاحظات التفصيلية عند الوقوف على الصف في الأنظمة المتقدمة.
+            انقر على رقم المستند أو أيقونة المستند للوصول لأصل الحركة أو تعديل الفاتورة مباشرة.
           </p>
         </div>
       )}
+
+      <MovementDocumentModals
+        activeDocument={activeDocument}
+        editingSalesInvoiceId={editingSalesInvoiceId}
+        onCloseDocument={() => setActiveDocument(null)}
+        onCloseEditInvoice={() => setEditingSalesInvoiceId(null)}
+      />
     </div>
   );
 };
 
 // Simplified Icons for Micro-UI
 const getTransactionIcon = (type: string, ref: string) => {
-  if (ref === 'transfer') return <RefreshCw size={12} className="text-blue-500" />;
-  if (ref === 'audit') return <ClipboardCheck size={12} className="text-indigo-500" />;
+  if (ref.includes('transfer')) return <RefreshCw size={12} className="text-blue-500" />;
+  if (ref.includes('audit')) return <ClipboardCheck size={12} className="text-indigo-500" />;
   return type === 'in' ? (
     <ArrowDownLeft size={12} className="text-emerald-500" />
   ) : (

@@ -26,11 +26,13 @@ export const productMovementsService = {
     companyId: string,
     branchId?: string | null
   ) => {
-    const [{ data, error }, { data: whRows }] = await Promise.all([
-      supabase.rpc('get_item_movements_with_balance', {
-        p_company_id: companyId,
-        p_product_id: productId,
-      }),
+    const rpcParams = {
+      p_company_id: companyId,
+      p_product_id: productId,
+    };
+
+    const [v2Res, whRes] = await Promise.all([
+      (supabase.rpc as any)('get_item_movements_with_balance_v2', rpcParams),
       branchId
         ? supabase
             .from('warehouses')
@@ -40,6 +42,15 @@ export const productMovementsService = {
             .is('deleted_at', null)
         : Promise.resolve({ data: null }),
     ]);
+
+    let data = v2Res.data;
+    let error = v2Res.error;
+    if (error && isRpcUnavailableError(error)) {
+      const v1Res = await supabase.rpc('get_item_movements_with_balance', rpcParams);
+      data = v1Res.data;
+      error = v1Res.error;
+    }
+    const whRows = whRes.data;
 
     if (error) throw parseError(error);
 

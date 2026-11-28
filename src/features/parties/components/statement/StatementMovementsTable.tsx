@@ -26,6 +26,7 @@ interface StatementMovementsTableProps {
   onApplyColorToSingleRow: (row: StatementMovement, color: string | null) => void;
   onPrintSingleTransaction: (row: StatementMovement) => void;
   onOpenInvoiceModal: (id: string) => void;
+  onEditInvoice?: (id: string) => void;
   onOpenBondModal: (bondId: string, movement: StatementMovement) => void;
 }
 
@@ -49,6 +50,7 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
   onApplyColorToSingleRow,
   onPrintSingleTransaction,
   onOpenInvoiceModal,
+  onEditInvoice,
   onOpenBondModal,
 }) => {
   const [collapsedRowIds, setCollapsedRowIds] = useState<Set<string>>(new Set());
@@ -154,6 +156,7 @@ export const StatementMovementsTable: React.FC<StatementMovementsTableProps> = (
                     onApplyColor={onApplyColorToSingleRow}
                     onPrintSingleTransaction={onPrintSingleTransaction}
                     onOpenInvoiceModal={onOpenInvoiceModal}
+                    onEditInvoice={onEditInvoice}
                     onOpenBondModal={onOpenBondModal}
                   />
                 );

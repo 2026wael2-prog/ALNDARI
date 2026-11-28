@@ -142,6 +142,23 @@ export const useCreateInvoice = () => {
   });
 };
 
+const invalidateInvoiceMutationQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  invalidateByPreset(queryClient, 'sale');
+  void queryClient.invalidateQueries({ queryKey: ['invoices'] });
+  void queryClient.refetchQueries({ queryKey: ['invoices'], type: 'active' });
+  void queryClient.invalidateQueries({ queryKey: ['party_statement_v4'] });
+  void queryClient.invalidateQueries({ queryKey: ['statement_batch_details_v2'] });
+  void queryClient.invalidateQueries({ queryKey: ['parties'] });
+  void queryClient.invalidateQueries({ queryKey: ['party_balances'] });
+  void queryClient.invalidateQueries({ queryKey: ['sales_stats'] });
+  void queryClient.invalidateQueries({ queryKey: ['customer_credit_alert'] });
+  void queryClient.invalidateQueries({ queryKey: ['products'] });
+  void queryClient.invalidateQueries({ queryKey: ['product_stock'] });
+  void queryClient.invalidateQueries({ queryKey: ['item_movement'] });
+  void queryClient.invalidateQueries({ queryKey: ['inventory_movements_feed'] });
+  void queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
+};
+
 export const useUpdateInvoice = () => {
   const queryClient = useQueryClient();
   const { showToast } = useFeedbackStore();
@@ -196,21 +213,69 @@ export const useUpdateInvoice = () => {
 
       // Drop stale invoice_details cache so re-opening details/edit fetches fresh items & totals
       queryClient.removeQueries({ queryKey: ['invoice_details', vars.invoiceId] });
-
-      invalidateByPreset(queryClient, 'sale');
-      void queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      void queryClient.refetchQueries({ queryKey: ['invoices'], type: 'active' });
-      void queryClient.invalidateQueries({ queryKey: ['party_statement_v4'] });
-      void queryClient.invalidateQueries({ queryKey: ['parties'] });
-      void queryClient.invalidateQueries({ queryKey: ['party_balances'] });
-      void queryClient.invalidateQueries({ queryKey: ['sales_stats'] });
-      void queryClient.invalidateQueries({ queryKey: ['customer_credit_alert'] });
-      void queryClient.invalidateQueries({ queryKey: ['products'] });
-      void queryClient.invalidateQueries({ queryKey: ['product_stock'] });
-      void queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
+      invalidateInvoiceMutationQueries(queryClient);
     },
     onError: (error: any) => {
       showToast(error?.message || 'فشل في تعديل الفاتورة', 'error');
+    },
+  });
+};
+
+export const useMergeInvoices = () => {
+  const queryClient = useQueryClient();
+  const { showToast } = useFeedbackStore();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      invoiceIds: string[];
+      targetCurrency?: string | undefined;
+      exchangeRate?: number | undefined;
+      targetDate?: string | undefined;
+      notes?: string | undefined;
+      combineDuplicateProducts?: boolean | undefined;
+    }) => {
+      return await invoicesApi.mergeInvoices(payload);
+    },
+    onSuccess: (res, vars) => {
+      vars.invoiceIds.forEach(id => {
+        queryClient.removeQueries({ queryKey: ['invoice_details', id] });
+      });
+      showToast(
+        `تم دمج ${res.merged_count} فواتير بنجاح في الفاتورة #${res.primary_invoice_number}`,
+        'success'
+      );
+      invalidateInvoiceMutationQueries(queryClient);
+    },
+    onError: (error: any) => {
+      showToast(error?.message || 'فشل في دمج الفواتير المحددة', 'error');
+    },
+  });
+};
+
+export const useBulkConvertInvoicesCurrency = () => {
+  const queryClient = useQueryClient();
+  const { showToast } = useFeedbackStore();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      invoiceIds: string[];
+      targetCurrency: string;
+      exchangeRate: number;
+    }) => {
+      return await invoicesApi.bulkConvertInvoicesCurrency(payload);
+    },
+    onSuccess: (res, vars) => {
+      vars.invoiceIds.forEach(id => {
+        queryClient.removeQueries({ queryKey: ['invoice_details', id] });
+      });
+      showToast(
+        `تم تحويل عملة ${res.converted_count} فاتورة إلى ${res.target_currency} بنجاح`,
+        'success'
+      );
+      invalidateInvoiceMutationQueries(queryClient);
+    },
+    onError: (error: any) => {
+      showToast(error?.message || 'فشل في تحويل عملة الفواتير المحددة', 'error');
     },
   });
 };

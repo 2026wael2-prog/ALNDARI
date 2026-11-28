@@ -82,4 +82,61 @@ describe('invoicesApi.updateInvoice', () => {
 
     expect(result).toEqual(mockResponse);
   });
+
+  it('calls merge_sales_invoices_v1 with the expected payload', async () => {
+    const mockMergeResponse = {
+      merged_invoice_id: 'inv-merged-1',
+      merged_invoice_number: 'INV-9001',
+      source_invoice_ids: ['inv-1', 'inv-2'],
+    };
+
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: mockMergeResponse,
+      error: null,
+    } as any);
+
+    const result = await invoicesApi.mergeInvoices({
+      invoiceIds: ['inv-1', 'inv-2'],
+      targetCurrency: 'YER',
+      exchangeRate: 140,
+      targetDate: '2026-11-28',
+      notes: 'دمج فواتير العميل',
+      combineDuplicateProducts: true,
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith('merge_sales_invoices_v1', {
+      p_invoice_ids: ['inv-1', 'inv-2'],
+      p_target_currency: 'YER',
+      p_exchange_rate: 140,
+      p_target_date: '2026-11-28',
+      p_notes: 'دمج فواتير العميل',
+      p_combine_duplicate_products: true,
+    });
+    expect(result).toEqual(mockMergeResponse);
+  });
+
+  it('calls bulk_convert_sales_invoices_currency_v1 with the expected payload', async () => {
+    const mockBulkResponse = {
+      converted_count: 2,
+      target_currency: 'SAR',
+    };
+
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: mockBulkResponse,
+      error: null,
+    } as any);
+
+    const result = await invoicesApi.bulkConvertInvoicesCurrency({
+      invoiceIds: ['inv-10', 'inv-11'],
+      targetCurrency: 'SAR',
+      exchangeRate: 1,
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith('bulk_convert_sales_invoices_currency_v1', {
+      p_invoice_ids: ['inv-10', 'inv-11'],
+      p_target_currency: 'SAR',
+      p_exchange_rate: 1,
+    });
+    expect(result).toEqual(mockBulkResponse);
+  });
 });

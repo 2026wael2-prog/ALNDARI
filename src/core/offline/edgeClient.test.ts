@@ -1,9 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useConnectionStore } from '../store/connectionStore';
-import { edgeClient, isNetworkFailureError, shouldUseLocalFailover } from './edgeClient';
+import {
+  edgeClient,
+  isNetworkFailureError,
+  shouldUseLocalFailover,
+  startEdgeFailoverMonitor,
+  type EdgeHealthResponse,
+} from './edgeClient';
 
 describe('edgeClient', () => {
   beforeEach(() => {
+    window.localStorage.removeItem('alndari_edge_url');
     useConnectionStore.setState({
       isUnstable: false,
       consecutiveFailures: 0,
@@ -15,6 +22,10 @@ describe('edgeClient', () => {
       failedOutboxCount: 0,
     });
     vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('recognizes network failure messages cleanly without over-matching business errors', () => {
@@ -57,5 +68,39 @@ describe('edgeClient', () => {
     expect(state.edgeBranchCode).toBe('B1');
     expect(state.pendingOutboxCount).toBe(3);
     expect(state.failedOutboxCount).toBe(1);
+  });
+
+  it('stops background /health polling when online and unconfigured edge is unreachable', async () => {
+    vi.useFakeTimers();
+    const checkSpy = vi.spyOn(edgeClient, 'checkHealth').mockResolvedValue(null);
+
+    const stop = startEdgeFailoverMonitor(15_000);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(checkSpy).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(checkSpy).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it('continues background /health polling when edge responds ok', async () => {
+    vi.useFakeTimers();
+    const okHealth = {
+      ok: true,
+      branchCode: 'B1',
+      pendingOutboxCount: 0,
+      failedOutboxCount: 0,
+      lastMirrorSyncAt: null,
+      isSyncing: false,
+    } as EdgeHealthResponse;
+    const checkSpy = vi.spyOn(edgeClient, 'checkHealth').mockResolvedValue(okHealth);
+
+    const stop = startEdgeFailoverMonitor(15_000);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(checkSpy).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(checkSpy).toHaveBeenCalledTimes(2);
+    stop();
   });
 });

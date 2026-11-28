@@ -1,15 +1,19 @@
 import React from 'react';
 import { CustomizableTableWrapper } from '@/ui/table-settings/TableSettingsButton';
-import { ArrowDownLeft, ArrowUpRight, ChevronLeft, Package } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronLeft, Edit, FileText, Package } from 'lucide-react';
 import { cn, formatNumberDisplay } from '../../../../../core/utils';
 import type { InventoryMovementFeedItem } from '../../../types';
 import { getDocTypeMeta, type MovementSelectedProduct } from './docTypeLabels';
+import { resolveMovementDocumentAction } from './movementDocumentUtils';
+import type { ActiveMovementDocument } from './MovementDocumentModals';
 
 interface MovementsTableProps {
   movements: InventoryMovementFeedItem[];
   isLoading: boolean;
   onResetFilters: () => void;
   onSelectProduct: (product: MovementSelectedProduct) => void;
+  onOpenDocument?: (doc: ActiveMovementDocument) => void;
+  onEditInvoice?: (invoiceId: string) => void;
 }
 
 const buildSelectedProduct = (m: InventoryMovementFeedItem): MovementSelectedProduct => ({
@@ -26,6 +30,8 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({
   isLoading,
   onResetFilters,
   onSelectProduct,
+  onOpenDocument,
+  onEditInvoice,
 }) => {
   return (
     <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-[var(--app-surface)] shadow-sm dark:border-slate-800">
@@ -61,8 +67,8 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({
               <th className="w-32 border border-slate-200 px-3 py-3 dark:border-slate-800">
                 المستخدم
               </th>
-              <th className="w-20 border border-slate-200 px-2 py-3 text-center dark:border-slate-800">
-                كشف الصنف
+              <th className="w-28 border border-slate-200 px-2 py-3 text-center dark:border-slate-800">
+                إجراءات
               </th>
             </tr>
           </thead>
@@ -100,6 +106,11 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({
                 const isIncoming = m.movement_type === 'in';
                 const docMeta = getDocTypeMeta(m.doc_type);
                 const selectedProduct = buildSelectedProduct(m);
+                const docAction = resolveMovementDocumentAction({
+                  reference_id: m.reference_id,
+                  doc_type: m.doc_type,
+                  document_number: m.doc_number,
+                });
 
                 return (
                   <tr
@@ -133,9 +144,33 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({
                         >
                           {docMeta.label}
                         </span>
-                        <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-100">
-                          {m.doc_number}
-                        </span>
+                        {docAction.canOpenDocument && onOpenDocument ? (
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation();
+                              onOpenDocument({
+                                kind: docAction.kind,
+                                referenceId: docAction.referenceId!,
+                              });
+                            }}
+                            title="فتح أصل المستند"
+                            className="w-fit text-right font-mono text-xs font-black text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            {m.doc_number}
+                          </button>
+                        ) : (
+                          <span className="font-mono text-xs font-black text-slate-800 dark:text-slate-100">
+                            {m.doc_number}
+                          </span>
+                        )}
+                        {(Number(m.unit_price) > 0 || Number(m.unit_cost) > 0) && (
+                          <span className="font-mono text-[10px] font-bold text-slate-400">
+                            {Number(m.unit_price) > 0
+                              ? `سعر: ${formatNumberDisplay(m.unit_price)}`
+                              : `تكلفة: ${formatNumberDisplay(m.unit_cost)}`}
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -210,18 +245,43 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({
 
                     <td
                       className="border border-slate-200/80 px-2 py-2.5 text-center dark:border-slate-800/80"
-                      onClick={e => {
-                        e.stopPropagation();
-                        onSelectProduct(selectedProduct);
-                      }}
+                      onClick={e => e.stopPropagation()}
                     >
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-900/30"
-                        title="عرض كشف حساب هذا الصنف بالتفصيل"
-                      >
-                        <ChevronLeft size={13} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        {docAction.canOpenDocument && onOpenDocument && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onOpenDocument({
+                                kind: docAction.kind,
+                                referenceId: docAction.referenceId!,
+                              })
+                            }
+                            className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50/70 p-1.5 text-blue-600 shadow-sm transition-all hover:bg-blue-600 hover:text-white dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
+                            title="عرض أصل الحركة (المستند)"
+                          >
+                            <FileText size={13} />
+                          </button>
+                        )}
+                        {docAction.canEditInvoice && onEditInvoice && (
+                          <button
+                            type="button"
+                            onClick={() => onEditInvoice(docAction.referenceId!)}
+                            className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50/80 p-1.5 text-amber-700 shadow-sm transition-all hover:bg-amber-600 hover:text-white dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+                            title="تعديل الفاتورة"
+                          >
+                            <Edit size={13} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onSelectProduct(selectedProduct)}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-1.5 text-slate-500 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-900/30"
+                          title="عرض كشف حساب هذا الصنف بالتفصيل"
+                        >
+                          <ChevronLeft size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

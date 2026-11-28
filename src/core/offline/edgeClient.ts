@@ -418,40 +418,125 @@ function handleWindowOffline(): void {
   }
 }
 
+function hasConfiguredEdgeEndpoint(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const saved = window.localStorage.getItem('alndari_edge_url');
+    if (typeof saved === 'string' && /^https?:\/\//i.test(saved.trim())) {
+      return true;
+    }
+  } catch {
+    // ignore storage quota / privacy errors
+  }
+  return (
+    window.location.port === '8787' &&
+    /^https?:\/\/(127\.0\.0\.1|localhost|192\.168\.|10\.|172\.)/i.test(window.location.origin)
+  );
+}
+
 /**
  * Starts background health polling & automatic Cloud <-> Local Failover transitions.
- * Returns a cleanup function for unmount.
+ * Stops background polling when online without a configured/previously reachable edge
+ * endpoint to avoid spamming net::ERR_CONNECTION_REFUSED every 15s, and uses capped
+ * exponential backoff otherwise.
  */
 export function startEdgeFailoverMonitor(intervalMs = 15_000): () => void {
   if (typeof window === 'undefined') return () => undefined;
 
+  const MAX_BACKOFF_MS = 300_000;
   let active = true;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let wasEverAvailable = useConnectionStore.getState().edgeAvailable;
+  let consecutiveFailures = 0;
+  let pollingPausedUntilSignal = false;
+
+  const clearScheduled = (): void => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  const scheduleNext = (delayMs: number): void => {
+    clearScheduled();
+    if (!active) return;
+    timer = setTimeout(() => {
+      void probe();
+    }, delayMs);
+  };
 
   const probe = async (): Promise<void> => {
+    clearScheduled();
     if (!active) return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+
     const health = await edgeClient.checkHealth();
+    if (!active) return;
+
     const store = useConnectionStore.getState();
-    if (shouldTriggerAutoSync(health, navigator.onLine, store.isUnstable)) {
-      void edgeClient.triggerSyncNow().catch(() => undefined);
+    if (health?.ok === true) {
+      wasEverAvailable = true;
+      consecutiveFailures = 0;
+      pollingPausedUntilSignal = false;
+      if (shouldTriggerAutoSync(health, navigator.onLine, store.isUnstable)) {
+        void edgeClient.triggerSyncNow().catch(() => undefined);
+      }
+      scheduleNext(intervalMs);
+      return;
     }
+
+    consecutiveFailures += 1;
+    if (!wasEverAvailable && !hasConfiguredEdgeEndpoint() && navigator.onLine) {
+      pollingPausedUntilSignal = true;
+      return;
+    }
+
+    const backoffMs = Math.min(intervalMs * 2 ** (consecutiveFailures - 1), MAX_BACKOFF_MS);
+    scheduleNext(backoffMs);
   };
 
   const onOnline = (): void => {
     useConnectionStore.getState().reportSuccess();
+    if (wasEverAvailable || hasConfiguredEdgeEndpoint() || useConnectionStore.getState().edgeAvailable) {
+      pollingPausedUntilSignal = false;
+      consecutiveFailures = 0;
+      void probe();
+    }
+  };
+
+  const onOffline = (): void => {
+    handleWindowOffline();
+    pollingPausedUntilSignal = false;
+    consecutiveFailures = 0;
     void probe();
   };
 
+  const onVisibilityChange = (): void => {
+    if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+    if (
+      !pollingPausedUntilSignal ||
+      useConnectionStore.getState().edgeAvailable ||
+      hasConfiguredEdgeEndpoint()
+    ) {
+      pollingPausedUntilSignal = false;
+      void probe();
+    }
+  };
+
   void probe();
-  const timer = setInterval(() => {
-    void probe();
-  }, intervalMs);
   window.addEventListener('online', onOnline);
-  window.addEventListener('offline', handleWindowOffline);
+  window.addEventListener('offline', onOffline);
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibilityChange);
+  }
 
   return () => {
     active = false;
-    clearInterval(timer);
+    clearScheduled();
     window.removeEventListener('online', onOnline);
-    window.removeEventListener('offline', handleWindowOffline);
+    window.removeEventListener('offline', onOffline);
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    }
   };
 }

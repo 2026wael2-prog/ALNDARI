@@ -60,6 +60,7 @@ interface StatementExcelViewProps {
   onApplyColorToSingleRow: (row: StatementMovement, color: string | null) => void;
   onPrintSingleTransaction: (row: StatementMovement) => void;
   onOpenInvoiceModal: (id: string) => void;
+  onEditInvoice?: (id: string) => void;
   onOpenBondModal: (bondId: string, movement: StatementMovement) => void;
 }
 
@@ -85,6 +86,7 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
   onApplyColorToSingleRow,
   onPrintSingleTransaction,
   onOpenInvoiceModal,
+  onEditInvoice,
   onOpenBondModal,
 }) => {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
@@ -388,7 +390,7 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
                     onPrintSingleTransaction={onPrintSingleTransaction}
                     onOpenInvoiceModal={onOpenInvoiceModal}
                     onOpenBondModal={onOpenBondModal}
-                    onEditInvoice={setEditingInvoiceId}
+                    onEditInvoice={id => (onEditInvoice ? onEditInvoice(id) : setEditingInvoiceId(id))}
                   />
                 );
               })
@@ -403,7 +405,7 @@ export const StatementExcelView: React.FC<StatementExcelViewProps> = ({
         </table>
       </div>
 
-      {editingInvoiceId && (
+      {!onEditInvoice && editingInvoiceId && (
         <EditInvoiceModal
           invoiceId={editingInvoiceId}
           isOpen={true}

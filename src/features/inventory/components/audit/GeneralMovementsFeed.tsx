@@ -9,6 +9,10 @@ import {
 } from './movements/docTypeLabels';
 import { MovementsTable } from './movements/MovementsTable';
 import { MovementsToolbarAndStats, type MovementTypeFilter } from './movements/MovementsToolbarAndStats';
+import {
+  MovementDocumentModals,
+  type ActiveMovementDocument,
+} from './movements/MovementDocumentModals';
 
 interface GeneralMovementsFeedProps {
   onSelectProduct: (product: MovementSelectedProduct) => void;
@@ -36,6 +40,8 @@ export const GeneralMovementsFeed: React.FC<GeneralMovementsFeedProps> = ({ onSe
   const [docType, setDocType] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [activeDocument, setActiveDocument] = useState<ActiveMovementDocument | null>(null);
+  const [editingSalesInvoiceId, setEditingSalesInvoiceId] = useState<string | null>(null);
 
   const filterParams = useMemo<InventoryMovementsFilterParams>(
     () => ({
@@ -133,6 +139,15 @@ export const GeneralMovementsFeed: React.FC<GeneralMovementsFeedProps> = ({ onSe
         isLoading={isLoading}
         onResetFilters={handleResetFilters}
         onSelectProduct={onSelectProduct}
+        onOpenDocument={setActiveDocument}
+        onEditInvoice={setEditingSalesInvoiceId}
+      />
+
+      <MovementDocumentModals
+        activeDocument={activeDocument}
+        editingSalesInvoiceId={editingSalesInvoiceId}
+        onCloseDocument={() => setActiveDocument(null)}
+        onCloseEditInvoice={() => setEditingSalesInvoiceId(null)}
       />
     </div>
   );

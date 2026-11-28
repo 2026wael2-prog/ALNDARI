@@ -13,6 +13,8 @@ import {
   orderStatementNewestFirst,
   resolveEffectivePartyType,
 } from '../utils/statementOrdering';
+import { classifyStatementMovement } from '../components/statement/excel/statementExcelHelpers';
+import type { StatementBulkInvoiceModalMode } from '../components/statement/StatementBulkInvoiceModal';
 
 export type StatementPartyScope = 'all' | 'customer' | 'supplier';
 
@@ -234,6 +236,8 @@ export const useStatementController = ({
   const [isPrintingSelectedOnly, setIsPrintingSelectedOnly] = useState(false);
 
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [bulkModalMode, setBulkModalMode] = useState<StatementBulkInvoiceModalMode | null>(null);
   const [activeBond, setActiveBond] = useState<Bond | null>(null);
   const [isBondModalOpen, setIsBondModalOpen] = useState(false);
 
@@ -440,6 +444,19 @@ export const useStatementController = ({
     [filteredMovements, selectedRowIds]
   );
 
+  const selectedEditableSalesInvoices = useMemo(() => {
+    const seen = new Set<string>();
+    const list: StatementMovement[] = [];
+    for (const m of chronologicalSelectedMovements) {
+      if (!m.reference_id || seen.has(m.reference_id)) continue;
+      if (classifyStatementMovement(m).isEditableSalesInvoice) {
+        seen.add(m.reference_id);
+        list.push(m);
+      }
+    }
+    return list;
+  }, [chronologicalSelectedMovements]);
+
   const company = useMemo(
     () => ({
       nameAr:
@@ -607,6 +624,7 @@ export const useStatementController = ({
     filteredMovements,
     chronologicalSelectedMovements,
     selectedMovements,
+    selectedEditableSalesInvoices,
     isLoading,
     selectedRowIds,
     expandedRowIds,
@@ -617,6 +635,10 @@ export const useStatementController = ({
     isAllSelected,
     activeInvoiceId,
     setActiveInvoiceId,
+    editingInvoiceId,
+    setEditingInvoiceId,
+    bulkModalMode,
+    setBulkModalMode,
     activeBond,
     isBondModalOpen,
     company,

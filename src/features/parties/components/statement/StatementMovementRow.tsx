@@ -37,6 +37,7 @@ interface StatementMovementRowProps {
   onApplyColor: (row: StatementMovement, color: string | null) => void;
   onPrintSingleTransaction: (row: StatementMovement) => void;
   onOpenInvoiceModal: (id: string) => void;
+  onEditInvoice?: ((id: string) => void) | undefined;
   onOpenBondModal: (bondId: string, movement: StatementMovement) => void;
 }
 
@@ -58,6 +59,7 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
   onApplyColor,
   onPrintSingleTransaction,
   onOpenInvoiceModal,
+  onEditInvoice,
   onOpenBondModal: _onOpenBondModal,
 }) => {
   const semanticTone = getStatementRowSemanticTone(row, partyType);
@@ -360,8 +362,8 @@ export const StatementMovementRow: React.FC<StatementMovementRowProps> = ({
               return (
                 <button
                   type="button"
-                  onClick={() => onOpenInvoiceModal(row.reference_id!)}
-                  title="تعديل الفاتورة وتسوية القيود والمخزون"
+                  onClick={() => (onEditInvoice ?? onOpenInvoiceModal)(row.reference_id!)}
+                  title="تعديل الفاتورة أو تحويل عملتها (ريال يمني ↔ سعودي)"
                   className="rounded p-1 text-amber-600 transition-colors hover:bg-amber-50 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/40"
                 >
                   <Edit size={13} />

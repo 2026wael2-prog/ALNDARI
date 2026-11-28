@@ -426,4 +426,59 @@ export const invoicesApi = {
 
     return result as unknown as InvoiceResponse;
   },
+
+  mergeInvoices: async (payload: {
+    invoiceIds: string[];
+    targetCurrency?: string | undefined;
+    exchangeRate?: number | undefined;
+    targetDate?: string | undefined;
+    notes?: string | undefined;
+    combineDuplicateProducts?: boolean | undefined;
+  }) => {
+    const { data, error } = await (supabase.rpc as any)('merge_sales_invoices_v1', {
+      p_invoice_ids: payload.invoiceIds,
+      p_target_currency: payload.targetCurrency || null,
+      p_exchange_rate: payload.exchangeRate ?? null,
+      p_target_date: payload.targetDate || null,
+      p_notes: payload.notes?.trim() || null,
+      p_combine_duplicate_products: payload.combineDuplicateProducts ?? true,
+    });
+    if (error) throw parseError(error);
+    return data as {
+      success: boolean;
+      primary_invoice_id: string;
+      primary_invoice_number: string;
+      merged_invoice_ids: string[];
+      merged_invoice_numbers: string[];
+      merged_count: number;
+      currency_code: string;
+      exchange_rate: number;
+      total_amount: number;
+      total_document_amount: number;
+    };
+  },
+
+  bulkConvertInvoicesCurrency: async (payload: {
+    invoiceIds: string[];
+    targetCurrency: string;
+    exchangeRate: number;
+  }) => {
+    const { data, error } = await (supabase.rpc as any)(
+      'bulk_convert_sales_invoices_currency_v1',
+      {
+        p_invoice_ids: payload.invoiceIds,
+        p_target_currency: payload.targetCurrency,
+        p_exchange_rate: payload.exchangeRate,
+      }
+    );
+    if (error) throw parseError(error);
+    return data as {
+      success: boolean;
+      converted_count: number;
+      skipped_count: number;
+      target_currency: string;
+      exchange_rate: number;
+      invoice_numbers: string[];
+    };
+  },
 };

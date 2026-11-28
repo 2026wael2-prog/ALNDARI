@@ -163,6 +163,12 @@ export interface ItemMovementRow {
   notes: string | null;
   raw_quantity: number | null;
   balance_after: number | null;
+  warehouse_id?: string | null;
+  branch_id?: string | null;
+  reference_id?: string | null;
+  doc_type?: string | null;
+  unit_cost?: number | null;
+  unit_price?: number | null;
 }
 
 export interface InventoryMovementFeedItem {

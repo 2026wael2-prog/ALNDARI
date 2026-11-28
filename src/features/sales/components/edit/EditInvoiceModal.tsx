@@ -21,7 +21,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const form = useEditInvoiceForm({ invoiceId, onClose, onSuccess });
+  const form = useEditInvoiceForm({ invoiceId, isOpen, onClose, onSuccess });
 
   if (!isOpen) return null;
 
@@ -29,7 +29,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
     <div className="animate-in fade-in fixed inset-0 z-[110] flex items-end justify-center bg-slate-900/45 p-0 duration-100 sm:items-center sm:p-4">
       <div
         style={{ backgroundColor: 'var(--app-surface)', color: 'var(--app-text)' }}
-        className="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] text-[var(--app-text)] shadow-2xl sm:rounded-2xl sm:pb-0"
+        className="flex max-h-[94dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] pb-[env(safe-area-inset-bottom)] text-[var(--app-text)] shadow-2xl sm:rounded-2xl sm:pb-0"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2.5 sm:px-5 sm:py-3.5">
@@ -104,11 +104,17 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
             <EditInvoiceItemsSection
               companyId={form.companyId}
               currencyCode={form.currencyCode}
+              exchangeRateDisplay={form.effectiveYerRate}
               items={form.items}
+              showDiscount={form.showDiscount}
+              onToggleDiscount={() => form.setShowDiscount(prev => !prev)}
               onAddProduct={form.handleAddProduct}
+              onAddEmptyRow={form.handleAddEmptyRow}
+              onReplaceItemProduct={form.handleReplaceItemProduct}
               onQuantityChange={form.handleQuantityChange}
               onUnitPriceChange={form.handleUnitPriceChange}
               onDiscountChange={form.handleDiscountChange}
+              onLineTotalChange={form.handleLineTotalChange}
               onRemoveItem={form.handleRemoveItem}
             />
 
@@ -219,7 +225,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
           <button
             type="button"
             onClick={form.handleSave}
-            disabled={form.isUpdating || form.invoiceLoading || form.items.length === 0}
+            disabled={form.isUpdating || form.invoiceLoading || form.validItemsCount === 0}
             className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50"
           >
             <Save size={15} />
@@ -231,7 +237,7 @@ export const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({
           <EditInvoiceConfirmDialog
             customerName={form.customerName}
             paymentMethod={form.paymentMethod}
-            itemsCount={form.items.length}
+            itemsCount={form.validItemsCount}
             total={form.summary.total}
             currencyCode={form.currencyCode}
             isUpdating={form.isUpdating}

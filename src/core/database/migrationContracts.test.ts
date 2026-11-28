@@ -50,6 +50,52 @@ describe('Wave 41 & Wave 42 SQL Migration Contracts', () => {
     expect(sql).toMatch(/item_agg AS \(/i);
   });
 
+  it('Wave 49 syncs currency, exchange_rate, and totals atomically in update_sales_invoice_v2', () => {
+    const wave49Path = path.join(
+      migrationsDir,
+      '20261128150000_wave49_fix_update_sales_invoice_currency_conversion.sql'
+    );
+    const sql = fs.readFileSync(wave49Path, 'utf8');
+    const executableSql = sql
+      .split(/\r?\n/)
+      .filter(line => !line.trim().startsWith('--'))
+      .join('\n');
+
+    expect(executableSql).not.toMatch(/pg_get_functiondef/i);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.update_sales_invoice_v2\(/i);
+    expect(sql).toMatch(/v_resolved_payment_account_id/);
+    expect(sql).toMatch(/v_effective_due_date/);
+
+    const step11bMatch = sql.match(
+      /IF v_currency <> v_old_currency[\s\S]*?UPDATE public\.invoices[\s\S]*?WHERE id = p_invoice_id;/
+    );
+    expect(step11bMatch).not.toBeNull();
+    expect(step11bMatch?.[0]).toMatch(/total_document_amount\s*=\s*v_doc_total/);
+    expect(step11bMatch?.[0]).toMatch(/total_amount\s*=\s*v_base_total/);
+    expect(step11bMatch?.[0]).toMatch(/currency_code\s*=\s*v_currency/);
+    expect(step11bMatch?.[0]).toMatch(/exchange_rate\s*=\s*v_eff_rate/);
+  });
+
+  it('Wave 50 adds merge_sales_invoices_v1, bulk_convert_sales_invoices_currency_v1, and get_item_movements_with_balance_v2', () => {
+    const wave50Path = path.join(
+      migrationsDir,
+      '20261128160000_wave50_merge_invoices_bulk_currency_and_movement_refs.sql'
+    );
+    const sql = fs.readFileSync(wave50Path, 'utf8');
+    const executableSql = sql
+      .split(/\r?\n/)
+      .filter(line => !line.trim().startsWith('--'))
+      .join('\n');
+
+    expect(executableSql).not.toMatch(/pg_get_functiondef/i);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.merge_sales_invoices_v1\(/i);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.bulk_convert_sales_invoices_currency_v1\(/i);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.get_item_movements_with_balance_v2\(/i);
+    expect(sql).toMatch(/reference_id\s+uuid/i);
+    expect(sql).toMatch(/doc_type\s+text/i);
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION[\s\S]*FROM PUBLIC,\s*anon/i);
+  });
+
   it('keeps supabase/migrations strictly free of non-SQL documentation files', () => {
     const nonSqlFiles = fs
       .readdirSync(migrationsDir, { withFileTypes: true })

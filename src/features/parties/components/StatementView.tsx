@@ -13,6 +13,7 @@ import { StatementPrintSheet } from './statement/StatementPrintSheet';
 import { StatementSelectedActionsBar } from './statement/StatementSelectedActionsBar';
 import { StatementSummaryCards } from './statement/StatementSummaryCards';
 import { StatementToolbar } from './statement/StatementToolbar';
+import { StatementBulkInvoiceModal } from './statement/StatementBulkInvoiceModal';
 import { RentTrackerView } from './statement/RentTrackerView';
 
 interface StatementViewProps {
@@ -99,6 +100,7 @@ const StatementView: React.FC<StatementViewProps> = ({
     filteredMovements,
     chronologicalSelectedMovements,
     selectedMovements,
+    selectedEditableSalesInvoices,
     isLoading,
     selectedRowIds,
     expandedRowIds,
@@ -109,6 +111,10 @@ const StatementView: React.FC<StatementViewProps> = ({
     isAllSelected,
     activeInvoiceId,
     setActiveInvoiceId,
+    editingInvoiceId,
+    setEditingInvoiceId,
+    bulkModalMode,
+    setBulkModalMode,
     activeBond,
     isBondModalOpen,
     company,
@@ -264,6 +270,7 @@ const StatementView: React.FC<StatementViewProps> = ({
                         onApplyColorToSingleRow={handleApplyColorToSingleRow}
                         onPrintSingleTransaction={handlePrintSingleTransaction}
                         onOpenInvoiceModal={setActiveInvoiceId}
+                        onEditInvoice={setEditingInvoiceId}
                         onOpenBondModal={handleOpenBondModal}
                       />
                     ) : (
@@ -288,6 +295,7 @@ const StatementView: React.FC<StatementViewProps> = ({
                           onApplyColorToSingleRow={handleApplyColorToSingleRow}
                           onPrintSingleTransaction={handlePrintSingleTransaction}
                           onOpenInvoiceModal={setActiveInvoiceId}
+                          onEditInvoice={setEditingInvoiceId}
                           onOpenBondModal={handleOpenBondModal}
                         />
                         <StatementSummaryCards
@@ -308,6 +316,13 @@ const StatementView: React.FC<StatementViewProps> = ({
                   selectedParty={selectedParty}
                   partyType={effectivePartyType}
                   companyName={company.nameAr}
+                  editableSalesInvoicesCount={selectedEditableSalesInvoices.length}
+                  onEditSingleInvoice={() => {
+                    const id = selectedEditableSalesInvoices[0]?.reference_id;
+                    if (id) setEditingInvoiceId(id);
+                  }}
+                  onOpenMergeModal={() => setBulkModalMode('merge')}
+                  onOpenBulkCurrencyModal={() => setBulkModalMode('convert_currency')}
                   onClearSelection={handleClearSelection}
                   onApplyColor={handleApplyColorToSelected}
                   onPrintSingleTransaction={handlePrintSingleTransaction}
@@ -326,9 +341,20 @@ const StatementView: React.FC<StatementViewProps> = ({
         <StatementDocumentModals
           activeInvoiceId={activeInvoiceId}
           onCloseInvoiceModal={handleCloseInvoiceModal}
+          editingInvoiceId={editingInvoiceId}
+          onCloseEditInvoiceModal={() => setEditingInvoiceId(null)}
           activeBond={activeBond}
           isBondModalOpen={isBondModalOpen}
           onCloseBondModal={handleCloseBondModal}
+        />
+
+        <StatementBulkInvoiceModal
+          isOpen={Boolean(bulkModalMode)}
+          mode={bulkModalMode}
+          partyName={selectedParty?.name || ''}
+          selectedInvoices={selectedEditableSalesInvoices}
+          onClose={() => setBulkModalMode(null)}
+          onSuccess={handleClearSelection}
         />
       </div>
     </FullscreenContainer>

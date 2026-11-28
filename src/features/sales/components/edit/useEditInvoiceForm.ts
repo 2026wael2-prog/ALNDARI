@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInvoiceDetails, useUpdateInvoice } from '../../hooks';
 import { usePaymentAccounts } from '../../../accounting/hooks';
 import { useCurrencies } from '../../../settings/hooks';
@@ -6,9 +6,11 @@ import { useAuthStore } from '../../../auth/store';
 import type { ProductSearchResult } from '../../hooks/useProductSearch';
 
 export interface EditItemRow {
+  rowKey: string;
   productId: string;
   name: string;
   sku: string;
+  partNumber?: string | undefined;
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -17,12 +19,14 @@ export interface EditItemRow {
 }
 
 interface RawInvoiceLine {
+  id?: string;
   product_id?: string;
   productId?: string;
-  product?: { id?: string; name_ar?: string; sku?: string } | null;
+  product?: { id?: string; name_ar?: string; sku?: string; part_number?: string } | null;
   product_name?: string;
   name?: string;
   sku?: string;
+  part_number?: string;
   quantity?: number | string;
   unit_price?: number | string;
   unitPrice?: number | string;
@@ -58,12 +62,14 @@ interface RawInvoiceDetail {
 
 export function useEditInvoiceForm(params: {
   invoiceId: string;
+  isOpen?: boolean;
   onClose: () => void;
   onSuccess?: (() => void) | undefined;
 }) {
-  const { invoiceId, onClose, onSuccess } = params;
+  const { invoiceId, isOpen = true, onClose, onSuccess } = params;
   const { user } = useAuthStore();
   const companyId = user?.company_id || '';
+  const hydratedInvoiceIdRef = useRef<string | null>(null);
 
   const {
     data: rawInvoice,
@@ -86,6 +92,7 @@ export function useEditInvoiceForm(params: {
   const [currencyCode, setCurrencyCode] = useState<string>('SAR');
   const [exchangeRateDisplay, setExchangeRateDisplay] = useState<number>(1);
   const [items, setItems] = useState<EditItemRow[]>([]);
+  const [showDiscount, setShowDiscount] = useState<boolean>(false);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
 
   const defaultYerRate = useMemo(() => {
@@ -99,7 +106,12 @@ export function useEditInvoiceForm(params: {
   }, [rates.data]);
 
   useEffect(() => {
-    if (!invoice) return;
+    if (!isOpen) {
+      hydratedInvoiceIdRef.current = null;
+      return;
+    }
+    if (!invoice || hydratedInvoiceIdRef.current === invoiceId) return;
+    hydratedInvoiceIdRef.current = invoiceId;
 
     setPartyId(invoice.party_id || null);
     setCustomerName(
@@ -127,7 +139,7 @@ export function useEditInvoiceForm(params: {
     }
 
     const rawItems = invoice.invoice_items || invoice.items || [];
-    const initialItems: EditItemRow[] = rawItems.map(ii => {
+    const initialItems: EditItemRow[] = rawItems.map((ii, idx) => {
       const qty = Number(ii.quantity || 1);
       const price = Number(ii.unit_price || ii.unitPrice || 0);
       const disc = Number(ii.discount_amount || ii.discount || 0);
@@ -141,10 +153,13 @@ export function useEditInvoiceForm(params: {
             : taxAmt > 0 && lineNet > 0
               ? Math.round((taxAmt / lineNet) * 100 * 100) / 100
               : 0;
+      const partNum = ii.product?.part_number || ii.part_number;
       return {
+        rowKey: ii.id || `init-${idx}-${ii.product_id || ii.productId || 'row'}`,
         productId: ii.product_id || ii.product?.id || ii.productId || '',
         name: ii.product?.name_ar || ii.product_name || ii.name || 'صنف',
         sku: ii.product?.sku || ii.sku || '',
+        ...(partNum ? { partNumber: partNum } : {}),
         quantity: qty,
         unitPrice: price,
         discount: disc,
@@ -153,18 +168,22 @@ export function useEditInvoiceForm(params: {
       };
     });
     setItems(initialItems);
-  }, [invoice, defaultYerRate]);
+    setShowDiscount(initialItems.some(i => i.discount > 0));
+  }, [invoice, invoiceId, isOpen, defaultYerRate]);
+
+  const validItems = useMemo(() => items.filter(i => Boolean(i.productId)), [items]);
 
   const summary = useMemo(() => {
     let subtotal = 0;
     let discount = 0;
     let tax = 0;
 
-    items.forEach(item => {
-      const lineNet = Math.max(0, item.quantity * item.unitPrice - item.discount);
+    validItems.forEach(item => {
+      const effectiveDisc = showDiscount ? item.discount : 0;
+      const lineNet = Math.max(0, item.quantity * item.unitPrice - effectiveDisc);
       const lineTax = (lineNet * item.taxRate) / 100;
       subtotal += item.quantity * item.unitPrice;
-      discount += item.discount;
+      discount += effectiveDisc;
       tax += lineTax;
     });
 
@@ -175,7 +194,7 @@ export function useEditInvoiceForm(params: {
       tax: Math.round(tax * 100) / 100,
       total: Math.round(total * 100) / 100,
     };
-  }, [items]);
+  }, [validItems, showDiscount]);
 
   const originalCurrency = String(invoice?.currency_code || 'SAR').toUpperCase();
   const isCurrencyChanged = currencyCode !== originalCurrency;
@@ -249,11 +268,97 @@ export function useEditInvoiceForm(params: {
   };
 
   const handleRemoveItem = (index: number) => {
-    if (items.length <= 1) {
+    const remainingValid = items.filter((item, i) => i !== index && Boolean(item.productId));
+    if (remainingValid.length === 0 && items.length <= 1) {
       alert('يجب أن تحتوي الفاتورة على صنف واحد على الأقل.');
       return;
     }
     setItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddEmptyRow = (): number => {
+    const nextIdx = items.length;
+    setItems(prev => [
+      ...prev,
+      {
+        rowKey: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        productId: '',
+        name: '',
+        sku: '',
+        quantity: 1,
+        unitPrice: 0,
+        discount: 0,
+        taxRate: 0,
+      },
+    ]);
+    return nextIdx;
+  };
+
+  const handleReplaceItemProduct = (
+    index: number,
+    product: {
+      id: string;
+      name_ar?: string | null;
+      name?: string | null;
+      sku?: string | null;
+      part_number?: string | null;
+      sale_price?: number | string | null;
+    }
+  ) => {
+    const baseSalePrice = Number(product.sale_price || 0);
+    const effectiveRate = exchangeRateDisplay > 1 ? exchangeRateDisplay : defaultYerRate;
+    const convertedPrice =
+      currencyCode === 'YER' ? Math.round(baseSalePrice * effectiveRate) : baseSalePrice;
+    const partNum = product.part_number || undefined;
+    const prodName = product.name_ar || product.name || 'صنف';
+
+    setItems(prev => {
+      if (index < 0 || index >= prev.length) {
+        return [
+          ...prev,
+          {
+            rowKey: `row-${Date.now()}-${product.id}`,
+            productId: product.id,
+            name: prodName,
+            sku: product.sku || '',
+            ...(partNum ? { partNumber: partNum } : {}),
+            quantity: 1,
+            unitPrice: convertedPrice,
+            discount: 0,
+            taxRate: 0,
+          },
+        ];
+      }
+      return prev.map((row, i) =>
+        i === index
+          ? {
+              ...row,
+              productId: product.id,
+              name: prodName,
+              sku: product.sku || '',
+              ...(partNum ? { partNumber: partNum } : {}),
+              quantity: row.quantity > 0 ? row.quantity : 1,
+              unitPrice: convertedPrice,
+              discount: 0,
+            }
+          : row
+      );
+    });
+  };
+
+  const handleLineTotalChange = (index: number, newTotal: number) => {
+    if (newTotal < 0) return;
+    setItems(prev =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const discount = showDiscount ? item.discount : 0;
+        if (item.quantity <= 0) {
+          return { ...item, quantity: 1, unitPrice: Math.max(0, newTotal + discount) };
+        }
+        const newPrice = Math.max(0, (newTotal + discount) / item.quantity);
+        return { ...item, unitPrice: Number(newPrice.toFixed(4)) };
+      })
+    );
   };
 
   const handleAddProduct = (product: ProductSearchResult) => {
@@ -261,6 +366,11 @@ export function useEditInvoiceForm(params: {
     if (existingIndex >= 0) {
       handleQuantityChange(existingIndex, items[existingIndex].quantity + 1);
     } else {
+      const emptyIndex = items.findIndex(i => !i.productId);
+      if (emptyIndex >= 0) {
+        handleReplaceItemProduct(emptyIndex, product);
+        return;
+      }
       const baseSalePrice = Number(product.sale_price || 0);
       const effectiveRate = exchangeRateDisplay > 1 ? exchangeRateDisplay : defaultYerRate;
       const convertedPrice =
@@ -268,9 +378,11 @@ export function useEditInvoiceForm(params: {
       setItems(prev => [
         ...prev,
         {
+          rowKey: `row-${Date.now()}-${product.id}`,
           productId: product.id,
           name: product.name_ar,
           sku: product.sku || '',
+          ...(product.part_number ? { partNumber: product.part_number } : {}),
           quantity: 1,
           unitPrice: convertedPrice,
           discount: 0,
@@ -281,11 +393,11 @@ export function useEditInvoiceForm(params: {
   };
 
   const handleSave = () => {
-    if (items.length === 0) {
+    if (validItems.length === 0) {
       alert('لا يمكن حفظ فاتورة بدون أصناف.');
       return;
     }
-    if (items.some(i => !i.quantity || i.quantity <= 0)) {
+    if (validItems.some(i => !i.quantity || i.quantity <= 0)) {
       alert('يجب أن تكون كمية كل صنف أكبر من صفر.');
       return;
     }
@@ -301,11 +413,11 @@ export function useEditInvoiceForm(params: {
       {
         invoiceId,
         partyId: partyId || null,
-        items: items.map(i => ({
+        items: validItems.map(i => ({
           productId: i.productId,
           quantity: i.quantity,
           unitPrice: i.unitPrice,
-          discount: i.discount,
+          discount: showDiscount ? i.discount : 0,
           taxRate: i.taxRate,
           ...(i.warehouseId ? { warehouseId: i.warehouseId } : {}),
         })),
@@ -335,13 +447,19 @@ export function useEditInvoiceForm(params: {
       },
       {
         onSuccess: () => {
+          hydratedInvoiceIdRef.current = null;
           setShowConfirm(false);
           onClose();
           onSuccess?.();
         },
+        onError: () => {
+          setShowConfirm(false);
+        },
       }
     );
   };
+
+  const effectiveYerRate = exchangeRateDisplay > 1 ? exchangeRateDisplay : defaultYerRate;
 
   return {
     companyId,
@@ -364,8 +482,12 @@ export function useEditInvoiceForm(params: {
     setNotes,
     currencyCode,
     exchangeRateDisplay,
+    effectiveYerRate,
     setExchangeRateDisplay,
     items,
+    validItemsCount: validItems.length,
+    showDiscount,
+    setShowDiscount,
     summary,
     originalCurrency,
     isCurrencyChanged,
@@ -377,8 +499,11 @@ export function useEditInvoiceForm(params: {
     handleQuantityChange,
     handleUnitPriceChange,
     handleDiscountChange,
+    handleLineTotalChange,
     handleRemoveItem,
     handleAddProduct,
+    handleAddEmptyRow,
+    handleReplaceItemProduct,
     handleSave,
     executeSave,
   };

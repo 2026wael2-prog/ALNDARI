@@ -22,6 +22,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { parseError } from '@/core/utils/errorUtils';
 import type { Json } from '@/core/database.types';
 import { broadcastCrossBranchActivity } from '@/features/branches/api';
+import { edgeClient, shouldUseLocalFailover } from '@/core/offline/edgeClient';
 import type {
   RequisitionItem,
   RequisitionRecord,
@@ -273,7 +274,7 @@ export const requisitionsApi = {
     if (!input.companyId) throw new Error('company_id_required');
     if (!input.userId) throw new Error('user_id_required');
 
-    const { data, error } = await supabase.rpc('commit_sales_requisition', {
+    const rpcPayload = {
       p_company_id: input.companyId,
       p_user_id: input.userId,
       p_data: {
@@ -288,8 +289,61 @@ export const requisitionsApi = {
         supplier_phone: input.payload.supplier?.phone ?? null,
         items: input.payload.items.map(toItemPayload),
       } as unknown as Json,
-    });
-    if (error) throw error;
+    };
+
+    if (shouldUseLocalFailover()) {
+      const queued = await edgeClient.enqueueRequisition(
+        rpcPayload as unknown as Record<string, unknown>,
+        input.userId
+      );
+      return {
+        recordId: queued.id,
+        number: queued.pr_number,
+        status: input.status ?? 'draft',
+        totalEstimatedValue: 0,
+        isDuplicate: false,
+      };
+    }
+
+    let data: unknown;
+    let error: unknown;
+    try {
+      const res = await supabase.rpc('commit_sales_requisition', rpcPayload);
+      data = res.data;
+      error = res.error;
+    } catch (netErr) {
+      if (shouldUseLocalFailover(netErr)) {
+        const queued = await edgeClient.enqueueRequisition(
+          rpcPayload as unknown as Record<string, unknown>,
+          input.userId
+        );
+        return {
+          recordId: queued.id,
+          number: queued.pr_number,
+          status: input.status ?? 'draft',
+          totalEstimatedValue: 0,
+          isDuplicate: false,
+        };
+      }
+      throw netErr;
+    }
+
+    if (error) {
+      if (shouldUseLocalFailover(error)) {
+        const queued = await edgeClient.enqueueRequisition(
+          rpcPayload as unknown as Record<string, unknown>,
+          input.userId
+        );
+        return {
+          recordId: queued.id,
+          number: queued.pr_number,
+          status: input.status ?? 'draft',
+          totalEstimatedValue: 0,
+          isDuplicate: false,
+        };
+      }
+      throw error;
+    }
 
     const response = (data ?? {}) as unknown as CommitRpcResponse;
     if (response.success !== true || !response.id || !response.pr_number) {

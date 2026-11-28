@@ -26,6 +26,7 @@ import {
   shouldPersistExpandedSidebar,
 } from './sidebarSizing';
 import { useConnectionStore } from '../../core/store/connectionStore';
+import { startEdgeFailoverMonitor } from '../../core/offline/edgeClient';
 import { NetworkStatusPill } from './NetworkStatusPill';
 import { MobileBottomNav } from './mobile/MobileBottomNav';
 import { EntityInspectorHost } from '../../features/entity-inspector';
@@ -132,6 +133,10 @@ const MainLayout: React.FC = () => {
   useEffect(() => {
     initializeTheme();
   }, [initializeTheme]);
+
+  useEffect(() => {
+    return startEdgeFailoverMonitor(15_000);
+  }, []);
 
   // تحديث تلقائي للقائمة الجانبية في الموبايل عند تغيير المسار
   useEffect(() => {

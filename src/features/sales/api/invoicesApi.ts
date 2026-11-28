@@ -7,6 +7,7 @@ import type { MatchedInvoiceItem, SearchInvoiceResultRow } from '@/core/types/in
 import { optArg } from '@/core/utils/rpcArgs';
 import { resolveSaleInvoiceDueDate } from '../utils/dueDate';
 import { broadcastCrossBranchActivity } from '@/features/branches/api';
+import { edgeClient, shouldUseLocalFailover } from '@/core/offline/edgeClient';
 import type { InvoiceWithDetails, InvoiceWithParty } from './types';
 
 /**
@@ -203,8 +204,56 @@ export const invoicesApi = {
       return { id: result } as unknown as InvoiceResponse;
     }
 
-    const { data: result, error } = await supabase.rpc('commit_sales_invoice_v2', rpcParams);
-    if (error) throw parseError(error);
+    if (shouldUseLocalFailover()) {
+      const queued = await edgeClient.enqueueSalesInvoice(
+        rpcParams as unknown as Record<string, unknown>,
+        userId
+      );
+      return {
+        id: queued.id,
+        invoice_number: queued.invoice_number,
+        total_amount: queued.total_amount,
+        status: 'offline_queued',
+      } as unknown as InvoiceResponse;
+    }
+
+    let result: unknown;
+    let error: unknown;
+    try {
+      const rpcRes = await supabase.rpc('commit_sales_invoice_v2', rpcParams);
+      result = rpcRes.data;
+      error = rpcRes.error;
+    } catch (netErr) {
+      if (shouldUseLocalFailover(netErr)) {
+        const queued = await edgeClient.enqueueSalesInvoice(
+          rpcParams as unknown as Record<string, unknown>,
+          userId
+        );
+        return {
+          id: queued.id,
+          invoice_number: queued.invoice_number,
+          total_amount: queued.total_amount,
+          status: 'offline_queued',
+        } as unknown as InvoiceResponse;
+      }
+      throw netErr;
+    }
+
+    if (error) {
+      if (shouldUseLocalFailover(error)) {
+        const queued = await edgeClient.enqueueSalesInvoice(
+          rpcParams as unknown as Record<string, unknown>,
+          userId
+        );
+        return {
+          id: queued.id,
+          invoice_number: queued.invoice_number,
+          total_amount: queued.total_amount,
+          status: 'offline_queued',
+        } as unknown as InvoiceResponse;
+      }
+      throw parseError(error);
+    }
 
     const invResponse: InvoiceResponse =
       typeof result === 'string'

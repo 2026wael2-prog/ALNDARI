@@ -21,6 +21,7 @@ export default tseslint.config(
       // Vitest setup وأدوات الصيانة (tsx scripts) — ليست كود التطبيق المنشور،
       'test/**',
       'scripts/**',
+      'local-edge/**',
     ],
   },
   {

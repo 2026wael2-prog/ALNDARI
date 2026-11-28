@@ -1,0 +1,17 @@
+{
+  "name": "alndari-local-edge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Branch B1 Local Failover Mirror, ACID Outbox Replay & Google Drive Backup Server (Node v24 native node:sqlite)",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "sync-once": "node src/server.mjs --sync-once",
+    "backup-now": "node src/server.mjs --backup-now",
+    "setup-gdrive": "node scripts/setup-gdrive-oauth.mjs",
+    "test": "node --test test/edge.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

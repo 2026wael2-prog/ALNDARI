@@ -2,6 +2,7 @@ import { logger } from '../../core/utils/logger';
 import { parseError } from '../../core/utils/errorUtils';
 
 import { supabase } from '../../lib/supabaseClient';
+import { edgeClient, shouldUseLocalFailover } from '@/core/offline/edgeClient';
 import type { BondFormData, BondType } from './types';
 
 export const bondsApi = {
@@ -103,7 +104,7 @@ export const bondsApi = {
       (data as BondFormData & { idempotency_key?: string }).idempotency_key ||
       crypto.randomUUID();
 
-    const { data: resultData, error } = await supabase.rpc('create_financial_bond', {
+    const bondRpcParams = {
       p_bond_type: paymentType,
       p_company_id: companyId,
       p_user_id: userId,
@@ -126,15 +127,31 @@ export const bondsApi = {
             p_commission_account_id: data.commission_account_id,
           }
         : {}),
-    });
+    };
 
-    if (error) {
-      // تحويل PostgrestError إلى AppError عربية واضحة تظهر على الشاشة
-      const appErr = parseError(error);
-      throw appErr;
+    if (shouldUseLocalFailover()) {
+      return await edgeClient.enqueueBond(bondRpcParams as Record<string, unknown>, userId);
     }
 
-    return resultData as unknown;
+    try {
+      const { data: resultData, error } = await supabase.rpc('create_financial_bond', bondRpcParams);
+
+      if (error) {
+        if (shouldUseLocalFailover(error)) {
+          return await edgeClient.enqueueBond(bondRpcParams as Record<string, unknown>, userId);
+        }
+        // تحويل PostgrestError إلى AppError عربية واضحة تظهر على الشاشة
+        const appErr = parseError(error);
+        throw appErr;
+      }
+
+      return resultData as unknown;
+    } catch (netErr) {
+      if (shouldUseLocalFailover(netErr)) {
+        return await edgeClient.enqueueBond(bondRpcParams as Record<string, unknown>, userId);
+      }
+      throw netErr;
+    }
   },
 
   getUnpaidPartyInvoices: async (

@@ -81,6 +81,10 @@ const reportNetworkFailure = (): void => {
   consecutiveNetworkFailures += 1;
   if (consecutiveNetworkFailures === CIRCUIT_THRESHOLD) {
     circuitOpenedAt = Date.now();
+    const conn = useConnectionStore.getState();
+    if (conn.edgeAvailable) {
+      conn.setConnectionMode('local_failover');
+    }
     logger.warn(
       'Supabase',
       `⚠️ Circuit open — ${CIRCUIT_THRESHOLD} consecutive network failures; failing fast for ${CIRCUIT_RESET_MS / 1000}s`
@@ -94,6 +98,7 @@ const reportNetworkSuccess = (): void => {
   }
   consecutiveNetworkFailures = 0;
   circuitOpenedAt = 0;
+  useConnectionStore.getState().reportSuccess();
 };
 
 // Custom fetch with timeout, bounded retry and circuit breaker

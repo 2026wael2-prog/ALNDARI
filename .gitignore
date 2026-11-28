@@ -114,3 +114,9 @@ pg-test/
 
 # privacy: never commit customer/party balance audit CSV dumps
 audit-evidence/*.csv
+
+# local edge server secrets & runtime data
+local-edge/.env.edge
+local-edge/data/
+local-edge/*.sqlite*
+!local-edge/scripts/*.ps1

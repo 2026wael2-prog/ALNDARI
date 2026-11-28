@@ -3,6 +3,7 @@ import type { TableInsert, TableUpdate } from '@/core/types/supabase-helpers';
 import type { Json } from '../../../core/database.types';
 import type { ProductUOM } from '../types';
 import { normalizeArabic } from '@/core/utils/search';
+import { edgeClient, shouldUseLocalFailover } from '@/core/offline/edgeClient';
 
 /** Products CRUD and search */
 export const productsApi = {
@@ -219,6 +220,14 @@ export const productsApi = {
 
   searchProduct: async (companyId: string, term: string, branchId?: string | null) => {
     const cleanTerm = normalizeArabic(term).trim();
+    if (shouldUseLocalFailover()) {
+      try {
+        const edgeRows = await edgeClient.searchProducts(cleanTerm, null, 30);
+        return { data: edgeRows, error: null };
+      } catch {
+        // Fall through to Supabase attempt
+      }
+    }
     try {
       const { data, error } = await supabase.rpc('search_inventory_paginated', {
         p_company_id: companyId,
@@ -245,42 +254,66 @@ export const productsApi = {
           error: null,
         };
       }
-    } catch {
-      // Fall back to direct query on network or RPC errors
+    } catch (rpcErr) {
+      if (shouldUseLocalFailover(rpcErr)) {
+        try {
+          const edgeRows = await edgeClient.searchProducts(cleanTerm, null, 30);
+          return { data: edgeRows, error: null };
+        } catch {
+          // Fall back to direct query on network or RPC errors
+        }
+      }
     }
 
     const searchPattern = `%${cleanTerm}%`;
-    const res = await supabase
-      .from('products')
-      .select(
-        'id, name_ar, sku, sale_price, purchase_price, part_number, alternative_numbers, brand, quantity:product_stock(quantity, warehouses(branch_id))'
-      )
-      .eq('company_id', companyId)
-      .eq('status', 'active')
-      .or(
-        `name_ar.ilike.${searchPattern},sku.ilike.${searchPattern},part_number.ilike.${searchPattern},alternative_numbers.ilike.${searchPattern},brand.ilike.${searchPattern},barcode.ilike.${searchPattern}`
-      )
-      .order('name_ar')
-      .limit(30);
+    try {
+      const res = await supabase
+        .from('products')
+        .select(
+          'id, name_ar, sku, sale_price, purchase_price, part_number, alternative_numbers, brand, quantity:product_stock(quantity, warehouses(branch_id))'
+        )
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .or(
+          `name_ar.ilike.${searchPattern},sku.ilike.${searchPattern},part_number.ilike.${searchPattern},alternative_numbers.ilike.${searchPattern},brand.ilike.${searchPattern},barcode.ilike.${searchPattern}`
+        )
+        .order('name_ar')
+        .limit(30);
 
-    if (branchId && Array.isArray(res.data)) {
-      return {
-        ...res,
-        data: res.data.map(item => ({
-          ...item,
-          quantity: Array.isArray(item.quantity)
-            ? item.quantity.filter(
-              (s: { warehouses?: { branch_id?: string | null } | Array<{ branch_id?: string | null }> | null }) => {
-                const wh = Array.isArray(s.warehouses) ? s.warehouses[0] : s.warehouses;
-                return wh?.branch_id === branchId;
-              }
-            )
-            : [],
-        })),
-      };
+      if (res.error && shouldUseLocalFailover(res.error)) {
+        const edgeRows = await edgeClient.searchProducts(cleanTerm, null, 30);
+        return { data: edgeRows, error: null };
+      }
+
+      if (branchId && Array.isArray(res.data)) {
+        return {
+          ...res,
+          data: res.data.map(item => ({
+            ...item,
+            quantity: Array.isArray(item.quantity)
+              ? item.quantity.filter(
+                (s: { warehouses?: { branch_id?: string | null } | Array<{ branch_id?: string | null }> | null }) => {
+                  const wh = Array.isArray(s.warehouses) ? s.warehouses[0] : s.warehouses;
+                  return wh?.branch_id === branchId;
+                }
+              )
+              : [],
+          })),
+        };
+      }
+
+      return res;
+    } catch (netErr) {
+      if (shouldUseLocalFailover(netErr)) {
+        try {
+          const edgeRows = await edgeClient.searchProducts(cleanTerm, null, 30);
+          return { data: edgeRows, error: null };
+        } catch {
+          // ignore
+        }
+      }
+      throw netErr;
     }
-
-    return res;
   },
 
   getSupplier: async (id: string) => {

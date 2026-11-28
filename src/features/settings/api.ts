@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabaseClient';
+import type { Database } from '@/core/database.types';
 import type { TableUpdate } from '@/core/types/supabase-helpers';
 import type {
   CompanyFormData,
@@ -8,15 +9,43 @@ import type {
   BranchFormData,
 } from './types';
 import { logger } from '../../core/utils/logger';
+import { edgeClient, shouldUseLocalFailover } from '@/core/offline/edgeClient';
 
 export const settingsApi = {
   getCompany: async (companyId: string) => {
+    const loadFromEdge = async () => {
+      const company = await edgeClient.getReference<Database['public']['Tables']['companies']['Row']>(
+        'company'
+      );
+      return { data: company, error: null };
+    };
+
+    if (shouldUseLocalFailover()) {
+      try {
+        const res = await loadFromEdge();
+        if (res.data) return res;
+      } catch {
+        // fallback to cloud below
+      }
+    }
+
     // ⚡ maybeSingle (وليس single): عندما لا توجد الشركة أو لا تُرى عبر RLS،
     // .single() تجعل PostgREST يرد بـ HTTP 406 / PGRST116
     // ("JSON object requested, multiple (or no) rows returned") وتُعالجه
     // React Query كخطأ يُعاد 3 مرات — عاصفة طلبات متكررة.
     // maybeSingle ترجع { data: null, error: null } بدلاً من رمي خطأ.
-    return await supabase.from('companies').select('*').eq('id', companyId).maybeSingle();
+    try {
+      const res = await supabase.from('companies').select('*').eq('id', companyId).maybeSingle();
+      if (res.error && shouldUseLocalFailover(res.error)) {
+        return await loadFromEdge();
+      }
+      return res;
+    } catch (err) {
+      if (shouldUseLocalFailover(err)) {
+        return await loadFromEdge();
+      }
+      throw err;
+    }
   },
 
   updateCompany: async (companyId: string, data: CompanyFormData) => {

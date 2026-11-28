@@ -43,28 +43,42 @@ export interface EdgeOutboxRow {
   synced_at: string | null;
 }
 
+export interface EdgeBackupRuntimeConfig {
+  enabled: boolean;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  retentionDays: number;
+  cronHour: number;
+  cronMinute: number;
+}
+
+const NETWORK_FAILURE_PATTERNS = [
+  'network_offline',
+  'failed to fetch',
+  'err_failed',
+  'networkerror',
+  'load failed',
+  'circuit open',
+  'timeout',
+  'econnrefused',
+  'network request failed',
+] as const;
+
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message.toLowerCase();
+  if (typeof err === 'string') return err.toLowerCase();
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    const rawMsg = (err as { message?: unknown }).message;
+    return typeof rawMsg === 'string' ? rawMsg.toLowerCase() : '';
+  }
+  return '';
+}
+
 export function isNetworkFailureError(err: unknown): boolean {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
-  if (!err) return false;
-  const msg = (
-    err instanceof Error
-      ? err.message
-      : typeof err === 'object' && 'message' in err
-        ? String((err as { message?: unknown }).message ?? '')
-        : String(err)
-  ).toLowerCase();
-
-  return (
-    msg.includes('network_offline') ||
-    msg.includes('failed to fetch') ||
-    msg.includes('err_failed') ||
-    msg.includes('networkerror') ||
-    msg.includes('load failed') ||
-    msg.includes('circuit open') ||
-    msg.includes('timeout') ||
-    msg.includes('fetch') ||
-    msg.includes('econnrefused')
-  );
+  if (err === null || err === undefined) return false;
+  const msg = extractErrorMessage(err);
+  if (msg === '') return false;
+  return NETWORK_FAILURE_PATTERNS.some(pattern => msg.includes(pattern));
 }
 
 export function shouldUseLocalFailover(err?: unknown): boolean {
@@ -75,16 +89,34 @@ export function shouldUseLocalFailover(err?: unknown): boolean {
   return err !== undefined ? isNetworkFailureError(err) : false;
 }
 
-async function getSessionHeaders(): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const userId = useAuthStore.getState().user?.id;
-  if (userId) headers['x-edge-user-id'] = userId;
+async function resolveSupabaseJwt(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    if (token) headers.Authorization = `Bearer ${token}`;
+    return typeof token === 'string' && token !== '' ? token : null;
   } catch {
-    // Offline/session read failure — edge still works locally
+    return null;
+  }
+}
+
+async function buildEdgeHeaders(includeAuth: boolean, extra?: HeadersInit): Promise<Headers> {
+  const headers = new Headers(extra);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  const { edgeSecret } = useConnectionStore.getState();
+  if (edgeSecret !== '') {
+    headers.set('X-Edge-Secret', edgeSecret);
+  }
+  const userId = useAuthStore.getState().user?.id;
+  if (typeof userId === 'string' && userId !== '') {
+    headers.set('x-edge-user-id', userId);
+  }
+  if (includeAuth) {
+    const bearer = await resolveSupabaseJwt();
+    if (bearer !== null) {
+      headers.set('Authorization', `Bearer ${bearer}`);
+    }
   }
   return headers;
 }
@@ -101,18 +133,16 @@ async function edgeFetch<T>(
   }, timeoutMs);
 
   try {
-    const baseHeaders = options.includeAuth
-      ? await getSessionHeaders()
-      : { 'Content-Type': 'application/json' };
+    const headers = await buildEdgeHeaders(options.includeAuth === true, options.headers);
     const resp = await fetch(`${edgeUrl}${path}`, {
       ...options,
-      headers: { ...baseHeaders, ...(options.headers ?? {}) },
+      headers,
       signal: controller.signal,
     });
     const text = await resp.text();
-    const json = (text ? JSON.parse(text) : {}) as T & { error?: string };
+    const json = (text !== '' ? JSON.parse(text) : {}) as T & { error?: string };
     if (!resp.ok) {
-      throw new Error(json.error || `Edge HTTP ${resp.status}`);
+      throw new Error(json.error ?? `Edge HTTP ${String(resp.status)}`);
     }
     return json;
   } finally {
@@ -125,9 +155,10 @@ export const edgeClient = {
     try {
       const data = await edgeFetch<EdgeHealthResponse>('/health', {
         method: 'GET',
+        includeAuth: true,
         timeoutMs: 1500,
       });
-      if (data?.ok) {
+      if (data.ok) {
         useConnectionStore.getState().setEdgeHealth({
           available: true,
           branchCode: data.branchCode,
@@ -144,20 +175,32 @@ export const edgeClient = {
     }
   },
 
-  searchProducts: async (query: string, warehouseId?: string | null, limit = 30) => {
+  searchProducts: async (
+    query: string,
+    warehouseId?: string | null,
+    limit = 30
+  ): Promise<Array<Record<string, unknown>>> => {
     const params = new URLSearchParams({ q: query, limit: String(limit) });
-    if (warehouseId) params.set('warehouseId', warehouseId);
-    const data = await edgeFetch<{ rows: Array<Record<string, unknown>> }>(
+    if (typeof warehouseId === 'string' && warehouseId !== '') {
+      params.set('warehouseId', warehouseId);
+    }
+    const data = await edgeFetch<{ rows?: Array<Record<string, unknown>> }>(
       `/mirror/products/search?${params.toString()}`,
       { method: 'GET', timeoutMs: 3000 }
     );
     return data.rows ?? [];
   },
 
-  listParties: async (query = '', type?: string, limit = 100) => {
+  listParties: async (
+    query = '',
+    type?: string,
+    limit = 100
+  ): Promise<Array<Record<string, unknown>>> => {
     const params = new URLSearchParams({ q: query, limit: String(limit) });
-    if (type) params.set('type', type);
-    const data = await edgeFetch<{ rows: Array<Record<string, unknown>> }>(
+    if (typeof type === 'string' && type !== '') {
+      params.set('type', type);
+    }
+    const data = await edgeFetch<{ rows?: Array<Record<string, unknown>> }>(
       `/mirror/parties?${params.toString()}`,
       { method: 'GET', timeoutMs: 3000 }
     );
@@ -165,14 +208,25 @@ export const edgeClient = {
   },
 
   getReference: async <T = unknown>(key: string): Promise<T | null> => {
-    const data = await edgeFetch<{ key: string; value: T | null }>(
+    const data = await edgeFetch<{ key: string; value?: T | null }>(
       `/mirror/reference/${encodeURIComponent(key)}`,
       { method: 'GET', timeoutMs: 2500 }
     );
     return data.value ?? null;
   },
 
-  enqueueSalesInvoice: async (rpcParams: Record<string, unknown>, userId?: string) => {
+  enqueueSalesInvoice: async (
+    rpcParams: Record<string, unknown>,
+    userId?: string
+  ): Promise<{
+    id: string;
+    offline_ref: string;
+    invoice_number: string;
+    idempotency_key: string;
+    total_amount: number;
+    total_document_amount: number;
+    status: string;
+  }> => {
     const res = await edgeFetch<{
       id: string;
       offline_ref: string;
@@ -191,7 +245,16 @@ export const edgeClient = {
     return res;
   },
 
-  enqueueBond: async (rpcParams: Record<string, unknown>, userId?: string) => {
+  enqueueBond: async (
+    rpcParams: Record<string, unknown>,
+    userId?: string
+  ): Promise<{
+    id: string;
+    offline_ref: string;
+    payment_number: string;
+    idempotency_key: string;
+    status: string;
+  }> => {
     const res = await edgeFetch<{
       id: string;
       offline_ref: string;
@@ -208,7 +271,16 @@ export const edgeClient = {
     return res;
   },
 
-  enqueueRequisition: async (rpcParams: Record<string, unknown>, userId?: string) => {
+  enqueueRequisition: async (
+    rpcParams: Record<string, unknown>,
+    userId?: string
+  ): Promise<{
+    id: string;
+    offline_ref: string;
+    pr_number: string;
+    idempotency_key: string;
+    status: string;
+  }> => {
     const res = await edgeFetch<{
       id: string;
       offline_ref: string;
@@ -225,28 +297,40 @@ export const edgeClient = {
     return res;
   },
 
-  listOutbox: async (limit = 50) => {
-    return await edgeFetch<{
-      rows: EdgeOutboxRow[];
-      stats: {
-        pendingOutboxCount: number;
-        failedOutboxCount: number;
-        syncedOutboxCount: number;
-        lastMirrorSyncAt: string | null;
-      };
-    }>(`/outbox/list?limit=${limit}`, { method: 'GET', timeoutMs: 3000 });
+  listOutbox: async (
+    limit = 50
+  ): Promise<{
+    rows: EdgeOutboxRow[];
+    stats: {
+      pendingOutboxCount: number;
+      failedOutboxCount: number;
+      syncedOutboxCount: number;
+      lastMirrorSyncAt: string | null;
+    };
+  }> => {
+    return await edgeFetch(`/outbox/list?limit=${String(limit)}`, {
+      method: 'GET',
+      timeoutMs: 3000,
+    });
   },
 
-  retryOutboxItem: async (id: string) => {
+  retryOutboxItem: async (id: string): Promise<boolean> => {
     const res = await edgeFetch<{ ok: boolean }>(`/outbox/retry/${encodeURIComponent(id)}`, {
       method: 'POST',
       timeoutMs: 3000,
+      body: JSON.stringify({}),
     });
     void edgeClient.checkHealth();
     return res.ok;
   },
 
-  triggerSyncNow: async () => {
+  triggerSyncNow: async (): Promise<{
+    skipped?: boolean;
+    reason?: string;
+    error?: string;
+    outboxResult?: { synced: number; failed: number };
+    stats?: EdgeHealthResponse;
+  }> => {
     useConnectionStore.getState().setConnectionMode('syncing');
     try {
       const res = await edgeFetch<{
@@ -259,6 +343,7 @@ export const edgeClient = {
         method: 'POST',
         includeAuth: true,
         timeoutMs: 45_000,
+        body: JSON.stringify({}),
       });
       await edgeClient.checkHealth();
       return res;
@@ -270,31 +355,62 @@ export const edgeClient = {
     }
   },
 
-  triggerBackupNow: async () => {
-    return await edgeFetch<{
-      status: string;
-      file_name: string;
-      compressed_bytes: number;
-      total_rows: number;
-      sha256: string;
-      drive_web_link: string | null;
-      local_path: string | null;
-    }>('/backup/run', {
+  triggerBackupNow: async (): Promise<{
+    status: string;
+    file_name: string;
+    compressed_bytes: number;
+    total_rows: number;
+    sha256: string;
+    drive_web_link: string | null;
+    local_path: string | null;
+  }> => {
+    return await edgeFetch('/backup/run', {
       method: 'POST',
       includeAuth: true,
       timeoutMs: 120_000,
+      body: JSON.stringify({}),
     });
   },
 
-  getBackupStatus: async () => {
-    return await edgeFetch<{
-      isRunning: boolean;
-      driveConfigured: boolean;
-      backupDir: string;
-      lastRun: Record<string, unknown> | null;
-    }>('/backup/status', { method: 'GET', timeoutMs: 3000 });
+  getBackupStatus: async (): Promise<{
+    isRunning: boolean;
+    driveConfigured: boolean;
+    backupDir: string;
+    lastRun: Record<string, unknown> | null;
+  }> => {
+    return await edgeFetch('/backup/status', { method: 'GET', timeoutMs: 3000 });
+  },
+
+  getBackupConfig: async (): Promise<EdgeBackupRuntimeConfig> => {
+    return await edgeFetch('/config/backup', { method: 'GET', timeoutMs: 3000 });
+  },
+
+  saveBackupConfig: async (
+    config: Partial<EdgeBackupRuntimeConfig>
+  ): Promise<EdgeBackupRuntimeConfig> => {
+    return await edgeFetch('/config/backup', {
+      method: 'POST',
+      timeoutMs: 4000,
+      body: JSON.stringify(config),
+    });
   },
 };
+
+function shouldTriggerAutoSync(
+  health: EdgeHealthResponse | null,
+  isOnline: boolean,
+  isUnstable: boolean
+): boolean {
+  if (!isOnline || isUnstable || health?.ok !== true) return false;
+  return health.pendingOutboxCount > 0 && !health.isSyncing;
+}
+
+function handleWindowOffline(): void {
+  const store = useConnectionStore.getState();
+  if (store.edgeAvailable) {
+    store.setConnectionMode('local_failover');
+  }
+}
 
 /**
  * Starts background health polling & automatic Cloud <-> Local Failover transitions.
@@ -304,33 +420,19 @@ export function startEdgeFailoverMonitor(intervalMs = 15_000): () => void {
   if (typeof window === 'undefined') return () => undefined;
 
   let active = true;
-  let wasOffline = !navigator.onLine;
 
-  const probe = async () => {
+  const probe = async (): Promise<void> => {
     if (!active) return;
     const health = await edgeClient.checkHealth();
     const store = useConnectionStore.getState();
-    const isOnline = navigator.onLine;
-
-    if (wasOffline && isOnline && health?.ok && health.pendingOutboxCount > 0) {
+    if (shouldTriggerAutoSync(health, navigator.onLine, store.isUnstable)) {
       void edgeClient.triggerSyncNow().catch(() => undefined);
     }
-    if (isOnline && !store.isUnstable && health?.ok && health.pendingOutboxCount > 0 && !health.isSyncing) {
-      void edgeClient.triggerSyncNow().catch(() => undefined);
-    }
-    wasOffline = !isOnline;
   };
 
-  const onOnline = () => {
+  const onOnline = (): void => {
     useConnectionStore.getState().reportSuccess();
     void probe();
-  };
-  const onOffline = () => {
-    const store = useConnectionStore.getState();
-    if (store.edgeAvailable) {
-      store.setConnectionMode('local_failover');
-    }
-    wasOffline = true;
   };
 
   void probe();
@@ -338,12 +440,12 @@ export function startEdgeFailoverMonitor(intervalMs = 15_000): () => void {
     void probe();
   }, intervalMs);
   window.addEventListener('online', onOnline);
-  window.addEventListener('offline', onOffline);
+  window.addEventListener('offline', handleWindowOffline);
 
   return () => {
     active = false;
     clearInterval(timer);
     window.removeEventListener('online', onOnline);
-    window.removeEventListener('offline', onOffline);
+    window.removeEventListener('offline', handleWindowOffline);
   };
 }

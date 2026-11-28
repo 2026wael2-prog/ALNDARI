@@ -91,6 +91,7 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [targetStatus, setTargetStatus] = useState<InvoiceStatus>('paid');
   const [isSavingQuotation, setIsSavingQuotation] = useState(false);
+  const [lastSavedInvoiceNumber, setLastSavedInvoiceNumber] = useState<string | null>(null);
 
   const navigation = useInvoiceNavigation();
   const { activeDraftId, syncCurrentDraft } = useOpenInvoicesStore();
@@ -136,7 +137,7 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
   const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `فاتورة_${nextInvoiceNumber ?? 'مسودة'}`,
+    documentTitle: `فاتورة_${lastSavedInvoiceNumber ?? nextInvoiceNumber ?? 'مسودة'}`,
   });
 
   const isInitialized = useRef(false);
@@ -434,8 +435,11 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
         idempotencyKey: invoiceIdempotencyKeyRef.current,
       },
       {
-        onSuccess: () => {
+        onSuccess: savedRes => {
           setShowConfirmModal(false);
+          if (savedRes?.invoice_number) {
+            setLastSavedInvoiceNumber(savedRes.invoice_number);
+          }
           const openStore = useOpenInvoicesStore.getState();
           const savedDraftId = openStore.activeDraftId;
           const hadOtherOpenDrafts = openStore.drafts.length > 1;
@@ -476,7 +480,7 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
   const invoiceForPrint = useMemo(
     () => ({
       company,
-      invoice_number: nextInvoiceNumber || '...',
+      invoice_number: lastSavedInvoiceNumber || nextInvoiceNumber || '...',
       issue_date: formatLocalDate(),
       party_name: selectedCustomer?.name || 'عميل نقدي',
       party_phone: selectedCustomer?.phone || undefined,
@@ -494,6 +498,7 @@ export const useCreateInvoiceController = (onSuccess: () => void) => {
     }),
     [
       company,
+      lastSavedInvoiceNumber,
       nextInvoiceNumber,
       selectedCustomer?.name,
       selectedCustomer?.phone,

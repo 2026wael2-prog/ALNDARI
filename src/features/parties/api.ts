@@ -4,6 +4,42 @@ import { supabase } from '../../lib/supabaseClient';
 import type { PartyFormData, PartyType } from './types';
 import { mapToInsert, mapToUpdate } from '../../core/utils/supabaseMappers';
 import { fetchAllRpcPages } from '../../core/utils/dataFetching';
+import { edgeClient, shouldUseLocalFailover } from '@/core/offline/edgeClient';
+
+async function fetchMirrorPartiesFallback(
+  companyId: string,
+  typeFilter: string[]
+): Promise<{ data: Array<Record<string, unknown>>; error: null } | null> {
+  try {
+    const requestedType = typeFilter.length === 1 ? typeFilter[0] : undefined;
+    const rows = await edgeClient.listParties('', requestedType, 500);
+    const mapped = rows
+      .filter(r => !typeFilter.length || typeFilter.includes(String(r.type ?? 'customer')))
+      .map(r => {
+        const balancesObj = (r.balances ?? {}) as Record<string, number>;
+        const currencyList = Object.entries(balancesObj).map(([currency, balance]) => ({
+          currency,
+          balance: Number(balance) || 0,
+        }));
+        const sarBalance = Number(balancesObj.SAR ?? 0);
+        return {
+          id: r.id,
+          company_id: companyId,
+          name: r.name,
+          type: r.type,
+          phone: r.phone ?? null,
+          credit_limit: Number(r.credit_limit ?? 0),
+          payment_terms_days: Number(r.payment_terms_days ?? 0),
+          status: 'active',
+          party_balances: [{ party_id: r.id, balance: sarBalance }],
+          balances_by_currency: currencyList,
+        };
+      });
+    return { data: mapped, error: null };
+  } catch {
+    return null;
+  }
+}
 
 const toCleanStr = (val: unknown): string | null => {
   if (typeof val !== 'string') return null;
@@ -149,6 +185,11 @@ export const partiesApi = {
           ? ['employee']
           : [type, 'both'];
 
+    if (shouldUseLocalFailover()) {
+      const mirrorRes = await fetchMirrorPartiesFallback(companyId, typeFilter);
+      if (mirrorRes) return mirrorRes;
+    }
+
     // جلب متزامن للأطراف والأرصدة والعملات — استخدام دالة JSONB بطلب واحد بدل 3 مسوحات متتالية
     const fetchBalances = async (): Promise<{
       data: Array<Record<string, unknown>> | null;
@@ -202,7 +243,13 @@ export const partiesApi = {
       fetchCurrencies(),
     ]);
 
-    if (partiesRes.error !== null) return { data: null, error: partiesRes.error };
+    if (partiesRes.error !== null) {
+      if (shouldUseLocalFailover(partiesRes.error)) {
+        const mirrorRes = await fetchMirrorPartiesFallback(companyId, typeFilter);
+        if (mirrorRes) return mirrorRes;
+      }
+      return { data: null, error: partiesRes.error };
+    }
     const partiesData = partiesRes.data || [];
     if (partiesData.length === 0) return { data: [], error: null };
 

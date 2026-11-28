@@ -4,8 +4,18 @@
  * official Supabase RPCs with idempotency_key and user JWT (or service key if configured).
  */
 
+function isAuthExpiredError(httpStatus, errorPayload) {
+  if (httpStatus === 401) return true;
+  const pgCode = String(errorPayload?.code || '');
+  const msg = String(errorPayload?.message || '').toLowerCase();
+  return pgCode === '42501' && msg.includes('authentication required');
+}
+
 function isFatalRpcStatus(httpStatus, errorPayload) {
-  if (httpStatus === 400 || httpStatus === 401 || httpStatus === 403 || httpStatus === 422) {
+  if (isAuthExpiredError(httpStatus, errorPayload)) {
+    return false;
+  }
+  if (httpStatus === 400 || httpStatus === 403 || httpStatus === 422) {
     return true;
   }
   const pgCode = String(errorPayload?.code || '');
@@ -24,20 +34,42 @@ export class DeltaSyncWorker {
     this.mirror = mirror;
     this.fetchImpl = fetchImpl;
     this.inMemoryBearerToken = null;
+    this.userTokens = new Map();
     this.isSyncing = false;
     this.lastError = null;
     this.lastCloudOkAt = null;
   }
 
   /** Stores latest user JWT in memory only (never persisted to disk). */
-  setBearerToken(token) {
+  setBearerToken(token, userId = null) {
     if (typeof token === 'string' && token.trim().length > 20) {
-      this.inMemoryBearerToken = token.trim();
+      const clean = token.trim();
+      this.inMemoryBearerToken = clean;
+      if (userId) {
+        this.userTokens.set(String(userId), clean);
+      }
     }
   }
 
-  getAuthHeaders() {
-    const token = this.inMemoryBearerToken || this.config.supabaseServiceRoleKey;
+  clearBearerToken(userId = null) {
+    if (userId) {
+      const existing = this.userTokens.get(String(userId));
+      this.userTokens.delete(String(userId));
+      if (existing && existing === this.inMemoryBearerToken) {
+        this.inMemoryBearerToken = null;
+      }
+      return;
+    }
+    this.inMemoryBearerToken = null;
+    this.userTokens.clear();
+  }
+
+  getAuthHeaders({ userId = null, allowServiceRole = true } = {}) {
+    const mappedUserToken = userId ? this.userTokens.get(String(userId)) || null : null;
+    const token =
+      mappedUserToken ||
+      this.inMemoryBearerToken ||
+      (allowServiceRole ? this.config.supabaseServiceRoleKey : '');
     const apiKey = this.config.supabaseAnonKey || this.config.supabaseServiceRoleKey;
     if (!token || !apiKey) return null;
     return {
@@ -47,8 +79,8 @@ export class DeltaSyncWorker {
     };
   }
 
-  async callRpc(rpcName, args, timeoutMs = 20_000) {
-    const headers = this.getAuthHeaders();
+  async callRpc(rpcName, args, timeoutMs = 20_000, authOpts = {}) {
+    const headers = this.getAuthHeaders(authOpts);
     if (!headers) {
       const err = new Error('auth_token_unavailable');
       err.isAuthMissing = true;
@@ -122,7 +154,11 @@ export class DeltaSyncWorker {
 
       this.mirror.markOutboxSyncing(item.id);
       try {
-        const res = await this.callRpc(item.rpc_name, args);
+        const allowServiceRole = item.rpc_name !== 'commit_sales_invoice_v2';
+        const res = await this.callRpc(item.rpc_name, args, 20_000, {
+          userId: item.auth_user_id,
+          allowServiceRole,
+        });
 
         let officialId = null;
         let officialRef = null;
@@ -143,9 +179,16 @@ export class DeltaSyncWorker {
         this.mirror.markOutboxSynced(item.id, officialId, officialRef);
         synced += 1;
       } catch (err) {
-        if (err.isAuthMissing) {
-          // Keep pending until browser sends user JWT or service key is configured
-          this.mirror.markOutboxFailed(item.id, 'بانتظار جلسة مستخدم نشطة لإتمام المزامنة', false);
+        if (err.isAuthMissing || isAuthExpiredError(err.httpStatus, err.payload)) {
+          if (err.httpStatus === 401 || isAuthExpiredError(err.httpStatus, err.payload)) {
+            this.clearBearerToken(item.auth_user_id);
+          }
+          // Keep pending until browser sends a fresh user JWT
+          this.mirror.markOutboxFailed(
+            item.id,
+            'بانتظار جلسة مستخدم نشطة لإتمام المزامنة',
+            false
+          );
           break;
         }
         const fatal = isFatalRpcStatus(err.httpStatus, err.payload);
@@ -247,8 +290,8 @@ export class DeltaSyncWorker {
     }
   }
 
-  async runFullCycle(bearerToken = null) {
-    if (bearerToken) this.setBearerToken(bearerToken);
+  async runFullCycle(bearerToken = null, userId = null) {
+    if (bearerToken) this.setBearerToken(bearerToken, userId);
     if (this.isSyncing) {
       return { skipped: true, reason: 'sync_in_progress' };
     }

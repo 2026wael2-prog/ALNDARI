@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBackupActions } from '../hooks';
 import { settingsService } from '../service';
@@ -48,9 +48,10 @@ export interface BranchEdgeNodeRow {
 }
 
 const isMissingRelationError = (err: unknown): boolean => {
-  if (!err || typeof err !== 'object') return false;
-  const code = String((err as { code?: unknown }).code || '');
-  const msg = String((err as { message?: unknown }).message || '').toLowerCase();
+  if (typeof err !== 'object' || err === null) return false;
+  const obj = err as { code?: unknown; message?: unknown };
+  const code = typeof obj.code === 'string' ? obj.code : '';
+  const msg = typeof obj.message === 'string' ? obj.message.toLowerCase() : '';
   return (
     code === 'PGRST205' ||
     code === '42P01' ||
@@ -59,6 +60,66 @@ const isMissingRelationError = (err: unknown): boolean => {
   );
 };
 
+interface BackupRunsQueryResult {
+  rows: SystemBackupRunRow[];
+  missing: boolean;
+}
+interface EdgeNodesQueryResult {
+  rows: BranchEdgeNodeRow[];
+  missing: boolean;
+}
+
+async function queryBackupRuns(companyId: string): Promise<BackupRunsQueryResult> {
+  const { data, error } = await (supabase.from as unknown as (t: string) => {
+    select: (cols: string) => {
+      eq: (col: string, val: string) => {
+        order: (col: string, opts: { ascending: boolean }) => {
+          limit: (n: number) => Promise<{ data: SystemBackupRunRow[] | null; error: unknown }>;
+        };
+      };
+    };
+  })('system_backup_runs')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('started_at', { ascending: false })
+    .limit(20);
+
+  if (error !== null && error !== undefined) {
+    if (isMissingRelationError(error)) return { rows: [], missing: true };
+    throw new Error(error instanceof Error ? error.message : 'تعذر تحميل سجل النسخ الاحتياطية');
+  }
+  return { rows: data ?? [], missing: false };
+}
+
+async function queryEdgeNodes(companyId: string): Promise<EdgeNodesQueryResult> {
+  const { data, error } = await (supabase.from as unknown as (t: string) => {
+    select: (cols: string) => {
+      eq: (col: string, val: string) => {
+        order: (col: string, opts: { ascending: boolean }) => Promise<{
+          data: BranchEdgeNodeRow[] | null;
+          error: unknown;
+        }>;
+      };
+    };
+  })('branch_edge_nodes')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('last_heartbeat_at', { ascending: false });
+
+  if (error !== null && error !== undefined) {
+    if (isMissingRelationError(error)) return { rows: [], missing: true };
+    throw new Error(error instanceof Error ? error.message : 'تعذر تحميل حالة سيرفرات الفروع');
+  }
+  return { rows: data ?? [], missing: false };
+}
+
+async function gunzipJsonFile(file: File): Promise<File> {
+  const decompressedStream = file.stream().pipeThrough(new DecompressionStream('gzip'));
+  const text = await new Response(decompressedStream).text();
+  return new File([text], file.name.replace(/\.gz$/i, ''), { type: 'application/json' });
+}
+
+// eslint-disable-next-line max-lines-per-function, @typescript-eslint/explicit-function-return-type
 export const useBackupManager = () => {
   const { user } = useAuthStore();
   const companyId = user?.company_id ?? '';
@@ -70,14 +131,17 @@ export const useBackupManager = () => {
   const {
     edgeAvailable,
     edgeUrl,
+    edgeSecret,
     edgeBranchCode,
     pendingOutboxCount,
     failedOutboxCount,
     lastMirrorSyncAt,
     setEdgeUrl,
+    setEdgeSecret,
   } = useConnectionStore();
 
   const [edgeUrlDraft, setEdgeUrlDraft] = useState(edgeUrl);
+  const [edgeSecretDraft, setEdgeSecretDraft] = useState(edgeSecret);
   const [isTestingEdge, setIsTestingEdge] = useState(false);
   const [isRunningEdgeBackup, setIsRunningEdgeBackup] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -86,78 +150,55 @@ export const useBackupManager = () => {
     settingsService.getAutoBackupConfig()
   );
   const [isSavingConfig, setIsSavingConfig] = useState(false);
-  const [migrationMissing, setMigrationMissing] = useState(false);
 
   const stats = settingsService.getStorageStats();
   const localLogs = settingsService.getBackupLogs();
 
-  const { data: serverBackupRuns = [], isFetching: isFetchingRuns } = useQuery({
+  useEffect(() => {
+    if (!edgeAvailable) return;
+    let active = true;
+    void edgeClient
+      .getBackupConfig()
+      .then(remoteCfg => {
+        if (!active) return;
+        setAutoConfig(prev => ({
+          ...prev,
+          enabled: remoteCfg.enabled,
+          frequency: remoteCfg.frequency,
+          retentionDays: remoteCfg.retentionDays,
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [edgeAvailable]);
+
+  const { data: backupRunsRes, isFetching: isFetchingRuns } = useQuery<BackupRunsQueryResult>({
     queryKey: ['system-backup-runs', companyId],
     enabled: Boolean(companyId),
     staleTime: 30_000,
-    queryFn: async (): Promise<SystemBackupRunRow[]> => {
-      const { data, error } = await (supabase.from as unknown as (t: string) => {
-        select: (cols: string) => {
-          eq: (col: string, val: string) => {
-            order: (col: string, opts: { ascending: boolean }) => {
-              limit: (n: number) => Promise<{ data: SystemBackupRunRow[] | null; error: unknown }>;
-            };
-          };
-        };
-      })('system_backup_runs')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('started_at', { ascending: false })
-        .limit(20);
-
-      if (error) {
-        if (isMissingRelationError(error)) {
-          setMigrationMissing(true);
-          return [];
-        }
-        throw error;
-      }
-      setMigrationMissing(false);
-      return data ?? [];
-    },
+    queryFn: async () => await queryBackupRuns(companyId),
   });
 
-  const { data: edgeNodes = [] } = useQuery({
+  const { data: edgeNodesRes } = useQuery<EdgeNodesQueryResult>({
     queryKey: ['branch-edge-nodes', companyId],
     enabled: Boolean(companyId),
     staleTime: 30_000,
-    queryFn: async (): Promise<BranchEdgeNodeRow[]> => {
-      const { data, error } = await (supabase.from as unknown as (t: string) => {
-        select: (cols: string) => {
-          eq: (col: string, val: string) => {
-            order: (col: string, opts: { ascending: boolean }) => Promise<{
-              data: BranchEdgeNodeRow[] | null;
-              error: unknown;
-            }>;
-          };
-        };
-      })('branch_edge_nodes')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('last_heartbeat_at', { ascending: false });
-
-      if (error) {
-        if (isMissingRelationError(error)) {
-          setMigrationMissing(true);
-          return [];
-        }
-        throw error;
-      }
-      return data ?? [];
-    },
+    queryFn: async () => await queryEdgeNodes(companyId),
   });
 
-  const handleSaveAndTestEdgeUrl = async () => {
+  const serverBackupRuns = backupRunsRes?.rows ?? [];
+  const edgeNodes = edgeNodesRes?.rows ?? [];
+  const migrationMissing = Boolean(backupRunsRes?.missing) || Boolean(edgeNodesRes?.missing);
+
+  const handleSaveAndTestEdgeUrl = async (): Promise<void> => {
     setEdgeUrl(edgeUrlDraft);
+    setEdgeSecret(edgeSecretDraft);
     setIsTestingEdge(true);
     try {
       const health = await edgeClient.checkHealth();
-      if (health?.ok) {
+      if (health?.ok === true) {
         showToast(
           `تم الاتصال بخادم فرع ${health.branchCode} بنجاح (${health.productsCount.toLocaleString('en-US')} صنف بالمرآة)`,
           'success'
@@ -170,13 +211,13 @@ export const useBackupManager = () => {
     }
   };
 
-  const handleEdgeCompressedBackup = async () => {
+  const handleEdgeCompressedBackup = async (): Promise<void> => {
     setIsRunningEdgeBackup(true);
     try {
       const res = await edgeClient.triggerBackupNow();
       const mb = (res.compressed_bytes / 1024 / 1024).toFixed(2);
       showToast(
-        res.drive_web_link
+        res.drive_web_link !== null && res.drive_web_link !== ''
           ? `تم إنشاء نسخة مضغوطة (${mb} MB) ورفعها إلى Google Drive بنجاح`
           : `تم إنشاء نسخة مضغوطة محلية (${mb} MB) بنجاح`,
         'success'
@@ -192,7 +233,7 @@ export const useBackupManager = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (): Promise<void> => {
     setIsExporting(true);
     try {
       await exportData();
@@ -201,7 +242,7 @@ export const useBackupManager = () => {
     }
   };
 
-  const handleDriveExport = async () => {
+  const handleDriveExport = async (): Promise<void> => {
     setIsExportingToDrive(true);
     try {
       const token = await GoogleDriveService.authenticateAndGetToken();
@@ -219,29 +260,62 @@ export const useBackupManager = () => {
     }
   };
 
-  const handleImportClick = () => fileInputRef.current?.click();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (
-        window.confirm(
-          'تحذير حرج: استيراد البيانات سيقوم باستبدال السجلات الحالية التي تطابق المعرفات (ID) بمحتويات الملف وإضافة السجلات الجديدة. هذه العملية خاصة بمالك النظام (Owner) وقد تلمس بيانات مالية. هل تود الاستمرار؟'
-        )
-      ) {
-        importData(file);
-      }
-    }
-    e.target.value = '';
+  const handleImportClick = (): void => {
+    fileInputRef.current?.click();
   };
 
-  const saveConfig = () => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (
+      !window.confirm(
+        'تحذير حرج: استيراد البيانات سيقوم باستبدال السجلات الحالية التي تطابق المعرفات (ID) بمحتويات الملف وإضافة السجلات الجديدة. هذه العملية خاصة بمالك النظام (Owner) وقد تلمس بيانات مالية. هل تود الاستمرار؟'
+      )
+    ) {
+      return;
+    }
+
+    if (file.name.toLowerCase().endsWith('.gz')) {
+      if (typeof DecompressionStream === 'undefined') {
+        showToast('المتصفح الحالي لا يدعم فك ضغط .gz تلقائياً — فك الضغط أولاً ثم اختر .json', 'error');
+        return;
+      }
+      try {
+        const jsonFile = await gunzipJsonFile(file);
+        await importData(jsonFile);
+      } catch {
+        showToast('تعذر قراءة أو فك ضغط ملف النسخة الاحتياطية (.gz)', 'error');
+      }
+      return;
+    }
+
+    await importData(file);
+  };
+
+  const saveConfig = async (): Promise<void> => {
     setIsSavingConfig(true);
-    setTimeout(() => {
+    try {
       settingsService.saveAutoBackupConfig(autoConfig);
+      if (edgeAvailable) {
+        await edgeClient.saveBackupConfig({
+          enabled: autoConfig.enabled,
+          frequency: autoConfig.frequency,
+          retentionDays: autoConfig.retentionDays,
+        });
+        showToast('تم حفظ ومزامنة إعدادات الجدولة مع الخادم المحلي بنجاح', 'success');
+      } else {
+        showToast('تم حفظ إعدادات الجدولة محلياً بالمتصفح (الخادم المحلي غير متصل)', 'info');
+      }
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : 'تم الحفظ بالمتصفح لكن تعذرت المزامنة مع الخادم المحلي',
+        'warning'
+      );
+    } finally {
       setIsSavingConfig(false);
-      showToast('تم حفظ إعدادات النسخ التلقائي', 'success');
-    }, 600);
+    }
   };
 
   return {
@@ -260,6 +334,7 @@ export const useBackupManager = () => {
       edgeAvailable,
       edgeUrl,
       edgeUrlDraft,
+      edgeSecretDraft,
       edgeBranchCode,
       pendingOutboxCount,
       failedOutboxCount,
@@ -269,6 +344,7 @@ export const useBackupManager = () => {
     actions: {
       setAutoConfig,
       setEdgeUrlDraft,
+      setEdgeSecretDraft,
       handleSaveAndTestEdgeUrl,
       handleEdgeCompressedBackup,
       handleExport,

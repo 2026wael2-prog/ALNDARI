@@ -21,11 +21,18 @@ if (-not (Test-Path $EnvFile)) {
 }
 
 $LauncherCmd = Join-Path $EdgeRoot "start-edge-$BranchCode.cmd"
-@"
+$LogFile = Join-Path $EdgeRoot "edge-$BranchCode.log"
+$OldLogFile = Join-Path $EdgeRoot "edge-$BranchCode.log.old"
+$CmdContent = @"
 @echo off
+chcp 65001 >nul
 cd /d "$EdgeRoot"
-"$NodeExe" "$ServerScript" >> "$EdgeRoot\edge-$BranchCode.log" 2>&1
-"@ | Set-Content -Path $LauncherCmd -Encoding ASCII
+if exist "$LogFile" (
+  for %%A in ("$LogFile") do if %%~zA GTR 10485760 move /y "$LogFile" "$OldLogFile" >nul
+)
+"$NodeExe" "$ServerScript" >> "$LogFile" 2>&1
+"@
+[System.IO.File]::WriteAllText($LauncherCmd, $CmdContent, [System.Text.UTF8Encoding]::new($false))
 
 $Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$LauncherCmd`"" -WorkingDirectory $EdgeRoot
 $Trigger = New-ScheduledTaskTrigger -AtStartup

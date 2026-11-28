@@ -73,4 +73,19 @@ describe('SettingsPage — tab switching & URL query sync', () => {
 
     expect(await screen.findByTestId('section-security')).toBeTruthy();
   });
+
+  it('resets active section to profile when URL ?tab= is cleared via browser back', async () => {
+    render(
+      <MemoryRouter initialEntries={['/settings?tab=company']}>
+        <Routes>
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByTestId('section-company')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /^profile/i }));
+    expect(await screen.findByTestId('section-profile')).toBeTruthy();
+  });
 });

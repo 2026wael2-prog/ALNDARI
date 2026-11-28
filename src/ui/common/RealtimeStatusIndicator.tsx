@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { RefreshCw, Server, CloudOff } from 'lucide-react';
 import { useConnectionStore } from '../../core/store/connectionStore';
 import { useOfflineQueueStatus } from '../../core/sync/offlineMutationQueue';
@@ -20,17 +20,19 @@ const getStatusConfig = (
   branchCode: string | null,
   lastMirrorSyncAt: string | null
 ): StatusVisualConfig => {
-  const mirrorHint = lastMirrorSyncAt
-    ? ` | مرآة ${branchCode || 'B1'} محدّثة ${new Date(lastMirrorSyncAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
-    : '';
+  const code = branchCode ?? 'B1';
+  const mirrorHint =
+    typeof lastMirrorSyncAt === 'string' && lastMirrorSyncAt !== ''
+      ? ` | مرآة ${code} محدّثة ${new Date(lastMirrorSyncAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+      : '';
 
   switch (status) {
     case 'local_failover':
       return {
         dot: 'bg-amber-500',
         pulse: true,
-        label: `وضع محلي (${branchCode || 'B1'})`,
-        title: `العمل مستمر من الخادم المحلي لفرع ${branchCode || 'B1'} أثناء انقطاع السحابة`,
+        label: `وضع محلي (${code})`,
+        title: `العمل مستمر من الخادم المحلي لفرع ${code} أثناء انقطاع السحابة`,
       };
     case 'syncing':
       return {
@@ -116,7 +118,42 @@ const PendingSyncBadge: React.FC<{
   );
 };
 
-const RealtimeStatusIndicator: React.FC = () => {
+const resolveDisplayStatus = (
+  connectionMode: string,
+  realtimeStatus: SyncDisplayStatus
+): SyncDisplayStatus => {
+  if (connectionMode === 'local_failover') return 'local_failover';
+  if (connectionMode === 'syncing') return 'syncing';
+  return realtimeStatus;
+};
+
+const StatusGlyph = ({
+  displayStatus,
+  pulse,
+  dot,
+}: {
+  displayStatus: SyncDisplayStatus;
+  pulse: boolean;
+  dot: string;
+}): ReactElement =>
+  displayStatus === 'local_failover' ? (
+    <CloudOff size={11} className="shrink-0 text-amber-600" />
+  ) : (
+    <span className="relative flex h-2 w-2">
+      {pulse && (
+        <span
+          className={cn(
+            'absolute inline-flex h-full w-full animate-ping rounded-full opacity-60',
+            dot
+          )}
+        />
+      )}
+      <span className={cn('relative inline-flex h-2 w-2 rounded-full', dot)} />
+    </span>
+  );
+
+// eslint-disable-next-line max-lines-per-function
+const RealtimeStatusIndicator = (): ReactElement => {
   const realtimeStatus = useConnectionStore(s => s.realtimeStatus);
   const connectionMode = useConnectionStore(s => s.connectionMode);
   const edgeAvailable = useConnectionStore(s => s.edgeAvailable);
@@ -130,25 +167,25 @@ const RealtimeStatusIndicator: React.FC = () => {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const displayStatus: SyncDisplayStatus =
-    connectionMode === 'local_failover'
-      ? 'local_failover'
-      : connectionMode === 'syncing'
-        ? 'syncing'
-        : realtimeStatus;
+  const displayStatus = resolveDisplayStatus(connectionMode, realtimeStatus);
+  const code = edgeBranchCode ?? 'B1';
+  const { dot, pulse, label, title } = getStatusConfig(displayStatus, edgeBranchCode, lastMirrorSyncAt);
 
-  const { dot, pulse, label, title } = getStatusConfig(
-    displayStatus,
-    edgeBranchCode,
-    lastMirrorSyncAt
-  );
+  const labelColorClass =
+    displayStatus === 'local_failover'
+      ? 'text-amber-800 dark:text-amber-200'
+      : displayStatus === 'disconnected'
+        ? 'text-rose-500'
+        : 'hidden text-[var(--app-text-secondary)] sm:inline';
 
   return (
     <>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5" role="status" aria-live="polite">
         <button
           type="button"
-          onClick={() => setDrawerOpen(true)}
+          onClick={() => {
+            setDrawerOpen(true);
+          }}
           className={cn(
             'flex select-none items-center gap-1 rounded-full border px-1.5 py-1 transition-colors sm:gap-1.5 sm:px-2',
             displayStatus === 'local_failover'
@@ -156,44 +193,17 @@ const RealtimeStatusIndicator: React.FC = () => {
               : 'border-[var(--app-border)] bg-[var(--app-bg)] hover:bg-[var(--app-surface-hover)]'
           )}
           title={title}
-          role="status"
-          aria-live="polite"
           aria-label={title}
         >
-          {displayStatus === 'local_failover' ? (
-            <CloudOff size={11} className="shrink-0 text-amber-600" />
-          ) : (
-            <span className="relative flex h-2 w-2">
-              {pulse && (
-                <span
-                  className={cn(
-                    'absolute inline-flex h-full w-full animate-ping rounded-full opacity-60',
-                    dot
-                  )}
-                />
-              )}
-              <span className={cn('relative inline-flex h-2 w-2 rounded-full', dot)} />
-            </span>
-          )}
-          <span
-            className={cn(
-              'text-[10px] font-bold',
-              displayStatus === 'local_failover'
-                ? 'text-amber-800 dark:text-amber-200'
-                : displayStatus === 'disconnected'
-                  ? 'text-rose-500'
-                  : 'hidden text-[var(--app-text-secondary)] sm:inline'
-            )}
-          >
-            {label}
-          </span>
+          <StatusGlyph displayStatus={displayStatus} pulse={pulse} dot={dot} />
+          <span className={cn('text-[10px] font-bold', labelColorClass)}>{label}</span>
           {edgeAvailable && (
             <span
               className="hidden items-center gap-0.5 rounded bg-emerald-500/15 px-1 text-[9px] font-extrabold text-emerald-700 dark:text-emerald-300 md:inline-flex"
-              title={`خادم فرع ${edgeBranchCode || 'B1'} المحلي نشط`}
+              title={`خادم فرع ${code} المحلي نشط`}
             >
               <Server size={9} />
-              <span>{edgeBranchCode || 'B1'}</span>
+              <span>{code}</span>
             </span>
           )}
         </button>
@@ -201,11 +211,18 @@ const RealtimeStatusIndicator: React.FC = () => {
         <PendingSyncBadge
           count={pendingCount}
           isSyncing={isSyncing || connectionMode === 'syncing'}
-          onClick={() => setDrawerOpen(true)}
+          onClick={() => {
+            setDrawerOpen(true);
+          }}
         />
       </div>
 
-      <OfflineOutboxDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <OfflineOutboxDrawer
+        isOpen={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+        }}
+      />
     </>
   );
 };

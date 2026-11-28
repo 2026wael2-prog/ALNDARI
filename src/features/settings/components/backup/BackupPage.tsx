@@ -38,6 +38,7 @@ const BackupPage: React.FC = () => {
     edgeNodes,
     edgeAvailable,
     edgeUrlDraft,
+    edgeSecretDraft,
     edgeBranchCode,
     pendingOutboxCount,
     failedOutboxCount,
@@ -47,6 +48,7 @@ const BackupPage: React.FC = () => {
   const {
     setAutoConfig,
     setEdgeUrlDraft,
+    setEdgeSecretDraft,
     handleSaveAndTestEdgeUrl,
     handleEdgeCompressedBackup,
     handleExport,
@@ -73,8 +75,10 @@ const BackupPage: React.FC = () => {
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileChange}
-        accept=".json"
+        onChange={e => {
+          void handleFileChange(e);
+        }}
+        accept=".json,.gz,application/json,application/gzip"
         className="hidden"
       />
 
@@ -207,6 +211,24 @@ const BackupPage: React.FC = () => {
                   <span>فحص</span>
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="edge-server-secret-input"
+                className="mb-1 block text-[11px] font-bold text-slate-600 dark:text-slate-400"
+              >
+                رمز الحماية المشترك (اختياري — إذا كان مفعلاً في .env.edge):
+              </label>
+              <input
+                id="edge-server-secret-input"
+                type="password"
+                dir="ltr"
+                value={edgeSecretDraft}
+                onChange={e => setEdgeSecretDraft(e.target.value)}
+                placeholder="EDGE_SHARED_SECRET"
+                className="h-9 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 font-mono text-xs font-bold text-black outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
             </div>
 
             {lastMirrorSyncAt && (
@@ -373,7 +395,9 @@ const BackupPage: React.FC = () => {
 
             <div className="flex justify-end border-t pt-4 dark:border-slate-800">
               <Button
-                onClick={saveConfig}
+                onClick={() => {
+                  void saveConfig();
+                }}
                 isLoading={isSavingConfig}
                 className="rounded-2xl px-10 text-[10px] font-bold uppercase tracking-widest shadow-xl"
                 leftIcon={<Save size={16} />}

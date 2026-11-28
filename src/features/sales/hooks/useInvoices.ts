@@ -5,6 +5,7 @@ import { useFeedbackStore } from '@/features/feedback/store';
 import { invalidateByPreset } from '@/lib/invalidation';
 import { shouldRetryQuery } from '@/lib/queryClient';
 import { syncStore } from '@/core/lib/sync-store';
+import { useConnectionStore } from '@/core/store/connectionStore';
 import type { CreateInvoiceDTO, UpdateInvoicePayload } from '../types';
 import { invoicesApi } from '../api/invoicesApi';
 
@@ -102,7 +103,15 @@ export const useCreateInvoice = () => {
       const finalData = { ...data, branchId: data.branchId ?? branchId };
       return await salesService.processNewSale(user.company_id, user.id, finalData);
     },
-    onSuccess: () => {
+    onSuccess: res => {
+      if (res?.status === 'offline_queued') {
+        const ref = res.invoice_number ? ` (${res.invoice_number})` : '';
+        showToast(
+          `تم حفظ الفاتورة محلياً بالمرجع${ref} — ستُرحَّل تلقائياً عند عودة الإنترنت`,
+          'info'
+        );
+        return;
+      }
       showToast(`تم اعتماد الفاتورة بنجاح`, 'success');
       invalidateByPreset(queryClient, 'sale');
     },
@@ -111,10 +120,10 @@ export const useCreateInvoice = () => {
       const isFetchError =
         typeof err?.message === 'string' && err.message.includes('Failed to fetch');
       const isNetworkError = err?.status === 0;
+      const edgeAvailable = useConnectionStore.getState().edgeAvailable;
 
-      if (!navigator.onLine || isFetchError || isNetworkError) {
-        // Unified offline queue (sync-store): replayed by ReactQueryProvider's
-        // useSyncQueue via processSyncMutation(['sales', 'create']).
+      if (!edgeAvailable && (!navigator.onLine || isFetchError || isNetworkError)) {
+        // Unified offline queue (sync-store) only when Branch Local Edge is unavailable
         void syncStore.enqueue({
           mutationKey: ['sales', 'create'],
           variables: {

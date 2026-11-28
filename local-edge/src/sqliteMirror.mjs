@@ -79,6 +79,7 @@ export class SqliteMirror {
         balances_json TEXT NOT NULL DEFAULT '{}',
         local_delta_sar REAL NOT NULL DEFAULT 0,
         local_delta_yer REAL NOT NULL DEFAULT 0,
+        local_delta_usd REAL NOT NULL DEFAULT 0,
         updated_at TEXT
       );
       CREATE INDEX IF NOT EXISTS idx_mirror_parties_type ON mirror_parties (type);
@@ -136,6 +137,19 @@ export class SqliteMirror {
         last_seq INTEGER NOT NULL DEFAULT 0
       );
     `);
+
+    const partyCols = this.db.prepare('PRAGMA table_info(mirror_parties)').all();
+    if (!partyCols.some(c => c.name === 'local_delta_usd')) {
+      this.db.exec('ALTER TABLE mirror_parties ADD COLUMN local_delta_usd REAL NOT NULL DEFAULT 0');
+    }
+    this.recoverStuckSyncing();
+  }
+
+  recoverStuckSyncing() {
+    const res = this.db
+      .prepare("UPDATE offline_outbox SET status = 'pending' WHERE status = 'syncing'")
+      .run();
+    return res.changes || 0;
   }
 
   close() {
@@ -195,6 +209,7 @@ export class SqliteMirror {
         is_core = excluded.is_core,
         updated_at = excluded.updated_at
     `);
+    const deleteMain = this.db.prepare('DELETE FROM mirror_products WHERE id = ?');
     const deleteFts = this.db.prepare('DELETE FROM mirror_products_fts WHERE product_id = ?');
     const insertFts = this.db.prepare(`
       INSERT INTO mirror_products_fts (
@@ -204,6 +219,11 @@ export class SqliteMirror {
 
     return this.runInTransaction(() => {
       for (const r of rows) {
+        if (r.deleted_at) {
+          deleteFts.run(String(r.id));
+          deleteMain.run(String(r.id));
+          continue;
+        }
         const nameAr = String(r.name_ar || '');
         const nameNorm = normalizeArabic(nameAr);
         const sku = String(r.sku || '');
@@ -270,11 +290,12 @@ export class SqliteMirror {
 
   upsertParties(rows, { resetLocalDelta = false } = {}) {
     if (!Array.isArray(rows) || rows.length === 0) return 0;
+    const deleteStmt = this.db.prepare('DELETE FROM mirror_parties WHERE id = ?');
     const stmt = this.db.prepare(`
       INSERT INTO mirror_parties (
         id, name, name_norm, type, phone, credit_limit, payment_terms_days,
-        balances_json, local_delta_sar, local_delta_yer, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+        balances_json, local_delta_sar, local_delta_yer, local_delta_usd, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         name_norm = excluded.name_norm,
@@ -285,10 +306,15 @@ export class SqliteMirror {
         balances_json = excluded.balances_json,
         local_delta_sar = ${resetLocalDelta ? '0' : 'mirror_parties.local_delta_sar'},
         local_delta_yer = ${resetLocalDelta ? '0' : 'mirror_parties.local_delta_yer'},
+        local_delta_usd = ${resetLocalDelta ? '0' : 'mirror_parties.local_delta_usd'},
         updated_at = excluded.updated_at
     `);
     return this.runInTransaction(() => {
       for (const r of rows) {
+        if (r.deleted_at) {
+          deleteStmt.run(String(r.id));
+          continue;
+        }
         const name = String(r.name || '');
         const balancesStr =
           typeof r.balances_json === 'string'
@@ -382,7 +408,7 @@ export class SqliteMirror {
     this.runInTransaction(() => {
       this.db.exec('UPDATE mirror_stock SET local_delta_qty = 0 WHERE local_delta_qty <> 0');
       this.db.exec(
-        'UPDATE mirror_parties SET local_delta_sar = 0, local_delta_yer = 0 WHERE local_delta_sar <> 0 OR local_delta_yer <> 0'
+        'UPDATE mirror_parties SET local_delta_sar = 0, local_delta_yer = 0, local_delta_usd = 0 WHERE local_delta_sar <> 0 OR local_delta_yer <> 0 OR local_delta_usd <> 0'
       );
     });
   }
@@ -485,6 +511,11 @@ export class SqliteMirror {
       }
       const sar = Number(balances.SAR || 0) + Number(r.local_delta_sar || 0);
       const yer = Number(balances.YER || 0) + Number(r.local_delta_yer || 0);
+      const usd = Number(balances.USD || 0) + Number(r.local_delta_usd || 0);
+      const mergedBalances = { ...balances, SAR: sar, YER: yer };
+      if (usd !== 0 || balances.USD !== undefined) {
+        mergedBalances.USD = usd;
+      }
       return {
         id: r.id,
         name: r.name,
@@ -492,7 +523,7 @@ export class SqliteMirror {
         phone: r.phone || null,
         credit_limit: Number(r.credit_limit || 0),
         payment_terms_days: Number(r.payment_terms_days || 0),
-        balances: { ...balances, SAR: sar, YER: yer },
+        balances: mergedBalances,
       };
     });
   }
@@ -594,6 +625,10 @@ export class SqliteMirror {
             this.db
               .prepare('UPDATE mirror_parties SET local_delta_yer = local_delta_yer + ? WHERE id = ?')
               .run(unpaidDoc, String(rpcPayload.p_party_id));
+          } else if (currency === 'USD') {
+            this.db
+              .prepare('UPDATE mirror_parties SET local_delta_usd = local_delta_usd + ? WHERE id = ?')
+              .run(unpaidDoc, String(rpcPayload.p_party_id));
           } else {
             const unpaidBase = Math.round(unpaidDoc * effRate * 100) / 100;
             this.db
@@ -676,14 +711,30 @@ export class SqliteMirror {
         .run(id, idempotencyKey, offlineRef, JSON.stringify(payloadToStore), authUserId, now);
 
       if (rpcPayload.p_counterparty_type === 'party' && rpcPayload.p_counterparty_id) {
+        const partyRow = this.db
+          .prepare('SELECT type FROM mirror_parties WHERE id = ?')
+          .get(String(rpcPayload.p_counterparty_id));
+        const isSupplier = partyRow?.type === 'supplier';
         const currency = String(rpcPayload.p_currency_code || 'SAR').toUpperCase();
-        const amt = Number(rpcPayload.p_foreign_amount || rpcPayload.p_amount || 0);
-        const sign = rpcPayload.p_bond_type === 'receipt' ? -1 : 1;
+        const sign = isSupplier
+          ? rpcPayload.p_bond_type === 'receipt'
+            ? 1
+            : -1
+          : rpcPayload.p_bond_type === 'receipt'
+            ? -1
+            : 1;
         if (currency === 'YER') {
+          const amt = Number(rpcPayload.p_foreign_amount || rpcPayload.p_amount || 0);
           this.db
             .prepare('UPDATE mirror_parties SET local_delta_yer = local_delta_yer + ? WHERE id = ?')
             .run(sign * amt, String(rpcPayload.p_counterparty_id));
+        } else if (currency === 'USD') {
+          const amt = Number(rpcPayload.p_foreign_amount || rpcPayload.p_amount || 0);
+          this.db
+            .prepare('UPDATE mirror_parties SET local_delta_usd = local_delta_usd + ? WHERE id = ?')
+            .run(sign * amt, String(rpcPayload.p_counterparty_id));
         } else {
+          const amt = Number(rpcPayload.p_amount || 0);
           this.db
             .prepare('UPDATE mirror_parties SET local_delta_sar = local_delta_sar + ? WHERE id = ?')
             .run(sign * amt, String(rpcPayload.p_counterparty_id));
@@ -781,7 +832,37 @@ export class SqliteMirror {
         )
         .run(officialId ? String(officialId) : null, officialRef ? String(officialRef) : null, now, id);
 
-      if (officialRef) {
+      if (officialId && officialId !== id) {
+        const prev = this.db.prepare('SELECT * FROM mirror_recent_invoices WHERE id = ?').get(id);
+        if (prev) {
+          this.db
+            .prepare(
+              `INSERT INTO mirror_recent_invoices (
+                id, invoice_number, offline_reference, issue_date, party_id, party_name,
+                payment_method, currency_code, total_amount, total_document_amount, status, payload_json, created_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'posted', ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                invoice_number = COALESCE(excluded.invoice_number, mirror_recent_invoices.invoice_number),
+                offline_reference = COALESCE(excluded.offline_reference, mirror_recent_invoices.offline_reference),
+                status = 'posted'`
+            )
+            .run(
+              String(officialId),
+              officialRef ? String(officialRef) : prev.invoice_number,
+              prev.offline_reference,
+              prev.issue_date,
+              prev.party_id,
+              prev.party_name,
+              prev.payment_method,
+              prev.currency_code,
+              prev.total_amount,
+              prev.total_document_amount,
+              prev.payload_json,
+              prev.created_at
+            );
+          this.db.prepare('DELETE FROM mirror_recent_invoices WHERE id = ?').run(id);
+        }
+      } else if (officialRef) {
         this.db
           .prepare(
             `UPDATE mirror_recent_invoices

@@ -10,7 +10,7 @@ import { SqliteMirror } from '../src/sqliteMirror.mjs';
 import { DeltaSyncWorker } from '../src/deltaSyncWorker.mjs';
 import { GoogleDriveBackupWorker } from '../src/googleDriveBackupWorker.mjs';
 import { createEdgeServer } from '../src/server.mjs';
-import { loadConfig } from '../src/config.mjs';
+import { loadConfig, loadRuntimeBackupConfig } from '../src/config.mjs';
 
 test('Arabic FTS5 search returns normalized spare parts quickly', () => {
   const mirror = new SqliteMirror(':memory:', 'B1');
@@ -207,6 +207,197 @@ test('Streaming gzip + SHA-256 backup works offline & over HTTP gateway', async 
     const parsed = JSON.parse(zlib.gunzipSync(gzBuf).toString('utf8'));
     assert.equal(parsed.branchCode, 'B1');
     assert.equal(parsed.tables.mirror_products.length, 1);
+  } finally {
+    server.close();
+    mirror.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('Crash recovery resets syncing rows, 401 stays pending, and recent_invoices avoids duplicates', async () => {
+  const mirror = new SqliteMirror(':memory:', 'B1');
+  const inv = mirror.enqueueSalesInvoice({
+    p_invoice_date: '2026-11-28',
+    p_items: [{ product_id: 'p1', quantity: 2, unit_price: 30 }],
+  });
+  mirror.markOutboxSyncing(inv.id);
+  assert.equal(mirror.getPendingOutbox().length, 0);
+
+  // Simulate restart crash recovery
+  const recovered = mirror.recoverStuckSyncing();
+  assert.equal(recovered, 1);
+  assert.equal(mirror.getPendingOutbox().length, 1);
+
+  // HTTP 401 / 42501 Authentication required must keep item pending (NOT failed_needs_review)
+  let attempts = 0;
+  const server = http.createServer(async (req, res) => {
+    attempts += 1;
+    if (req.url?.includes('/rpc/commit_sales_invoice_v2')) {
+      if (attempts === 1) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ code: '42501', message: 'Authentication required' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify('official-uuid-999'));
+      return;
+    }
+    if (req.url?.includes('/rest/v1/invoices')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify([{ id: 'official-uuid-999', invoice_number: 'INV-B1-2026-0099' }]));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({}));
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const config = loadConfig({
+      supabaseUrl: `http://127.0.0.1:${server.address().port}`,
+      supabaseAnonKey: 'anon-test',
+    });
+    const syncWorker = new DeltaSyncWorker({ config, mirror });
+    syncWorker.setBearerToken('expired.jwt.token.placeholder.123456', 'user-1');
+
+    const firstTry = await syncWorker.replayOutbox();
+    assert.equal(firstTry.synced, 0);
+    assert.equal(mirror.getPendingOutbox().length, 1);
+    assert.equal(mirror.listOutbox()[0].status, 'pending');
+
+    // Fresh token recovers and promotes recent_invoices row ID without creating duplicate
+    syncWorker.setBearerToken('fresh.jwt.token.placeholder.123456', 'user-1');
+    const secondTry = await syncWorker.replayOutbox();
+    assert.equal(secondTry.synced, 1);
+
+    mirror.upsertRecentInvoices([
+      {
+        id: 'official-uuid-999',
+        invoice_number: 'INV-B1-2026-0099',
+        issue_date: '2026-11-28',
+        status: 'posted',
+        total_amount: 60,
+      },
+    ]);
+    assert.equal(mirror.listRecentInvoices(10).length, 1);
+    assert.equal(mirror.listRecentInvoices(10)[0].id, 'official-uuid-999');
+  } finally {
+    server.close();
+    mirror.close();
+  }
+});
+
+test('Soft-delete tombstones, USD/supplier delta math, security guards, and Drive pruning work', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'alndari-edge-sec-'));
+  const config = loadConfig({
+    dataDir: path.join(tmpDir, 'data'),
+    sqlitePath: path.join(tmpDir, 'data', 'sec.sqlite'),
+    backupDir: path.join(tmpDir, 'backups'),
+    distDir: path.join(tmpDir, 'dist'),
+    edgeSharedSecret: 'secret-b1-token',
+  });
+  fs.mkdirSync(config.distDir, { recursive: true });
+  fs.writeFileSync(path.join(config.distDir, 'index.html'), '<h1>OK</h1>', 'utf8');
+
+  const mirror = new SqliteMirror(config.sqlitePath, 'B1');
+  mirror.upsertProducts([
+    { id: 'p-live', name_ar: 'شمعات احتراق', part_number: 'P-1', sale_price: 20 },
+    { id: 'p-del', name_ar: 'محذوف', part_number: 'P-DEL', sale_price: 10, deleted_at: '2026-11-28T09:00:00Z' },
+  ]);
+  assert.equal(mirror.searchProducts('محذوف').length, 0);
+
+  mirror.upsertParties([
+    { id: 'sup-1', name: 'شركة المورد الأول', type: 'supplier', balances_json: { SAR: 500, USD: 100 } },
+    { id: 'cust-del', name: 'عميل محذوف', type: 'customer', deleted_at: '2026-11-28T09:00:00Z' },
+  ]);
+  assert.equal(mirror.listParties({ query: 'محذوف' }).length, 0);
+
+  // Payment voucher to supplier decreases supplier balance; USD handled separately
+  mirror.enqueueBond({
+    p_bond_type: 'disbursement',
+    p_counterparty_type: 'party',
+    p_counterparty_id: 'sup-1',
+    p_currency_code: 'USD',
+    p_foreign_amount: 40,
+    p_amount: 150,
+    p_date: '2026-11-28',
+  });
+  const supAfter = mirror.listParties({ query: 'المورد' })[0];
+  assert.equal(supAfter.balances.USD, 60);
+  assert.equal(supAfter.balances.SAR, 500);
+
+  const deletedDriveIds = [];
+  const backupWorker = new GoogleDriveBackupWorker({
+    config: {
+      ...config,
+      gdriveClientId: 'cid',
+      gdriveClientSecret: 'csec',
+      gdriveRefreshToken: 'rtok',
+    },
+    mirror,
+    syncWorker: new DeltaSyncWorker({ config, mirror }),
+    fetchImpl: async (url, init = {}) => {
+      const u = String(url);
+      if (u.includes('oauth2.googleapis.com')) {
+        return new Response(JSON.stringify({ access_token: 'mock-access' }), { status: 200 });
+      }
+      if (u.includes('files?q=') && u.includes('vnd.google-apps.folder')) {
+        return new Response(JSON.stringify({ files: [{ id: 'folder-1', name: '2026-10' }] }), { status: 200 });
+      }
+      if (u.includes('files?q=')) {
+        return new Response(
+          JSON.stringify({
+            files: [
+              { id: 'old-id', name: 'AlNadary_B1_2026-09-10_2330.json.gz', createdTime: '2026-09-10T23:30:00Z' },
+              { id: 'monthly-keep', name: 'AlNadary_B1_2026-09-01_2330.json.gz', createdTime: '2026-09-01T23:30:00Z' },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+      if (init.method === 'DELETE') {
+        deletedDriveIds.push(u.split('/').pop());
+        return new Response(null, { status: 204 });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    },
+  });
+
+  const pruned = await backupWorker.pruneOldDriveBackups('mock-access', 'root-1', 30);
+  assert.equal(pruned, 1);
+  assert.deepEqual(deletedDriveIds, ['old-id']);
+
+  const syncWorker = new DeltaSyncWorker({ config, mirror });
+  const server = createEdgeServer({ config, mirror, syncWorker, backupWorker });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+  try {
+    // Disallowed Origin blocked -> 403
+    const evilOrigin = await fetch(`${baseUrl}/health`, { headers: { Origin: 'https://evil.example' } });
+    assert.equal(evilOrigin.status, 403);
+
+    // Missing X-Edge-Secret -> 401
+    const unauth = await fetch(`${baseUrl}/outbox/list`);
+    assert.equal(unauth.status, 401);
+
+    // Wrong Content-Type CSRF -> 415
+    const csrfPost = await fetch(`${baseUrl}/config/backup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain', 'X-Edge-Secret': 'secret-b1-token' },
+      body: '{"enabled":false}',
+    });
+    assert.equal(csrfPost.status, 415);
+
+    // Authorized runtime config persistence
+    const saveCfg = await fetch(`${baseUrl}/config/backup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Edge-Secret': 'secret-b1-token' },
+      body: JSON.stringify({ enabled: true, frequency: 'weekly', retentionDays: 45 }),
+    });
+    assert.equal(saveCfg.status, 200);
+    assert.equal(loadRuntimeBackupConfig(config).frequency, 'weekly');
+    assert.equal(loadRuntimeBackupConfig(config).retentionDays, 45);
   } finally {
     server.close();
     mirror.close();

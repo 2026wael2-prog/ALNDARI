@@ -252,7 +252,7 @@ const fetchServerLines = async (requestIds: readonly string[]): Promise<ServerLi
     .order('created_at', { ascending: true })
     .order('pr_item_id', { ascending: true });
   if (error) throw parseError(error);
-  return (data ?? []) as unknown as ServerLineRow[];
+  return data;
 };
 
 const fetchSupplierRows = async (supplierIds: readonly string[]): Promise<PartyRow[]> => {
@@ -291,11 +291,8 @@ export const requisitionsApi = {
       } as unknown as Json,
     };
 
-    if (shouldUseLocalFailover()) {
-      const queued = await edgeClient.enqueueRequisition(
-        rpcPayload as unknown as Record<string, unknown>,
-        input.userId
-      );
+    const enqueueOffline = async (): Promise<RequisitionCommitResult> => {
+      const queued = await edgeClient.enqueueRequisition(rpcPayload, input.userId);
       return {
         recordId: queued.id,
         number: queued.pr_number,
@@ -303,6 +300,10 @@ export const requisitionsApi = {
         totalEstimatedValue: 0,
         isDuplicate: false,
       };
+    };
+
+    if (shouldUseLocalFailover()) {
+      return await enqueueOffline();
     }
 
     let data: unknown;
@@ -313,36 +314,16 @@ export const requisitionsApi = {
       error = res.error;
     } catch (netErr) {
       if (shouldUseLocalFailover(netErr)) {
-        const queued = await edgeClient.enqueueRequisition(
-          rpcPayload as unknown as Record<string, unknown>,
-          input.userId
-        );
-        return {
-          recordId: queued.id,
-          number: queued.pr_number,
-          status: input.status ?? 'draft',
-          totalEstimatedValue: 0,
-          isDuplicate: false,
-        };
+        return await enqueueOffline();
       }
       throw netErr;
     }
 
-    if (error) {
+    if (error !== null && error !== undefined) {
       if (shouldUseLocalFailover(error)) {
-        const queued = await edgeClient.enqueueRequisition(
-          rpcPayload as unknown as Record<string, unknown>,
-          input.userId
-        );
-        return {
-          recordId: queued.id,
-          number: queued.pr_number,
-          status: input.status ?? 'draft',
-          totalEstimatedValue: 0,
-          isDuplicate: false,
-        };
+        return await enqueueOffline();
       }
-      throw error;
+      throw parseError(error);
     }
 
     const response = (data ?? {}) as unknown as CommitRpcResponse;
@@ -455,12 +436,13 @@ export const requisitionsApi = {
     });
     if (error) throw parseError(error);
     const rows = (Array.isArray(data) ? data : []) as Array<Record<string, unknown>>;
+    const toStr = (v: unknown): string => (typeof v === 'string' ? v : '');
     return rows.map(row => ({
-      id: String(row.id ?? ''),
-      name_ar: String(row.name_ar ?? ''),
-      part_number: String(row.part_number ?? ''),
-      sku: String(row.sku ?? ''),
-      brand: String(row.brand ?? ''),
+      id: toStr(row.id),
+      name_ar: toStr(row.name_ar),
+      part_number: toStr(row.part_number),
+      sku: toStr(row.sku),
+      brand: toStr(row.brand),
       current_qty: Number(row.current_qty ?? 0),
       min_stock_level: Number(row.min_stock_level ?? 0),
       sold_90d: Number(row.sold_90d ?? 0),

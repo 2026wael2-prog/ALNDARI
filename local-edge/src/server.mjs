@@ -5,8 +5,8 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { URL } from 'node:url';
-import { loadConfig } from './config.mjs';
+import { URL, fileURLToPath } from 'node:url';
+import { loadConfig, loadRuntimeBackupConfig, saveRuntimeBackupConfig } from './config.mjs';
 import { SqliteMirror } from './sqliteMirror.mjs';
 import { DeltaSyncWorker } from './deltaSyncWorker.mjs';
 import { GoogleDriveBackupWorker } from './googleDriveBackupWorker.mjs';
@@ -49,9 +49,20 @@ function sendJson(res, status, data, origin = null) {
   res.end(body);
 }
 
+const MAX_BODY_BYTES = 2 * 1024 * 1024;
+
 async function readJsonBody(req) {
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
+  let totalBytes = 0;
+  for await (const chunk of req) {
+    totalBytes += chunk.length;
+    if (totalBytes > MAX_BODY_BYTES) {
+      const err = new Error('payload_too_large');
+      err.httpStatus = 413;
+      throw err;
+    }
+    chunks.push(chunk);
+  }
   const raw = Buffer.concat(chunks).toString('utf8');
   return raw ? JSON.parse(raw) : {};
 }
@@ -66,28 +77,54 @@ export function createEdgeServer({ config, mirror, syncWorker, backupWorker }) {
   const server = http.createServer(async (req, res) => {
     const origin = req.headers.origin || null;
 
+    if (origin && !isAllowedCorsOrigin(origin)) {
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'forbidden_origin' }));
+      return;
+    }
+
     if (req.method === 'OPTIONS') {
-      if (!isAllowedCorsOrigin(origin)) {
-        res.writeHead(403);
-        res.end();
-        return;
-      }
-      res.writeHead(204, {
-        'Access-Control-Allow-Origin': origin || '*',
+      const headers = {
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-edge-user-id',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-edge-user-id, X-Edge-Secret',
         'Access-Control-Max-Age': '86400',
-      });
+      };
+      if (origin) {
+        headers['Access-Control-Allow-Origin'] = origin;
+        headers['Vary'] = 'Origin';
+      }
+      res.writeHead(204, headers);
       res.end();
       return;
     }
 
-    const token = extractBearer(req);
-    if (token) syncWorker.setBearerToken(token);
-    const userId = req.headers['x-edge-user-id'] ? String(req.headers['x-edge-user-id']) : null;
-
     const reqUrl = new URL(req.url || '/', `http://${req.headers.host || '127.0.0.1'}`);
     const pathname = reqUrl.pathname;
+
+    const isProtectedApi =
+      pathname.startsWith('/mirror/') ||
+      pathname.startsWith('/outbox/') ||
+      pathname.startsWith('/sync/') ||
+      pathname.startsWith('/backup/') ||
+      pathname.startsWith('/config/');
+
+    if (config.edgeSharedSecret && isProtectedApi) {
+      const provided = String(req.headers['x-edge-secret'] || '');
+      if (provided !== config.edgeSharedSecret) {
+        return sendJson(res, 401, { error: 'unauthorized_edge_secret' }, origin);
+      }
+    }
+
+    if (req.method === 'POST' && isProtectedApi) {
+      const ct = String(req.headers['content-type'] || '').toLowerCase();
+      if (!ct.includes('application/json')) {
+        return sendJson(res, 415, { error: 'unsupported_media_type' }, origin);
+      }
+    }
+
+    const token = extractBearer(req);
+    const userId = req.headers['x-edge-user-id'] ? String(req.headers['x-edge-user-id']) : null;
+    if (token) syncWorker.setBearerToken(token, userId);
 
     try {
       if (req.method === 'GET' && pathname === '/health') {
@@ -102,10 +139,12 @@ export function createEdgeServer({ config, mirror, syncWorker, backupWorker }) {
             branchName: config.branchName,
             companyId: config.companyId,
             edgeVersion: config.edgeVersion,
+            authRequired: Boolean(config.edgeSharedSecret),
             isSyncing: syncWorker.isSyncing,
             lastError: syncWorker.lastError,
             lastCloudOkAt: syncWorker.lastCloudOkAt,
             driveConfigured: backupWorker.hasDriveCredentials(),
+            runtimeBackupConfig: loadRuntimeBackupConfig(config),
             memoryRssMb: Math.round((process.memoryUsage().rss / 1024 / 1024) * 100) / 100,
             ...stats,
           },
@@ -175,13 +214,23 @@ export function createEdgeServer({ config, mirror, syncWorker, backupWorker }) {
       }
 
       if (req.method === 'POST' && pathname === '/sync/now') {
-        const result = await syncWorker.runFullCycle(token);
+        const result = await syncWorker.runFullCycle(token, userId);
         return sendJson(res, 200, result, origin);
       }
 
       if (req.method === 'POST' && pathname === '/backup/run') {
-        const result = await backupWorker.runBackup({ triggerType: 'manual', bearerToken: token });
+        const result = await backupWorker.runBackup({ triggerType: 'manual', bearerToken: token, userId });
         return sendJson(res, 200, result, origin);
+      }
+
+      if (req.method === 'GET' && pathname === '/config/backup') {
+        return sendJson(res, 200, loadRuntimeBackupConfig(config), origin);
+      }
+
+      if (req.method === 'POST' && pathname === '/config/backup') {
+        const body = await readJsonBody(req);
+        const saved = saveRuntimeBackupConfig(config, body);
+        return sendJson(res, 200, saved, origin);
       }
 
       if (req.method === 'GET' && pathname === '/backup/status') {
@@ -200,10 +249,14 @@ export function createEdgeServer({ config, mirror, syncWorker, backupWorker }) {
 
       // Serve built SPA static assets from ../dist so LAN devices work 100% offline
       if (req.method === 'GET' && fs.existsSync(config.distDir)) {
-        const safeRel = path.normalize(pathname === '/' ? '/index.html' : pathname).replace(/^(\.\.[/\\])+/, '');
-        let targetFile = path.join(config.distDir, safeRel);
+        const distRoot = path.resolve(config.distDir);
+        const rawRel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^[/\\]+/, '');
+        let targetFile = path.resolve(distRoot, rawRel);
+        if (targetFile !== distRoot && !targetFile.startsWith(distRoot + path.sep)) {
+          return sendJson(res, 403, { error: 'forbidden_path' }, origin);
+        }
         if (!fs.existsSync(targetFile) || fs.statSync(targetFile).isDirectory()) {
-          targetFile = path.join(config.distDir, 'index.html');
+          targetFile = path.join(distRoot, 'index.html');
         }
         if (fs.existsSync(targetFile)) {
           const ext = path.extname(targetFile).toLowerCase();
@@ -215,7 +268,8 @@ export function createEdgeServer({ config, mirror, syncWorker, backupWorker }) {
 
       return sendJson(res, 404, { error: 'not_found' }, origin);
     } catch (err) {
-      return sendJson(res, 500, { error: err?.message || 'internal_error' }, origin);
+      const status = Number(err?.httpStatus) || (err instanceof SyntaxError ? 400 : 500);
+      return sendJson(res, status, { error: err?.message || 'internal_error' }, origin);
     }
   });
 
@@ -255,15 +309,19 @@ async function main() {
   }, config.syncIntervalMs);
   syncTimer.unref?.();
 
-  // Check every 60s whether scheduled daily backup hour:minute has arrived
+  // Check every 60s whether scheduled daily/weekly/monthly backup hour:minute has arrived
   let lastBackupDay = '';
   const backupTimer = setInterval(() => {
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
+    const runtimeCfg = loadRuntimeBackupConfig(config);
+    if (!runtimeCfg.enabled) return;
+    if (runtimeCfg.frequency === 'weekly' && now.getDay() !== 6) return;
+    if (runtimeCfg.frequency === 'monthly' && now.getDate() !== 1) return;
     if (
       today !== lastBackupDay &&
-      now.getHours() === config.backupCronHour &&
-      now.getMinutes() >= config.backupCronMinute &&
+      now.getHours() === runtimeCfg.cronHour &&
+      now.getMinutes() >= runtimeCfg.cronMinute &&
       !backupWorker.isRunning
     ) {
       lastBackupDay = today;
@@ -287,7 +345,8 @@ async function main() {
 }
 
 const isEntrypoint =
-  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+  Boolean(process.argv[1]) &&
+  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 
 if (isEntrypoint) {
   main().catch(err => {

@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'draft' | 'posted' | 'paid' | 'void';
+export type InvoiceStatus = 'draft' | 'posted' | 'paid' | 'void' | 'offline_queued';
 export type InvoiceType = 'sale' | 'sale_return';
 
 export interface CartItem {

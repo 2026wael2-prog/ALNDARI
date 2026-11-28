@@ -17,11 +17,12 @@ describe('edgeClient', () => {
     vi.restoreAllMocks();
   });
 
-  it('recognizes network failure messages cleanly', () => {
+  it('recognizes network failure messages cleanly without over-matching business errors', () => {
     expect(isNetworkFailureError(new Error('network_offline'))).toBe(true);
     expect(isNetworkFailureError(new TypeError('Failed to fetch'))).toBe(true);
     expect(isNetworkFailureError(new Error('Circuit open'))).toBe(true);
     expect(isNetworkFailureError(new Error('validation error: missing customer'))).toBe(false);
+    expect(isNetworkFailureError(new Error('Could not fetch permission for invoice'))).toBe(false);
   });
 
   it('activates local failover only when edgeAvailable is true', () => {

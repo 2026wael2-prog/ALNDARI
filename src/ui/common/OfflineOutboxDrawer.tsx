@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import {
   CheckCircle2,
   Cloud,
@@ -47,7 +47,148 @@ const STATUS_BADGES: Record<
   },
 };
 
-export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen, onClose }) => {
+const isStr = (v: unknown): v is string => typeof v === 'string' && v !== '';
+
+const OutboxRowCard = ({
+  row,
+  onRetry,
+}: {
+  row: EdgeOutboxRow;
+  onRetry: (id: string) => void;
+}): ReactElement => {
+  const badge = STATUS_BADGES[row.status];
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-800 dark:bg-slate-950">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="font-extrabold text-black dark:text-white">
+            {ENTITY_LABELS[row.entity_type]}
+          </span>
+          <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-extrabold', badge.className)}>
+            {badge.label}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 font-mono text-[11px] font-bold text-slate-600 dark:text-slate-400">
+          <span>مرجع محلي: {row.offline_ref}</span>
+          {isStr(row.official_ref) && (
+            <span className="text-emerald-700 dark:text-emerald-400">
+              ← رقم رسمي: {row.official_ref}
+            </span>
+          )}
+        </div>
+        {isStr(row.error_message) && (
+          <div className="flex items-center gap-1 text-[11px] font-bold text-rose-700 dark:text-rose-400">
+            <AlertTriangle size={12} />
+            <span>{row.error_message}</span>
+          </div>
+        )}
+      </div>
+
+      {(row.status === 'failed_needs_review' || row.status === 'syncing') && (
+        <button
+          type="button"
+          onClick={() => {
+            onRetry(row.id);
+          }}
+          className="flex items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1 text-[11px] font-extrabold text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200"
+        >
+          <RotateCcw size={12} />
+          <span>إعادة المحاولة</span>
+        </button>
+      )}
+    </div>
+  );
+};
+
+const OutboxBody = ({
+  edgeAvailable,
+  branchLabel,
+  isLoading,
+  rows,
+  onRetry,
+}: {
+  edgeAvailable: boolean;
+  branchLabel: string;
+  isLoading: boolean;
+  rows: EdgeOutboxRow[];
+  onRetry: (id: string) => void;
+}): ReactElement => {
+  if (!edgeAvailable) {
+    return (
+      <div className="py-10 text-center text-xs font-bold text-slate-500">
+        الخادم المحلي لفرع {branchLabel} غير متصل على هذا الجهاز حالياً. عند تشغيله في المحل
+        تظهر هنا جميع العمليات المسجلة أوفلاين وحالة ترحيلها لـ Supabase.
+      </div>
+    );
+  }
+  if (isLoading) {
+    return (
+      <div className="py-10 text-center text-xs font-bold text-slate-500">
+        جارٍ تحميل سجل الطابور المحلي...
+      </div>
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-10 text-center text-xs font-bold text-slate-500">
+        <CheckCircle2 size={24} className="text-emerald-600" />
+        <span>طابور العمليات فارغ — جميع العمليات متزامنة مع السحابة بالكامل.</span>
+      </div>
+    );
+  }
+  return (
+    <>
+      {rows.map(row => (
+        <OutboxRowCard key={row.id} row={row} onRetry={onRetry} />
+      ))}
+    </>
+  );
+};
+
+function formatSyncOutcome(res: {
+  skipped?: boolean;
+  reason?: string;
+  error?: string;
+  outboxResult?: { synced: number; failed: number };
+}): string {
+  if (res.skipped === true) {
+    return `تم تخطي المزامنة: ${res.reason ?? 'غير متاح حالياً'}`;
+  }
+  if (isStr(res.error)) {
+    return `تعذر إكمال المزامنة: ${res.error}`;
+  }
+  const syncedNum = String(res.outboxResult?.synced ?? 0);
+  const failedNum = String(res.outboxResult?.failed ?? 0);
+  return `تمت المزامنة: ${syncedNum} عملية مرفوعة، ${failedNum} متعثرة`;
+}
+
+const ConnectionModeBadge = ({ mode }: { mode: string }): ReactElement => {
+  if (mode === 'local_failover') {
+    return (
+      <>
+        <CloudOff size={13} className="text-amber-600" /> وضع محلي أوفلاين
+      </>
+    );
+  }
+  if (mode === 'syncing') {
+    return (
+      <>
+        <RefreshCw size={13} className="animate-spin text-blue-600" /> جاري المزامنة
+      </>
+    );
+  }
+  return (
+    <>
+      <Cloud size={13} className="text-emerald-600" /> سحابي مباشر
+    </>
+  );
+};
+
+// eslint-disable-next-line max-lines-per-function
+export const OfflineOutboxDrawer = ({
+  isOpen,
+  onClose,
+}: OfflineOutboxDrawerProps): ReactElement | null => {
   const {
     connectionMode,
     edgeAvailable,
@@ -62,6 +203,8 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncingNow, setIsSyncingNow] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const branchLabel = edgeBranchCode ?? 'B1';
 
   const loadOutbox = useCallback(async () => {
     if (!edgeAvailable) {
@@ -87,21 +230,13 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
 
   if (!isOpen) return null;
 
-  const handleSyncNow = async () => {
+  const handleSyncNow = async (): Promise<void> => {
     setIsSyncingNow(true);
     setFeedback(null);
     try {
       const res = await edgeClient.triggerSyncNow();
       await loadOutbox();
-      if (res.skipped) {
-        setFeedback(`تم تخطي المزامنة: ${res.reason || 'غير متاح حالياً'}`);
-      } else if (res.error) {
-        setFeedback(`تعذر إكمال المزامنة: ${res.error}`);
-      } else {
-        setFeedback(
-          `تمت المزامنة: ${res.outboxResult?.synced ?? 0} عملية مرفوعة، ${res.outboxResult?.failed ?? 0} متعثرة`
-        );
-      }
+      setFeedback(formatSyncOutcome(res));
     } catch (err) {
       setFeedback(err instanceof Error ? err.message : 'فشل الاتصال بالخادم');
     } finally {
@@ -109,7 +244,7 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
     }
   };
 
-  const handleRetry = async (id: string) => {
+  const handleRetry = async (id: string): Promise<void> => {
     await edgeClient.retryOutboxItem(id);
     await loadOutbox();
   };
@@ -117,12 +252,15 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 p-0 backdrop-blur-xs sm:items-center sm:p-4"
+      role="presentation"
       onMouseDown={e => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         className="flex max-h-[86dvh] w-full max-w-2xl flex-col rounded-t-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:rounded-xl sm:p-5"
+        role="dialog"
+        aria-modal="true"
         dir="rtl"
       >
         <div className="mb-3 flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
@@ -130,7 +268,7 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
             <Server size={18} className="text-blue-600" />
             <div>
               <h3 className="text-sm font-extrabold text-black dark:text-white">
-                حالة الاتصال وخادم فرع {edgeBranchCode || 'B1'} المحلي
+                حالة الاتصال وخادم فرع {branchLabel} المحلي
               </h3>
               <p className="font-mono text-[11px] font-bold text-slate-500" dir="ltr">
                 {edgeUrl}
@@ -151,19 +289,7 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-slate-950">
             <span className="block text-[10px] font-bold text-slate-500">وضع التشغيل</span>
             <span className="mt-1 flex items-center gap-1 font-extrabold text-black dark:text-white">
-              {connectionMode === 'local_failover' ? (
-                <>
-                  <CloudOff size={13} className="text-amber-600" /> وضع محلي أوفلاين
-                </>
-              ) : connectionMode === 'syncing' ? (
-                <>
-                  <RefreshCw size={13} className="animate-spin text-blue-600" /> جاري المزامنة
-                </>
-              ) : (
-                <>
-                  <Cloud size={13} className="text-emerald-600" /> سحابي مباشر
-                </>
-              )}
+              <ConnectionModeBadge mode={connectionMode} />
             </span>
           </div>
 
@@ -199,7 +325,7 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
             <Clock size={13} className="text-blue-600" />
             <span>آخر مزامنة مرآة:</span>
             <span className="font-mono" dir="ltr">
-              {lastMirrorSyncAt ? new Date(lastMirrorSyncAt).toLocaleString('en-GB') : '---'}
+              {isStr(lastMirrorSyncAt) ? new Date(lastMirrorSyncAt).toLocaleString('en-GB') : '---'}
             </span>
           </span>
           <button
@@ -215,76 +341,22 @@ export const OfflineOutboxDrawer: React.FC<OfflineOutboxDrawerProps> = ({ isOpen
           </button>
         </div>
 
-        {feedback && (
+        {isStr(feedback) && (
           <div className="mb-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
             {feedback}
           </div>
         )}
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto space-y-2">
-          {!edgeAvailable ? (
-            <div className="py-10 text-center text-xs font-bold text-slate-500">
-              الخادم المحلي لفرع {edgeBranchCode || 'B1'} غير متصل على هذا الجهاز حالياً. عند تشغيله في المحل
-              تظهر هنا جميع العمليات المسجلة أوفلاين وحالة ترحيلها لـ Supabase.
-            </div>
-          ) : isLoading ? (
-            <div className="py-10 text-center text-xs font-bold text-slate-500">
-              جارٍ تحميل سجل الطابور المحلي...
-            </div>
-          ) : rows.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-center text-xs font-bold text-slate-500">
-              <CheckCircle2 size={24} className="text-emerald-600" />
-              <span>طابور العمليات فارغ — جميع العمليات متزامنة مع السحابة بالكامل.</span>
-            </div>
-          ) : (
-            rows.map(row => {
-              const badge = STATUS_BADGES[row.status];
-              return (
-                <div
-                  key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-800 dark:bg-slate-950"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-black dark:text-white">
-                        {ENTITY_LABELS[row.entity_type] || row.entity_type}
-                      </span>
-                      <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-extrabold', badge.className)}>
-                        {badge.label}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 font-mono text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                      <span>مرجع محلي: {row.offline_ref}</span>
-                      {row.official_ref && (
-                        <span className="text-emerald-700 dark:text-emerald-400">
-                          ← رقم رسمي: {row.official_ref}
-                        </span>
-                      )}
-                    </div>
-                    {row.error_message && (
-                      <div className="flex items-center gap-1 text-[11px] font-bold text-rose-700 dark:text-rose-400">
-                        <AlertTriangle size={12} />
-                        <span>{row.error_message}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {(row.status === 'failed_needs_review' || row.status === 'syncing') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleRetry(row.id);
-                      }}
-                      className="flex items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1 text-[11px] font-extrabold text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200"
-                    >
-                      <RotateCcw size={12} />
-                      <span>إعادة المحاولة</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })
-          )}
+        <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto">
+          <OutboxBody
+            edgeAvailable={edgeAvailable}
+            branchLabel={branchLabel}
+            isLoading={isLoading}
+            rows={rows}
+            onRetry={id => {
+              void handleRetry(id);
+            }}
+          />
         </div>
       </div>
     </div>

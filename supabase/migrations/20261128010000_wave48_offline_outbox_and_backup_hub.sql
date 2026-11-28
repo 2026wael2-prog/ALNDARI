@@ -12,6 +12,33 @@ CREATE INDEX IF NOT EXISTS idx_payments_company_offline_ref
   ON public.payments (company_id, offline_reference)
   WHERE offline_reference IS NOT NULL;
 
+-- 1b. Auto-populate offline_reference on invoices & payments from synced notes without
+-- touching/overloading existing commit_sales_invoice_v2 or create_financial_bond RPC signatures.
+CREATE OR REPLACE FUNCTION public.fn_extract_offline_reference()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+  IF NEW.offline_reference IS NULL AND NEW.notes IS NOT NULL THEN
+    NEW.offline_reference := substring(NEW.notes FROM '\[مرجع محلي:\s*(OFF-[A-Z0-9-]+)\]');
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_invoices_extract_offline_ref ON public.invoices;
+CREATE TRIGGER trg_invoices_extract_offline_ref
+  BEFORE INSERT ON public.invoices
+  FOR EACH ROW
+  EXECUTE FUNCTION public.fn_extract_offline_reference();
+
+DROP TRIGGER IF EXISTS trg_payments_extract_offline_ref ON public.payments;
+CREATE TRIGGER trg_payments_extract_offline_ref
+  BEFORE INSERT ON public.payments
+  FOR EACH ROW
+  EXECUTE FUNCTION public.fn_extract_offline_reference();
+
 -- 2. System Backup Runs (live Google Drive & local backup audit log)
 CREATE TABLE IF NOT EXISTS public.system_backup_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -217,11 +244,14 @@ BEGIN
         p.alternative_numbers,
         p.barcode,
         COALESCE(p.is_core, false) AS is_core,
+        p.deleted_at,
         p.updated_at
       FROM public.products p
       WHERE p.company_id = p_company_id
-        AND p.deleted_at IS NULL
-        AND (p_since IS NULL OR p.updated_at >= p_since)
+        AND (
+          (p_since IS NULL AND p.deleted_at IS NULL)
+          OR (p_since IS NOT NULL AND p.updated_at >= p_since)
+        )
       ORDER BY p.id ASC
       LIMIT v_limit + 1 OFFSET v_offset
     ),
@@ -284,12 +314,27 @@ BEGIN
         COALESCE(pt.credit_limit, 0) AS credit_limit,
         COALESCE(pt.payment_terms_days, 0) AS payment_terms_days,
         COALESCE(bal.balances_json, '{}'::jsonb) AS balances_json,
+        pt.deleted_at,
         pt.updated_at
       FROM public.parties pt
       LEFT JOIN bal ON bal.party_id = pt.id
       WHERE pt.company_id = p_company_id
-        AND pt.deleted_at IS NULL
-        AND (p_since IS NULL OR pt.updated_at >= p_since)
+        AND (
+          (p_since IS NULL AND pt.deleted_at IS NULL)
+          OR (
+            p_since IS NOT NULL AND (
+              pt.updated_at >= p_since
+              OR EXISTS (
+                SELECT 1 FROM public.invoices i
+                WHERE i.company_id = p_company_id AND i.party_id = pt.id AND i.updated_at >= p_since
+              )
+              OR EXISTS (
+                SELECT 1 FROM public.payments py
+                WHERE py.company_id = p_company_id AND py.party_id = pt.id AND py.updated_at >= p_since
+              )
+            )
+          )
+        )
       ORDER BY pt.id ASC
       LIMIT v_limit + 1 OFFSET v_offset
     ),

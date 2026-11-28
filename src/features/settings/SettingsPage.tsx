@@ -109,12 +109,10 @@ const SettingsPage: React.FC = () => {
     [setSearchParams]
   );
 
-  // Sync only when the URL `tab` query param itself changes (never include activeSection
-  // in deps — otherwise clicking another tab snaps back to the old URL tab!).
+  // Sync URL `tab` query param changes (never include activeSection in deps —
+  // otherwise clicking another tab snaps back to the old URL tab!).
   useEffect(() => {
-    if (tabParam) {
-      setActiveSectionState(tabParam);
-    }
+    setActiveSectionState(tabParam ?? 'profile');
   }, [tabParam]);
 
   const [searchQuery, setSearchQuery] = useState('');

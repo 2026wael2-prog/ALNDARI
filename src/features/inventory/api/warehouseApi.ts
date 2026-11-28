@@ -1,13 +1,41 @@
 import { supabase } from '../../../lib/supabaseClient';
+import type { Database } from '@/core/database.types';
 import type { TableInsert } from '@/core/types/supabase-helpers';
+import { edgeClient, shouldUseLocalFailover } from '@/core/offline/edgeClient';
 
 /** Warehouse and stock management */
 export const warehouseApi = {
   getWarehouses: async (companyId: string, branchId?: string | null) => {
-    return await supabase.rpc('get_warehouses_with_stats', {
-      p_company_id: companyId,
-      ...(branchId ? { p_branch_id: branchId } : {}),
-    });
+    const loadFromEdge = async () => {
+      const refs = await edgeClient.getReference<
+        Database['public']['Functions']['get_warehouses_with_stats']['Returns']
+      >('warehouses');
+      return { data: refs ?? [], error: null };
+    };
+
+    if (shouldUseLocalFailover()) {
+      try {
+        return await loadFromEdge();
+      } catch {
+        // fallback to cloud below
+      }
+    }
+
+    try {
+      const res = await supabase.rpc('get_warehouses_with_stats', {
+        p_company_id: companyId,
+        ...(branchId ? { p_branch_id: branchId } : {}),
+      });
+      if (res.error && shouldUseLocalFailover(res.error)) {
+        return await loadFromEdge();
+      }
+      return res;
+    } catch (err) {
+      if (shouldUseLocalFailover(err)) {
+        return await loadFromEdge();
+      }
+      throw err;
+    }
   },
 
   createInventoryTransactions: async (

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import type { Json } from '@/core/database.types';
 import { parseError } from '@/core/utils/errorUtils';
 import { formatLocalDate } from '@/core/utils/dateUtils';
 import type { CreateInvoicePayload, UpdateInvoicePayload, InvoiceResponse } from '../types';
@@ -142,7 +143,7 @@ export const invoicesApi = {
       // كما في admin_assign_company_plan: المعامل بلا DEFAULT فيجب أن يبقى حاضراً،
       // لكن NULL مشروع (بيع نقدي لعميل نقدي بلا طرف مسجَّل). النوع المولَّد لا يستطيع
       // التعبير عن «إلزامي الحضور ويقبل NULL»، فيُقيَّد النوع صراحةً هنا فقط.
-      p_party_id: (payload.partyId || null) as string,
+      p_party_id: payload.partyId as unknown as string,
       p_invoice_date: payload.issueDate || formatLocalDate(),
       // [FIX §18] كان `payload.dueDate || formatLocalDate()` ⇒ الاستحقاق = الإصدار
       // لكل فاتورة آجلة (صفر يوم سماح)، فظهر 100% من المديونية «متأخراً».
@@ -177,6 +178,12 @@ export const invoicesApi = {
     };
 
     if (payload.isCrossBranch) {
+      if (
+        shouldUseLocalFailover() ||
+        (typeof navigator !== 'undefined' && !navigator.onLine)
+      ) {
+        throw new Error('البيع والتحويل بين الفروع يتطلب اتصالاً مباشراً بالإنترنت');
+      }
       const sourceWarehouseId = payload.items[0]?.warehouseId;
       if (!sourceWarehouseId) {
         throw new Error('يجب تحديد المستودع لعملية البيع المتقاطع');
@@ -196,25 +203,35 @@ export const invoicesApi = {
         p_user_id: userId,
       };
 
-      const { data: result, error } = await supabase.rpc(
-        'fn_process_cross_branch_sale' as any,
+      type CrossBranchRpc = (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: unknown }>;
+      const { data: result, error } = await (supabase.rpc as unknown as CrossBranchRpc)(
+        'fn_process_cross_branch_sale',
         crossBranchParams
       );
-      if (error) throw parseError(error);
-      return { id: result } as unknown as InvoiceResponse;
+      if (error !== null && error !== undefined) throw parseError(error);
+      return {
+        id: typeof result === 'string' ? result : '',
+        invoice_number: '',
+        total_amount: 0,
+        status: 'posted',
+      };
     }
 
-    if (shouldUseLocalFailover()) {
-      const queued = await edgeClient.enqueueSalesInvoice(
-        rpcParams as unknown as Record<string, unknown>,
-        userId
-      );
+    const enqueueOfflineSale = async (): Promise<InvoiceResponse> => {
+      const queued = await edgeClient.enqueueSalesInvoice(rpcParams, userId);
       return {
         id: queued.id,
         invoice_number: queued.invoice_number,
         total_amount: queued.total_amount,
         status: 'offline_queued',
-      } as unknown as InvoiceResponse;
+      };
+    };
+
+    if (shouldUseLocalFailover()) {
+      return await enqueueOfflineSale();
     }
 
     let result: unknown;
@@ -225,40 +242,22 @@ export const invoicesApi = {
       error = rpcRes.error;
     } catch (netErr) {
       if (shouldUseLocalFailover(netErr)) {
-        const queued = await edgeClient.enqueueSalesInvoice(
-          rpcParams as unknown as Record<string, unknown>,
-          userId
-        );
-        return {
-          id: queued.id,
-          invoice_number: queued.invoice_number,
-          total_amount: queued.total_amount,
-          status: 'offline_queued',
-        } as unknown as InvoiceResponse;
+        return await enqueueOfflineSale();
       }
       throw netErr;
     }
 
-    if (error) {
+    if (error !== null && error !== undefined) {
       if (shouldUseLocalFailover(error)) {
-        const queued = await edgeClient.enqueueSalesInvoice(
-          rpcParams as unknown as Record<string, unknown>,
-          userId
-        );
-        return {
-          id: queued.id,
-          invoice_number: queued.invoice_number,
-          total_amount: queued.total_amount,
-          status: 'offline_queued',
-        } as unknown as InvoiceResponse;
+        return await enqueueOfflineSale();
       }
       throw parseError(error);
     }
 
     const invResponse: InvoiceResponse =
       typeof result === 'string'
-        ? ({ id: result, invoice_number: '', total_amount: 0, status: 'posted' } as unknown as InvoiceResponse)
-        : (result as unknown as InvoiceResponse);
+        ? { id: result, invoice_number: '', total_amount: 0, status: 'posted' }
+        : (result as InvoiceResponse);
     if (invResponse?.id) {
       void broadcastCrossBranchActivity(companyId, {
         id: invResponse.id,
@@ -302,7 +301,7 @@ export const invoicesApi = {
         p_invoice_id: (payload.referenceInvoiceId || null) as unknown as string,
         p_party_id: (payload.partyId || null) as unknown as string,
         p_payment_method: payload.paymentMethod || 'cash',
-        p_items: returnItems as any,
+        p_items: returnItems as unknown as Json,
         p_return_reason: payload.returnReason || '',
         p_status: 'posted',
         p_notes: payload.notes || '',

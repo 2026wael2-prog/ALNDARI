@@ -80,6 +80,24 @@ export class DeltaSyncWorker {
   }
 
   async callRpc(rpcName, args, timeoutMs = 20_000, authOpts = {}) {
+    const maxAttempts = authOpts.retryTransient ? 3 : 1;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await this._callRpcOnce(rpcName, args, timeoutMs, authOpts);
+      } catch (err) {
+        lastErr = err;
+        const isTransient = !err.httpStatus || err.httpStatus >= 500;
+        if (!authOpts.retryTransient || !isTransient || attempt === maxAttempts) {
+          throw err;
+        }
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      }
+    }
+    throw lastErr;
+  }
+
+  async _callRpcOnce(rpcName, args, timeoutMs = 20_000, authOpts = {}) {
     const headers = this.getAuthHeaders(authOpts);
     if (!headers) {
       const err = new Error('auth_token_unavailable');
@@ -213,14 +231,19 @@ export class DeltaSyncWorker {
     let serverTime = new Date().toISOString();
 
     while (true) {
-      const res = await this.callRpc('get_branch_mirror_delta', {
-        p_company_id: this.config.companyId,
-        p_branch_id: this.config.branchId,
-        p_since: since,
-        p_entity: entity,
-        p_limit: pageSize,
-        p_offset: offset,
-      });
+      const res = await this.callRpc(
+        'get_branch_mirror_delta',
+        {
+          p_company_id: this.config.companyId,
+          p_branch_id: this.config.branchId,
+          p_since: since,
+          p_entity: entity,
+          p_limit: pageSize,
+          p_offset: offset,
+        },
+        30_000,
+        { retryTransient: true }
+      );
 
       if (res?.server_time) serverTime = String(res.server_time);
 
@@ -234,10 +257,16 @@ export class DeltaSyncWorker {
       }
 
       const rows = Array.isArray(res?.rows) ? res.rows : [];
-      if (entity === 'products') this.mirror.upsertProducts(rows);
-      else if (entity === 'stock') this.mirror.upsertStock(rows);
-      else if (entity === 'parties') this.mirror.upsertParties(rows);
-      else if (entity === 'recent_invoices') this.mirror.upsertRecentInvoices(rows);
+      const CHUNK_SIZE = 250;
+      for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+        const chunk = rows.slice(i, i + CHUNK_SIZE);
+        if (entity === 'products') this.mirror.upsertProducts(chunk);
+        else if (entity === 'stock') this.mirror.upsertStock(chunk);
+        else if (entity === 'parties') this.mirror.upsertParties(chunk);
+        else if (entity === 'recent_invoices') this.mirror.upsertRecentInvoices(chunk);
+        // Yield to event loop so /health and LAN POS never stall during large syncs
+        await new Promise(resolve => setImmediate(resolve));
+      }
 
       totalFetched += rows.length;
       if (!res?.has_more || rows.length < pageSize) break;

@@ -51,6 +51,7 @@ export class GoogleDriveBackupWorker {
     this.fetchImpl = fetchImpl;
     this.isRunning = false;
     this.lastRun = null;
+    this.progress = null;
   }
 
   hasDriveCredentials() {
@@ -266,6 +267,39 @@ export class GoogleDriveBackupWorker {
     return deletedCount;
   }
 
+  async fetchPageWithRetry(url, headers, maxAttempts = 4) {
+    let lastErr = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort('backup-page-timeout'), 30_000);
+      try {
+        const resp = await this.fetchImpl(url, {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+        });
+        if (resp.ok) {
+          return await resp.json();
+        }
+        if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+        lastErr = new Error(`HTTP ${resp.status}`);
+      } catch (err) {
+        lastErr = err;
+        if (err instanceof Error && /^HTTP 4\d\d$/.test(err.message)) {
+          throw err;
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, Math.min(8000, 1000 * 2 ** (attempt - 1))));
+      }
+    }
+    throw lastErr || new Error('fetch failed');
+  }
+
   async *streamSnapshotChunks(headers) {
     let totalRows = 0;
     const exportedAt = new Date().toISOString();
@@ -276,17 +310,18 @@ export class GoogleDriveBackupWorker {
       let firstTable = true;
       for (const entry of BACKUP_TABLES) {
         const table = entry.table;
+        const pkCol = entry.orderBy.split('.')[0];
+        this.progress = { table, exportedRows: totalRows };
         if (!firstTable) yield ',';
         firstTable = false;
         yield `${JSON.stringify(table)}:[`;
 
-        let from = 0;
+        let lastPk = null;
         let firstRow = true;
         while (true) {
           const params = new URLSearchParams({
             select: '*',
             order: entry.orderBy,
-            offset: String(from),
             limit: String(PAGE_SIZE),
           });
           if (entry.filterType === 'id') {
@@ -294,14 +329,20 @@ export class GoogleDriveBackupWorker {
           } else if (entry.filterType === 'company_id') {
             params.set('company_id', `eq.${this.config.companyId}`);
           }
-          const resp = await this.fetchImpl(`${this.config.supabaseUrl}/rest/v1/${table}?${params}`, {
-            method: 'GET',
-            headers,
-          });
-          if (!resp.ok) {
-            throw new Error(`Export table ${table} failed (HTTP ${resp.status})`);
+          if (lastPk !== null && lastPk !== undefined) {
+            params.set(pkCol, `gt.${String(lastPk)}`);
           }
-          const batch = await resp.json();
+
+          let batch;
+          try {
+            batch = await this.fetchPageWithRetry(
+              `${this.config.supabaseUrl}/rest/v1/${table}?${params}`,
+              headers
+            );
+          } catch (err) {
+            throw new Error(`Export table ${table} failed (${err?.message || 'fetch failed'})`);
+          }
+
           if (!Array.isArray(batch) || batch.length === 0) break;
           for (const row of batch) {
             if (!firstRow) yield ',';
@@ -309,8 +350,9 @@ export class GoogleDriveBackupWorker {
             yield JSON.stringify(row);
             totalRows += 1;
           }
-          if (batch.length < PAGE_SIZE) break;
-          from += PAGE_SIZE;
+          this.progress = { table, exportedRows: totalRows };
+          lastPk = batch[batch.length - 1]?.[pkCol] ?? null;
+          if (batch.length < PAGE_SIZE || lastPk === null) break;
         }
         yield ']';
       }
@@ -428,6 +470,13 @@ export class GoogleDriveBackupWorker {
       await this.logBackupRun(summary);
       return summary;
     } catch (err) {
+      if (fs.existsSync(localPath)) {
+        try {
+          fs.unlinkSync(localPath);
+        } catch {
+          // ignore cleanup failure
+        }
+      }
       const failedSummary = {
         company_id: this.config.companyId,
         branch_id: this.config.branchId,
@@ -435,7 +484,7 @@ export class GoogleDriveBackupWorker {
         destination,
         status: 'failed',
         file_name: fileName,
-        local_path: fs.existsSync(localPath) ? localPath : null,
+        local_path: null,
         error_message: err.message,
         started_at: startedAt,
         completed_at: new Date().toISOString(),
@@ -445,6 +494,7 @@ export class GoogleDriveBackupWorker {
       throw err;
     } finally {
       this.isRunning = false;
+      this.progress = null;
     }
   }
 }

@@ -142,7 +142,32 @@ export class SqliteMirror {
     if (!partyCols.some(c => c.name === 'local_delta_usd')) {
       this.db.exec('ALTER TABLE mirror_parties ADD COLUMN local_delta_usd REAL NOT NULL DEFAULT 0');
     }
+    this.ensureFtsRowidAlignment();
     this.recoverStuckSyncing();
+  }
+
+  ensureFtsRowidAlignment() {
+    const ftsCount = this.db.prepare('SELECT COUNT(*) AS c FROM mirror_products_fts').get()?.c || 0;
+    const prodCount = this.db.prepare('SELECT COUNT(*) AS c FROM mirror_products').get()?.c || 0;
+    const misaligned = this.db
+      .prepare(
+        `SELECT 1 FROM mirror_products_fts f
+         LEFT JOIN mirror_products p ON p.rowid = f.rowid
+         WHERE p.rowid IS NULL LIMIT 1`
+      )
+      .get();
+    if (misaligned || (prodCount > 0 && ftsCount !== prodCount)) {
+      this.runInTransaction(() => {
+        this.db.exec('DELETE FROM mirror_products_fts');
+        this.db.exec(`
+          INSERT INTO mirror_products_fts (
+            rowid, product_id, name_norm, part_number, sku, brand, alternative_numbers, barcode
+          )
+          SELECT rowid, id, name_norm, part_number, sku, brand, alternative_numbers, barcode
+          FROM mirror_products
+        `);
+      });
+    }
   }
 
   recoverStuckSyncing() {
@@ -209,19 +234,24 @@ export class SqliteMirror {
         is_core = excluded.is_core,
         updated_at = excluded.updated_at
     `);
+    const getRowId = this.db.prepare('SELECT rowid FROM mirror_products WHERE id = ?');
     const deleteMain = this.db.prepare('DELETE FROM mirror_products WHERE id = ?');
-    const deleteFts = this.db.prepare('DELETE FROM mirror_products_fts WHERE product_id = ?');
+    const deleteFtsByRowid = this.db.prepare('DELETE FROM mirror_products_fts WHERE rowid = ?');
     const insertFts = this.db.prepare(`
       INSERT INTO mirror_products_fts (
-        product_id, name_norm, part_number, sku, brand, alternative_numbers, barcode
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        rowid, product_id, name_norm, part_number, sku, brand, alternative_numbers, barcode
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     return this.runInTransaction(() => {
       for (const r of rows) {
+        const strId = String(r.id);
+        const existing = getRowId.get(strId);
+        if (existing?.rowid) {
+          deleteFtsByRowid.run(existing.rowid);
+        }
         if (r.deleted_at) {
-          deleteFts.run(String(r.id));
-          deleteMain.run(String(r.id));
+          deleteMain.run(strId);
           continue;
         }
         const nameAr = String(r.name_ar || '');
@@ -232,7 +262,7 @@ export class SqliteMirror {
         const alt = String(r.alternative_numbers || '');
         const barcode = String(r.barcode || '');
         upsertMain.run(
-          String(r.id),
+          strId,
           nameAr,
           nameNorm,
           sku,
@@ -248,16 +278,19 @@ export class SqliteMirror {
           r.is_core ? 1 : 0,
           r.updated_at ? String(r.updated_at) : null
         );
-        deleteFts.run(String(r.id));
-        insertFts.run(
-          String(r.id),
-          nameNorm,
-          normalizeArabic(partNumber),
-          normalizeArabic(sku),
-          normalizeArabic(brand),
-          normalizeArabic(alt),
-          normalizeArabic(barcode)
-        );
+        const saved = existing?.rowid ? existing : getRowId.get(strId);
+        if (saved?.rowid) {
+          insertFts.run(
+            saved.rowid,
+            strId,
+            nameNorm,
+            normalizeArabic(partNumber),
+            normalizeArabic(sku),
+            normalizeArabic(brand),
+            normalizeArabic(alt),
+            normalizeArabic(barcode)
+          );
+        }
       }
       return rows.length;
     });
@@ -424,7 +457,7 @@ export class SqliteMirror {
         productRows = this.db
           .prepare(
             `SELECT p.* FROM mirror_products p
-             JOIN mirror_products_fts f ON f.product_id = p.id
+             JOIN mirror_products_fts f ON f.rowid = p.rowid
              WHERE mirror_products_fts MATCH ?
              ORDER BY rank
              LIMIT ?`

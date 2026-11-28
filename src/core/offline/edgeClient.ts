@@ -150,15 +150,18 @@ async function edgeFetch<T>(
   }
 }
 
+let consecutiveHealthMisses = 0;
+
 export const edgeClient = {
   checkHealth: async (): Promise<EdgeHealthResponse | null> => {
     try {
       const data = await edgeFetch<EdgeHealthResponse>('/health', {
         method: 'GET',
         includeAuth: true,
-        timeoutMs: 1500,
+        timeoutMs: 4000,
       });
       if (data.ok) {
+        consecutiveHealthMisses = 0;
         useConnectionStore.getState().setEdgeHealth({
           available: true,
           branchCode: data.branchCode,
@@ -170,7 +173,10 @@ export const edgeClient = {
       }
       return null;
     } catch {
-      useConnectionStore.getState().setEdgeHealth({ available: false });
+      consecutiveHealthMisses += 1;
+      if (consecutiveHealthMisses >= 2 || !useConnectionStore.getState().edgeAvailable) {
+        useConnectionStore.getState().setEdgeHealth({ available: false });
+      }
       return null;
     }
   },
@@ -367,7 +373,7 @@ export const edgeClient = {
     return await edgeFetch('/backup/run', {
       method: 'POST',
       includeAuth: true,
-      timeoutMs: 120_000,
+      timeoutMs: 300_000,
       body: JSON.stringify({}),
     });
   },

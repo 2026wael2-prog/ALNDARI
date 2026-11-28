@@ -27,7 +27,7 @@ const MIME_TYPES = {
 
 function isAllowedCorsOrigin(origin) {
   if (!origin) return true;
-  if (origin === 'https://alndari.vercel.app') return true;
+  if (/^https:\/\/(alndari|aljaafari-alzhra)[a-z0-9-]*\.vercel\.app$/i.test(origin)) return true;
   if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(origin)) return true;
   if (/^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/i.test(origin)) {
     return true;
@@ -87,6 +87,7 @@ export function createEdgeServer({ config, mirror, syncWorker, backupWorker }) {
       const headers = {
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-edge-user-id, X-Edge-Secret',
+        'Access-Control-Allow-Private-Network': 'true',
         'Access-Control-Max-Age': '86400',
       };
       if (origin) {
